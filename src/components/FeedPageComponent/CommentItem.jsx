@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Stack, Avatar, Typography, Button, Box, TextField, IconButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SendIcon from "@mui/icons-material/Send";
-import axios from "../api/axios";
+import axios from "../../api/axios";
 
 const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
   const navigate = useNavigate();

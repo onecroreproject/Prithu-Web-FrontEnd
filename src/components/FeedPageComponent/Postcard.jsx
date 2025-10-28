@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Avatar, Card, CardMedia, IconButton, Stack, Typography,
-  Box, Snackbar
+  Avatar,
+  Card,
+  CardMedia,
+  IconButton,
+  Stack,
+  Typography,
+  Box,
+  Snackbar,
+  Skeleton,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,10 +22,10 @@ import {
   VolumeOff as VolumeOffIcon,
   PlayArrow as PlayArrowIcon,
   Pause as PauseIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
 } from "@mui/icons-material";
 
-import axios from "../api/axios";
+import axios from "../../api/axios";
 import SubscriptionModal from "./SubscriptionModal";
 import PostCommentsModal from "./PostCommentsModal";
 import PostOptionsMenu from "./PostOptionsMenu";
@@ -37,6 +44,7 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
   const [isPlaying, setIsPlaying] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Loading state
 
   const tempUser = authUser || { _id: "guestUser", userName: "You" };
 
@@ -48,8 +56,15 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     userName,
     profileAvatar,
     caption,
+    description,
     timeAgo = "",
   } = postData;
+
+  // ✅ Simulate content loading (replace this with your actual API delay)
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, [postData]);
 
   // Update isLiked when postData changes
   useEffect(() => {
@@ -109,50 +124,42 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     const newIsLiked = !isLiked;
     setIsLiked(newIsLiked);
     setLikesCount((prev) => (newIsLiked ? prev + 1 : Math.max(prev - 1, 0)));
-    
+
     try {
-      await axios.post("/api/user/feed/like", { 
+      await axios.post("/api/user/feed/like", {
         feedId,
-        userId: tempUser._id 
+        userId: tempUser._id,
       });
-      // Update local storage or context to persist the like state
       updatePersistedLikes(feedId, newIsLiked);
     } catch (err) {
-      // Revert on error
       setIsLiked(!newIsLiked);
       setLikesCount((prev) => (newIsLiked ? Math.max(prev - 1, 0) : prev + 1));
       console.error("Like action failed:", err);
     }
   };
 
-  // Helper function to persist likes in localStorage (optional)
   const updatePersistedLikes = (feedId, liked) => {
     try {
-      const persistedLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
+      const persistedLikes = JSON.parse(localStorage.getItem("userLikes") || "{}");
       if (liked) {
         persistedLikes[feedId] = true;
       } else {
         delete persistedLikes[feedId];
       }
-      localStorage.setItem('userLikes', JSON.stringify(persistedLikes));
+      localStorage.setItem("userLikes", JSON.stringify(persistedLikes));
     } catch (err) {
       console.error("Failed to persist likes:", err);
     }
   };
 
-  // Check persisted likes on component mount
   useEffect(() => {
     try {
-      const persistedLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
-      if (persistedLikes[feedId]) {
-        setIsLiked(true);
-      }
+      const persistedLikes = JSON.parse(localStorage.getItem("userLikes") || "{}");
+      if (persistedLikes[feedId]) setIsLiked(true);
     } catch (err) {
       console.error("Failed to load persisted likes:", err);
     }
   }, [feedId]);
-
-  
 
   const handleSave = async () => {
     try {
@@ -194,14 +201,16 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/post/${feedId}`;
     if (navigator.share) {
-      navigator.share({
-        title: "Check this post",
-        text: caption || "Check this post",
-        url: shareUrl,
-      }).catch((err) => {
-        console.error("Share failed:", err);
-        setToastMsg("Share failed.");
-      });
+      navigator
+        .share({
+          title: "Check this post",
+          text: caption || "Check this post",
+          url: shareUrl,
+        })
+        .catch((err) => {
+          console.error("Share failed:", err);
+          setToastMsg("Share failed.");
+        });
     } else {
       navigator.clipboard
         .writeText(shareUrl)
@@ -210,8 +219,31 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     }
   };
 
+  // ✅ Skeleton Loading View
+  if (loading) {
+    return (
+      <Card sx={{ width: 590, margin: "0 auto", mb: 4, borderRadius: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1} p={2}>
+          <Skeleton variant="circular" width={40} height={40} />
+          <Stack flex={1}>
+            <Skeleton variant="text" width="40%" />
+            <Skeleton variant="text" width="20%" />
+          </Stack>
+        </Stack>
+        <Skeleton variant="rectangular" width="100%" height={470} />
+        <Stack p={2}>
+          <Skeleton variant="text" width="30%" />
+          <Skeleton variant="text" width="80%" />
+          <Skeleton variant="text" width="60%" />
+        </Stack>
+      </Card>
+    );
+  }
+
+  // ✅ Main Feed Content
   return (
     <Card sx={{ width: 590, margin: "0 auto", mb: 4, borderRadius: 2, minHeight: 650 }}>
+      {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" p={2}>
         <Stack
           direction="row"
@@ -223,26 +255,43 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
           <Avatar src={profileAvatar || "https://i.pravatar.cc/150"} />
           <Stack>
             <Typography fontWeight={500}>{userName}</Typography>
-            <Typography variant="caption" color="gray">{timeAgo}</Typography>
+            <Typography variant="caption" color="gray">
+              {timeAgo}
+            </Typography>
+            {description && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 0.5,
+                  overflow: "hidden",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 4,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
+                {description}
+              </Typography>
+            )}
           </Stack>
         </Stack>
         <PostOptionsMenu
           feedId={feedId}
           authUserId={tempUser._id}
           token={token}
-          onHidePost={(id) => {
-    if (onHidePost) onHidePost(id); // Remove post from parent UI
-  }}
-  onNotInterested={(id) => {
-    if (onNotInterested) onNotInterested(id); // Remove post from parent UI
-  }}
-          
-          
+          onHidePost={onHidePost}
+          onNotInterested={onNotInterested}
         />
       </Stack>
-      <Box sx={{ width: "100%", height: 470, position: "relative", background: "#000", overflow: "hidden" }}>
+
+      {/* Media */}
+      <Box sx={{ width: "100%", height: 470, position: "relative", background: "#000" }}>
         {type === "image" ? (
-          <CardMedia component="img" image={contentUrl} sx={{ width: "100%", height: "470px", objectFit: "cover" }} />
+          <CardMedia
+            component="img"
+            image={contentUrl}
+            sx={{ width: "100%", height: "470px", objectFit: "cover" }}
+          />
         ) : (
           <>
             <video
@@ -286,6 +335,8 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
           </>
         )}
       </Box>
+
+      {/* Actions */}
       <Stack px={2} pt={1} spacing={1}>
         <Stack direction="row" justifyContent="space-between">
           <Stack direction="row" spacing={1}>
@@ -335,13 +386,21 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
           </Typography>
         )}
       </Stack>
+
       <PostCommentsModal
         open={showCommentsModal}
         onClose={() => setShowCommentsModal(false)}
         feedId={feedId}
         authUser={tempUser}
       />
-      <Snackbar open={!!toastMsg} autoHideDuration={2000} onClose={() => setToastMsg("")} message={toastMsg} />
+
+      <Snackbar
+        open={!!toastMsg}
+        autoHideDuration={2000}
+        onClose={() => setToastMsg("")}
+        message={toastMsg}
+      />
+
       <SubscriptionModal open={false} onClose={() => {}} />
     </Card>
   );

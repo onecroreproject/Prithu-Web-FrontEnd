@@ -12,7 +12,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import CommentItem from "./CommentItem";
-import axios from "../api/axios";
+import axios from "../../api/axios";
 
 const PostCommentsModal = ({ open, onClose, post, authUser, feedId }) => {
   const [comments, setComments] = useState([]);

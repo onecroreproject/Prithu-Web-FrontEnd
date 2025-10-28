@@ -10,7 +10,6 @@ import Login from "./components/Login.jsx";
 import Layout from "./components/Layout.jsx";
 import ProfilePage from "./pages/Profilelayout.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-import EditProfilePage from "./pages/EditProfilePage.jsx";
 import SubscriptionPage from "./pages/SubscriptionPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import ReelsPage from "./pages/ReelsPage.jsx";
@@ -62,7 +61,6 @@ function AppRoutes() {
         <Route index element={<div />} />
         <Route path="profile" element={<Profilelayout />} />
         <Route path="search" element={<SearchPage />} />
-        <Route path="edit-profile" element={<EditProfilePage />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="reels" element={<ReelsPage />} />
         <Route path="invite" element={<InviteFriends />} />

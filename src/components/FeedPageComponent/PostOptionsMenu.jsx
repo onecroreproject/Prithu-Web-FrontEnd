@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { IconButton, Menu, MenuItem, Snackbar } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import axios from "../api/axios";
+import axios from "../../api/axios";
 
 const PostOptionsMenu = ({ feedId, authUserId, token, onNotInterested, onHidePost }) => {
   const [anchorEl, setAnchorEl] = useState(null);

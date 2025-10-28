@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import LeftSidebarButtons from "../components/createPostModelComponets/leftSidebarButtons";
-import MediaUploader from "../components/createPostModelComponets/mediaUploader";
-import GifSelector from "../components/createPostModelComponets/gifSelector";
-import LocationInput from "../components/createPostModelComponets/locationInput";
-import TagFriends from "../components/createPostModelComponets/tagFriends";
+import LeftSidebarButtons from "./createPostModelComponets/leftSidebarButtons";
+import MediaUploader from "./createPostModelComponets/mediaUploader";
+import GifSelector from "./createPostModelComponets/gifSelector";
+import LocationInput from "./createPostModelComponets/locationInput";
+import TagFriends from "./createPostModelComponets/tagFriends";
 import { uploadCreatorFeed } from "../API_Services/postServices";
 import { toast } from "react-hot-toast";
 import api from "../api/axios";

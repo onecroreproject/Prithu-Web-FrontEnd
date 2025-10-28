@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "../api/axios";
 import { Search as SearchIcon } from "lucide-react";
-import Postcard from "../components/Postcard"; // your existing Postcard component
+import Postcard from "../components/FeedPageComponent/Postcard"; // your existing Postcard component
 
 const SearchPage = () => {
   const { token, user } = useContext(AuthContext);

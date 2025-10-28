@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "../api/axios";
-import Postcard from "../components/Postcard";
+import Postcard from "../components/FeedPageComponent/Postcard";
 
 const LikedPosts = () => {
   const [posts, setPosts] = useState([]);

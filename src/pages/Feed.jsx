@@ -1,11 +1,11 @@
-/*  Feed.jsx  */
+/* Feed.jsx */
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "../api/axios";
 
-import Stories from "./Stories";
-import Createpost from "./Createpost";   // <-- import your CreatePost component
-import Postcard from "./Postcard";
+import Stories from "../components/Stories";
+import Createpost from "../components/Createpost";
+import Postcard from "../components/FeedPageComponent/Postcard";
 
 const Feed = ({ authUser }) => {
   const { token } = useContext(AuthContext);
@@ -17,14 +17,14 @@ const Feed = ({ authUser }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   /* --------------------------------------------------------------
-     Remove a hidden post
+     Remove hidden post
   -------------------------------------------------------------- */
   const handleRemovepost = (feedId) => {
     setFeeds((prev) => prev.filter((f) => f.feedId !== feedId));
   };
 
   /* --------------------------------------------------------------
-     Fisher-Yates shuffle (kept from your code)
+     Shuffle feeds
   -------------------------------------------------------------- */
   const shuffleArray = (array) => {
     const shuffled = [...array];
@@ -36,7 +36,7 @@ const Feed = ({ authUser }) => {
   };
 
   /* --------------------------------------------------------------
-     Fetch feeds (initial + load-more)
+     Fetch feeds
   -------------------------------------------------------------- */
   const fetchFeeds = useCallback(
     async (pageNum = 1, isLoadMore = false) => {
@@ -55,6 +55,7 @@ const Feed = ({ authUser }) => {
           type: feed.type || "image",
           contentUrl: feed.contentUrl || "",
           caption: feed.caption || "",
+          description: feed.dec || "",
           _id: feed._id || "guest",
           userName: feed.userName || "Unknown",
           profileAvatar: feed.profileAvatar || "",
@@ -67,11 +68,8 @@ const Feed = ({ authUser }) => {
 
         const processed = isLoadMore ? formatted : shuffleArray(formatted);
 
-        if (isLoadMore) {
-          setFeeds((prev) => [...prev, ...processed]);
-        } else {
-          setFeeds(processed);
-        }
+        if (isLoadMore) setFeeds((prev) => [...prev, ...processed]);
+        else setFeeds(processed);
 
         setHasMore(formatted.length === 10);
         setPage(pageNum);
@@ -113,7 +111,7 @@ const Feed = ({ authUser }) => {
   }, [handleScroll]);
 
   /* --------------------------------------------------------------
-     Dummy stories (kept from your code)
+     Dummy stories (for now)
   -------------------------------------------------------------- */
   const dummyStories = Array(7)
     .fill()
@@ -124,20 +122,48 @@ const Feed = ({ authUser }) => {
       feedId: i,
     }));
 
+  /* --------------------------------------------------------------
+     Skeleton Loader
+  -------------------------------------------------------------- */
+  if (loading) {
+    return (
+      <div className="mx-auto px-2 py-5 max-w-2xl">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-6 animate-pulse">
+          <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-[300px] bg-gray-200 rounded-lg"></div>
+          <div className="mt-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm mb-6 animate-pulse">
+          <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-[300px] bg-gray-200 rounded-lg"></div>
+          <div className="mt-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------------------------------------------------
+     Main Return
+  -------------------------------------------------------------- */
   return (
-    <div className=" mx-auto px-2 py-5">
-      {/* ---------- Stories (full width) ---------- */}
+    <div className="mx-auto px-2 py-5">
+      {/* ---------- Stories ---------- */}
       <div className="w-full">
         <Stories feeds={dummyStories} />
       </div>
 
-      {/* ---------- Create Post (right under Stories) ---------- */}
-<div className="mt-4 mb-6 max-w-2xl ">
-  <Createpost authUser={authUser} token={token} />
-</div>
+      {/* ---------- Create Post ---------- */}
+      <div className="mt-4 mb-6 max-w-2xl">
+        <Createpost authUser={authUser} token={token} />
+      </div>
 
-      {/* ---------- Feed Posts ---------- */}
-      {loading && <p className="text-center py-6 text-gray-500">Loading feeds…</p>}
+      {/* ---------- Feeds ---------- */}
       {error && <p className="text-center py-6 text-red-500">{error}</p>}
 
       <div className="flex flex-col gap-6">
@@ -153,11 +179,13 @@ const Feed = ({ authUser }) => {
             />
           ))
         ) : (
-          !loading && <p className="text-center text-gray-500">No feeds available.</p>
+          !loading && (
+            <p className="text-center text-gray-500">No feeds available.</p>
+          )
         )}
       </div>
 
-      {/* ---------- Load-more spinner ---------- */}
+      {/* ---------- Load more spinner ---------- */}
       {isLoadingMore && (
         <div className="flex justify-center py-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>

@@ -1,6 +1,6 @@
 // src/app/Layout.jsx
 import Header from './Header';
-import Feed from './Feed';
+import Feed from '../pages/Feed';
 import UpcomingEvents from './UpcomingEvents';
 import Birthdays from './Birthdays';
 import CommunityChats from './CommunityChats';
