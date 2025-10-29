@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import axios from "../api/axios";               // <-- your axios instance
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../context/AuthContext";
 
 const plans = [
   { title: "3 Months", price: 1, features: ["Unlimited access to podcasts", "Unlimited songs download", "Unlimited skips"] },

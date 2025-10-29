@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { Toaster } from "react-hot-toast";
 
 // Context
-import { AuthProvider, useAuth } from "../context/AuthContext.jsx";
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { UserStatusProvider } from "./context/userContext.jsx";
 
 // Pages
 import Login from "./components/Login.jsx";
@@ -109,8 +110,10 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
+        <UserStatusProvider>
         <AppRoutes />
         <Toaster position="top-right" reverseOrder={false} />
+        </UserStatusProvider>
       </AuthProvider>
     </Router>
   );

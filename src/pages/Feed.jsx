@@ -1,6 +1,6 @@
 /* Feed.jsx */
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../context/AuthContext";
 import axios from "../api/axios";
 
 import Stories from "../components/Stories";

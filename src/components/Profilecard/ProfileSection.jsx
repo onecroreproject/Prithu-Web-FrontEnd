@@ -1,7 +1,7 @@
 // src/components/Profile/PostSection.jsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import toast from "react-hot-toast";
 
