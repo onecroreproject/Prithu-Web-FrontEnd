@@ -1,22 +1,23 @@
 // src/components/Profile/ChangeCoverImage.jsx
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../../api/axios";
 import { toast } from "react-hot-toast";
 
 export default function ChangeCoverImage({ user, fetchUserProfile }) {
-  const [preview, setPreview] = useState(user?.coverImage || "");
+  const [preview, setPreview] = useState(user?.coverPhoto || "");
   const [loading, setLoading] = useState(false);
 
   const handleFileChange = async (e) => {
+    console.log("called")
     const file = e.target.files?.[0];
     if (!file) return;
 
     const form = new FormData();
-    form.append("coverImage", file);
+    form.append("coverPhoto", file);
 
     try {
       setLoading(true);
-      await axios.post("/api/user/profile/cover", form, {
+      await api.post("/api/user/profile/cover/update", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Cover image updated!");

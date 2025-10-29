@@ -1,79 +1,48 @@
-// src/pages/ProfileSettings.jsx
 import React, { useState, useEffect, useContext } from "react";
 import api from "../../../api/axios";
 import { AuthContext } from "../../../../context/AuthContext";
 import { toast } from "react-hot-toast";
-
-import ChangeProfilePhoto from "./changeProfilePhoto";
-import ChangeCoverImage from "./changeCoverPhoto";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProfileSettings() {
-  const { token, user } = useContext(AuthContext);
-  const [profileData, setProfileData] = useState(null);
+  const { token } = useContext(AuthContext);
+  const [visibility, setVisibility] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // ✅ Local states for settings
-  const [showProfile, setShowProfile] = useState(true);
-  const [emailOnFollow, setEmailOnFollow] = useState(true);
-
-  // ✅ Fetch existing profile data
-  const fetchUserProfile = async () => {
+  // ✅ Fetch current visibility settings
+  const fetchVisibilitySettings = async () => {
     try {
-      const { data } = await api.get("/api/profile/settings", {
+      const { data } = await api.get("/api/user/update/visibility/settings", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProfileData(data.profile);
-
-      // Initialize settings if available
-      setShowProfile(data.profile?.privacy?.showProfile ?? true);
-      setEmailOnFollow(data.profile?.notifications?.emailOnFollow ?? true);
+      setVisibility(data.visibility || {});
     } catch (err) {
-      console.error("Failed to load profile:", err);
-      toast.error("Failed to load profile");
+      console.error("Failed to load visibility settings:", err);
+      toast.error("Failed to load visibility settings");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUserProfile();
+    fetchVisibilitySettings();
   }, [token]);
 
-  // ✅ Upload profile or cover image
-  const uploadProfileDetail = async (formData) => {
-    try {
-      const { data } = await api.put("/api/profile/update", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      setProfileData(data.profile);
-      toast.success("Profile updated successfully!");
-    } catch (err) {
-      console.error("Upload failed:", err);
-      toast.error("Failed to upload image");
-    }
-  };
-
-  // ✅ Save privacy/notification settings
-  const saveSettings = async () => {
+  // ✅ Update specific field’s visibility
+  const updateVisibility = async (field, value) => {
     try {
       await api.post(
-        "/api/user/profile/settings",
-        {
-          privacy: { showProfile },
-          notifications: { emailOnFollow },
-        },
+        "/api/user/update/visibility/settings",
+        { field, value, type: "general" },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      toast.success("Settings saved!");
-      await fetchUserProfile();
+      toast.success(`Updated ${field} visibility to ${value}`);
+      setVisibility((prev) => ({ ...prev, [field]: value }));
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to save settings");
+      console.error("Failed to update visibility:", err);
+      toast.error("Failed to update visibility");
     }
   };
 
@@ -84,81 +53,116 @@ export default function ProfileSettings() {
       await api.delete("/api/user/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("Profile deleted");
-      // Optional: redirect or logout here
+      toast.success("Profile deleted successfully!");
+      // Optional: redirect or logout
     } catch (err) {
-      console.error(err);
-      toast.error("Deletion failed");
+      console.error("Delete failed:", err);
+      toast.error("Failed to delete profile");
     }
   };
 
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen text-gray-600">
-        Loading profile...
+        Loading privacy settings...
       </div>
     );
 
+  // ✅ All available privacy fields
+  const fields = [
+    { key: "displayName", label: "Display Name" },
+    { key: "userName", label: "Username" },
+    { key: "email", label: "Email" },
+    { key: "phoneNumber", label: "Phone Number" },
+    { key: "bio", label: "Bio" },
+    { key: "dateOfBirth", label: "Date of Birth" },
+    { key: "maritalStatus", label: "Marital Status" },
+    { key: "country", label: "Country" },
+    { key: "city", label: "City" },
+    { key: "profileAvatar", label: "Profile Avatar" },
+    { key: "coverPhoto", label: "Cover Photo" },
+    { key: "socialLinks", label: "Social Links" },
+  ];
+
+  // ✅ Animation variants
+  const fadeSlide = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-10">
-      {/* Privacy + Notifications */}
-      <div className="bg-white shadow-sm  rounded-xl p-6 text-gray-800">
-        <h3 className="text-lg font-semibold mb-6">Privacy & Notifications</h3>
+      {/* Privacy Section */}
+      <motion.div
+        className="bg-white shadow-sm rounded-xl p-6 text-gray-800"
+        initial="hidden"
+        animate="visible"
+        transition={{ staggerChildren: 0.05 }}
+      >
+        <h3 className="text-lg font-semibold mb-6">Privacy Settings</h3>
 
-        <div className="space-y-8 max-w-2xl">
-          {/* Privacy */}
-          <div>
-            <h4 className="font-medium text-gray-800 mb-3">Privacy</h4>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={showProfile}
-                onChange={(e) => setShowProfile(e.target.checked)}
-                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-600">
-                Show profile to everyone
-              </span>
-            </label>
-          </div>
+        <AnimatePresence>
+          <div className="space-y-6">
+            {fields.map(({ key, label }) => (
+              <motion.div
+                key={key}
+                variants={fadeSlide}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="border-b border-gray-100 pb-3"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <span className="font-medium text-gray-700">{label}</span>
 
-          {/* Notifications */}
-          <div>
-            <h4 className="font-medium text-gray-800 mb-3">Notifications</h4>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={emailOnFollow}
-                onChange={(e) => setEmailOnFollow(e.target.checked)}
-                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-600">
-                Email me when someone follows me
-              </span>
-            </label>
+                  <div className="flex gap-3 flex-wrap">
+                    {["public", "followers", "private"].map((option) => (
+                      <label
+                        key={option}
+                        className={`flex items-center gap-1 text-sm cursor-pointer ${
+                          visibility[key] === option
+                            ? "text-purple-700 font-medium"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={key}
+                          value={option}
+                          checked={visibility[key] === option}
+                          onChange={() => updateVisibility(key, option)}
+                          className="accent-purple-600"
+                        />
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
+        </AnimatePresence>
+      </motion.div>
 
-          {/* Save Button */}
-          <div className="pt-4">
-            <button
-              onClick={saveSettings}
-              className="px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition"
-            >
-              Save Settings
-            </button>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="pt-6 border-t border-gray-200">
-            <button
-              onClick={deleteProfile}
-              className="text-sm font-medium text-red-600 hover:text-red-700 transition"
-            >
-              Delete Profile
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Danger Zone */}
+      <motion.div
+        className="bg-white shadow-sm rounded-xl p-6 text-gray-800"
+        variants={fadeSlide}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.2 }}
+      >
+        <h3 className="text-lg font-semibold mb-4 text-red-600">Danger Zone</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Once deleted, your profile cannot be recovered.
+        </p>
+        <button
+          onClick={deleteProfile}
+          className="px-5 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
+        >
+          Delete Profile
+        </button>
+      </motion.div>
     </div>
   );
 }

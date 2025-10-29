@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 
 export default function ChangeProfilePhoto({ user, uploadProfileDetail }) {
-  const [preview, setPreview] = useState(user?.profilePhoto || "");
+  const [preview, setPreview] = useState(user?.profileAvatar || "");
   const [loading, setLoading] = useState(false);
 
   // ✅ Handle file select + preview
@@ -20,7 +20,7 @@ export default function ChangeProfilePhoto({ user, uploadProfileDetail }) {
   // ✅ Handle upload to server
   const handleFileUpload = async (file) => {
     const form = new FormData();
-    form.append("profilePhoto", file);
+    form.append("file", file);
     try {
       setLoading(true);
       await uploadProfileDetail(form);

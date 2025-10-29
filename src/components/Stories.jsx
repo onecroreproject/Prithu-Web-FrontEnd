@@ -2,13 +2,33 @@ import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import { FiPlay, FiX, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import { getVideoThumbnail } from "get-video-thumbnail";
 
 const Stories = () => {
   const [feeds, setFeeds] = useState([]);
   const [selectedFeedIndex, setSelectedFeedIndex] = useState(null);
   const [thumbnails, setThumbnails] = useState({});
-  const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Helper: generate video thumbnail in-browser
+  const getVideoThumbnail = (videoUrl) =>
+    new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.src = videoUrl;
+      video.crossOrigin = "anonymous";
+      video.muted = true;
+      video.currentTime = 1;
+
+      video.addEventListener("loadeddata", () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      });
+
+      video.addEventListener("error", (e) => reject(e));
+    });
 
   // ✅ Fetch trending feeds
   useEffect(() => {
@@ -19,14 +39,14 @@ const Stories = () => {
         const data = res.data?.data || [];
         setFeeds(data);
 
-        // ✅ Generate video thumbnails
+        // ✅ Generate thumbnails for videos
         data.forEach(async (feed) => {
           if (feed.type === "video" && feed.contentUrl) {
             try {
-              const thumb = await getVideoThumbnail(feed.contentUrl, 1);
+              const thumb = await getVideoThumbnail(feed.contentUrl);
               setThumbnails((prev) => ({ ...prev, [feed._id]: thumb }));
             } catch (err) {
-              console.warn("Failed to extract thumbnail:", err);
+              console.warn("Thumbnail generation failed:", err);
             }
           }
         });
@@ -38,6 +58,7 @@ const Stories = () => {
     };
     fetchTrendingFeeds();
   }, []);
+
 
   const openPopup = (index) => setSelectedFeedIndex(index);
   const closePopup = () => setSelectedFeedIndex(null);

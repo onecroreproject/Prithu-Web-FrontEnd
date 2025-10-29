@@ -1,5 +1,6 @@
 // src/components/Profile/PostSection.jsx
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../api/axios";
 import toast from "react-hot-toast";
@@ -15,7 +16,7 @@ export default function PostSection() {
   const [activeOption, setActiveOption] = useState("view");
   const { user, fetchUserProfile, loading } = useAuth();
 
-  // Unified upload function
+  // ✅ Unified upload function
   const uploadProfileDetail = async (formData) => {
     try {
       await api.post("/api/user/profile/detail/update", formData, {
@@ -29,6 +30,7 @@ export default function PostSection() {
     }
   };
 
+  // ✅ Options list
   const options = [
     { id: "view", label: "View" },
     { id: "edit", label: "Edit" },
@@ -37,6 +39,7 @@ export default function PostSection() {
     { id: "settings", label: "Settings" },
   ];
 
+  // ✅ Render components based on active option
   const renderContent = () => {
     switch (activeOption) {
       case "view":
@@ -50,34 +53,73 @@ export default function PostSection() {
           />
         );
       case "profile-photo":
-        return <ChangeProfilePhoto user={user} uploadProfileDetail={uploadProfileDetail} />;
+        return (
+          <ChangeProfilePhoto
+            user={user}
+            uploadProfileDetail={uploadProfileDetail}
+          />
+        );
       case "cover-image":
-        return <ChangeCoverImage user={user} uploadProfileDetail={uploadProfileDetail} />;
+        return (
+          <ChangeCoverImage
+            user={user}
+            fetchUserProfile={fetchUserProfile}
+          />
+        );
       case "settings":
-        return <ProfileSettings user={user} fetchUserProfile={fetchUserProfile} />;
+        return (
+          <ProfileSettings
+            user={user}
+            fetchUserProfile={fetchUserProfile}
+          />
+        );
       default:
         return <ViewProfile user={user} />;
     }
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
+    <div className="p-6 bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Navigation Tabs */}
       <div className="flex gap-6 mb-8 border-b border-gray-200">
         {options.map((opt) => (
           <button
             key={opt.id}
             onClick={() => setActiveOption(opt.id)}
-            className={`pb-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+            className={`relative pb-3 text-sm font-medium transition-all duration-200 ${
               activeOption === opt.id
-                ? "border-purple-600 text-purple-600"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                ? "text-purple-600"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
             {opt.label}
+
+            {activeOption === opt.id && (
+              <motion.div
+                layoutId="underline"
+                className="absolute bottom-0 left-0 right-0 h-[2px] bg-purple-600 rounded-full"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
           </button>
         ))}
       </div>
-      <div className="mt-6">{renderContent()}</div>
+
+      {/* ✅ Smoothly Resizing Content Section */}
+      <div className="mt-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeOption}
+            layout   // 👈 This enables smooth height resizing
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

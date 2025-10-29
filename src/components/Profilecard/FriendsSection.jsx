@@ -19,8 +19,8 @@ export default function FriendsSection() {
   // ───────────────────────────────────────────────────
 
   const subTabs = [
-    { id: "friendship", label: "Friendship", Icon: UserCheck },
-    { id: "requests", label: "Requests", Icon: UserPlus },
+    { id: "friendship", label: "Followers", Icon: UserCheck },
+    { id: "requests", label: "Followings", Icon: UserPlus },
   ];
 
   const renderContent = () => {

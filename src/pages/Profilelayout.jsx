@@ -1,49 +1,54 @@
 // src/pages/Profilelayout.jsx
-import React, { useState } from "react";
+import api from "../api/axios";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
-// Updated: Use consistent path
-import PostHeader from "../components/Profilecard/ProfileHeader"; // ← This is the correct one (from earlier fix)
-
-// Sidebar components
+// Components
+import PostHeader from "../components/Profilecard/ProfileHeader";
 import ProfileStats from "../components/Profilecard/ProfileStats";
 import PhotoGallery from "../components/Profilecard/PhotoGallery";
 import RecentActivity from "../components/Profilecard/RecentActivity";
-
-// Main content sections
 import ProfileSection from "../components/Profilecard/ProfileSection";
 import ActivitySection from "../components/Profilecard/ActivitySection";
 import FriendsSection from "../components/Profilecard/FriendsSection";
 import GroupsSection from "../components/Profilecard/GroupsSection";
 import Advertisement from "../components/Profilecard/Advertisement";
-import ForumsSection from "../components/Profilecard/FormsSection";// ← Fixed typo: was "FormsSection"
+import ForumsSection from "../components/Profilecard/FormsSection";
 
 const Profilelayout = () => {
   const [activeTab, setActiveTab] = useState("personal");
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const userData = {
-    userName: "Alice",
-    coverImage: "https://images.unsplash.com/photo-1557683316-973673baf926?w=1200",
-    profileImage: "https://i.pravatar.cc/150?img=45",
-    friendsCount: 3,
-    groupsCount: 5,
+  // 🔹 Animation Variants
+  const pageVariants = {
+    initial: { opacity: 0, y: 20, scale: 0.98 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -15, scale: 0.98 },
   };
 
-  const activities = [
-    {
-      id: 1,
-      userName: "Alice",
-      userAvatar: "https://i.pravatar.cc/150?img=45",
-      action: "posted a new activity comment",
-      time: "17 hours, 41 minutes ago",
-      content: "Checkmark",
-    },
-  ];
+  // 🔹 Fetch user profile overview data
+  useEffect(() => {
+    const fetchProfileOverview = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await api.get(`/api/get/profile/overview`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUserData(res.data?.data);
+      } catch (err) {
+        console.error("Error fetching profile overview:", err);
+        setError("Failed to load profile data");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentActivities = [
-    { userName: "Alice", action: "posted a new activity comment", time: "17 hours, 41 minutes ago" },
-    { userName: "Alice", action: "posted an update", time: "21 hours, 17 minutes ago" },
-    { userName: "Alice", action: "joined the group Cycling Club", time: "3 days, 3 hours ago" },
-  ];
+    fetchProfileOverview();
+  }, []);
 
   const photos = [
     "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
@@ -52,55 +57,132 @@ const Profilelayout = () => {
     "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=300",
     "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300",
     "https://images.unsplash.com/photo-1542909168-82c3e7fdca44?w=300",
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300",
-    "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
-    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300",
   ];
 
+  // 🔹 Render active tab content
+  const renderActiveSection = () => {
+    if (!userData) return null;
+
+    switch (activeTab) {
+      case "personal":
+        return (
+          <ActivitySection
+            userAvatar={userData.profileAvatar}
+            userName={userData.displayName || userData.userName}
+            activities={userData.activities || []}
+          />
+        );
+      case "profile":
+        return <ProfileSection userData={userData} />;
+      case "friends":
+        return <FriendsSection userData={userData} />;
+      case "groups":
+        return <GroupsSection />;
+      case "adverts":
+        return <Advertisement />;
+      case "forums":
+        return <ForumsSection />;
+      default:
+        return (
+          <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">
+            This section is under development.
+          </div>
+        );
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500">
+        {error}
+      </div>
+    );
+  }
+
+  // 🔹 Skeleton Loader (instead of Loading text)
+  if (loading || !userData) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="h-52 bg-gray-200 rounded-xl mb-6 relative overflow-hidden">
+          <div className="absolute -bottom-10 left-6 w-24 h-24 bg-gray-300 rounded-full border-4 border-white"></div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex gap-6 mb-6">
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="h-5 w-24 bg-gray-200 rounded-md"
+              ></div>
+            ))}
+        </div>
+
+        {/* Grid Layout Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Sidebar */}
+          <div className="space-y-6">
+            <div className="h-40 bg-gray-200 rounded-xl"></div>
+            <div className="h-60 bg-gray-200 rounded-xl"></div>
+          </div>
+
+          {/* Center Section */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-96 bg-gray-200 rounded-xl"></div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="h-80 bg-gray-200 rounded-xl"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔹 Main Render after data load
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* HEADER WITH TABS */}
-      <PostHeader activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Header */}
+      <PostHeader
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        coverImage={userData.coverPhoto}
+        profileImage={userData.profileAvatar}
+        userName={userData.displayName || userData.userName}
+      />
 
-      {/* GRID LAYOUT */}
+      {/* Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-        {/* LEFT SIDEBAR – ALWAYS VISIBLE */}
+        {/* Left Sidebar */}
         <div className="lg:col-span-1 space-y-6">
           <ProfileStats
-            friendsCount={userData.friendsCount}
-            groupsCount={userData.groupsCount}
+            followersCount={userData.followerCount || 0}
+            followingCount={userData.followingCount || 0}
           />
           <PhotoGallery photos={photos} />
         </div>
 
-        {/* MAIN CONTENT – CHANGES WITH TAB */}
+        {/* Center Section with Animation */}
         <div className="lg:col-span-2 space-y-6">
-          {activeTab === "personal" ? (
-            <ActivitySection
-              userAvatar={userData.profileImage}
-              userName={userData.userName}
-              activities={activities}
-            />
-          ) : activeTab === "profile" ? (
-            <ProfileSection />
-          ) : activeTab === "friends" ? (
-            <FriendsSection />
-          ) : activeTab === "groups" ? (
-            <GroupsSection />
-          ) : activeTab === "adverts" ? (
-            <Advertisement />
-          ) : activeTab === "forums" ? (
-            <ForumsSection />
-          ) : (
-            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">
-              This section is under development.
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
+            >
+              {renderActiveSection()}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        {/* RIGHT SIDEBAR – ALWAYS VISIBLE */}
+        {/* Right Sidebar */}
         <div className="lg:col-span-1">
-          <RecentActivity activities={recentActivities} />
+          <RecentActivity activities={userData.recentActivities || []} />
         </div>
       </div>
     </div>
