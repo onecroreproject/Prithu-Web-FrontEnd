@@ -54,9 +54,7 @@ export default function Header() {
   // 🔹 Fetch notification count
   const fetchNotificationCount = async () => {
     try {
-      const res = await api.get("/api/user/all/notification", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+      const res = await api.get("/api/user/all/notification");
       const notifications = Array.isArray(res.data)
         ? res.data
         : res.data?.notifications || [];
