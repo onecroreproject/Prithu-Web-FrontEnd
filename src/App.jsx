@@ -26,6 +26,7 @@ import Hiddenpost from "./pages/Hiddenpost.jsx";
 //profile pages
 
 import Profilelayout from "./pages/Profilelayout.jsx";
+import PrivacyPolicy from "./privacyPolicy.jsx";
 // Placeholder pages for settings routes
 const PlaceholderPage = ({ title }) => (
   <div className="flex items-center justify-center w-full h-full">
@@ -94,11 +95,13 @@ function AppRoutes() {
           <Route path="referral" element={<PlaceholderPage title="Referral" />} />
           <Route path="subscription-details" element={<SubscriptionDetails />} />
           <Route path="invite-friends" element={<InviteFriends />} />
+          
         </Route>
       </Route>
 
       {/* Logout route */}
       <Route path="/logout" element={<Navigate to="/login" replace />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy/>}/>
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/login" replace />} />
