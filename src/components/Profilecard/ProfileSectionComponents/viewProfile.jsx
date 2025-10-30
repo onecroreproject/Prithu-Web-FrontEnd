@@ -37,71 +37,90 @@ export default function ViewProfile({ user }) {
   ].filter((link) => link.value);
 
   return (
+  <motion.div
+    className="p-4"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.4 }}
+  >
+    <h3 className="text-xl font-bold text-gray-900 mb-2">Profile Details</h3>
+    <p className="text-sm text-gray-600 mb-6">
+      Basic information and account preferences
+    </p>
+
+    {/* Basic Info Table */}
     <motion.div
-      className="p-4"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="overflow-x-auto"
     >
-      <h3 className="text-xl font-bold text-gray-900 mb-2">Profile Details</h3>
-      <p className="text-sm text-gray-600 mb-6">
-        Basic information and account preferences
-      </p>
-
-      {/* Basic Info */}
-      <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {fields.map((f) => (
-          <motion.div
-            key={f.label}
-            className="flex items-start"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <dt className="w-40 text-sm font-medium text-gray-500">
-              {f.label}
-            </dt>
-            <dd className="flex-1 text-sm text-gray-900 break-words">
-              {f.value}
-            </dd>
-          </motion.div>
-        ))}
-      </dl>
-
-      {/* Social Links */}
-      <AnimatePresence>
-        {socialLinks.length > 0 && (
-          <motion.div
-            className="mt-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <h4 className="text-lg font-semibold text-gray-800 mb-4">
-              Social Media Links
-            </h4>
-            <ul className="space-y-2">
-              {socialLinks.map((link) => (
-                <li key={link.label} className="text-sm">
-                  <span className="font-medium text-gray-600 mr-2">
-                    {link.label}:
-                  </span>
-                  <a
-                    href={link.value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
-                  >
-                    {link.value}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <table className="min-w-full border border-gray-200 rounded-lg shadow-sm">
+        <tbody>
+          {fields.map((f) => (
+            <motion.tr
+              key={f.label}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+            >
+              <td className="px-4 py-3 text-sm font-medium text-gray-600 w-1/3">
+                {f.label}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 break-words">
+                {f.value || "-"}
+              </td>
+            </motion.tr>
+          ))}
+        </tbody>
+      </table>
     </motion.div>
-  );
+
+    {/* Social Links */}
+    <AnimatePresence>
+      {socialLinks.length > 0 && (
+        <motion.div
+          className="mt-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <h4 className="text-lg font-semibold text-gray-800 mb-4">
+            Social Media Links
+          </h4>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-200 rounded-lg shadow-sm">
+              <tbody>
+                {socialLinks.map((link) => (
+                  <tr
+                    key={link.label}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-gray-600 w-1/3">
+                      {link.label}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <a
+                        href={link.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all"
+                      >
+                        {link.value}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </motion.div>
+);
+
 }
