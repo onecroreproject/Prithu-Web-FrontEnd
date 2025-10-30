@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
@@ -22,43 +22,11 @@ export const AuthProvider = ({ children }) => {
   const [startUpProcess, setStartUpProcess] = useState(null);
   const [resetEmail, setResetEmail] = useState("");
 
-  // ---------- Socket Reference ----------
+  // ---------- Refs ----------
   const socketRef = useRef(null);
-  const locationIntervalRef = useRef(null); // 🆕 Location polling interval
+  const locationIntervalRef = useRef(null);
 
-  // ---------- Axios Instance ----------
-  const api = axios.create({
-    baseURL: "http://localhost:5000",
-    withCredentials: true,
-    headers: { "Content-Type": "application/json" },
-  });
 
-  api.interceptors.request.use((config) => {
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
-
-  // ---------- Auto Refresh Token ----------
-  api.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response?.status === 401 && refreshToken) {
-        try {
-          const res = await axios.post("http://localhost:5000/api/auth/refresh-token", {
-            refreshToken,
-          });
-          const newAccessToken = res.data.accessToken;
-          setToken(newAccessToken);
-          localStorage.setItem("token", newAccessToken);
-          error.config.headers.Authorization = `Bearer ${newAccessToken}`;
-          return axios(error.config);
-        } catch (err) {
-          logout();
-        }
-      }
-      return Promise.reject(error);
-    }
-  );
 
   // ---------- Register ----------
   const register = async ({ username, email, password, referralCode }) => {
@@ -119,8 +87,8 @@ export const AuthProvider = ({ children }) => {
         toast.success("✅ Logged in successfully!");
         navigate("/");
 
-        // 🆕 Start automatic location tracking after login
-        startLocationTracking(userId);
+        // 🆕 Check if user location exists
+        await checkUserLocation(accessToken);
 
         return true;
       } else {
@@ -134,6 +102,54 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
+  // 🆕 ---------- Check User Location ----------
+ const checkUserLocation = async () => {
+  try {
+    const res = await api.get("/api/get/user/location",);
+
+    // ✅ If no existing location found — start tracking
+    if (!res.data.success) {
+      console.log("⚠️ No location found, starting tracking...");
+      startLocationTracking();
+      return;
+    }
+
+    const locationData = res.data.location;
+
+    // If permission is granted, update the current location
+    if (locationData?.permissionStatus === "granted") {
+      console.log(" Updating user’s latest location...");
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            await api.post(
+              "/api/save/user/location",
+              { latitude, longitude, permissionStatus: "granted" },
+              
+            );
+            console.log("✅ Location updated successfully:", latitude, longitude);
+          },
+          (err) => {
+            console.warn("❌ Error getting current location:", err);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        console.warn("⚠️ Geolocation not supported by this browser.");
+      }
+    } else {
+      // ⚠️ Permission denied or prompt again
+      console.log("⚠️ Permission not granted or denied, starting tracking...");
+      startLocationTracking();
+    }
+  } catch (err) {
+    console.warn("❌ Error fetching user location:", err.response?.data || err.message);
+    startLocationTracking(); // fallback if error
+  }
+};
+
 
   // ---------- Fetch User Profile ----------
   const fetchUserProfile = async (customToken) => {
@@ -155,14 +171,7 @@ export const AuthProvider = ({ children }) => {
         formData.append("file", updatedProfile.profileAvatar);
       }
 
-      const fields = [
-        "displayName",
-        "username",
-        "bio",
-        "phone",
-        "maritalStatus",
-        "language",
-      ];
+      const fields = ["displayName", "username", "bio", "phone", "maritalStatus", "language"];
       fields.forEach((field) => {
         if (updatedProfile[field]) formData.append(field, updatedProfile[field]);
       });
@@ -199,13 +208,9 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error("❌ Logout error:", err.response?.data || err.message);
     } finally {
-      // 🔹 Disconnect socket
       if (socketRef.current) socketRef.current.disconnect();
-
-      // 🔹 Clear interval
       if (locationIntervalRef.current) clearInterval(locationIntervalRef.current);
 
-      // 🔹 Clear local storage & states
       localStorage.clear();
       setToken(null);
       setRefreshToken(null);
@@ -223,7 +228,7 @@ export const AuthProvider = ({ children }) => {
   const initSocket = (userId) => {
     if (socketRef.current) socketRef.current.disconnect();
 
-    const socket = io("http://localhost:5000", {
+    const socket = io(import.meta.env.VITE_API_BASE_URL || "http://localhost:5000", {
       query: { userId },
       transports: ["websocket"],
     });
@@ -237,9 +242,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     socket.on("onlineUsers", (users) => setOnlineUsers(new Set(users)));
-    socket.on("userOnline", (id) =>
-      setOnlineUsers((prev) => new Set([...prev, id]))
-    );
+    socket.on("userOnline", (id) => setOnlineUsers((prev) => new Set([...prev, id])));
     socket.on("userOffline", (id) =>
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
@@ -254,8 +257,8 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  // 🆕 ---------- Location Tracking ----------
-  const startLocationTracking = (userId) => {
+  // ---------- Location Tracking ----------
+  const startLocationTracking = () => {
     if (!navigator.geolocation) {
       console.warn("Geolocation not supported by this browser.");
       return;
@@ -263,16 +266,14 @@ export const AuthProvider = ({ children }) => {
 
     const sendLocation = async (permissionStatus) => {
       if (permissionStatus === "denied") {
-        await api.post("/api/location/save", {
-          permissionStatus: "denied",
-        });
+        await api.post("/api/save/user/location", { permissionStatus: "denied" });
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
-          await api.post("/api/location/save", {
+          await api.post("/api/save/user/location", {
             latitude,
             longitude,
             permissionStatus: "granted",
@@ -281,34 +282,23 @@ export const AuthProvider = ({ children }) => {
         },
         async (err) => {
           console.warn("❌ Geolocation error:", err);
-          await api.post("/api/location/save", {
-            userId,
-            permissionStatus: "denied",
-          });
+          await api.post("/api/save/user/location", { permissionStatus: "denied" });
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
 
-    // First check
-    navigator.permissions
-      .query({ name: "geolocation" })
-      .then((result) => sendLocation(result.state));
+    navigator.permissions.query({ name: "geolocation" }).then((result) => sendLocation(result.state));
 
-    // Repeat every 5 minutes (300,000 ms)
     locationIntervalRef.current = setInterval(async () => {
-      navigator.permissions
-        .query({ name: "geolocation" })
-        .then((result) => sendLocation(result.state));
+      navigator.permissions.query({ name: "geolocation" }).then((result) => sendLocation(result.state));
     }, 300000);
   };
 
-  // ---------- Auto Fetch Profile ----------
   useEffect(() => {
     if (token) fetchUserProfile();
   }, [token]);
 
-  // ---------- Context Value ----------
   const contextValue = {
     loading,
     token,
@@ -330,7 +320,6 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-// ---------- Custom Hook ----------
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
