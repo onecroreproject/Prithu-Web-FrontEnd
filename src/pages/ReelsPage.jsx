@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../context/AuthContext";
 import axios from "../api/axios";
 import Postcard from "../components/FeedPageComponent/Postcard"; // using your existing card
 

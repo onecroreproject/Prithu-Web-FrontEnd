@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { motion } from "framer-motion";
 import { FaLeaf, FaShoppingBag, FaHeart } from "react-icons/fa";
 import PrithuLogo from "../assets/prithu_logo.webp";
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../context/AuthContext";
 
 export default function Login() {
   const {
@@ -24,6 +24,9 @@ export default function Login() {
   const [newPassword, setNewPassword] = useState("");
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isOtpStep, setIsOtpStep] = useState(false);
+
+
+
 
   // --- Mode switchers ---
   const switchToRegister = () => {
