@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   // ---------- Socket Reference ----------
   const socketRef = useRef(null);
+  const locationIntervalRef = useRef(null); // 🆕 Location polling interval
 
   // ---------- Axios Instance ----------
   const api = axios.create({
@@ -78,9 +79,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ---------- Login (Session-based) ----------
+  // ---------- Login ----------
   const login = async ({ identifier, password }) => {
-    console.log({ identifier, password })
     setLoading(true);
     try {
       const deviceType = "web";
@@ -118,6 +118,10 @@ export const AuthProvider = ({ children }) => {
 
         toast.success("✅ Logged in successfully!");
         navigate("/");
+
+        // 🆕 Start automatic location tracking after login
+        startLocationTracking(userId);
+
         return true;
       } else {
         toast.error(res.data.error || "Login failed ❌");
@@ -182,45 +186,40 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ---------- Logout ----------
- const logout = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const headers = { Authorization: `Bearer ${token}` };
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
 
-    // 🔹 Prepare logout payload
-    const payload = {};
-    if (sessionId) payload.sessionId = sessionId;
-    if (deviceId) payload.deviceId = deviceId;
+      const payload = {};
+      if (sessionId) payload.sessionId = sessionId;
+      if (deviceId) payload.deviceId = deviceId;
 
-    if (!payload.sessionId && !payload.deviceId) {
-      console.warn("No sessionId or deviceId found for logout");
+      await api.post("/api/auth/user/logout", payload, { headers });
+    } catch (err) {
+      console.error("❌ Logout error:", err.response?.data || err.message);
+    } finally {
+      // 🔹 Disconnect socket
+      if (socketRef.current) socketRef.current.disconnect();
+
+      // 🔹 Clear interval
+      if (locationIntervalRef.current) clearInterval(locationIntervalRef.current);
+
+      // 🔹 Clear local storage & states
+      localStorage.clear();
+      setToken(null);
+      setRefreshToken(null);
+      setUser(null);
+      setSessionId(null);
+      setOnlineUsers(new Set());
+      setSocketConnected(false);
+
+      toast.success("👋 Logged out successfully");
+      navigate("/login");
     }
+  };
 
-    // 🔹 Call API
-    await api.post("/api/auth/user/logout", payload, { headers });
-
-  } catch (err) {
-    console.error("❌ Logout error:", err.response?.data || err.message);
-  } finally {
-    // 🔹 Disconnect socket
-    if (socketRef.current) socketRef.current.disconnect();
-
-    // 🔹 Clear local storage & states
-    localStorage.clear();
-    setToken(null);
-    setRefreshToken(null);
-    setUser(null);
-    setSessionId(null);
-    setOnlineUsers(new Set());
-    setSocketConnected(false);
-
-    toast.success("👋 Logged out successfully");
-    navigate("/login");
-  }
-};
-
-
-  // ---------- SOCKET.IO Presence ----------
+  // ---------- SOCKET.IO ----------
   const initSocket = (userId) => {
     if (socketRef.current) socketRef.current.disconnect();
 
@@ -253,6 +252,55 @@ export const AuthProvider = ({ children }) => {
       console.log("⚠️ Socket disconnected");
       setSocketConnected(false);
     });
+  };
+
+  // 🆕 ---------- Location Tracking ----------
+  const startLocationTracking = (userId) => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation not supported by this browser.");
+      return;
+    }
+
+    const sendLocation = async (permissionStatus) => {
+      if (permissionStatus === "denied") {
+        await api.post("/api/location/save", {
+          permissionStatus: "denied",
+        });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          await api.post("/api/location/save", {
+            latitude,
+            longitude,
+            permissionStatus: "granted",
+          });
+          console.log("✅ Location updated:", latitude, longitude);
+        },
+        async (err) => {
+          console.warn("❌ Geolocation error:", err);
+          await api.post("/api/location/save", {
+            userId,
+            permissionStatus: "denied",
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    // First check
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((result) => sendLocation(result.state));
+
+    // Repeat every 5 minutes (300,000 ms)
+    locationIntervalRef.current = setInterval(async () => {
+      navigator.permissions
+        .query({ name: "geolocation" })
+        .then((result) => sendLocation(result.state));
+    }, 300000);
   };
 
   // ---------- Auto Fetch Profile ----------
