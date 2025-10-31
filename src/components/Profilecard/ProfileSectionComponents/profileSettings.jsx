@@ -12,9 +12,7 @@ export default function ProfileSettings() {
   // ✅ Fetch current visibility settings
   const fetchVisibilitySettings = async () => {
     try {
-      const { data } = await api.get("/api/user/update/visibility/settings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await api.get("/api/user/update/visibility/settings",);
       setVisibility(data.visibility || {});
     } catch (err) {
       console.error("Failed to load visibility settings:", err);

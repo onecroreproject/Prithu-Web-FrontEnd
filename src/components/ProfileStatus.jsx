@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios"; // axios instance configured
 
-// Circular progress with percent inside
+// ───────── Circular Progress ─────────
 function CircularProgress({ percent }) {
   const radius = 32;
   const stroke = 4;
@@ -46,11 +48,6 @@ function CircularProgress({ percent }) {
         fontWeight="bold"
         fill="#23236A"
         dominantBaseline="middle"
-        style={{
-          opacity: 0,
-          animation: "fadeIn 1s ease-in-out forwards",
-          animationDelay: "0.3s",
-        }}
       >
         {percent}%
       </text>
@@ -61,11 +58,6 @@ function CircularProgress({ percent }) {
         fontSize="10"
         fill="#555"
         dominantBaseline="middle"
-        style={{
-          opacity: 0,
-          animation: "fadeIn 1s ease-in-out forwards",
-          animationDelay: "0.5s",
-        }}
       >
         Complete
       </text>
@@ -73,36 +65,74 @@ function CircularProgress({ percent }) {
   );
 }
 
+// ───────── Main Component ─────────
 export default function ProfileStatus() {
-  const percent = 73;
-  const items = [
-    { label: "General Information", done: false, num: "5/6" },
-    { label: "Work Experience", done: false, num: "1/3" },
-    { label: "Profile Photo", done: true, num: "1/1" },
-    
-  ];
+  const [percent, setPercent] = useState(0);
+  const [missingItems, setMissingItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfileStatus = async () => {
+      try {
+        const response = await api.get("/api/user/profile/completion");
+
+        if (response.data.success) {
+          const { completionPercentage, missingFields } = response.data;
+
+          const fieldLabels = {
+            displayName: "Display Name",
+            userName: "Username",
+            bio: "Bio",
+            gender: "Gender",
+            dateOfBirth: "Date of Birth",
+            maritalStatus: "Marital Status",
+            phoneNumber: "Phone Number",
+            country: "Country",
+            city: "City",
+            profileAvatar: "Profile Picture",
+            coverPhoto: "Cover Photo",
+            socialLinks: "Social Links",
+          };
+
+          // Only keep missing fields
+          const missingData = missingFields.map((field, i) => ({
+            label: fieldLabels[field] || field,
+            field,
+            num: i + 1,
+          }));
+
+          setPercent(completionPercentage || 0);
+          setMissingItems(missingData);
+        }
+      } catch (error) {
+        console.error("Error fetching profile status:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileStatus();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-[230px] h-[230px] flex items-center justify-center bg-white rounded-lg shadow">
+        <p className="text-gray-500 text-sm">Loading profile status...</p>
+      </div>
+    );
+  }
 
   return (
     <div
       className="w-[230px] h-[230px] p-4 rounded-[9px] shadow-xl relative flex flex-col items-center justify-start overflow-hidden backdrop-blur-xl border border-white/20"
       style={{
-        background: "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8))",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)",
+        background:
+          "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8))",
+        boxShadow:
+          "0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)",
       }}
     >
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
-        `}
-      </style>
-
       {/* HEADER */}
       <div className="text-center mb-2">
         <div className="font-semibold text-[15px] text-[#23236A]">
@@ -115,72 +145,30 @@ export default function ProfileStatus() {
         <CircularProgress percent={percent} />
       </div>
 
-      {/* PROGRESS ITEMS */}
-      <div className="space-y-[6px] w-full flex-1">
-        {items.map((item, i) => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between text-[12px] px-1 py-[2px] rounded transition-all duration-200 hover:bg-gray-50/50"
-            style={{
-              opacity: 0,
-              animation: `slideIn 0.5s ease-out forwards`,
-              animationDelay: `${0.1 * (i + 1)}s`,
-            }}
-          >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span
-                className={`flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center text-white text-[10px] transition-all duration-200 ${
-                  item.done 
-                    ? "bg-green-500 shadow-sm" 
-                    : "border border-gray-400 bg-white shadow-sm"
-                }`}
-              >
-                {item.done && (
-                  <svg width="8" height="8" viewBox="0 0 12 12">
-                    <path
-                      d="M3 6.25l2 2 4-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </span>
-              <span 
-                className={`font-medium truncate transition-colors duration-200 ${
-                  item.done ? "text-green-700" : "text-gray-700"
-                }`}
-                title={item.label}
-              >
-                {item.label}
+      {/* MISSING FIELDS */}
+      <div className="space-y-[6px] w-full flex-1 overflow-y-auto">
+        {missingItems.length > 0 ? (
+          missingItems.map((item, idx) => (
+            <div
+              key={idx}
+              onClick={() => navigate("/profile/edit")}
+              className="flex items-center justify-between text-[12px] px-1 py-[2px] rounded cursor-pointer transition-all duration-200 hover:bg-red-50 group"
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="font-medium text-gray-400 truncate group-hover:underline">
+                  {item.label}
+                </span>
+              </div>
+              <span className="font-semibold text-[11px] text-gray-400">
+                {item.num}
               </span>
             </div>
-            <span 
-              className={`flex-shrink-0 font-semibold text-[11px] ml-2 transition-colors duration-200 ${
-                item.done ? "text-green-600" : "text-gray-500"
-              }`}
-            >
-              {item.num}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* FOOTER - Overall Progress */}
-      <div className="w-full pt-2 border-t border-gray-200/50 mt-2">
-        <div className="flex justify-between items-center text-[11px] text-gray-600">
-          <span>Overall Progress</span>
-          <span className="font-bold text-[#23236A]">{percent}% Complete</span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full bg-gray-200/50 rounded-full h-1.5 mt-1 overflow-hidden">
-          <div 
-            className="bg-green-500 h-full rounded-full transition-all duration-1000 ease-out"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+          ))
+        ) : (
+          <p className="text-center text-[12px] text-green-600 font-medium">
+            🎉 All fields completed!
+          </p>
+        )}
       </div>
     </div>
   );

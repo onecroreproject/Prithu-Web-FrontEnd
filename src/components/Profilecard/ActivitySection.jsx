@@ -2,12 +2,13 @@
 import React, { useState } from "react";
 import PostComposer from "./PostComposer";
 import ActivityFeed from "./ActivityFeed";
+import UserUploads from "./ActivitySectionComponents/userPost";
 
 export default function ActivitySection({ userAvatar, userName, activities }) {
   const [activeSubTab, setActiveSubTab] = useState("personal");
 
   const subTabs = [
-    { id: "personal", label: "Personal" },
+    { id: "personal", label: "Post" },
     { id: "mentions", label: "Mentions" },
     { id: "favourites", label: "Favourites" },
     { id: "friends", label: "Friends" },
@@ -19,8 +20,7 @@ export default function ActivitySection({ userAvatar, userName, activities }) {
       case "personal":
         return (
           <>
-            <PostComposer userAvatar={userAvatar} userName={userName} />
-            <ActivityFeed activities={activities} />
+            <UserUploads/>
           </>
         );
 

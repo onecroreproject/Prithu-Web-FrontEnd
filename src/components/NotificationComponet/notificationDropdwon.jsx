@@ -27,7 +27,7 @@ export default function NotificationDropdown({
     if (!token) return;
     setLoading(true);
     try {
-      const res = await api.get("/api/user/all/notification");
+      const res = await api.get("/api/get/user/all/notification", authHeader);
       const data = res.data?.notifications || [];
       setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
