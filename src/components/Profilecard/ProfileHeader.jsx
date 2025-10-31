@@ -9,13 +9,14 @@ import {
   MoreHorizontal,
   Edit,
   Camera,
+  Briefcase
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
 import api from "../../api/axios";
 
-export default function PostHeader({ activeTab, setActiveTab }) {
+export default function ProfileHeader({ activeTab, setActiveTab }) {
   const { user, fetchUserProfile, loading } = useAuth();
 
   // 🔹 Initialize local states with user data when available
@@ -87,12 +88,13 @@ export default function PostHeader({ activeTab, setActiveTab }) {
 
   // 🔹 Tabs
   const tabs = [
-    { id: "personal", Icon: MessageSquare, label: "Activity" },
+    { id: "Activity", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
     { id: "friends", Icon: Users, label: "Followers" },
     { id: "groups", Icon: Users, label: "Groups" },
     { id: "adverts", Icon: Megaphone, label: "Adverts" },
     { id: "forums", Icon: MessageCircle, label: "Forums" },
+    { id: "jobs", Icon: Briefcase, label: "Jobs" },
     { id: "more", Icon: MoreHorizontal, label: "More" },
   ];
 

@@ -1,3 +1,4 @@
+// src/components/Header.jsx
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -9,12 +10,14 @@ import {
   Gift,
   Settings,
   LogOut,
+  Plus,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import PrithuLogo from "../assets/prithu_logo.webp";
 import { AuthContext } from "../context/AuthContext";
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import api from "../api/axios";
+import CreatePostModal from "../components/CreatePostModal";
 
 const navItems = [
   { to: "/", label: "Home", Icon: Home },
@@ -32,9 +35,11 @@ export default function Header() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [socket, setSocket] = useState(null);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isCreateReelOpen, setIsCreateReelOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // 🔹 Initialize socket connection
+  // Socket & Notifications
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -44,14 +49,13 @@ export default function Header() {
       transports: ["websocket"],
     });
 
-    newSocket.on("connect", () => console.log("✅ Socket connected"));
+    newSocket.on("connect", () => console.log("Socket connected"));
     newSocket.on("notification:new", () => fetchNotificationCount());
     setSocket(newSocket);
 
     return () => newSocket.disconnect();
   }, []);
 
-  // 🔹 Fetch notification count
   const fetchNotificationCount = async () => {
     try {
       const res = await api.get("/api/get/user/all/notification", {
@@ -63,21 +67,31 @@ export default function Header() {
       const unreadCount = notifications.filter((n) => !n.isRead).length;
       setNotifCount(unreadCount);
     } catch (err) {
-      console.error("❌ Failed to load notification count:", err);
+      console.error("Failed to load notification count:", err);
     }
   };
-console.log(notifCount)
+
   useEffect(() => {
     fetchNotificationCount();
   }, []);
 
-  // 🔹 Mark all as read when bell opens
   const handleBellClick = async () => {
     setNotifOpen((prev) => !prev);
     setDropdownOpen(false);
+    if (!notifOpen) {
+      try {
+        await api.put(
+          "/api/user/read",
+          {},
+          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        );
+        setNotifCount(0);
+      } catch (err) {
+        console.error("Failed to mark all as read:", err);
+      }
+    }
   };
 
-  // 🔹 Close profile dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -87,6 +101,13 @@ console.log(notifCount)
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const closeAll = () => {
+    setDropdownOpen(false);
+    setNotifOpen(false);
+    setIsCreatePostOpen(false);
+    setIsCreateReelOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white flex items-center justify-between px-6 py-3 shadow-md z-50">
@@ -110,19 +131,55 @@ console.log(notifCount)
         </div>
       </div>
 
+      {/* Center-Right: + Post & Reels Icons (ALL BLUE) */}
+      <div className="flex items-center gap-4">
+        {/* + CREATE POST */}
+        <button
+          onClick={() => {
+            closeAll();
+            setIsCreatePostOpen(true);
+          }}
+          className="group"
+          aria-label="Create Post"
+        >
+          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200">
+            <Plus className="w-5 h-5 text-blue-600" />
+          </div>
+        </button>
+
+        {/* REELS ICON (NOW BLUE) */}
+        <button
+          onClick={() => {
+            closeAll();
+            setIsCreateReelOpen(true);
+          }}
+          className="group"
+          aria-label="Create Reel"
+        >
+          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200">
+            <Video className="w-5 h-5 text-blue-600" />
+          </div>
+        </button>
+      </div>
+
       {/* Right: Notifications & Profile */}
-      <div className="flex items-center gap-4 relative">
-        {/* 🔔 Notifications */}
+      <div className="flex items-center gap-6 relative">
+        {/* Notifications */}
         <div className="relative">
-          <BellRing
-            className="w-6 h-6 text-gray-600 hover:text-green-600 cursor-pointer transition"
+          <button
             onClick={handleBellClick}
-          />
-          {notifCount > 0 && (
-            <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
-              {notifCount}
-            </span>
-          )}
+            className="group"
+            aria-label="Notifications"
+          >
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200">
+              <BellRing className="w-5 h-5 text-blue-600" />
+            </div>
+            {notifCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {notifCount}
+              </span>
+            )}
+          </button>
 
           <NotificationDropdown
             isOpen={notifOpen}
@@ -132,12 +189,12 @@ console.log(notifCount)
           />
         </div>
 
-        {/* 👤 Profile Dropdown */}
+        {/* Profile Dropdown */}
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => {
+              closeAll();
               setDropdownOpen(!dropdownOpen);
-              setNotifOpen(false);
             }}
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
           >
@@ -159,7 +216,7 @@ console.log(notifCount)
             )}
           </button>
 
-          {/* Dropdown */}
+          {/* Dropdown Menu */}
           {dropdownOpen && (
             <div className="absolute right-0 top-12 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
               {navItems.map(({ to, label, Icon }) => (
@@ -194,6 +251,15 @@ console.log(notifCount)
           )}
         </div>
       </div>
+
+      {/* MODALS */}
+      <CreatePostModal
+        open={isCreatePostOpen}
+        onClose={() => setIsCreatePostOpen(false)}
+      />
+
+      {/* Optional: Reel Modal */}
+      {/* <CreateReelModal open={isCreateReelOpen} onClose={() => setIsCreateReelOpen(false)} /> */}
     </header>
   );
 }
