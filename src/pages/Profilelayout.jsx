@@ -32,12 +32,7 @@ const Profilelayout = () => {
   useEffect(() => {
     const fetchProfileOverview = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get(`/api/get/profile/overview`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await api.get(`/api/get/profile/overview`);
         setUserData(res.data?.data);
       } catch (err) {
         console.error("Error fetching profile overview:", err);
@@ -159,6 +154,7 @@ const Profilelayout = () => {
           <ProfileStats
             followersCount={userData.followerCount || 0}
             followingCount={userData.followingCount || 0}
+            totalPost={userData.postCount || 0}
           />
           <PhotoGallery photos={photos} />
         </div>

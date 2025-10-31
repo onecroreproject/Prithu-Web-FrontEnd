@@ -54,7 +54,9 @@ export default function Header() {
   // 🔹 Fetch notification count
   const fetchNotificationCount = async () => {
     try {
-      const res = await api.get("/api/user/all/notification");
+      const res = await api.get("/api/get/user/all/notification", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
       const notifications = Array.isArray(res.data)
         ? res.data
         : res.data?.notifications || [];
@@ -73,18 +75,6 @@ console.log(notifCount)
   const handleBellClick = async () => {
     setNotifOpen((prev) => !prev);
     setDropdownOpen(false);
-    if (!notifOpen) {
-      try {
-        await api.put(
-          "/api/user/read",
-          {},
-          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-        );
-        setNotifCount(0);
-      } catch (err) {
-        console.error("❌ Failed to mark all as read:", err);
-      }
-    }
   };
 
   // 🔹 Close profile dropdown when clicking outside

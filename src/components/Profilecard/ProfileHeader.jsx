@@ -87,7 +87,7 @@ export default function PostHeader({ activeTab, setActiveTab }) {
 
   // 🔹 Tabs
   const tabs = [
-    { id: "personal", Icon: MessageSquare, label: "Personal" },
+    { id: "personal", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
     { id: "friends", Icon: Users, label: "Followers" },
     { id: "groups", Icon: Users, label: "Groups" },

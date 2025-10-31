@@ -1,37 +1,63 @@
 // src/components/FriendsSection.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "../../api/axios";
 import { UserCheck, UserPlus, X, Check } from "lucide-react";
 
 export default function FriendsSection() {
-  const [activeSubTab, setActiveSubTab] = useState("friendship");
+  const [activeSubTab, setActiveSubTab] = useState("followers");
+  const [followers, setFollowers] = useState([]);
+  const [followings, setFollowings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // ────── Dummy data (replace with API later) ──────
-  const friends = [
-    { id: 1, name: "John Doe", avatar: "https://i.pravatar.cc/40?img=1" },
-    { id: 2, name: "Sarah Lee", avatar: "https://i.pravatar.cc/40?img=2" },
-    { id: 3, name: "Mike Chen", avatar: "https://i.pravatar.cc/40?img=3" },
-  ];
 
-  const requests = [
-    { id: 4, name: "Emma Wilson", avatar: "https://i.pravatar.cc/40?img=4" },
-    { id: 5, name: "Liam Brown", avatar: "https://i.pravatar.cc/40?img=5" },
-  ];
-  // ───────────────────────────────────────────────────
+  // Fetch followers and followings
+  useEffect(() => {
+    const fetchFollowData = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+
+        const [followersRes, followingsRes] = await Promise.all([
+          api.get(`/api/user/followers`),
+          api.get(`/api/user/following`),
+        ]);
+
+        console.log("Followers API Response:", followersRes.data);
+        console.log("Followings API Response:", followingsRes.data);
+
+        setFollowers(followersRes.data.followers || []);
+        setFollowings(followingsRes.data.following || []);
+      } catch (error) {
+        console.error("Error fetching follow data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFollowData();
+  }, []);
 
   const subTabs = [
-    { id: "friendship", label: "Followers", Icon: UserCheck },
-    { id: "requests", label: "Followings", Icon: UserPlus },
+    { id: "followers", label: "Followers", Icon: UserCheck },
+    { id: "followings", label: "Followings", Icon: UserPlus },
   ];
 
   const renderContent = () => {
-    if (activeSubTab === "friendship") return <FriendshipTab friends={friends} />;
-    if (activeSubTab === "requests") return <RequestsTab requests={requests} />;
+    if (loading) {
+      return <p className="text-center text-gray-500 py-10">Loading...</p>;
+    }
+
+    if (activeSubTab === "followers")
+      return <FollowersTab followers={followers} />;
+    if (activeSubTab === "followings")
+      return <FollowingsTab followings={followings} />;
+
     return null;
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm">
-      {/* Sub-tab navigation */}
+      {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
         {subTabs.map((tab) => {
           const Icon = tab.Icon;
@@ -39,13 +65,12 @@ export default function FriendsSection() {
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-3 text-sm font-medium capitalize transition-all
-                ${activeSubTab === tab.id
-                  ? "border-b-2 border-purple-600 text-purple-600"
-                  : "text-gray-600 hover:text-gray-900"
-                }
-              `}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium capitalize transition-all
+                ${
+                  activeSubTab === tab.id
+                    ? "border-b-2 border-purple-600 text-purple-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
@@ -60,21 +85,15 @@ export default function FriendsSection() {
   );
 }
 
-/* ────── Sub-Tab Components ────── */
-
-function FriendshipTab({ friends }) {
-  const handleRemove = (id) => {
-    // TODO: call API to unfriend
-    alert(`Remove friend ${id}`);
-  };
-
-  if (friends.length === 0) {
+/* ───────── Followers Tab ───────── */
+function FollowersTab({ followers }) {
+  if (!followers || followers.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
           <UserCheck className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">No friends yet</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No followers yet</h3>
         <p className="text-sm text-gray-600">Start connecting with people!</p>
       </div>
     );
@@ -83,51 +102,39 @@ function FriendshipTab({ friends }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">
-        Your Friends ({friends.length})
+        Followers ({followers.length})
       </h3>
-      {friends.map((f) => (
+      {followers.map((f) => (
         <div
-          key={f.id}
+          key={f.userId}
           className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
         >
           <div className="flex items-center gap-3">
             <img
-              src={f.avatar}
-              alt={f.name}
+              src={f.profileAvatar || "https://i.pravatar.cc/40"}
+              alt={f.userName}
               className="w-10 h-10 rounded-full object-cover"
             />
-            <span className="font-medium text-gray-900">{f.name}</span>
+            <div>
+              <span className="font-medium text-gray-900">{f.userName}</span>
+              <p className="text-xs text-gray-500">{f.followedAt}</p>
+            </div>
           </div>
-          <button
-            onClick={() => handleRemove(f.id)}
-            className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"
-          >
-            <X className="w-4 h-4" />
-            Remove
-          </button>
         </div>
       ))}
     </div>
   );
 }
 
-function RequestsTab({ requests }) {
-  const handleAccept = (id) => {
-    // TODO: accept request API
-    alert(`Accepted ${id}`);
-  };
-  const handleDecline = (id) => {
-    // TODO: decline request API
-    alert(`Declined ${id}`);
-  };
-
-  if (requests.length === 0) {
+/* ───────── Followings Tab ───────── */
+function FollowingsTab({ followings }) {
+  if (!followings || followings.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
           <UserPlus className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">No pending requests</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No followings yet</h3>
         <p className="text-sm text-gray-600">You’re all caught up!</p>
       </div>
     );
@@ -136,36 +143,23 @@ function RequestsTab({ requests }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">
-        Friend Requests ({requests.length})
+        Following ({followings.length})
       </h3>
-      {requests.map((r) => (
+      {followings.map((r) => (
         <div
-          key={r.id}
+          key={r.userId}
           className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
         >
           <div className="flex items-center gap-3">
             <img
-              src={r.avatar}
-              alt={r.name}
+              src={r.profileAvatar || "https://i.pravatar.cc/40"}
+              alt={r.userName}
               className="w-10 h-10 rounded-full object-cover"
             />
-            <span className="font-medium text-gray-900">{r.name}</span>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleAccept(r.id)}
-              className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 flex items-center gap-1"
-            >
-              <Check className="w-3 h-3" />
-              Accept
-            </button>
-            <button
-              onClick={() => handleDecline(r.id)}
-              className="px-3 py-1.5 bg-gray-300 text-gray-800 text-xs font-medium rounded-md hover:bg-gray-400 flex items-center gap-1"
-            >
-              <X className="w-3 h-3" />
-              Decline
-            </button>
+            <div>
+              <span className="font-medium text-gray-900">{r.userName}</span>
+              <p className="text-xs text-gray-500">{r.followedAt}</p>
+            </div>
           </div>
         </div>
       ))}
