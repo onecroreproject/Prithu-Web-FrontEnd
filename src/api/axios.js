@@ -3,7 +3,7 @@ import axios from "axios";
 // Use environment variable for base URL
 const api = axios.create({
   baseURL:
-    import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || "http://localhost:5000",
+    import.meta.env.VITE_API_URL || process.env.REACT_APP_API_URL || "http://localhost:5000/web",
   headers: {
     "Content-Type": "application/json",
   },

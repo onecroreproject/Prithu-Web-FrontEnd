@@ -23,7 +23,7 @@
 //   useEffect(() => {
 //     const fetchFollowing = async () => {
 //       try {
-//         const res = await axios.get("/api/user/following/data");
+//         const res = await api.get("/api/user/following/data");
 //         const list = res.data?.data?.followers || [];
 //         const count = res.data?.data?.followersCount || 0;
 //         setFollowingList(list);
@@ -43,7 +43,7 @@
 //     if (!showFollowing) {
 //       try {
 //         setLoadingFollowing(true);
-//         const res = await axios.get("/api/user/following/data");
+//         const res = await api.get("/api/user/following/data");
 //         const list = res.data?.data?.followers || [];
 //         const count = res.data?.data?.followersCount || 0;
 //         setFollowingList(list);

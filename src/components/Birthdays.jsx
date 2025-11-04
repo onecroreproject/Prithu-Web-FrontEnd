@@ -1,87 +1,145 @@
 // src/components/Birthdays.jsx
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import api from "../api/axios";
+
+// ✅ Fetch upcoming birthdays (next 12 months)
+const fetchUpcomingBirthdays = async () => {
+  const { data } = await api.get(`/api/get/user/birthday`);
+  return data;
+};
 
 export default function Birthdays() {
-  const birthdayGroups = [
-    {
-      date: "20 August",
-      people: [
-        {
-          name: "Bob Hammond",
-          age: 28,
-          avatar: "https://i.pravatar.cc/150?img=33",
-        },
-        {
-          name: "Haasper Mitchell",
-          age: 21,
-          avatar: "https://i.pravatar.cc/150?img=45",
-        },
-      ],
-    },
-    {
-      date: "22 August",
-      people: [
-        {
-          name: "Mason Cooper",
-          age: 30,
-          avatar: "https://i.pravatar.cc/150?img=12",
-        },
-      ],
-    },
-    {
-      date: "1 September",
-      people: [
-        {
-          name: "Isabel Hughes",
-          age: 19,
-          avatar: "https://i.pravatar.cc/150?img=20",
-        },
-      ],
-    },
-  ];
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["upcoming-birthdays"],
+    queryFn: fetchUpcomingBirthdays,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 animate-pulse">
+        <p className="text-sm text-gray-500">Loading birthdays...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p className="text-sm text-red-500">{error.message}</p>
+      </div>
+    );
+  }
+
+  if (!data?.success || !data?.users?.length) {
+    return (
+      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p className="text-sm text-gray-500">
+          {data?.message || "No upcoming birthdays."}
+        </p>
+      </div>
+    );
+  }
+
+  // ✅ Group by month and day using `nextBirthday`
+  const grouped = data.users.reduce((acc, user) => {
+    const nextBDay = new Date(user.nextBirthday);
+    const monthName = nextBDay.toLocaleString("default", { month: "long" });
+    const day = nextBDay.getDate();
+    const key = `${day} ${monthName}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(user);
+    return acc;
+  }, {});
+
+  const birthdayGroups = Object.entries(grouped).map(([date, people]) => ({
+    date,
+    people,
+  }));
+
+  // 🎂 Helper for ordinal suffix
+  const getOrdinal = (n) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
 
   return (
-    <div className="max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden sm:max-w-md md:max-w-lg"
+    >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Birthdays</h2>
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <h2 className="text-lg font-semibold text-gray-900">
+          🎉 Upcoming Birthdays
+        </h2>
       </div>
 
       {/* List */}
-      <ul className="divide-y divide-gray-200">
-        {birthdayGroups.map((group, groupIdx) => (
-          <li key={groupIdx} className={groupIdx < birthdayGroups.length - 1 ? "border-b border-gray-200" : ""}>
-            {/* Date Header */}
-            <div className="px-4 py-2 bg-gray-50 text-xs font-medium text-gray-900">
-              {group.date}
-            </div>
-
-            {/* People */}
-            {group.people.map((person, personIdx) => (
-              <div
-                key={personIdx}
-                className={`flex items-center px-4 py-3 hover:bg-gray-50 transition-colors ${
-                  personIdx < group.people.length - 1 ? "border-b border-gray-200" : ""
-                }`}
+      <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 transition-all">
+        <ul className="divide-y divide-gray-200">
+          <AnimatePresence>
+            {birthdayGroups.map((group, groupIdx) => (
+              <motion.li
+                key={groupIdx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: groupIdx * 0.05 }}
               >
-                <img
-                  src={person.avatar}
-                  alt={person.name}
-                  className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {person.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Turning {person.age} years old
-                  </p>
+                {/* Date Header */}
+                <div className="px-4 py-2 bg-gray-50 text-xs font-medium text-gray-900 sticky top-0">
+                  {group.date}
                 </div>
-              </div>
+
+                {/* People */}
+                {group.people.map((person, personIdx) => {
+                  const dob = new Date(person.dateOfBirth);
+                  const birthYear = dob.getFullYear();
+                  const nextBirthday = new Date(person.nextBirthday);
+                  const turningAge = nextBirthday.getFullYear() - birthYear;
+
+                  return (
+                    <motion.div
+                      key={personIdx}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: personIdx * 0.05 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <img
+                        src={
+                          person.profileAvatar ||
+                          `https://i.pravatar.cc/150?u=${person._id}`
+                        }
+                        alt={person.displayName || person.userName}
+                        className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0 border border-gray-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {person.displayName || person.userName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          🎂 {getOrdinal(turningAge)} Birthday –{" "}
+                          {nextBirthday.toLocaleDateString("en-US", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.li>
             ))}
-          </li>
-        ))}
-      </ul>
-    </div>
+          </AnimatePresence>
+        </ul>
+      </div>
+    </motion.div>
   );
 }

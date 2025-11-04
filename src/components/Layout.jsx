@@ -3,7 +3,7 @@ import Header from './Header';
 import Feed from '../pages/Feed';
 import UpcomingEvents from './UpcomingEvents';
 import Birthdays from './Birthdays';
-import CommunityChats from './CommunityChats';
+import JobCard from './jobCard';
 import LeftColumn from './LeftColumn';
 import { Outlet, useLocation } from 'react-router-dom';
 
@@ -23,15 +23,14 @@ export default function Layout() {
       {/* Main Scrollable Area (One Single Scroll) */}
       <div className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto overflow-y-auto scrollbar-hide">
         <div className="flex gap-6 pb-20 lg:pb-0">
-          
-          {/* LEFT COLUMN – SCROLLABLE (Same scroll as Feed) */}
+          {/* LEFT COLUMN */}
           {showColumns && (
             <div className="hidden lg:flex w-[220px] flex-shrink-0">
               <LeftColumn />
             </div>
           )}
 
-          {/* CENTER: Feed or Page */}
+          {/* CENTER */}
           <div
             className={`flex-1 min-w-0 ${
               isFullWidth || !isHome ? '' : 'max-w-2xl mx-auto'
@@ -40,7 +39,7 @@ export default function Layout() {
             {isHome ? <Feed /> : <Outlet />}
           </div>
 
-          {/* RIGHT COLUMN – SCROLLABLE (Same scroll) */}
+          {/* RIGHT COLUMN */}
           {showColumns && (
             <div className="hidden xl:flex gap-4 w-[470px] flex-shrink-0">
               <div className="w-[250px] flex flex-col gap-4">
@@ -48,7 +47,7 @@ export default function Layout() {
                 <Birthdays />
               </div>
               <div className="w-[220px]">
-                <CommunityChats />
+                <JobCard />
               </div>
             </div>
           )}
@@ -56,20 +55,20 @@ export default function Layout() {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <div className="lg:hidden">
-        {/* Replace with MobileNav if needed */}
-      </div>
+      <div className="lg:hidden">{/* Add MobileNav if needed */}</div>
 
-      {/* Hide Scrollbar */}
-      <style jsx global>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+      {/* ✅ Corrected Global Scrollbar Style */}
+      <style>
+        {`
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+        `}
+      </style>
     </div>
   );
 }

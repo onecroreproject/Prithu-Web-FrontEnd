@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "../api/axios";
+import api from "../api/axios";
 import Postcard from "../components/FeedPageComponent/Postcard";
 
 const LikedPosts = () => {
@@ -17,7 +17,7 @@ const LikedPosts = () => {
           setLoading(false);
           return;
         }
-        const res = await axios.get("/api/user/liked/feeds", {
+        const res = await api.get("/api/user/liked/feeds", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.data.count === 0) {

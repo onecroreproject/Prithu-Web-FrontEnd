@@ -4,13 +4,13 @@ importScripts("https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-com
 
 // 🔹 Initialize Firebase in the service worker
 firebase.initializeApp({
-  apiKey: "AIzaSyA3QOb6FOv91upHLT4gtGsBtr-7jKCL5Uk",
-  authDomain: "prithu-app-35919.firebaseapp.com",
-  projectId: "prithu-app-35919",
-  storageBucket: "prithu-app-35919.firebasestorage.app",
-  messagingSenderId: "1032343355991",
-  appId: "1:1032343355991:web:0d5948b2a9ac6ddd52d912",
-  measurementId: "G-TC86W4GJW6",
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+  projectId: "YOUR_FIREBASE_PROJECT_ID",
+  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+  appId: "YOUR_FIREBASE_APP_ID",
+  measurementId: "YOUR_FIREBASE_MEASUREMENT_ID",
 });
 
 // 🔹 Retrieve Firebase Messaging

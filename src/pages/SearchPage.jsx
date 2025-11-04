@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axios from "../api/axios";
+import api from "../api/axios";
 import { Search as SearchIcon } from "lucide-react";
 import Postcard from "../components/FeedPageComponent/Postcard"; // your existing Postcard component
 
@@ -24,7 +24,7 @@ const SearchPage = () => {
     setError("");
 
     try {
-      const res = await axios.get("/api/get/all/feeds/user", {
+      const res = await api.get("/api/get/all/feeds/user", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -69,7 +69,7 @@ const SearchPage = () => {
     if (value.trim().length > 0) {
       debounceTimeout.current = setTimeout(async () => {
         try {
-          const res = await axios.post(
+          const res = await api.post(
             "/api/search/all/category",
             { query: value, userId: user?._id },
             { headers: { Authorization: `Bearer ${token}` } }

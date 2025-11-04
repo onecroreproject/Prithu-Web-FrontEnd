@@ -1,14 +1,15 @@
+// src/firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA3QOb6FOv91upHLT4gtGsBtr-7jKCL5Uk",
-  authDomain: "prithu-app-35919.firebaseapp.com",
-  projectId: "prithu-app-35919",
-  storageBucket: "prithu-app-35919.firebasestorage.app",
-  messagingSenderId: "1032343355991",
-  appId: "1:1032343355991:web:0d5948b2a9ac6ddd52d912",
-  measurementId: "G-TC86W4GJW6",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -18,15 +19,17 @@ export const requestFCMPermissionAndToken = async () => {
   try {
     console.log("🔔 Requesting notification permission...");
     const permission = await Notification.requestPermission();
+
     if (permission === "granted") {
       console.log("✅ Notification permission granted.");
 
-      // ✅ Ensure service worker is registered
+      // ✅ Register service worker for background notifications
       const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-      console.log("✅ Service Worker registered successfully:", registration);
+      console.log("✅ Service Worker registered:", registration);
 
+      // ✅ Get token using environment VAPID key
       const token = await getToken(messaging, {
-        vapidKey: "BLU_4otT1lF7NmTspMCDsW7WdQelgSPBWmRirEuSCz64I5X-WDIiWy22cFzBUhzglnfzmrvCRUwrKtYw6YLSVCU",
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
         serviceWorkerRegistration: registration,
       });
 

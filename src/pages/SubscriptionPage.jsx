@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import axios from "../api/axios";               // <-- your axios instance
+import api from "../api/axios";               // <-- your axios instance
 import { AuthContext } from "../context/AuthContext";
 
 const plans = [
@@ -36,7 +36,7 @@ const SubscriptionPage = () => {
         result: { paymentId: "test123", status: "success" }, // fake Razorpay result
       };
 
-      const { data } = await axios.post(
+      const { data } = await api.post(
         "/api/user/plan/subscription",
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -56,7 +56,7 @@ const SubscriptionPage = () => {
   /* --------------------------------------------------- */
   const cancelSubscription = async (subscriptionId) => {
     try {
-      await axios.put(
+      await api.put(
         "/api/user/cancel/subscription",
         { subscriptionId },
         { headers: { Authorization: `Bearer ${token}` } }
