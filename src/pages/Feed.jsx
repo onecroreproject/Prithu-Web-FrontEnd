@@ -49,7 +49,7 @@ const Feed = ({ authUser }) => {
           `/api/get/all/feeds/user?page=${pageNum}&limit=10`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-     
+console.log("feeds",data)
         const formatted = data.feeds.map((feed) => ({
           feedId: feed.feedId,
           type: feed.type || "image",

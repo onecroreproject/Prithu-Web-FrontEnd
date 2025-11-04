@@ -95,7 +95,6 @@ export default function ProfileStatus() {
             socialLinks: "Social Links",
           };
 
-          // Only keep missing fields
           const missingData = missingFields.map((field, i) => ({
             label: fieldLabels[field] || field,
             field,
@@ -125,7 +124,8 @@ export default function ProfileStatus() {
 
   return (
     <div
-      className="w-[230px] h-[230px] p-4 rounded-[9px] shadow-xl relative flex flex-col items-center justify-start overflow-hidden backdrop-blur-xl border border-white/20"
+      onClick={() => navigate("/profile")}
+      className="w-[230px] h-[230px] p-4 rounded-[9px] shadow-xl relative flex flex-col items-center justify-start overflow-hidden backdrop-blur-xl border border-white/20 cursor-pointer hover:scale-[1.02] hover:shadow-2xl transition-all duration-300"
       style={{
         background:
           "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8))",
@@ -151,8 +151,7 @@ export default function ProfileStatus() {
           missingItems.map((item, idx) => (
             <div
               key={idx}
-              onClick={() => navigate("/profile/edit")}
-              className="flex items-center justify-between text-[12px] px-1 py-[2px] rounded cursor-pointer transition-all duration-200 hover:bg-red-50 group"
+              className="flex items-center justify-between text-[12px] px-1 py-[2px] rounded transition-all duration-200 hover:bg-red-50 group"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="font-medium text-gray-400 truncate group-hover:underline">

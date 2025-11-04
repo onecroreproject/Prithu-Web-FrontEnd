@@ -28,8 +28,9 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.9, y: 40 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.7 }}
-        className="relative flex w-full max-w-2xl mx-auto bg-white/10 rounded-3xl shadow-2xl overflow-hidden z-10 border border-white/20 backdrop-blur-md"
+        className="relative flex w-full max-w-[800px] bg-white/10 rounded-3xl shadow-2xl overflow-hidden z-10 border border-white/20 backdrop-blur-md"
       >
+        
         <LeftPanel />
         <RightPanel mode={mode} setMode={setMode} />
       </motion.div>
