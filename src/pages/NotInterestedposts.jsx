@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api/axios";
+import api from "../api/axios";
 
 const NotInterestedposts = () => {
   const [posts, setPosts] = useState([]);
@@ -9,7 +9,7 @@ const NotInterestedposts = () => {
     const fetchNotInterested = async () => {
       try {
         const token = localStorage.getItem("userToken");
-        const res = await axios.get("/user/not-interested-posts", {
+        const res = await api.get("/user/not-interested-posts", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPosts(res.data.data || []);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axios from "../api/axios";
+import api from "../api/axios";
 import Postcard from "../components/FeedPageComponent/Postcard"; // using your existing card
 
 const ReelsPage = () => {
@@ -16,7 +16,7 @@ const ReelsPage = () => {
       setError("");
 
       try {
-        const res = await axios.get("/api/get/all/feeds/user", {
+        const res = await api.get("/api/get/all/feeds/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
 

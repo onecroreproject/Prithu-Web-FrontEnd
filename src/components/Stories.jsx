@@ -102,8 +102,7 @@ const Stories = () => {
                       <img
                         src={
                           thumbnails[feed._id] ||
-                          feed.thumbnail ||
-                          "https://via.placeholder.com/150"
+                          feed.thumbnail 
                         }
                         alt="video"
                         className="object-cover h-full w-full"
@@ -114,7 +113,7 @@ const Stories = () => {
                     </>
                   ) : (
                     <img
-                      src={feed.contentUrl || "https://via.placeholder.com/150"}
+                      src={feed.contentUrl}
                       alt={feed.caption || "Feed"}
                       className="object-cover h-full w-full"
                     />

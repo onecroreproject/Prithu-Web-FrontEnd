@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import api from "../api/axios";
 import toast from "react-hot-toast";
 import { ArrowLeft } from "lucide-react";
 
@@ -15,7 +15,7 @@ const SavedPage = () => {
     const fetchSavedFeeds = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("/api/user/get/saved/feeds");
+        const res = await api.get("/api/user/get/saved/feeds");
         const feeds = res.data.savedFeeds || [];
 
         setSavedPosts(feeds.filter(f => f.type === "image"));

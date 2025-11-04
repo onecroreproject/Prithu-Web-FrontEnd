@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "../api/axios";
+import api from "../api/axios";
 
 const Hiddenpost = () => {
   const [posts, setPosts] = useState([]);
@@ -9,7 +9,7 @@ const Hiddenpost = () => {
     const fetchHiddenPosts = async () => {
       try {
         const token = localStorage.getItem("userToken");
-        const res = await axios.get("/user/hidden-posts", {
+        const res = await api.get("/user/hidden-posts", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setPosts(res.data.data || []);

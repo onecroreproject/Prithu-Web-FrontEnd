@@ -16,7 +16,7 @@ import {
   VisibilityOff,
   Flag,
 } from "@mui/icons-material";
-import axios from "../../api/axios";
+import api from "../../api/axios";
 
 const PostOptionsMenu = ({
   feedId,
@@ -52,7 +52,7 @@ const PostOptionsMenu = ({
     setLoading(true);
     try {
       const endpoint = isSaved ? "/api/user/unsave/post" : "/api/user/save/post";
-      const res = await axios.post(
+      const res = await api.post(
         endpoint,
         { postId: feedId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -73,7 +73,7 @@ const PostOptionsMenu = ({
   const handleNotInterested = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(
+      const res = await api.post(
         "/api/user/not/intrested",
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -94,7 +94,7 @@ const PostOptionsMenu = ({
   const handleHidePost = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(
+      const res = await api.post(
         "/api/user/hide/feed",
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -115,7 +115,7 @@ const PostOptionsMenu = ({
   const fetchReportTypes = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/report-types", {
+      const res = await api.get("/api/report-types", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setReportTypes(res.data.data || []);
@@ -137,7 +137,7 @@ const PostOptionsMenu = ({
     setSelectedTypeId(typeId);
     setSelections([]);
     try {
-      const res = await axios.get(`/api/report-questions/start?typeId=${typeId}`, {
+      const res = await api.get(`/api/report-questions/start?typeId=${typeId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -155,7 +155,7 @@ const PostOptionsMenu = ({
   // Submit Report
   const submitReport = async (answers) => {
     try {
-      await axios.post(
+      await api.post(
         "/api/report-post",
         {
           typeId: selectedTypeId,
@@ -181,7 +181,7 @@ const PostOptionsMenu = ({
     };
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         "/api/report-questions/next",
         {
           reportId: selectedTypeId,

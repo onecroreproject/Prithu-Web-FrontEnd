@@ -41,7 +41,7 @@ const SubscriptionModal = ({ open, onClose }) => {
 
   const handleSubscribe = (plan) => {
     // You can integrate your backend API here
-    // Example: axios.post("/user/plan/subscription", { planId: plan.title, userId })
+    // Example: api.post("/user/plan/subscription", { planId: plan.title, userId })
     
     setAlertMsg(`Subscribed Successfully to ${plan.title} ✅`);
     setTimeout(() => setAlertMsg(""), 3000); // Hide alert after 3 seconds

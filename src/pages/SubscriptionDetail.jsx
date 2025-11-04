@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
 import { ArrowLeft } from "lucide-react"; // import back icon
 
 export default function SubscriptionDetails() {
@@ -11,7 +11,7 @@ export default function SubscriptionDetails() {
   const handleCancel = async () => {
     try {
       setLoading(true);
-      const response = await axios.post(
+      const response = await api.post(
         "http://localhost:5000/api/user/cancel/subscription",
         {},
         {

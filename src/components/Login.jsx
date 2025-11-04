@@ -76,6 +76,9 @@ export default function Login() {
     }
   };
 
+
+  
+
   // Step 3: complete registration
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();

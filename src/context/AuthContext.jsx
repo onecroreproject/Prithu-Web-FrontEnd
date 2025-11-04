@@ -47,6 +47,68 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
+  const sendOtpForReset = async (email) => {
+  try {
+    const res = await api.post("/api/auth/user/otp-send", { email });
+    toast.success(res.data.message || "OTP sent successfully");
+    setResetEmail(email);
+    return true;
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Failed to send OTP");
+    return false;
+  }
+};
+
+
+const verifyOtpForNewUser = async ({ email, otp }) => {
+  try {
+    const res = await api.post("/api/auth/new/user/verify-otp", { email, otp });
+    toast.success(res.data.message || "OTP verified successfully");
+    return true;
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Invalid or expired OTP");
+    return false;
+  }
+};
+
+
+const verifyOtpForReset = async ({ otp }) => {
+  try {
+    const res = await api.post("/api/auth/user/verify-otp-exist", { otp });
+    toast.success(res.data.message || "OTP verified successfully");
+    setResetEmail(res.data.email);
+    return true;
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Invalid OTP");
+    return false;
+  }
+};
+
+
+
+const resetPassword = async (newPassword) => {
+  try {
+    if (!resetEmail) {
+      toast.error("Email not found for reset flow");
+      return false;
+    }
+
+    const res = await api.post("/api/auth/user/reset-password", {
+      email: resetEmail,
+      newPassword,
+    });
+
+    toast.success(res.data.message || "Password reset successfully!");
+    navigate("/login");
+    return true;
+  } catch (err) {
+    toast.error(err.response?.data?.error || "Failed to reset password");
+    return false;
+  }
+};
+
+
   // ---------- Login ----------
   const login = async ({ identifier, password }) => {
     setLoading(true);
@@ -315,6 +377,10 @@ export const AuthProvider = ({ children }) => {
     fetchUserProfile,
     updateUserProfile,
     socket: socketRef.current,
+     sendOtpForReset,
+  verifyOtpForNewUser,
+  verifyOtpForReset,
+  resetPassword,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

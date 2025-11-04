@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Stack, Avatar, Typography, Button, Box, TextField, IconButton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import SendIcon from "@mui/icons-material/Send";
-import axios from "../../api/axios";
+import api from "../../api/axios";
 
 const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
 
   const fetchReplies = useCallback(async () => {
     try {
-      const res = await axios.post("/api/get/comments/relpy/for/feed", {
+      const res = await api.post("/api/get/comments/relpy/for/feed", {
         parentCommentId: comment.commentId,
       });
 
@@ -45,7 +45,7 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
     setLikeCount(prevLiked ? Math.max(likeCount - 1, 0) : likeCount + 1);
 
     try {
-      await axios.post("/api/user/comment/like", { commentId: comment.commentId });
+      await api.post("/api/user/comment/like", { commentId: comment.commentId });
       refreshComments();
     } catch (err) {
       console.error(err);
@@ -57,7 +57,7 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
   const handleReplyPost = async () => {
     if (!replyText.trim()) return;
     try {
-      await axios.post("/api/user/feed/reply/comment", {
+      await api.post("/api/user/feed/reply/comment", {
         parentCommentId: comment.commentId,
         commentText: replyText,
         userId: authUser._id,

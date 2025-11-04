@@ -8,11 +8,11 @@ const useHeartbeat = (sessionId) => {
 
     const interval = setInterval(async () => {
       try {
-        await api.post("/api/auth/heartbeat", { sessionId });
+        await api.post("/api/refresh-token", { sessionId });
       } catch (err) {
         console.error("Heartbeat error:", err);
       }
-    }, 30000); // every 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [sessionId]);

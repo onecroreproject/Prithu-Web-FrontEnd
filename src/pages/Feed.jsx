@@ -1,7 +1,7 @@
 /* Feed.jsx */
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { AuthContext } from "../context/AuthContext";
-import axios from "../api/axios";
+import api from "../api/axios";
 
 import Stories from "../components/Stories";
 import Createpost from "../components/Createpost";
@@ -45,11 +45,11 @@ const Feed = ({ authUser }) => {
       setError(null);
 
       try {
-        const { data } = await axios.get(
+        const { data } = await api.get(
           `/api/get/all/feeds/user?page=${pageNum}&limit=10`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-
+     
         const formatted = data.feeds.map((feed) => ({
           feedId: feed.feedId,
           type: feed.type || "image",
@@ -168,9 +168,9 @@ const Feed = ({ authUser }) => {
 
       <div className="flex flex-col gap-6">
         {feeds.length > 0 ? (
-          feeds.map((feed) => (
+          feeds.map((feed,idx) => (
             <Postcard
-              key={feed.feedId}
+              key={idx}
               postData={feed}
               authUser={authUser}
               token={token}

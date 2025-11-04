@@ -25,7 +25,7 @@ import {
   Download as DownloadIcon,
 } from "@mui/icons-material";
 
-import axios from "../../api/axios";
+import api from "../../api/axios";
 import SubscriptionModal from "./SubscriptionModal";
 import PostCommentsModal from "./PostCommentsModal";
 import PostOptionsMenu from "./PostOptionsMenu";
@@ -106,7 +106,7 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
 
   const fetchComments = useCallback(async () => {
     try {
-      const res = await axios.post("/api/get/comments/for/feed", { feedId });
+      const res = await api.post("/api/get/comments/for/feed", { feedId });
       if (res.data.comments) {
         setComments(res.data.comments);
         setCommentsCount(res.data.comments.length);
@@ -126,7 +126,7 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     setLikesCount((prev) => (newIsLiked ? prev + 1 : Math.max(prev - 1, 0)));
 
     try {
-      await axios.post("/api/user/feed/like", {
+      await api.post("/api/user/feed/like", {
         feedId,
         userId: tempUser._id,
       });
@@ -163,7 +163,7 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
 
   const handleSave = async () => {
     try {
-      const res = await axios.post("/api/user/feed/save", { feedId });
+      const res = await api.post("/api/user/feed/save", { feedId });
       const savedFeedIds = res.data.savedFeeds?.map((f) => f.feedId) || [];
       setSavedPosts(savedFeedIds);
       setIsSaved(savedFeedIds.includes(feedId));
@@ -175,7 +175,7 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
 
   const handleDownload = async () => {
     try {
-      const res = await axios.post(
+      const res = await api.post(
         "/api/user/feed/download",
         { feedId },
         { responseType: "blob" }

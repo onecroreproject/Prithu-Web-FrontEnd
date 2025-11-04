@@ -15,7 +15,7 @@ import {
   Stack,
   CircularProgress
 } from "@mui/material";
-import axios from "../api/axios";
+import api from "../api/axios";
 
 const ReportModal = ({ open, onClose, postId, onReportSubmit }) => {
   const [reportTypes, setReportTypes] = useState([]);
@@ -34,7 +34,7 @@ const ReportModal = ({ open, onClose, postId, onReportSubmit }) => {
 
   const fetchReportTypes = async () => {
     try {
-      const res = await axios.get("/report-types");
+      const res = await api.get("/report-types");
       setReportTypes(res.data.reportTypes || []);
     } catch (err) {
       console.error("Error fetching report types:", err);
@@ -43,7 +43,7 @@ const ReportModal = ({ open, onClose, postId, onReportSubmit }) => {
 
   const fetchInitialQuestions = async () => {
     try {
-      const res = await axios.get("/report-questions/start");
+      const res = await api.get("/report-questions/start");
       setQuestions(res.data.questions || []);
       setCurrentQuestionIndex(0);
       setSelectedAnswers({});
@@ -65,7 +65,7 @@ const ReportModal = ({ open, onClose, postId, onReportSubmit }) => {
 
     try {
       setLoading(true);
-      const res = await axios.post(`/report-questions/${questionId}`, {
+      const res = await api.post(`/report-questions/${questionId}`, {
         answer: answer,
         previousAnswers: newAnswers
       });
@@ -86,7 +86,7 @@ const ReportModal = ({ open, onClose, postId, onReportSubmit }) => {
 
   const submitReport = async (answers) => {
     try {
-      await axios.post("/report-post", {
+      await api.post("/report-post", {
         postId: postId,
         reportType: selectedReportType,
         answers: answers

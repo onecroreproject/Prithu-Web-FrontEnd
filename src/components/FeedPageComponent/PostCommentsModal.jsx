@@ -12,7 +12,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import CommentItem from "./CommentItem";
-import axios from "../../api/axios";
+import api from "../../api/axios";
 
 const PostCommentsModal = ({ open, onClose, post, authUser, feedId }) => {
   const [comments, setComments] = useState([]);
@@ -25,7 +25,7 @@ const PostCommentsModal = ({ open, onClose, post, authUser, feedId }) => {
   const fetchComments = async () => {
     if (!currentFeedId) return;
     try {
-      const res = await axios.post("/api/get/comments/for/feed", { feedId: currentFeedId });
+      const res = await api.post("/api/get/comments/for/feed", { feedId: currentFeedId });
       if (res.data.comments) setComments(res.data.comments);
     } catch (err) {
       console.error("Error fetching comments:", err);
@@ -39,7 +39,7 @@ const PostCommentsModal = ({ open, onClose, post, authUser, feedId }) => {
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
-      const response = await axios.post("/api/user/feed/comment", {
+      const response = await api.post("/api/user/feed/comment", {
         feedId: currentFeedId,
         commentText: newComment,
         userId: authUser._id,
