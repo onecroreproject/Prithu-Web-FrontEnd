@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import{ useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import api from "../api/axios";
@@ -54,32 +54,70 @@ export default function TimeWeather() {
   const [now, setNow] = useState(new Date());
   const [weather, setWeather] = useState(null);
   const [bgImage, setBgImage] = useState(WEATHER_BACKGROUNDS.default);
+  const locationIntervalRef = useRef(null);
 
-  // Update clock every second
+  // 🕒 Clock updater
   useEffect(() => {
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(clock);
   }, []);
 
-  // Fetch weather (and auto refresh every 5 min)
+  // 🌍 Location + Weather Tracking
   useEffect(() => {
-    let lat, lon;
+    const startLocationTracking = () => {
+      if (!navigator.geolocation) {
+        console.warn("Geolocation not supported.");
+        return;
+      }
 
-    const fetchWeather = async () => {
+      const sendLocation = async (permissionStatus) => {
+        if (permissionStatus === "denied") {
+          await api.post("/api/save/user/location", { permissionStatus: "denied" });
+          console.warn("Permission denied for location.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            try {
+              await api.post("/api/save/user/location", {
+                latitude,
+                longitude,
+                permissionStatus: "granted",
+              });
+              await fetchWeather(latitude, longitude); // update weather each time location updates
+            } catch (err) {
+              console.error("Error saving location:", err);
+            }
+          },
+          async (err) => {
+            console.warn("Geolocation error:", err);
+            await api.post("/api/save/user/location", { permissionStatus: "denied" });
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      };
+
+      // Initial check
+      navigator.permissions.query({ name: "geolocation" }).then((result) => sendLocation(result.state));
+
+      // Re-check every 5 seconds
+      locationIntervalRef.current = setInterval(() => {
+        navigator.permissions.query({ name: "geolocation" }).then((result) => sendLocation(result.state));
+      }, 5000);
+    };
+
+    const fetchWeather = async (lat, lon) => {
       try {
-        const loc = await api.get("/api/get/user/location");
-        if (!loc.data?.data) return console.warn("No user location found");
-
-        ({ latitude: lat, longitude: lon } = loc.data.data);
-
         const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
         const res = await axios.get(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`
         );
-        console.log(res.data)
         const data = res.data;
         setWeather(data);
 
+        // Update background based on condition
         const condition = data.weather[0].main.toLowerCase();
         if (condition.includes("clouds")) setBgImage(WEATHER_BACKGROUNDS.clouds);
         else if (condition.includes("rain")) setBgImage(WEATHER_BACKGROUNDS.rain);
@@ -91,72 +129,70 @@ export default function TimeWeather() {
       }
     };
 
-    fetchWeather();
-    const refresh = setInterval(fetchWeather, 5 * 60 * 1000); // 5 min refresh
-    return () => clearInterval(refresh);
+    // Initialize tracking
+    startLocationTracking();
+
+    return () => {
+      if (locationIntervalRef.current) clearInterval(locationIntervalRef.current);
+    };
   }, []);
 
   return (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.8, ease: "easeOut" }}
-    className="relative w-[230px] h-[230px] sm:w-[230px] sm:h-[230px] rounded-[16px] overflow-hidden shadow-xl flex flex-col items-center justify-center text-white"
-    style={{
-      backgroundImage: `url(${bgImage})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    }}
-  >
-    <div className="absolute inset-0 bg-black/40 z-0" />
-
-    {/* Header Row — Clock (Left) + Weather (Right) */}
-    <div className="flex items-center justify-between w-full px-4 mt-2 z-10">
-      {/* Clock Left */}
-      <AnalogClock date={now} />
-
-      {/* Weather Right */}
-      {weather ? (
-        <motion.div
-          initial={{ opacity: 0, x: 15 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-right"
-        >
-          <div className="text-sm sm:text-sm font-semibold">{weather.name}</div>
-          <div className="text-sm sm:text-sm font-bold">
-            {Math.round(weather.main.temp)}°C
-          </div>
-          <div className="text-xs capitalize leading-tight">
-            {weather.weather[0].description}
-          </div>
-        </motion.div>
-      ) : (
-        <div className="text-xs italic">Loading...</div>
-      )}
-    </div>
-
-    {/* Time Center */}
     <motion.div
-      key={now.getMinutes()}
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="z-10 mt-4 text-[38px] font-bold drop-shadow-md tracking-wide"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="relative w-[230px] h-[230px] sm:w-[230px] sm:h-[230px] rounded-[16px] overflow-hidden shadow-xl flex flex-col items-center justify-center text-white"
+      style={{
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
-      {pad(now.getHours())}:{pad(now.getMinutes())}
-    </motion.div>
+      <div className="absolute inset-0 bg-black/40 z-0" />
 
-    {/* Date Bottom */}
-    <motion.div
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="z-10 text-sm sm:text-base font-medium text-center mt-1"
-    >
-      {getFormattedDate(now)}
-    </motion.div>
-  </motion.div>
-);
+      {/* Clock + Weather Row */}
+      <div className="flex items-center justify-between w-full px-4 mt-2 z-10">
+        <AnalogClock date={now} />
 
+        {weather ? (
+          <motion.div
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-right"
+          >
+            <div className="text-sm font-semibold">
+              {weather.name}, {weather.sys?.country}
+            </div>
+            <div className="text-sm font-bold">{Math.round(weather.main.temp)}°C</div>
+            <div className="text-xs capitalize leading-tight">{weather.weather[0].description}</div>
+          </motion.div>
+        ) : (
+          <div className="text-xs italic">Loading...</div>
+        )}
+      </div>
+
+      {/* Time */}
+      <motion.div
+        key={now.getMinutes()}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="z-10 mt-4 text-[38px] font-bold drop-shadow-md tracking-wide"
+      >
+        {pad(now.getHours())}:{pad(now.getMinutes())}
+      </motion.div>
+
+      {/* Date */}
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="z-10 text-sm sm:text-base font-medium text-center mt-1"
+      >
+        {getFormattedDate(now)}
+      </motion.div>
+    </motion.div>
+  );
 }

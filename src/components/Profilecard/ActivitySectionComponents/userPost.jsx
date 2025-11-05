@@ -93,7 +93,7 @@ const UserPosts = () => {
 
                   {/* Like Count */}
                   <div className="absolute bottom-2 left-2 bg-transparent bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                    ❤️ {post.likes?.length || 0} Likes
+                    ❤️ {post.likesCount || 0} Likes
                   </div>
                 </motion.div>
               ))

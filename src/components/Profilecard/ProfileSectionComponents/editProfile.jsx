@@ -2,73 +2,76 @@
 import React, { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useAuth } from "../../../context/AuthContext";
-import api from "../../../api/axios"; // ✅ make sure this path is correct
 import { toast } from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
+import { useUserProfile } from "../../../hook/userProfile";
+import { updateProfileDetails } from "../../../Service/userService";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function EditProfile() {
-  const { user, fetchUserProfile, loading } = useAuth();
+  const { token } = useAuth();
+  const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showLeavePopup, setShowLeavePopup] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [formData, setFormData] = useState({
-    displayName: user?.displayName || "",
-    dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth) : null,
-    city: user?.city || "",
-    country: user?.country || "",
-    bio: user?.bio || "",
-    phoneNumber: user?.phoneNumber || "",
-    whatsappNumber: user?.whatsappNumber || "",
-    maritalStatus: user?.maritalStatus || "Single",
-    language: user?.language || "English",
+    displayName: "",
+    dateOfBirth: null,
+    city: "",
+    country: "",
+    bio: "",
+    phoneNumber: "",
+    whatsappNumber: "",
+    maritalStatus: "Single",
+    language: "English",
     socialLinks: {
-      facebook: user?.socialLinks?.facebook || "",
-      instagram: user?.socialLinks?.instagram || "",
-      twitter: user?.socialLinks?.twitter || "",
-      linkedin: user?.socialLinks?.linkedin || "",
-      github: user?.socialLinks?.github || "",
-      youtube: user?.socialLinks?.youtube || "",
-      website: user?.socialLinks?.website || "",
+      facebook: "",
+      instagram: "",
+      twitter: "",
+      linkedin: "",
+      github: "",
+      youtube: "",
+      website: "",
     },
   });
 
   const initialDataRef = useRef(JSON.stringify(formData));
 
-  // 🔄 Re-sync form when user changes
+  // 🧩 Prefill user data
   useEffect(() => {
     if (!user) return;
     const updated = {
-      displayName: user?.displayName || "",
-      dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth) : null,
-      city: user?.city || "",
-      country: user?.country || "",
-      bio: user?.bio || "",
-      phoneNumber: user?.phoneNumber || "",
-      whatsappNumber: user?.whatsappNumber || "",
-      maritalStatus: user?.maritalStatus || "Single",
-      language: user?.language || "English",
+      displayName: user.displayName || "",
+      dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : null,
+      city: user.city || "",
+      country: user.country || "",
+      bio: user.bio || "",
+      phoneNumber: user.phoneNumber || "",
+      whatsappNumber: user.whatsappNumber || "",
+      maritalStatus: user.maritalStatus || "Single",
+      language: user.language || "English",
       socialLinks: {
-        facebook: user?.socialLinks?.facebook || "",
-        instagram: user?.socialLinks?.instagram || "",
-        twitter: user?.socialLinks?.twitter || "",
-        linkedin: user?.socialLinks?.linkedin || "",
-        github: user?.socialLinks?.github || "",
-        youtube: user?.socialLinks?.youtube || "",
-        website: user?.socialLinks?.website || "",
+        facebook: user.socialLinks?.facebook || "",
+        instagram: user.socialLinks?.instagram || "",
+        twitter: user.socialLinks?.twitter || "",
+        linkedin: user.socialLinks?.linkedin || "",
+        github: user.socialLinks?.github || "",
+        youtube: user.socialLinks?.youtube || "",
+        website: user.socialLinks?.website || "",
       },
     };
     setFormData(updated);
     initialDataRef.current = JSON.stringify(updated);
   }, [user]);
 
-  // 🧩 Detect unsaved changes
+  // 🧠 Detect unsaved changes
   useEffect(() => {
     setHasUnsavedChanges(JSON.stringify(formData) !== initialDataRef.current);
   }, [formData]);
 
-  // ⚠️ Warn before tab close
+  // ⚠️ Warn on tab close
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isEditing && hasUnsavedChanges) {
@@ -91,7 +94,7 @@ export default function EditProfile() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isEditing, hasUnsavedChanges]);
 
-  // 🧾 Handlers
+  // 🧠 Handlers
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -103,19 +106,22 @@ export default function EditProfile() {
     }));
   };
 
-  const uploadProfileDetail = async (data) => {
-    try {
-      await api.post("/api/user/profile/detail/update", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Profile updated successfully!");
-      await fetchUserProfile();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed");
-      throw err;
-    }
-  };
+  // ✅ React Query Mutation
+  const mutation = useMutation({
+    mutationFn: (payload) => updateProfileDetails(payload, token),
+    onSuccess: async () => {
+      toast.success("✅ Profile updated successfully!");
+      await refetch(); // refresh user profile
+      setIsEditing(false);
+      initialDataRef.current = JSON.stringify(formData);
+      setHasUnsavedChanges(false);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "❌ Failed to update profile");
+    },
+  });
 
+  // ✅ Save Profile
   const handleSave = async (e) => {
     e?.preventDefault();
     const payload = new FormData();
@@ -131,10 +137,7 @@ export default function EditProfile() {
       }
     });
 
-    await uploadProfileDetail(payload);
-    setIsEditing(false);
-    initialDataRef.current = JSON.stringify(formData);
-    setHasUnsavedChanges(false);
+    mutation.mutate(payload);
   };
 
   const handleCancel = () => {
@@ -142,6 +145,9 @@ export default function EditProfile() {
     setIsEditing(false);
     setHasUnsavedChanges(false);
   };
+
+  // 🧭 Loading state
+  if (profileLoading) return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   return (
     <div className="relative">
@@ -164,83 +170,47 @@ export default function EditProfile() {
 
         {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input
-              type="text"
-              value={formData.displayName}
-              onChange={(e) => handleChange("displayName", e.target.value)}
-              disabled={!isEditing}
-              className={`w-full p-3 border border-gray-300 rounded-lg ${
-                !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input
-              type="tel"
-              value={formData.phoneNumber}
-              onChange={(e) => handleChange("phoneNumber", e.target.value)}
-              disabled={!isEditing}
-              className={`w-full p-3 border border-gray-300 rounded-lg ${
-                !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
-
-          {/* WhatsApp */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              WhatsApp Number
-            </label>
-            <input
-              type="tel"
-              value={formData.whatsappNumber}
-              onChange={(e) => handleChange("whatsappNumber", e.target.value)}
-              disabled={!isEditing}
-              className={`w-full p-3 border border-gray-300 rounded-lg ${
-                !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <InputField
+            label="Name"
+            value={formData.displayName}
+            onChange={(v) => handleChange("displayName", v)}
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Phone"
+            value={formData.phoneNumber}
+            onChange={(v) => handleChange("phoneNumber", v)}
+            disabled={!isEditing}
+          />
+          <InputField
+            label="WhatsApp Number"
+            value={formData.whatsappNumber}
+            onChange={(v) => handleChange("whatsappNumber", v)}
+            disabled={!isEditing}
+          />
         </div>
 
         {/* 🌍 Location */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <input
-              type="text"
-              value={formData.city}
-              onChange={(e) => handleChange("city", e.target.value)}
-              disabled={!isEditing}
-              className={`w-full p-3 border border-gray-300 rounded-lg ${
-                !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-            <input
-              type="text"
-              value={formData.country}
-              onChange={(e) => handleChange("country", e.target.value)}
-              disabled={!isEditing}
-              className={`w-full p-3 border border-gray-300 rounded-lg ${
-                !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <InputField
+            label="City"
+            value={formData.city}
+            onChange={(v) => handleChange("city", v)}
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Country"
+            value={formData.country}
+            onChange={(v) => handleChange("country", v)}
+            disabled={!isEditing}
+          />
         </div>
 
         {/* DOB */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date of Birth
+          </label>
           <DatePicker
             selected={formData.dateOfBirth}
             onChange={(date) => handleChange("dateOfBirth", date)}
@@ -255,76 +225,45 @@ export default function EditProfile() {
         </div>
 
         {/* Bio */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-          <textarea
-            value={formData.bio}
-            onChange={(e) => handleChange("bio", e.target.value)}
-            rows={3}
-            disabled={!isEditing}
-            className={`w-full p-3 border border-gray-300 rounded-lg ${
-              !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
-          />
-        </div>
+        <TextArea
+          label="Bio"
+          value={formData.bio}
+          onChange={(v) => handleChange("bio", v)}
+          disabled={!isEditing}
+        />
 
         {/* Marital Status */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Marital Status</label>
-          <select
-            value={formData.maritalStatus}
-            onChange={(e) => handleChange("maritalStatus", e.target.value)}
-            disabled={!isEditing}
-            className={`w-full p-3 border border-gray-300 rounded-lg ${
-              !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
-          >
-            <option>Single</option>
-            <option>Married</option>
-            <option>Divorced</option>
-            <option>Widowed</option>
-          </select>
-        </div>
+        <SelectField
+          label="Marital Status"
+          options={["Single", "Married", "Divorced", "Widowed"]}
+          value={formData.maritalStatus}
+          onChange={(v) => handleChange("maritalStatus", v)}
+          disabled={!isEditing}
+        />
 
         {/* Language */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-          <select
-            value={formData.language}
-            onChange={(e) => handleChange("language", e.target.value)}
-            disabled={!isEditing}
-            className={`w-full p-3 border border-gray-300 rounded-lg ${
-              !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
-          >
-            <option>English</option>
-            <option>Tamil</option>
-            <option>Hindi</option>
-            <option>Malayalam</option>
-            <option>Telugu</option>
-          </select>
-        </div>
+        <SelectField
+          label="Language"
+          options={["English", "Tamil", "Hindi", "Malayalam", "Telugu"]}
+          value={formData.language}
+          onChange={(v) => handleChange("language", v)}
+          disabled={!isEditing}
+        />
 
-        {/* Social Media */}
+        {/* Social Links */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Social Media Links</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">
+            Social Media Links
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.keys(formData.socialLinks).map((platform) => (
-              <div key={platform}>
-                <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
-                  {platform}
-                </label>
-                <input
-                  type="url"
-                  value={formData.socialLinks[platform]}
-                  onChange={(e) => handleSocialChange(platform, e.target.value)}
-                  disabled={!isEditing}
-                  placeholder={`Enter ${platform} link`}
-                  className={`w-full p-3 border border-gray-300 rounded-lg ${
-                    !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-                  }`}
-                />
-              </div>
+              <InputField
+                key={platform}
+                label={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                value={formData.socialLinks[platform]}
+                onChange={(v) => handleSocialChange(platform, v)}
+                disabled={!isEditing}
+              />
             ))}
           </div>
         </div>
@@ -334,14 +273,14 @@ export default function EditProfile() {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={loading}
+              disabled={mutation.isLoading}
               className={`px-6 py-2.5 font-medium rounded-lg transition ${
-                loading
+                mutation.isLoading
                   ? "bg-gray-400"
                   : "bg-purple-600 text-white hover:bg-purple-700"
               }`}
             >
-              {loading ? "Saving…" : "Save Changes"}
+              {mutation.isLoading ? "Saving…" : "Save Changes"}
             </button>
             <button
               type="button"
@@ -388,6 +327,61 @@ export default function EditProfile() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ✅ Reusable Input Components */
+function InputField({ label, value, onChange, disabled }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={`w-full p-3 border border-gray-300 rounded-lg ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
+    </div>
+  );
+}
+
+function TextArea({ label, value, onChange, disabled }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={3}
+        disabled={disabled}
+        className={`w-full p-3 border border-gray-300 rounded-lg ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
+    </div>
+  );
+}
+
+function SelectField({ label, options, value, onChange, disabled }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={`w-full p-3 border border-gray-300 rounded-lg ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      >
+        {options.map((opt) => (
+          <option key={opt}>{opt}</option>
+        ))}
+      </select>
     </div>
   );
 }

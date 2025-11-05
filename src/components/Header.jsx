@@ -1,5 +1,11 @@
-// src/components/Header.jsx
-import React, { useContext, useState, useRef, useEffect } from "react";
+// ✅ src/components/Header.jsx
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import {
@@ -13,12 +19,12 @@ import {
   LogOut,
   Plus,
 } from "lucide-react";
-import { io } from "socket.io-client";
+import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
-import { AuthContext } from "../context/AuthContext";
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import api from "../api/axios";
 import CreatePostModal from "../components/CreatePostModal";
+import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { to: "/", label: "Home", Icon: Home },
@@ -31,68 +37,97 @@ const navItems = [
 ];
 
 export default function Header() {
-  const { user, logout } = useContext(AuthContext);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
+  const {
+    user,
+    token,
+    logout,
+    socketConnected,
+    socketRef,
+    fetchUserProfile,
+  } = useAuth();
+
   const [notifCount, setNotifCount] = useState(0);
-  const [socket, setSocket] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-  const [isCreateReelOpen, setIsCreateReelOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Socket & Notifications
+  /* ---------------------- 🧠 Fetch User Profile on Mount ---------------------- */
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    if (token) {
+      fetchUserProfile();
+    }
+  }, [token]);
+
+  // Re-fetch when socket reconnects (useful after auto-login)
+  useEffect(() => {
+    if (socketConnected && token) {
+      console.log("🔁 Socket connected, refreshing profile...");
+      fetchUserProfile();
+    }
+  }, [socketConnected]);
+
+  /* ---------------------- 🔔 Fetch Notification Count --------------------- */
+  const fetchNotificationCount = useCallback(async () => {
     if (!token) return;
-
-    const newSocket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
-      auth: { token },
-      transports: ["websocket"],
-    });
-
-    newSocket.on("connect", () => console.log("Socket connected"));
-    newSocket.on("notification:new", () => fetchNotificationCount());
-    setSocket(newSocket);
-
-    return () => newSocket.disconnect();
-  }, []);
-
-  const fetchNotificationCount = async () => {
     try {
-      const res = await api.get("/api/get/user/all/notification", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const { data } = await api.get("/api/get/user/all/notification", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const notifications = Array.isArray(res.data)
-        ? res.data
-        : res.data?.notifications || [];
+
+      const notifications = Array.isArray(data)
+        ? data
+        : data?.notifications || [];
+
       const unreadCount = notifications.filter((n) => !n.isRead).length;
       setNotifCount(unreadCount);
     } catch (err) {
-      console.error("Failed to load notification count:", err);
+      console.error("❌ Failed to load notifications:", err);
     }
-  };
+  }, [token]);
 
+  const debounceFetchNotifications = useMemo(
+    () => debounce(fetchNotificationCount, 800),
+    [fetchNotificationCount]
+  );
+
+  /* --------------------------- 🧩 Socket Setup --------------------------- */
   useEffect(() => {
-    fetchNotificationCount();
-  }, []);
+    if (!socketRef?.current || !socketConnected) return;
 
+    const socket = socketRef.current;
+
+    socket.on("notification:new", debounceFetchNotifications);
+    socket.on("connect", () => console.log("✅ Header listening: socket connected"));
+    socket.on("disconnect", () => console.warn("⚠️ Socket disconnected (Header)"));
+
+    fetchNotificationCount();
+
+    return () => {
+      socket.off("notification:new", debounceFetchNotifications);
+    };
+  }, [socketConnected, socketRef, debounceFetchNotifications, fetchNotificationCount]);
+
+  /* --------------------------- 🔔 Handle Bell ---------------------------- */
   const handleBellClick = async () => {
     setNotifOpen((prev) => !prev);
     setDropdownOpen(false);
-    if (!notifOpen) {
+
+    if (!notifOpen && token) {
       try {
         await api.put(
           "/api/user/read",
           {},
-          { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setNotifCount(0);
       } catch (err) {
-        console.error("Failed to mark all as read:", err);
+        console.error("❌ Failed to mark notifications as read:", err);
       }
     }
   };
 
+  /* -------------------------- ⚙️ Handle Dropdown -------------------------- */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -107,20 +142,20 @@ export default function Header() {
     setDropdownOpen(false);
     setNotifOpen(false);
     setIsCreatePostOpen(false);
-    setIsCreateReelOpen(false);
   };
 
+  /* ----------------------------- 🧩 Component ----------------------------- */
   return (
     <motion.header
       className="fixed top-0 left-0 w-full bg-white flex items-center justify-between px-6 py-3 shadow-md z-50 transition-all duration-300"
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
     >
-      {/* 🔹 Left: Logo */}
+      {/* 🟢 Logo */}
       <motion.div
-        className="flex items-center gap-3"
+        className="flex items-center gap-3 cursor-pointer"
         whileHover={{ scale: 1.03 }}
-        transition={{ type: "spring", stiffness: 200 }}
+        transition={{ type: "spring", stiffness: 250 }}
       >
         <img
           src={PrithuLogo}
@@ -133,8 +168,7 @@ export default function Header() {
         </h1>
       </motion.div>
 
-      {/* 🔹 Center: Search Bar */}
-
+      {/* 🔍 Search Bar */}
       <div className="flex flex-1 justify-center px-4">
         <div className="relative w-full max-w-2xl">
           <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -146,112 +180,60 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 🔹 Center-Right: Create Buttons */}
-      <div className="flex items-center mr-2 gap-3 sm:gap-4">
+      {/* 🔹 Actions */}
+      <div className="flex items-center gap-4 sm:gap-5">
         {/* ➕ Create Post */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.1 }}
+        <IconButton
+          Icon={Plus}
+          color="blue"
           onClick={() => {
             closeAll();
             setIsCreatePostOpen(true);
           }}
-          aria-label="Create Post"
-          className="group"
-        >
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200 shadow-sm">
-            <Plus className="w-5 h-5 text-blue-600" />
-          </div>
-        </motion.button>
+        />
 
-        {/* 🎥 Create Reel */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.1 }}
+        {/* 🎥 Reels */}
+        <IconButton
+          Icon={Video}
+          color="blue"
           onClick={() => {
             closeAll();
-            setIsCreateReelOpen(true);
+            alert("🎬 Create Reel coming soon!");
           }}
-          aria-label="Create Reel"
-          className="group"
-        >
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200 shadow-sm">
-            <Video className="w-5 h-5 text-blue-600" />
-          </div>
-        </motion.button>
+        />
 
-
-                {/* 🔔 Notifications */}
-              <div className="relative">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.1 }}
+        {/* 🔔 Notifications */}
+        <div className="relative">
+          <IconButton
+            Icon={BellRing}
+            color="blue"
             onClick={handleBellClick}
-            aria-label="Notifications"
-            className="group relative"
-          >
-            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition ring-2 ring-blue-200 shadow-sm">
-              <BellRing className="w-5 h-5 text-blue-600" />
-            </div>
-            {notifCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center"
-              >
-                {notifCount}
-              </motion.span>
-            )}
-          </motion.button>
-
+            badge={notifCount}
+          />
           <NotificationDropdown
             isOpen={notifOpen}
             onClose={() => setNotifOpen(false)}
-            socket={socket}
             onNotifRead={fetchNotificationCount}
           />
         </div>
-      </div>
-
-
-
-      {/* 🔹 Right: Notifications & Profile */}
-      <div className="flex items-center gap-2 sm:gap-6 relative">
-
-
 
         {/* 👤 Profile Dropdown */}
         <div ref={dropdownRef} className="relative">
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
             onClick={() => {
               closeAll();
-              setDropdownOpen(!dropdownOpen);
+              setDropdownOpen((prev) => !prev);
             }}
             className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition"
           >
             <span className="text-gray-700 font-medium hidden sm:block">
               {user?.displayName || "User"}
             </span>
-
-            {user?.profileAvatar ? (
-              <img
-                src={user.profileAvatar}
-                alt="Profile"
-                className="w-8 h-8 rounded-full ring-2 ring-gray-200 object-cover shadow-sm"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 ring-2 ring-gray-300 flex items-center justify-center shadow-sm">
-                <span className="text-gray-500 text-xs font-medium">
-                  {user?.displayName?.charAt(0).toUpperCase() || "U"}
-                </span>
-              </div>
-            )}
+            <ProfileAvatar user={user} />
           </motion.button>
 
-          {/* 🔽 Dropdown Menu */}
           {dropdownOpen && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -293,7 +275,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 🪄 MODALS */}
+      {/* 🪄 Modal */}
       <CreatePostModal
         open={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
@@ -301,3 +283,49 @@ export default function Header() {
     </motion.header>
   );
 }
+
+/* 🧩 Subcomponents */
+
+const IconButton = React.memo(({ Icon, color, onClick, badge }) => (
+  <motion.button
+    whileTap={{ scale: 0.9 }}
+    whileHover={{ scale: 1.1 }}
+    onClick={onClick}
+    aria-label={Icon.name}
+    className="group relative"
+  >
+    <div
+      className={`w-10 h-10 rounded-full bg-${color}-50 flex items-center justify-center group-hover:bg-${color}-100 transition ring-2 ring-${color}-200 shadow-sm`}
+    >
+      <Icon className={`w-5 h-5 text-${color}-600`} />
+    </div>
+    {badge > 0 && (
+      <motion.span
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center"
+      >
+        {badge}
+      </motion.span>
+    )}
+  </motion.button>
+));
+
+const ProfileAvatar = React.memo(({ user }) => {
+  if (user?.profileAvatar) {
+    return (
+      <img
+        src={user.profileAvatar}
+        alt="Profile"
+        className="w-8 h-8 rounded-full ring-2 ring-gray-200 object-cover shadow-sm"
+        loading="lazy"
+      />
+    );
+  }
+  const fallback = user?.displayName?.charAt(0).toUpperCase() || "U";
+  return (
+    <div className="w-8 h-8 rounded-full bg-gray-200 ring-2 ring-gray-300 flex items-center justify-center shadow-sm">
+      <span className="text-gray-500 text-xs font-medium">{fallback}</span>
+    </div>
+  );
+});
