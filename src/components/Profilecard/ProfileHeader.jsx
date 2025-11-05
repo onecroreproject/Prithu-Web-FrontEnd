@@ -9,31 +9,33 @@ import {
   MoreHorizontal,
   Edit,
   Camera,
-  Briefcase
+  Briefcase,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
-import api from "../../api/axios";
+import { useUserProfile } from "../../hook/userProfile";
+import { updateCoverPhoto, updateProfileAvatar } from "../../Service/userService"; 
+
 
 export default function ProfileHeader({ activeTab, setActiveTab }) {
-  const { user, fetchUserProfile, loading } = useAuth();
-
-  // 🔹 Initialize local states with user data when available
+  const { token, user: authUser } = useAuth();
+  const { data: user, isLoading, refetch } = useUserProfile(token);
+console.log(user)
+  // Local state for preview (avoid re-renders from React Query)
   const [bannerUrl, setBannerUrl] = useState("");
   const [profileUrl, setProfileUrl] = useState("");
   const bannerInputRef = useRef(null);
   const profileInputRef = useRef(null);
 
+  // Sync user profile data into preview state
   useEffect(() => {
     if (user) {
       setBannerUrl(
-        user.coverPhoto ||
-          "https://images.unsplash.com/photo-1557683316-973673baf926?w=1200"
+        user.coverPhoto || defaultBanner
       );
       setProfileUrl(
-        user.profileAvatar ||
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300"
+        user.profileAvatar || defaultAvatar
       );
     }
   }, [user]);
@@ -42,22 +44,16 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
   const handleBannerChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const previewUrl = URL.createObjectURL(file);
     setBannerUrl(previewUrl);
 
-    const formData = new FormData();
-    formData.append("coverPhoto", file);
-
     try {
-      const res = await api.post("/api/user/profile/cover/update", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Cover photo updated!");
-      await fetchUserProfile();
+      await updateCoverPhoto(file, token);
+      toast.success("✅ Cover photo updated!");
+      refetch(); // 🔄 Refresh React Query cache
     } catch (err) {
-      toast.error(err.response?.data?.message || "Cover upload failed");
-      console.error(err);
+      toast.error(err.response?.data?.message || "❌ Cover upload failed");
+      console.error("Cover upload error:", err);
     }
   };
 
@@ -65,28 +61,22 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
   const handleProfileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const previewUrl = URL.createObjectURL(file);
     setProfileUrl(previewUrl);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const res = await api.post("/api/user/profile/detail/update", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Profile photo updated!");
-      await fetchUserProfile();
+      await updateProfileAvatar(file, token);
+      toast.success("✅ Profile photo updated!");
+      refetch(); // 🔄 Refresh profile
     } catch (err) {
-      toast.error(err.response?.data?.message || "Profile upload failed");
-      console.error(err);
+      toast.error(err.response?.data?.message || "❌ Profile upload failed");
+      console.error("Profile upload error:", err);
     }
   };
 
-  if (loading) return <p className="text-gray-500 p-4">Loading profile...</p>;
+  if (isLoading)
+    return <p className="text-gray-500 p-4">Loading profile...</p>;
 
-  // 🔹 Tabs
   const tabs = [
     { id: "Activity", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
@@ -109,7 +99,6 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
         transition={{ duration: 0.8 }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute left-0 top-0 w-48 h-48 rounded-full bg-gradient-to-br from-purple-700 to-indigo-800 -translate-x-16 -translate-y-8 blur-2xl opacity-50" />
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.h1
             initial={{ scale: 0.9, opacity: 0 }}
@@ -143,7 +132,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
       <div className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-end gap-6 -mt-16 pb-6">
-            {/* Avatar with Animation */}
+            {/* Avatar */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -151,7 +140,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
               className="relative"
             >
               <img
-                src={profileUrl}
+                src={user.profileAvatar}
                 alt={user?.displayName || "User"}
                 className="w-36 h-36 rounded-xl border-4 border-white object-cover shadow-lg bg-white"
               />

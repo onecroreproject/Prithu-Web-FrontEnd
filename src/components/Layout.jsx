@@ -21,7 +21,7 @@ export default function Layout() {
       <Header />
 
       {/* Main Scrollable Area (One Single Scroll) */}
-      <div className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto overflow-y-auto scrollbar-hide">
+      <div className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto ">
         <div className="flex gap-6 pb-20 lg:pb-0">
           {/* LEFT COLUMN */}
           {showColumns && (
@@ -55,19 +55,15 @@ export default function Layout() {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <div className="lg:hidden">{/* Add MobileNav if needed */}</div>
+      <div className="lg:hidden"></div>
 
-      {/* ✅ Corrected Global Scrollbar Style */}
-      <style>
+        <style>
         {`
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+          html {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(136, 136, 136, 0.6) transparent;
           }
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}
+       `}
       </style>
     </div>
   );

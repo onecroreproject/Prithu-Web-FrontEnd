@@ -1,76 +1,117 @@
 // src/components/Profile/PostSection.jsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
-import api from "../../api/axios";
+import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-// Subcomponents
+import { useUserProfile } from "../../hook/userProfile";
+import {
+  updateProfileDetails,
+  updateProfileAvatar,
+  updateCoverPhoto,
+} from "../../Service/userService";
+
 import EditProfile from "./ProfileSectionComponents/editProfile";
 import ChangeProfilePhoto from "./ProfileSectionComponents/changeProfilePhoto";
 import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
 import ProfileSettings from "./ProfileSectionComponents/profileSettings";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PostSection() {
-  const [activeOption, setActiveOption] = useState("view");
-  const { user, fetchUserProfile, loading } = useAuth();
+  const [activeOption, setActiveOption] = useState("edit");
+  const { token } = useAuth();
 
-  // ✅ Unified upload function
+  // ✅ React Query Hook for user data
+  const {
+    data: user,
+    isLoading,
+    refetch: refetchUser,
+  } = useUserProfile(token);
+
+  // ✅ Mutations for updating profile info
+  const updateProfileMutation = useMutation({
+    mutationFn: (formData) => updateProfileDetails(formData, token),
+    onSuccess: () => {
+      toast.success("✅ Profile updated successfully!");
+      refetchUser();
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "❌ Update failed");
+    },
+  });
+
+  const updateAvatarMutation = useMutation({
+    mutationFn: (file) => updateProfileAvatar(file, token),
+    onSuccess: () => {
+      toast.success("✅ Profile photo updated!");
+      refetchUser();
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "❌ Profile upload failed");
+    },
+  });
+
+  const updateCoverMutation = useMutation({
+    mutationFn: (file) => updateCoverPhoto(file, token),
+    onSuccess: () => {
+      toast.success("✅ Cover photo updated!");
+      refetchUser();
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "❌ Cover upload failed");
+    },
+  });
+
+  // ✅ Unified upload function (for general profile info)
   const uploadProfileDetail = async (formData) => {
-    try {
-      await api.post("/api/user/profile/detail/update", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Updated successfully!");
-      await fetchUserProfile();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed");
-      throw err;
-    }
+    await updateProfileMutation.mutateAsync(formData);
   };
-
-  // ✅ Options list
-  const options = [
-    { id: "edit", label: "View" },
-    { id: "profile-photo", label: "Change Profile Photo" },
-    { id: "cover-image", label: "Change Cover Image" },
-    { id: "settings", label: "Settings" },
-  ];
 
   // ✅ Render components based on active option
   const renderContent = () => {
     switch (activeOption) {
       case "edit":
         return (
-          
-            <EditProfile user={user} uploadProfileDetail={uploadProfileDetail} loading={loading} />
-          
+          <EditProfile
+            user={user}
+            uploadProfileDetail={uploadProfileDetail}
+            loading={isLoading}
+          />
         );
+
       case "profile-photo":
         return (
           <ChangeProfilePhoto
             user={user}
-            uploadProfileDetail={uploadProfileDetail}
+            uploadProfileImage={(file) => updateAvatarMutation.mutate(file)}
           />
         );
+
       case "cover-image":
         return (
           <ChangeCoverImage
             user={user}
-            fetchUserProfile={fetchUserProfile}
+            uploadCoverImage={(file) => updateCoverMutation.mutate(file)}
           />
         );
+
       case "settings":
-        return (
-          <ProfileSettings
-            user={user}
-            fetchUserProfile={fetchUserProfile}
-          />
-        );
+        return <ProfileSettings user={user} />;
+
       default:
         return <EditProfile user={user} />;
     }
   };
+
+  if (isLoading)
+    return <p className="text-gray-500 p-4">Loading profile...</p>;
+
+  const options = [
+    { id: "edit", label: "View" },
+    { id: "profile-photo", label: "Change Profile Photo" },
+    { id: "cover-image", label: "Change Cover Image" },
+    { id: "settings", label: "Settings" },
+  ];
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -87,7 +128,6 @@ export default function PostSection() {
             }`}
           >
             {opt.label}
-
             {activeOption === opt.id && (
               <motion.div
                 layoutId="underline"
@@ -99,12 +139,12 @@ export default function PostSection() {
         ))}
       </div>
 
-      {/* ✅ Smoothly Resizing Content Section */}
+      {/* Smoothly Resizing Content */}
       <div className="mt-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeOption}
-            layout   // 👈 This enables smooth height resizing
+            layout
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
