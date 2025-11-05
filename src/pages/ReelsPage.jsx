@@ -19,7 +19,7 @@ const ReelsPage = () => {
         const res = await api.get("/api/get/all/feeds/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
+        
         // ✅ Filter only video posts
         const videos = (res.data.feeds || []).filter(
           (feed) => feed.type?.toLowerCase() === "video"

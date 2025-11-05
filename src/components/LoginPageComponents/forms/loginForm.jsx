@@ -11,7 +11,8 @@ export default function LoginForm({ switchMode }) {
     await login({ identifier: email, password });
   };
 
-  return (
+  return (<>
+     <h1 className="text-3xl font-bold pt-1 pb-3 ">Welcome Back</h1>
     <form className="w-full max-w-xs" onSubmit={handleLogin}>
       <input
         type="email"
@@ -53,5 +54,5 @@ export default function LoginForm({ switchMode }) {
         </span>
       </div>
     </form>
-  );
+ </> );
 }

@@ -6,7 +6,6 @@ import api from "../../api/axios";
 import toast from "react-hot-toast";
 
 // Subcomponents
-import ViewProfile from "./ProfileSectionComponents/viewProfile";
 import EditProfile from "./ProfileSectionComponents/editProfile";
 import ChangeProfilePhoto from "./ProfileSectionComponents/changeProfilePhoto";
 import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
@@ -32,8 +31,7 @@ export default function PostSection() {
 
   // ✅ Options list
   const options = [
-    { id: "view", label: "View" },
-    { id: "edit", label: "Edit" },
+    { id: "edit", label: "View" },
     { id: "profile-photo", label: "Change Profile Photo" },
     { id: "cover-image", label: "Change Cover Image" },
     { id: "settings", label: "Settings" },
@@ -42,15 +40,11 @@ export default function PostSection() {
   // ✅ Render components based on active option
   const renderContent = () => {
     switch (activeOption) {
-      case "view":
-        return <ViewProfile user={user} />;
       case "edit":
         return (
-          <EditProfile
-            user={user}
-            uploadProfileDetail={uploadProfileDetail}
-            loading={loading}
-          />
+          
+            <EditProfile user={user} uploadProfileDetail={uploadProfileDetail} loading={loading} />
+          
         );
       case "profile-photo":
         return (
@@ -74,7 +68,7 @@ export default function PostSection() {
           />
         );
       default:
-        return <ViewProfile user={user} />;
+        return <EditProfile user={user} />;
     }
   };
 

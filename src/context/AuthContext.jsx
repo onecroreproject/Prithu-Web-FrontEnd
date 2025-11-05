@@ -38,8 +38,8 @@ export const AuthProvider = ({ children }) => {
         password,
         referralCode,
       });
+       switchMode("login");
       toast.success("🎉 Account created successfully!");
-      navigate("/login");
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed ❌");
     } finally {
