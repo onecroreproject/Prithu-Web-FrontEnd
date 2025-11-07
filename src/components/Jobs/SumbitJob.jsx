@@ -24,6 +24,7 @@ export default function SubmitJob() {
     image: null,
     isPaid: false,
     status: "draft",
+    experience:"",
   });
 
   const [showPreview, setShowPreview] = useState(false);
@@ -72,7 +73,7 @@ export default function SubmitJob() {
         startDate: "",
         endDate: "",
         tags: "",
-        exprience:"",
+        experience:"",
         image: null,
         isPaid: false,
         status: "draft",

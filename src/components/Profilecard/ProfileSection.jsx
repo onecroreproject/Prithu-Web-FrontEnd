@@ -9,16 +9,16 @@ import {
   updateProfileDetails,
   updateProfileAvatar,
   updateCoverPhoto,
-} from "../../Service/userService";
+} from "../../Service/profileService";
 
-import EditProfile from "./ProfileSectionComponents/editProfile";
+import ProfilePage from "./ProfileSectionComponents/profilePage";
 import ChangeProfilePhoto from "./ProfileSectionComponents/changeProfilePhoto";
 import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
 import ProfileSettings from "./ProfileSectionComponents/profileSettings";
 import { useAuth } from "../../context/AuthContext";
 
 export default function PostSection() {
-  const [activeOption, setActiveOption] = useState("edit");
+  const [activeOption, setActiveOption] = useState("profilePage");
   const { token } = useAuth();
 
   // ✅ React Query Hook for user data
@@ -70,13 +70,9 @@ export default function PostSection() {
   // ✅ Render components based on active option
   const renderContent = () => {
     switch (activeOption) {
-      case "edit":
+      case "profilePage":
         return (
-          <EditProfile
-            user={user}
-            uploadProfileDetail={uploadProfileDetail}
-            loading={isLoading}
-          />
+          <ProfilePage/>
         );
 
       case "profile-photo":
@@ -99,7 +95,7 @@ export default function PostSection() {
         return <ProfileSettings user={user} />;
 
       default:
-        return <EditProfile user={user} />;
+        return <ProfilePage user={user} />;
     }
   };
 
@@ -107,7 +103,7 @@ export default function PostSection() {
     return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   const options = [
-    { id: "edit", label: "View" },
+    { id: "profilePage", label: "Profile View" },
     { id: "profile-photo", label: "Change Profile Photo" },
     { id: "cover-image", label: "Change Cover Image" },
     { id: "settings", label: "Settings" },

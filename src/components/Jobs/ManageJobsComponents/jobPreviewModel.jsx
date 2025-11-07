@@ -1,9 +1,10 @@
+/* ✅ src/components/jobs/submit/SubmitJobComponents/jobPreview.jsx */
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
-export default function JobManagePreviewModal({ job, onClose }) {
-  if (!job) return null;
+export default function JobPreviewModal({ showPreview, setShowPreview, formData }) {
+  if (!showPreview) return null;
 
   const formatDate = (dateString) => {
     if (!dateString) return "—";
@@ -14,9 +15,18 @@ export default function JobManagePreviewModal({ job, onClose }) {
     });
   };
 
+  const formatTags = (tags) => {
+    if (!tags) return [];
+    return tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t)
+      .map((t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+  };
+
   return (
     <AnimatePresence>
-      {job && (
+      {showPreview && (
         <motion.div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
           initial={{ opacity: 0 }}
@@ -24,94 +34,105 @@ export default function JobManagePreviewModal({ job, onClose }) {
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full relative overflow-y-auto max-h-[85vh]"
+            className="bg-white dark:bg-[#1e1e28] p-6 rounded-2xl shadow-2xl max-w-lg w-full relative overflow-y-auto max-h-[85vh]"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 22 }}
           >
-            {/* Close Button */}
+            {/* ❌ Close Button */}
             <button
-              onClick={onClose}
-              className="absolute top-3 right-3 text-gray-600 hover:text-gray-900"
+              onClick={() => setShowPreview(false)}
+              className="absolute top-3 right-3 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Header */}
-            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              Job Details
+            {/* 🏷️ Header */}
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2">
+              Job Preview
             </h3>
 
-            {/* Job Info */}
-            <div className="space-y-3 text-sm text-gray-700">
+            {/* 📋 Job Details */}
+            <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
               <p>
-                <strong>Title:</strong> {job.title || "—"}
+                <strong>Title:</strong> {formData.title || "—"}
               </p>
               <p>
-                <strong>Company:</strong> {job.companyName || "—"}
+                <strong>Company:</strong> {formData.companyName || "—"}
               </p>
               <p>
-                <strong>Category:</strong> {job.category || "—"}
+                <strong>Category:</strong> {formData.category || "—"}
               </p>
               <p>
-                <strong>Role:</strong> {job.jobRole || "—"}
+                <strong>Role:</strong> {formData.jobRole || "—"}
               </p>
               <p>
-                <strong>Type:</strong> {job.jobType || "—"}
+                <strong>Type:</strong> {formData.jobType || "—"}
               </p>
               <p>
-                <strong>Location:</strong> {job.location || "—"}
+                <strong>Location:</strong> {formData.location || "—"}
               </p>
               <p>
-                <strong>Salary:</strong> {job.salaryRange || "—"}
+                <strong>Salary:</strong> {formData.salaryRange || "—"}
               </p>
               <p>
-                <strong>Experience:</strong> {job.experience || "—"}
+                <strong>Experience Required:</strong> {formData.experience || "—"}
               </p>
 
-              <div className="border-t pt-3">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                 <p>
-                  <strong>Start Date:</strong> {formatDate(job.startDate)}
+                  <strong>Start Date:</strong> {formatDate(formData.startDate)}
                 </p>
                 <p>
-                  <strong>End Date:</strong> {formatDate(job.endDate)}
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      job.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : job.status === "expired"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {job.status || "Unknown"}
-                  </span>
+                  <strong>End Date:</strong> {formatDate(formData.endDate)}
                 </p>
               </div>
 
-              <div className="border-t pt-3">
-                <p className="font-semibold text-gray-800 mb-1">Description:</p>
-                <p className="whitespace-pre-wrap border rounded p-2 bg-gray-50 text-gray-700">
-                  {job.description || "No description provided."}
-                </p>
-              </div>
+              {/* 🏷️ Tags */}
+              {formData.tags && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <strong>Tags:</strong>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formatTags(formData.tags).map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-gray-100 dark:bg-[#2d2d3a] text-gray-700 dark:text-gray-300 text-xs rounded-full border border-gray-200 dark:border-gray-700"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {job.image && (
-                <div className="mt-3">
+              {/* 🖼️ Company Logo */}
+              {formData.image && (
+                <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
                   <strong>Company Logo:</strong>
-                  <div className="mt-2">
+                  <div className="mt-2 flex justify-center">
                     <img
-                      src={job.image}
+                      src={
+                        typeof formData.image === "string"
+                          ? formData.image
+                          : URL.createObjectURL(formData.image)
+                      }
                       alt="Company Logo"
-                      className="w-24 h-24 object-cover rounded-md border"
+                      className="w-24 h-24 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                     />
                   </div>
                 </div>
               )}
+
+              {/* 📝 Description */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                  Description:
+                </p>
+                <p className="whitespace-pre-wrap border border-gray-100 dark:border-gray-700 rounded p-2 bg-gray-50 dark:bg-[#2d2d3a] text-gray-700 dark:text-gray-300">
+                  {formData.description || "No description provided."}
+                </p>
+              </div>
             </div>
           </motion.div>
         </motion.div>

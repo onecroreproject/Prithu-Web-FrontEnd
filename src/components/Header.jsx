@@ -1,4 +1,4 @@
-// ✅ src/components/Header.jsx
+/* ✅ src/components/Header.jsx */
 import React, {
   useState,
   useRef,
@@ -6,8 +6,8 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { motion } from "framer-motion";
-import { NavLink } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   BellRing,
   Search,
@@ -18,6 +18,8 @@ import {
   Settings,
   LogOut,
   Plus,
+  Menu,
+  X,
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -46,41 +48,36 @@ export default function Header() {
     fetchUserProfile,
   } = useAuth();
 
+  const navigate = useNavigate();
   const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  /* ---------------------- 🧠 Fetch User Profile on Mount ---------------------- */
+  /* 🧠 Fetch User Profile */
   useEffect(() => {
-    if (token) {
-      fetchUserProfile();
-    }
+    if (token) fetchUserProfile();
   }, [token]);
 
-  // Re-fetch when socket reconnects (useful after auto-login)
   useEffect(() => {
     if (socketConnected && token) {
-      console.log("🔁 Socket connected, refreshing profile...");
       fetchUserProfile();
     }
   }, [socketConnected]);
 
-  /* ---------------------- 🔔 Fetch Notification Count --------------------- */
+  /* 🔔 Fetch Notifications */
   const fetchNotificationCount = useCallback(async () => {
     if (!token) return;
     try {
       const { data } = await api.get("/api/get/user/all/notification", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const notifications = Array.isArray(data)
         ? data
         : data?.notifications || [];
-
-      const unreadCount = notifications.filter((n) => !n.isRead).length;
-      setNotifCount(unreadCount);
+      setNotifCount(notifications.filter((n) => !n.isRead).length);
     } catch (err) {
       console.error("❌ Failed to load notifications:", err);
     }
@@ -91,28 +88,18 @@ export default function Header() {
     [fetchNotificationCount]
   );
 
-  /* --------------------------- 🧩 Socket Setup --------------------------- */
   useEffect(() => {
     if (!socketRef?.current || !socketConnected) return;
-
     const socket = socketRef.current;
-
     socket.on("notification:new", debounceFetchNotifications);
-    socket.on("connect", () => console.log("✅ Header listening: socket connected"));
-    socket.on("disconnect", () => console.warn("⚠️ Socket disconnected (Header)"));
-
     fetchNotificationCount();
-
     return () => {
       socket.off("notification:new", debounceFetchNotifications);
     };
   }, [socketConnected, socketRef, debounceFetchNotifications, fetchNotificationCount]);
 
-  /* --------------------------- 🔔 Handle Bell ---------------------------- */
   const handleBellClick = async () => {
-    setNotifOpen((prev) => !prev);
-    setDropdownOpen(false);
-
+    setNotifOpen((p) => !p);
     if (!notifOpen && token) {
       try {
         await api.put(
@@ -122,40 +109,43 @@ export default function Header() {
         );
         setNotifCount(0);
       } catch (err) {
-        console.error("❌ Failed to mark notifications as read:", err);
+        console.error("❌ Failed to mark as read:", err);
       }
     }
   };
 
-  /* -------------------------- ⚙️ Handle Dropdown -------------------------- */
+  /* ⚙️ Dropdown Close on Outside Click */
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const closeOnClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", closeOnClickOutside);
+    return () => document.removeEventListener("mousedown", closeOnClickOutside);
   }, []);
 
   const closeAll = () => {
     setDropdownOpen(false);
     setNotifOpen(false);
+    setMobileMenuOpen(false);
     setIsCreatePostOpen(false);
   };
 
-  /* ----------------------------- 🧩 Component ----------------------------- */
+  /* --------------------------- 🧩 UI --------------------------- */
   return (
     <motion.header
-      className="fixed top-0 left-0 w-full bg-white flex items-center justify-between px-6 py-3 shadow-md z-50 transition-all duration-300"
+      className="fixed top-0 left-0 w-full bg-white flex items-center justify-between px-4 md:px-6 py-3 shadow-md z-50"
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4 }}
     >
-      {/* 🟢 Logo */}
+      {/* 🌿 Logo Section */}
       <motion.div
-        className="flex items-center gap-3 cursor-pointer"
         whileHover={{ scale: 1.03 }}
         transition={{ type: "spring", stiffness: 250 }}
+        onClick={() => navigate("/")}
+        className="flex items-center gap-2 cursor-pointer select-none"
       >
         <img
           src={PrithuLogo}
@@ -168,43 +158,46 @@ export default function Header() {
         </h1>
       </motion.div>
 
-      {/* 🔍 Search Bar */}
-      <div className="flex flex-1 justify-center px-4">
-        <div className="relative w-full max-w-2xl">
+      {/* 🔍 Search (hidden on small screens) */}
+      <div className="hidden sm:flex flex-1 justify-center px-4">
+        <div className="relative w-full max-w-lg">
           <Search className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder="Search..."
-            className="w-full rounded-full pl-10 pr-4 py-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent bg-gray-50 transition-all duration-200"
+            className="w-full rounded-full pl-10 pr-4 py-2 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 bg-gray-50 transition-all"
           />
         </div>
       </div>
 
-      {/* 🔹 Actions */}
-      <div className="flex items-center gap-4 sm:gap-5">
+      {/* 🎛️ Action Buttons */}
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Mobile Menu Toggle */}
+        <motion.button
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          className="sm:hidden p-2 rounded-md hover:bg-gray-100"
+          whileTap={{ scale: 0.9 }}
+        >
+          {mobileMenuOpen ? (
+            <X className="w-6 h-6 text-gray-700" />
+          ) : (
+            <Menu className="w-6 h-6 text-gray-700" />
+          )}
+        </motion.button>
+
         {/* ➕ Create Post */}
-        <IconButton
-          Icon={Plus}
-          color="blue"
-          onClick={() => {
-            closeAll();
-            setIsCreatePostOpen(true);
-          }}
-        />
+        <HeaderIcon Icon={Plus} color="green" onClick={() => setIsCreatePostOpen(true)} />
 
         {/* 🎥 Reels */}
-        <IconButton
+        <HeaderIcon
           Icon={Video}
-          color="blue"
-          onClick={() => {
-            closeAll();
-            alert("🎬 Create Reel coming soon!");
-          }}
+          color="indigo"
+          onClick={() => alert("🎬 Create Reel coming soon!")}
         />
 
         {/* 🔔 Notifications */}
         <div className="relative">
-          <IconButton
+          <HeaderIcon
             Icon={BellRing}
             color="blue"
             onClick={handleBellClick}
@@ -222,58 +215,87 @@ export default function Header() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
-            onClick={() => {
-              closeAll();
-              setDropdownOpen((prev) => !prev);
-            }}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition"
+            onClick={() => setDropdownOpen((p) => !p)}
+            className="flex items-center gap-2 cursor-pointer hover:opacity-90"
           >
-            <span className="text-gray-700 font-medium hidden sm:block">
-              {user?.displayName || "User"}
+            <span className="hidden sm:block text-gray-700 font-medium">
+              {user?.userName || "User"}
             </span>
             <ProfileAvatar user={user} />
           </motion.button>
 
-          {dropdownOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="absolute right-0 top-12 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50"
-            >
-              {navItems.map(({ to, label, Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={() => setDropdownOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? "bg-gradient-to-r from-green-500 to-yellow-400 text-white shadow-sm"
-                        : "text-gray-700 hover:text-green-600 hover:bg-gray-50"
-                    }`
-                  }
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{label}</span>
-                </NavLink>
-              ))}
-
-              <button
-                onClick={() => {
-                  logout();
-                  setDropdownOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left text-gray-700 hover:text-red-600 hover:bg-red-50 transition"
+          <AnimatePresence>
+            {dropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="absolute right-0 top-12 w-60 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
-            </motion.div>
-          )}
+                {navItems.map(({ to, label, Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => setDropdownOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? "bg-gradient-to-r from-green-500 to-yellow-400 text-white"
+                          : "text-gray-700 hover:text-green-600 hover:bg-gray-50"
+                      }`
+                    }
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </NavLink>
+                ))}
+
+                <button
+                  onClick={() => {
+                    logout();
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 transition"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      {/* 📱 Mobile Nav Dropdown */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col items-start px-4 py-4 sm:hidden"
+          >
+            {navItems.map(({ to, label, Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={closeAll}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 w-full px-3 py-2 rounded-md ${
+                    isActive
+                      ? "bg-green-100 text-green-600"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </NavLink>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 🪄 Modal */}
       <CreatePostModal
@@ -284,18 +306,18 @@ export default function Header() {
   );
 }
 
-/* 🧩 Subcomponents */
+/* ✅ Subcomponents */
 
-const IconButton = React.memo(({ Icon, color, onClick, badge }) => (
+const HeaderIcon = ({ Icon, color, onClick, badge }) => (
   <motion.button
     whileTap={{ scale: 0.9 }}
     whileHover={{ scale: 1.1 }}
     onClick={onClick}
     aria-label={Icon.name}
-    className="group relative"
+    className="relative group"
   >
     <div
-      className={`w-10 h-10 rounded-full bg-${color}-50 flex items-center justify-center group-hover:bg-${color}-100 transition ring-2 ring-${color}-200 shadow-sm`}
+      className={`w-10 h-10 rounded-full bg-${color}-50 flex items-center justify-center group-hover:bg-${color}-100 transition shadow-sm ring-1 ring-${color}-200`}
     >
       <Icon className={`w-5 h-5 text-${color}-600`} />
     </div>
@@ -309,9 +331,9 @@ const IconButton = React.memo(({ Icon, color, onClick, badge }) => (
       </motion.span>
     )}
   </motion.button>
-));
+);
 
-const ProfileAvatar = React.memo(({ user }) => {
+const ProfileAvatar = ({ user }) => {
   if (user?.profileAvatar) {
     return (
       <img
@@ -322,10 +344,10 @@ const ProfileAvatar = React.memo(({ user }) => {
       />
     );
   }
-  const fallback = user?.displayName?.charAt(0).toUpperCase() || "U";
+  const fallback = user?.displayName?.charAt(0)?.toUpperCase() || "U";
   return (
     <div className="w-8 h-8 rounded-full bg-gray-200 ring-2 ring-gray-300 flex items-center justify-center shadow-sm">
       <span className="text-gray-500 text-xs font-medium">{fallback}</span>
     </div>
   );
-});
+};
