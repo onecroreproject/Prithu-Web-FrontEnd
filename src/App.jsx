@@ -24,6 +24,11 @@ import LikedPosts from "./pages/LikedPosts.jsx";
 import NotInterestedposts from "./pages/NotInterestedposts.jsx";
 import Hiddenpost from "./pages/Hiddenpost.jsx";
 import PrivacyPolicy from "./privacyPolicy.jsx";
+import PublicResume from "./pages/publiceResume.jsx";
+import JobList from "./components/Jobs/jobCardPop-Up.jsx";
+import PortfolioLayout from "./components/User_PrortFolio/profileLayout.jsx";
+
+
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -98,6 +103,9 @@ function AppRoutes() {
 
       <Route path="/logout" element={<Navigate to="/login" replace />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/r/:username" element={<PublicResume/>}/>
+      <Route path='/portfolio' element={<PortfolioLayout/>}/>
+     
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

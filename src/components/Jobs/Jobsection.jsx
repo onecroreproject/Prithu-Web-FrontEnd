@@ -8,7 +8,7 @@ import ManageJobs from "./Managejobs";
 import SubmitJob from "./SumbitJob";
 
 export default function Jobsection() {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("submit");
 
   const tabs = [
     { id: "submit", label: "Submit", Icon: Plus },

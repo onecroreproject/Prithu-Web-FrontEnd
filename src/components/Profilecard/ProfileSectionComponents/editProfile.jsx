@@ -5,27 +5,39 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useUserProfile } from "../../../hook/userProfile";
-import { updateProfileDetails } from "../../../Service/userService";
+import { updateProfileDetails } from "../../../Service/profileService";
 import { useAuth } from "../../../context/AuthContext";
+import api from "../../../api/axios";
+import debounce from "lodash.debounce";
 
 export default function EditProfile() {
   const { token } = useAuth();
   const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token);
-
+console.log(user)
   const [isEditing, setIsEditing] = useState(false);
-  const [showLeavePopup, setShowLeavePopup] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [formData, setFormData] = useState({
-    displayName: "",
+    userName: "",
+    name: "",
+    lastName: "",
+    bio: "",
+    gender: "Male",
+    maritalStatus: "Single",
     dateOfBirth: null,
+    maritalDate: null,
+    address: "",
     city: "",
     country: "",
-    bio: "",
     phoneNumber: "",
-    whatsappNumber: "",
-    maritalStatus: "Single",
+    whatsAppNumber: "",
+    theme: "light",
     language: "English",
+    timezone: "Asia/Kolkata",
+    details: "",
+    notifications: true,
+    privacy: "public",
     socialLinks: {
       facebook: "",
       instagram: "",
@@ -43,15 +55,25 @@ export default function EditProfile() {
   useEffect(() => {
     if (!user) return;
     const updated = {
-      displayName: user.displayName || "",
+      userName: user.userName || "",
+      name: user.name || "",
+      lastName: user.lastName || "",
+      bio: user.bio || "",
+      gender: user.gender || "Male",
+      maritalStatus: user.maritalStatus || "Single",
       dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : null,
+      maritalDate: user.maritalDate ? new Date(user.maritalDate) : null,
+      address: user.address || "",
       city: user.city || "",
       country: user.country || "",
-      bio: user.bio || "",
       phoneNumber: user.phoneNumber || "",
-      whatsappNumber: user.whatsappNumber || "",
-      maritalStatus: user.maritalStatus || "Single",
+      whatsAppNumber: user.whatsAppNumber || "",
+      theme: user.theme || "light",
       language: user.language || "English",
+      timezone: user.timezone || "Asia/Kolkata",
+      details: user.details || "",
+      notifications: user.notifications ?? true,
+      privacy: user.privacy || "public",
       socialLinks: {
         facebook: user.socialLinks?.facebook || "",
         instagram: user.socialLinks?.instagram || "",
@@ -66,37 +88,38 @@ export default function EditProfile() {
     initialDataRef.current = JSON.stringify(updated);
   }, [user]);
 
-  // 🧠 Detect unsaved changes
   useEffect(() => {
     setHasUnsavedChanges(JSON.stringify(formData) !== initialDataRef.current);
   }, [formData]);
 
-  // ⚠️ Warn on tab close
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (isEditing && hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = "";
+  // ✅ Debounced username check
+  const checkUsername = useRef(
+    debounce(async (username) => {
+      if (!username.trim()) {
+        setUsernameStatus(null);
+        return;
       }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isEditing, hasUnsavedChanges]);
-
-  // ⚠️ Warn when switching tabs
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && isEditing && hasUnsavedChanges) {
-        setShowLeavePopup(true);
+      try {
+        const { data } = await api.get(
+          `/api/check/username/availability?username=${encodeURIComponent(username)}`
+        );
+        setUsernameStatus(data);
+      } catch (err) {
+        console.error("❌ Username check failed:", err);
       }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isEditing, hasUnsavedChanges]);
+    }, 600)
+  ).current;
 
-  // 🧠 Handlers
+  // 🔧 Handlers
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "userName") checkUsername(value);
+  };
+
+  const handlePhoneChange = (field, value) => {
+    if (/^\d{0,10}$/.test(value)) {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSocialChange = (platform, value) => {
@@ -106,24 +129,22 @@ export default function EditProfile() {
     }));
   };
 
-  // ✅ React Query Mutation
+  // ✅ Mutation for update
   const mutation = useMutation({
     mutationFn: (payload) => updateProfileDetails(payload, token),
     onSuccess: async () => {
       toast.success("✅ Profile updated successfully!");
-      await refetch(); // refresh user profile
+      await refetch();
       setIsEditing(false);
       initialDataRef.current = JSON.stringify(formData);
       setHasUnsavedChanges(false);
     },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || "❌ Failed to update profile");
-    },
+    onError: (err) =>
+      toast.error(err.response?.data?.message || "❌ Failed to update profile"),
   });
 
-  // ✅ Save Profile
-  const handleSave = async (e) => {
-    e?.preventDefault();
+  const handleSave = (e) => {
+    e.preventDefault();
     const payload = new FormData();
 
     Object.entries(formData).forEach(([key, value]) => {
@@ -146,7 +167,6 @@ export default function EditProfile() {
     setHasUnsavedChanges(false);
   };
 
-  // 🧭 Loading state
   if (profileLoading) return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   return (
@@ -168,29 +188,64 @@ export default function EditProfile() {
           )}
         </div>
 
-        {/* Basic Info */}
+        {/* Name Fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField
-            label="Name"
-            value={formData.displayName}
-            onChange={(v) => handleChange("displayName", v)}
+            label="First Name"
+            value={formData.name}
+            onChange={(v) => handleChange("name", v)}
             disabled={!isEditing}
           />
           <InputField
-            label="Phone"
-            value={formData.phoneNumber}
-            onChange={(v) => handleChange("phoneNumber", v)}
-            disabled={!isEditing}
-          />
-          <InputField
-            label="WhatsApp Number"
-            value={formData.whatsappNumber}
-            onChange={(v) => handleChange("whatsappNumber", v)}
+            label="Last Name"
+            value={formData.lastName}
+            onChange={(v) => handleChange("lastName", v)}
             disabled={!isEditing}
           />
         </div>
 
-        {/* 🌍 Location */}
+        {/* Username */}
+        <InputField
+          label="Username"
+          value={formData.userName}
+          onChange={(v) => handleChange("userName", v)}
+          disabled={!isEditing}
+        />
+        {isEditing && usernameStatus && (
+          <p
+            className={`text-sm ${
+              usernameStatus.available ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {usernameStatus.message}
+          </p>
+        )}
+
+        {/* Contact Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField
+            label="Phone Number"
+            value={formData.phoneNumber}
+            onChange={(v) => handlePhoneChange("phoneNumber", v)}
+            disabled={!isEditing}
+          />
+          <InputField
+            label="WhatsApp Number"
+            value={formData.whatsAppNumber}
+            onChange={(v) => handlePhoneChange("whatsAppNumber", v)}
+            disabled={!isEditing}
+          />
+        </div>
+
+        {/* Address */}
+        <TextArea
+          label="Address"
+          value={formData.address}
+          onChange={(v) => handleChange("address", v)}
+          disabled={!isEditing}
+        />
+
+        {/* City / Country */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InputField
             label="City"
@@ -206,49 +261,62 @@ export default function EditProfile() {
           />
         </div>
 
-        {/* DOB */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date of Birth
-          </label>
-          <DatePicker
-            selected={formData.dateOfBirth}
+        {/* Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DateField
+            label="Date of Birth"
+            value={formData.dateOfBirth}
             onChange={(date) => handleChange("dateOfBirth", date)}
-            dateFormat="dd/MM/yyyy"
-            maxDate={new Date()}
-            showYearDropdown
             disabled={!isEditing}
-            className={`w-full p-3 border border-gray-300 rounded-lg ${
-              !isEditing ? "bg-gray-100 cursor-not-allowed" : ""
-            }`}
+          />
+          <DateField
+            label="Marital Date"
+            value={formData.maritalDate}
+            onChange={(date) => handleChange("maritalDate", date)}
+            disabled={!isEditing}
           />
         </div>
 
         {/* Bio */}
         <TextArea
-          label="Bio"
+          label="Profile Summary"
           value={formData.bio}
           onChange={(v) => handleChange("bio", v)}
           disabled={!isEditing}
         />
 
-        {/* Marital Status */}
+        {/* Theme, Timezone */}
         <SelectField
-          label="Marital Status"
-          options={["Single", "Married", "Divorced", "Widowed"]}
-          value={formData.maritalStatus}
-          onChange={(v) => handleChange("maritalStatus", v)}
+          label="Theme"
+          options={["light", "dark", "system"]}
+          value={formData.theme}
+          onChange={(v) => handleChange("theme", v)}
+          disabled={!isEditing}
+        />
+        <InputField
+          label="Timezone"
+          value={formData.timezone}
+          onChange={(v) => handleChange("timezone", v)}
           disabled={!isEditing}
         />
 
-        {/* Language */}
+        {/* Privacy and Notifications */}
         <SelectField
-          label="Language"
-          options={["English", "Tamil", "Hindi", "Malayalam", "Telugu"]}
-          value={formData.language}
-          onChange={(v) => handleChange("language", v)}
+          label="Privacy"
+          options={["public", "private", "friends"]}
+          value={formData.privacy}
+          onChange={(v) => handleChange("privacy", v)}
           disabled={!isEditing}
         />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={formData.notifications}
+            onChange={(e) => handleChange("notifications", e.target.checked)}
+            disabled={!isEditing}
+          />
+          <span className="text-sm text-gray-700">Enable Notifications</span>
+        </div>
 
         {/* Social Links */}
         <div>
@@ -292,46 +360,11 @@ export default function EditProfile() {
           </div>
         )}
       </form>
-
-      {/* Unsaved Changes Popup */}
-      {showLeavePopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Unsaved Changes
-            </h3>
-            <p className="text-gray-600 text-sm mb-4">
-              You have unsaved changes. Do you want to save before leaving?
-            </p>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={(e) => {
-                  setShowLeavePopup(false);
-                  handleSave(e);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={() => {
-                  setShowLeavePopup(false);
-                  setIsEditing(false);
-                  setHasUnsavedChanges(false);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-              >
-                Leave Without Saving
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-/* ✅ Reusable Input Components */
+/* ✅ Reusable Inputs */
 function InputField({ label, value, onChange, disabled }) {
   return (
     <div>
@@ -382,6 +415,25 @@ function SelectField({ label, options, value, onChange, disabled }) {
           <option key={opt}>{opt}</option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function DateField({ label, value, onChange, disabled }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <DatePicker
+        selected={value}
+        onChange={onChange}
+        dateFormat="dd/MM/yyyy"
+        maxDate={new Date()}
+        showYearDropdown
+        disabled={disabled}
+        className={`w-full p-3 border border-gray-300 rounded-lg ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
     </div>
   );
 }

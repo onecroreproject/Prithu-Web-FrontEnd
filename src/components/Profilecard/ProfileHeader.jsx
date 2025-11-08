@@ -1,4 +1,3 @@
-// src/components/Profile/PostHeader.jsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   MessageSquare,
@@ -15,28 +14,31 @@ import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
 import { useUserProfile } from "../../hook/userProfile";
-import { updateCoverPhoto, updateProfileAvatar } from "../../Service/userService"; 
+import {
+  updateCoverPhoto,
+  updateProfileAvatar,
+} from "../../Service/profileService";
 
+// ✅ Default images (fallback)
+const defaultBanner =
+  "https://res.cloudinary.com/demo/image/upload/v1720000000/default-cover.jpg";
+const defaultAvatar =
+  "https://res.cloudinary.com/demo/image/upload/v1720000000/default-avatar.jpg";
 
 export default function ProfileHeader({ activeTab, setActiveTab }) {
-  const { token, user: authUser } = useAuth();
+  const { token } = useAuth();
   const { data: user, isLoading, refetch } = useUserProfile(token);
-console.log(user)
-  // Local state for preview (avoid re-renders from React Query)
-  const [bannerUrl, setBannerUrl] = useState("");
-  const [profileUrl, setProfileUrl] = useState("");
+
+  const [bannerUrl, setBannerUrl] = useState(defaultBanner);
+  const [profileUrl, setProfileUrl] = useState(defaultAvatar);
   const bannerInputRef = useRef(null);
   const profileInputRef = useRef(null);
 
-  // Sync user profile data into preview state
+  // ✅ Sync user data to local preview states
   useEffect(() => {
     if (user) {
-      setBannerUrl(
-        user.coverPhoto || defaultBanner
-      );
-      setProfileUrl(
-        user.profileAvatar || defaultAvatar
-      );
+      setBannerUrl(user.coverPhoto || defaultBanner);
+      setProfileUrl(user.profileAvatar || defaultAvatar);
     }
   }, [user]);
 
@@ -44,16 +46,17 @@ console.log(user)
   const handleBannerChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const previewUrl = URL.createObjectURL(file);
     setBannerUrl(previewUrl);
 
     try {
       await updateCoverPhoto(file, token);
-      toast.success("✅ Cover photo updated!");
-      refetch(); // 🔄 Refresh React Query cache
+      toast.success("✅ Cover photo updated successfully!");
+      refetch();
     } catch (err) {
-      toast.error(err.response?.data?.message || "❌ Cover upload failed");
-      console.error("Cover upload error:", err);
+      console.error("❌ Cover upload error:", err);
+      toast.error(err.response?.data?.message || "Failed to upload cover photo");
     }
   };
 
@@ -61,16 +64,17 @@ console.log(user)
   const handleProfileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const previewUrl = URL.createObjectURL(file);
     setProfileUrl(previewUrl);
 
     try {
       await updateProfileAvatar(file, token);
-      toast.success("✅ Profile photo updated!");
-      refetch(); // 🔄 Refresh profile
+      toast.success("✅ Profile photo updated successfully!");
+      refetch();
     } catch (err) {
-      toast.error(err.response?.data?.message || "❌ Profile upload failed");
-      console.error("Profile upload error:", err);
+      console.error("❌ Profile upload error:", err);
+      toast.error(err.response?.data?.message || "Failed to upload profile photo");
     }
   };
 
@@ -90,7 +94,7 @@ console.log(user)
 
   return (
     <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
-      {/* COVER BANNER */}
+      {/* 🖼 COVER BANNER */}
       <motion.div
         className="relative h-56 bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: `url(${bannerUrl})` }}
@@ -110,7 +114,7 @@ console.log(user)
           </motion.h1>
         </div>
 
-        {/* Edit Cover Button */}
+        {/* ✏️ Edit Cover Button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -128,7 +132,7 @@ console.log(user)
         />
       </motion.div>
 
-      {/* PROFILE SECTION */}
+      {/* 👤 PROFILE SECTION */}
       <div className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-end gap-6 -mt-16 pb-6">
@@ -140,8 +144,8 @@ console.log(user)
               className="relative"
             >
               <img
-                src={user.profileAvatar}
-                alt={user?.displayName || "User"}
+                src={profileUrl}
+                alt={user?.userName || "User"}
                 className="w-36 h-36 rounded-xl border-4 border-white object-cover shadow-lg bg-white"
               />
               <motion.button
@@ -169,7 +173,7 @@ console.log(user)
               className="flex flex-col justify-end"
             >
               <h2 className="text-lg font-bold text-gray-900">
-                {user?.displayName || "User"}
+                {user?.userName || "User"}
               </h2>
               <p className="text-xs text-gray-600 mt-1">
                 <span className="font-medium text-gray-800">
@@ -180,7 +184,7 @@ console.log(user)
               </p>
             </motion.div>
 
-            {/* Tabs */}
+            {/* Navigation Tabs */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
