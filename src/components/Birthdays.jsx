@@ -1,48 +1,73 @@
 // src/components/Birthdays.jsx
-import React from "react";
+import React, { memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 
-// ✅ Fetch upcoming birthdays (next 12 months)
+/* --------------------------- 🔹 API CALL --------------------------- */
 const fetchUpcomingBirthdays = async () => {
   const { data } = await api.get(`/api/get/user/birthday`);
   return data;
 };
 
-export default function Birthdays() {
+/* --------------------------- 🔹 Skeleton Loader --------------------------- */
+const SkeletonBirthdayCard = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3 }}
+    className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 animate-pulse sm:max-w-md md:max-w-lg"
+  >
+    <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+          <div className="flex-1 space-y-1">
+            <div className="w-32 h-3 bg-gray-200 rounded"></div>
+            <div className="w-20 h-2 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </motion.div>
+);
+
+/* --------------------------- 🔹 Main Component --------------------------- */
+function Birthdays() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["upcoming-birthdays"],
     queryFn: fetchUpcomingBirthdays,
+    staleTime: 1000 * 60 * 10, // cache for 10 mins
+    refetchOnWindowFocus: false,
   });
 
-  if (isLoading) {
-    return (
-      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 animate-pulse">
-        <p className="text-sm text-gray-500">Loading birthdays...</p>
-      </div>
-    );
-  }
+  // ✅ Loading
+  if (isLoading) return <SkeletonBirthdayCard />;
 
+  // ✅ Error
   if (isError) {
     return (
-      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-sm text-red-500">{error.message}</p>
-      </div>
-    );
-  }
-
-  if (!data?.success || !data?.users?.length) {
-    return (
-      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-sm text-gray-500">
-          {data?.message || "No upcoming birthdays."}
+      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center sm:max-w-md md:max-w-lg">
+        <p className="text-sm text-red-500 font-medium">
+          {error?.message || "Failed to fetch birthdays."}
         </p>
       </div>
     );
   }
 
-  // ✅ Group by month and day using `nextBirthday`
+  // ✅ No data
+  if (!data?.success || !data?.users?.length) {
+    return (
+      <div className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center sm:max-w-md md:max-w-lg">
+        <p className="text-sm text-gray-500">
+          {data?.message || "No upcoming birthdays 🎂"}
+        </p>
+      </div>
+    );
+  }
+
+  /* --------------------------- 🔹 Grouping --------------------------- */
   const grouped = data.users.reduce((acc, user) => {
     const nextBDay = new Date(user.nextBirthday);
     const monthName = nextBDay.toLocaleString("default", { month: "long" });
@@ -58,29 +83,32 @@ export default function Birthdays() {
     people,
   }));
 
-  // 🎂 Helper for ordinal suffix
   const getOrdinal = (n) => {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
+  /* --------------------------- 🔹 Render --------------------------- */
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="max-w-sm w-full bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden sm:max-w-md md:max-w-lg"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
           🎉 Upcoming Birthdays
         </h2>
+        <span className="text-xs text-gray-500">
+          {data.users.length} {data.users.length > 1 ? "people" : "person"}
+        </span>
       </div>
 
-      {/* List */}
-      <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 transition-all">
+      {/* Scrollable List */}
+      <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
         <ul className="divide-y divide-gray-200">
           <AnimatePresence>
             {birthdayGroups.map((group, groupIdx) => (
@@ -88,6 +116,7 @@ export default function Birthdays() {
                 key={groupIdx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, delay: groupIdx * 0.05 }}
               >
                 {/* Date Header */}
@@ -107,9 +136,10 @@ export default function Birthdays() {
                       key={personIdx}
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: personIdx * 0.05 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, delay: personIdx * 0.05 }}
                       whileHover={{ scale: 1.02 }}
-                      className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors duration-200"
+                      className="flex items-center px-4 py-3 hover:bg-gray-50 transition-all duration-200"
                     >
                       <img
                         src={
@@ -117,7 +147,7 @@ export default function Birthdays() {
                           `https://i.pravatar.cc/150?u=${person._id}`
                         }
                         alt={person.displayName || person.userName}
-                        className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0 border border-gray-200"
+                        className="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
@@ -143,3 +173,5 @@ export default function Birthdays() {
     </motion.div>
   );
 }
+
+export default memo(Birthdays);

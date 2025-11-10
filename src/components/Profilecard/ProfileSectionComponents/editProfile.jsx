@@ -13,7 +13,7 @@ import debounce from "lodash.debounce";
 export default function EditProfile() {
   const { token } = useAuth();
   const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token);
-console.log(user)
+  console.log(user);
   const [isEditing, setIsEditing] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -23,6 +23,7 @@ console.log(user)
     name: "",
     lastName: "",
     bio: "",
+    profileSummary: "", // 🆕 added here
     gender: "Male",
     maritalStatus: "Single",
     dateOfBirth: null,
@@ -59,6 +60,7 @@ console.log(user)
       name: user.name || "",
       lastName: user.lastName || "",
       bio: user.bio || "",
+      profileSummary: user.profileSummary || "", // 🆕 include from backend
       gender: user.gender || "Male",
       maritalStatus: user.maritalStatus || "Single",
       dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : null,
@@ -279,9 +281,17 @@ console.log(user)
 
         {/* Bio */}
         <TextArea
-          label="Profile Summary"
+          label="Personal Bio"
           value={formData.bio}
           onChange={(v) => handleChange("bio", v)}
+          disabled={!isEditing}
+        />
+
+        {/* 🆕 Profile Summary */}
+        <TextArea
+          label="Profile Summary"
+          value={formData.profileSummary}
+          onChange={(v) => handleChange("profileSummary", v)}
           disabled={!isEditing}
         />
 
@@ -364,7 +374,7 @@ console.log(user)
   );
 }
 
-/* ✅ Reusable Inputs */
+/* ✅ Reusable Inputs (same as before) */
 function InputField({ label, value, onChange, disabled }) {
   return (
     <div>

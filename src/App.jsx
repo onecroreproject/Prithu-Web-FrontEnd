@@ -27,6 +27,7 @@ import PrivacyPolicy from "./privacyPolicy.jsx";
 import PublicResume from "./pages/publiceResume.jsx";
 import JobList from "./components/Jobs/jobCardPop-Up.jsx";
 import PortfolioLayout from "./components/User_PrortFolio/profileLayout.jsx";
+import AdminSendNotification from "./components/adminsendnotification.jsx";
 
 
 
@@ -104,7 +105,8 @@ function AppRoutes() {
       <Route path="/logout" element={<Navigate to="/login" replace />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/r/:username" element={<PublicResume/>}/>
-      <Route path='/portfolio' element={<PortfolioLayout/>}/>
+      <Route path='/portfolio/:id' element={<PortfolioLayout/>}/>
+      <Route path="/admin/notification" element={<AdminSendNotification/>}/>
      
 
       <Route path="*" element={<Navigate to="/login" replace />} />

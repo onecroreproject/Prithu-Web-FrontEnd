@@ -1,27 +1,20 @@
-// src/utils/socket.js
+// ✅ Inside src/webSocket/socket.js
 import { io } from "socket.io-client";
 
 let socket = null;
 let heartbeatInterval = null;
 
-/**
- * 🔗 Initialize Socket Connection
- * @param {string} token - JWT Access Token
- * @param {string} sessionId - Active Session ID from backend
- */
-export const connectSocket = (token,sessionId) => {
+export const connectSocket = (token, sessionId) => {
   if (!token || !sessionId) {
     console.warn("⚠️ Missing token or sessionId. Socket not initialized.");
     return null;
   }
 
-  // 🧠 Avoid duplicate connections
   if (socket && socket.connected) {
-    console.log("⚠️ Socket already connected.");
+    console.log("⚠️ Socket already connected:", socket.id);
     return socket;
   }
 
-  // 🌐 Connect to backend WebSocket
   socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:5000", {
     auth: { token, sessionId },
     transports: ["websocket"],
@@ -31,74 +24,54 @@ export const connectSocket = (token,sessionId) => {
     timeout: 20000,
   });
 
-  /**
-   * ✅ Connection Events
-   */
   socket.on("connect", () => {
     console.log("✅ Socket connected:", socket.id);
-
-    // Start heartbeat to maintain session activity
     startHeartbeat();
   });
 
-  socket.on("connect_error", (error) => {
-    console.error("⚠️ Socket connection error:", error.message);
+  socket.on("connect_error", (err) => {
+    console.error("❌ Socket connection error:", err.message);
   });
 
   socket.on("disconnect", (reason) => {
-    console.warn("❌ Socket disconnected:", reason);
-    stopHeartbeat(); // stop heartbeats when disconnected
+    console.warn("⚠️ Socket disconnected:", reason);
+    stopHeartbeat();
   });
 
-  socket.on("reconnect_attempt", (attempt) => {
-    console.log(`🔄 Reconnecting... Attempt ${attempt}`);
+  socket.on("reconnect", () => {
+    console.log("🔁 Socket reconnected");
+    startHeartbeat();
   });
 
-  socket.on("reconnect", (attemptNumber) => {
-    console.log(`🔁 Reconnected successfully after ${attemptNumber} attempts`);
-    startHeartbeat(); // restart heartbeats
-  });
-
-  /**
-   * 🔊 Real-time Events
-   */
-  socket.on("userOnline", ({ userId }) => {
-    console.log("🟢 User online:", userId);
-  });
-
-  socket.on("userOffline", ({ userId }) => {
-    console.log("🔴 User offline:", userId);
-  });
-
+  // ✅ REAL-TIME NOTIFICATION LISTENER
   socket.on("newNotification", (notification) => {
-    console.log("📩 New Notification:", notification);
+    console.log("📬 [SOCKET] New Notification received:", notification);
+
+    // ✅ Dispatch event to frontend (so Header can catch it)
+    const event = new CustomEvent("socket:newNotification", { detail: notification });
+    document.dispatchEvent(event);
   });
 
+  // ✅ Optional: log read confirmations
   socket.on("notificationRead", ({ userId }) => {
-    console.log("📨 Notifications marked as read by:", userId);
+    console.log("📨 [SOCKET] Notifications marked as read by:", userId);
+    const event = new CustomEvent("socket:notificationRead", { detail: { userId } });
+    document.dispatchEvent(event);
   });
 
   return socket;
 };
 
-/**
- * 💓 Start Heartbeat Interval
- * Keeps user session marked as online in backend
- */
 const startHeartbeat = () => {
-  stopHeartbeat(); // clear old interval if exists
-
+  stopHeartbeat();
   heartbeatInterval = setInterval(() => {
     if (socket && socket.connected) {
       socket.emit("heartbeat");
       // console.log("💓 Heartbeat sent");
     }
-  }, 30000); // every 30 seconds
+  }, 30000);
 };
 
-/**
- * 🧹 Stop Heartbeat Interval
- */
 const stopHeartbeat = () => {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
@@ -106,31 +79,11 @@ const stopHeartbeat = () => {
   }
 };
 
-/**
- * ✅ Return current socket instance
- */
-export const getSocket = () => socket;
-
-/**
- * ❌ Manually disconnect socket (on logout or tab close)
- */
 export const disconnectSocket = () => {
   if (socket) {
     stopHeartbeat();
     socket.disconnect();
     console.log("🔌 Socket disconnected manually");
     socket = null;
-  }
-};
-
-/**
- * 🔁 Handle Token Refresh (optional)
- * Called when token is updated in the app
- */
-export const handleTokenRefresh = async (newToken) => {
-  if (socket && socket.connected) {
-    console.log("🔑 Updating socket token...");
-    socket.auth.token = newToken;
-    socket.disconnect().connect(); // reconnect with new token
   }
 };

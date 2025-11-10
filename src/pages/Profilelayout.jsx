@@ -10,7 +10,7 @@ import PhotoGallery from "../components/Profilecard/PhotoGallery";
 import RecentActivity from "../components/Profilecard/RecentActivity";
 import ProfileSection from "../components/Profilecard/ProfileSection";
 import ActivitySection from "../components/Profilecard/ActivitySection";
-import FriendsSection from "../components/Profilecard/FriendsSection";
+import FriendsSection from "../components/Profilecard/followersFollowingSection";
 import GroupsSection from "../components/Profilecard/GroupsSection";
 import Advertisement from "../components/Profilecard/Advertisement";
 import ForumsSection from "../components/Profilecard/FormsSection";

@@ -1,58 +1,124 @@
 import React, { useState, useContext } from "react";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react"; // lightweight icons
 import { AuthContext } from "../../../context/AuthContext";
 
 export default function LoginForm({ switchMode }) {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    await login({ identifier: email, password });
+    setError("");
+    setLoading(true);
+    try {
+      const success = await login({ identifier: email, password });
+      if (!success) setError("Invalid credentials. Please try again.");
+    } catch {
+      setError("Login failed. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (<>
-     <h1 className="text-3xl font-bold pt-1 pb-3 ">Welcome Back</h1>
-    <form className="w-full max-w-xs" onSubmit={handleLogin}>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="mb-3 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="mb-3 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-        required
-      />
-      <button
-        type="submit"
-        className="w-full py-2 rounded-full font-semibold text-white bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90 transition"
-      >
-        Login
-      </button>
+  // ✅ Framer Motion variants
+  const fade = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  };
 
-      <div
-        className="text-sm text-green-600 mt-3 cursor-pointer hover:underline"
-        onClick={() => switchMode("forgot")}
-      >
-        Forgot Password?
-      </div>
+  return (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={fade}
+      className="w-full max-w-xs mx-auto"
+    >
+      <h1 className="text-3xl text-center font-bold pt-1 pb-4 text-gray-900">
+        Welcome Back 
+      </h1>
 
-      <div className="text-center mt-6 text-sm text-gray-600">
-        New to Prithu?{" "}
-        <span
-          className="text-green-600 cursor-pointer hover:underline"
-          onClick={() => switchMode("register")}
+      <form onSubmit={handleLogin} className="flex flex-col space-y-4">
+        {/* ✅ Email Field */}
+        <div className="relative">
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition"
+            required
+          />
+        </div>
+
+        {/* ✅ Password Field */}
+        <div className="relative">
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition"
+            required
+          />
+          <div
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer hover:text-green-600 transition"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </div>
+        </div>
+
+        {/* ✅ Error Message */}
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-red-500 text-sm text-center -mt-2"
+          >
+            {error}
+          </motion.p>
+        )}
+
+        {/* ✅ Login Button */}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          disabled={loading}
+          type="submit"
+          className={`w-full py-2 rounded-full font-semibold text-white transition-all ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+          }`}
         >
-          Create an account
-        </span>
-      </div>
-    </form>
- </> );
+          {loading ? "Logging in..." : "Login"}
+        </motion.button>
+
+        {/* ✅ Forgot Password */}
+        <div
+          className="text-sm text-green-600 mt-3 cursor-pointer hover:underline text-center"
+          onClick={() => switchMode("forgot")}
+        >
+          Forgot Password?
+        </div>
+
+        {/* ✅ Create Account */}
+        <div className="text-center mt-4 text-sm text-gray-600">
+          New to Prithu?{" "}
+          <span
+            className="text-green-600 cursor-pointer hover:underline font-medium"
+            onClick={() => switchMode("register")}
+          >
+            Create an account
+          </span>
+        </div>
+      </form>
+    </motion.div>
+  );
 }
