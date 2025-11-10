@@ -1,31 +1,30 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../../context/AuthContext";
 import api from "../../../api/axios";
 
-export default function RegisterForm({ switchMode }) {
+function RegisterForm({ switchMode }) {
   const { sendOtpForReset, verifyOtpForNewUser, register } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // 🧠 State Management
   const [step, setStep] = useState("email");
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    otp: "",
+    username: "",
+    password: "",
+    phone: "",
+    whatsapp: "",
+  });
   const [sameAsWhatsapp, setSameAsWhatsapp] = useState(false);
-  const [timer, setTimer] = useState(0);
-  const [loading, setLoading] = useState(false);
-
-  // Availability checks
-  const [emailStatus, setEmailStatus] = useState(null);
-  const [checkingEmail, setCheckingEmail] = useState(false);
-  const [usernameStatus, setUsernameStatus] = useState(null);
-  const [usernameSuggestions, setUsernameSuggestions] = useState([]);
-
-  // Password validation
+  const [status, setStatus] = useState({
+    email: null,
+    username: null,
+    checkingEmail: false,
+    usernameSuggestions: [],
+  });
   const [passwordChecks, setPasswordChecks] = useState({
     length: false,
     uppercase: false,
@@ -33,111 +32,96 @@ export default function RegisterForm({ switchMode }) {
     number: false,
     special: false,
   });
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
 
-  // Countdown timer for OTP
+  // 🕒 Timer (Resend OTP)
   useEffect(() => {
-    if (timer > 0) {
-      const countdown = setTimeout(() => setTimer((prev) => prev - 1), 1000);
-      return () => clearTimeout(countdown);
-    }
+    if (!timer) return;
+    const t = setTimeout(() => setTimer((prev) => prev - 1), 1000);
+    return () => clearTimeout(t);
   }, [timer]);
 
-  // ✅ FIXED: Real-time, reliable email availability check
+  // 📩 Email Availability Check (Debounced + Abort-safe)
   useEffect(() => {
-    if (step !== "email" || !email.trim()) {
-      setEmailStatus(null);
-      return;
-    }
-
+    if (step !== "email" || !form.email.trim()) return;
     const controller = new AbortController();
-    let isMounted = true;
-
-    const checkAvailability = async () => {
+    const timer = setTimeout(async () => {
       try {
-        setCheckingEmail(true);
+        setStatus((prev) => ({ ...prev, checkingEmail: true }));
         const { data } = await api.get("/api/check/email/availability", {
-          params: { email },
+          params: { email: form.email },
           signal: controller.signal,
         });
-
-        console.log("📩 Email check response:", data);
-
-        if (!isMounted) return;
-
-        // ✅ Handle exact backend structure
-        if (typeof data.available === "boolean") {
-          setEmailStatus(data.available ? "available" : "taken");
-        } else {
-          setEmailStatus("error");
-        }
-      } catch (err) {
-        if (err.name !== "CanceledError" && isMounted) {
-          console.error("Email check error:", err);
-          setEmailStatus("error");
-        }
+        setStatus((prev) => ({
+          ...prev,
+          email: data.available ? "available" : "taken",
+        }));
+      } catch {
+        setStatus((prev) => ({ ...prev, email: "error" }));
       } finally {
-        if (isMounted) setCheckingEmail(false);
+        setStatus((prev) => ({ ...prev, checkingEmail: false }));
       }
-    };
-
-    checkAvailability();
-
+    }, 600);
     return () => {
-      isMounted = false;
+      clearTimeout(timer);
       controller.abort();
     };
-  }, [email, step]);
+  }, [form.email, step]);
 
-  // ✅ Username availability check
+  // 👤 Username Availability + Suggestions
   useEffect(() => {
-    if (step !== "details" || !username || username.length < 5) return;
+    if (step !== "details" || form.username.length < 5) return;
     const delay = setTimeout(async () => {
       try {
         const { data } = await api.get("/api/check/username/availability", {
-          params: { username },
+          params: { username: form.username },
         });
         if (data.available) {
-          setUsernameStatus("available");
-          setUsernameSuggestions([]);
+          setStatus((prev) => ({ ...prev, username: "available", usernameSuggestions: [] }));
         } else {
-          setUsernameStatus("taken");
-          const random = Math.floor(Math.random() * 1000);
-          setUsernameSuggestions([
-            `${username}${random}`,
-            `${username}_01`,
-            `${username}.dev`,
-          ]);
+          const rand = Math.floor(Math.random() * 1000);
+          setStatus((prev) => ({
+            ...prev,
+            username: "taken",
+            usernameSuggestions: [
+              `${form.username}${rand}`,
+              `${form.username}_01`,
+              `${form.username}.dev`,
+            ],
+          }));
         }
       } catch {
-        setUsernameStatus("error");
+        setStatus((prev) => ({ ...prev, username: "error" }));
       }
     }, 400);
     return () => clearTimeout(delay);
-  }, [username, step]);
+  }, [form.username, step]);
 
-  // ✅ Password validation
+  // 🔐 Password Validation
   useEffect(() => {
+    const pass = form.password;
     setPasswordChecks({
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*]/.test(password),
+      length: pass.length >= 8,
+      uppercase: /[A-Z]/.test(pass),
+      lowercase: /[a-z]/.test(pass),
+      number: /\d/.test(pass),
+      special: /[!@#$%^&*]/.test(pass),
     });
-  }, [password]);
+  }, [form.password]);
 
-  // ✅ Sync WhatsApp number with phone
+  // 🔁 Sync WhatsApp with Phone
   useEffect(() => {
-    if (sameAsWhatsapp) setWhatsapp(phone);
-  }, [sameAsWhatsapp, phone]);
+    if (sameAsWhatsapp) setForm((prev) => ({ ...prev, whatsapp: prev.phone }));
+  }, [sameAsWhatsapp, form.phone]);
 
-  // ✅ Send OTP
+  // 📤 Send OTP
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (loading || timer > 0) return;
     setLoading(true);
     try {
-      const success = await sendOtpForReset(email);
+      const success = await sendOtpForReset(form.email);
       if (success) {
         setStep("otp");
         setTimer(30);
@@ -147,31 +131,36 @@ export default function RegisterForm({ switchMode }) {
     }
   };
 
-  // ✅ Verify OTP
+  // 🔎 Verify OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
     try {
-      const success = await verifyOtpForNewUser({ email, otp });
+      const success = await verifyOtpForNewUser({ email: form.email, otp: form.otp });
       if (success) setStep("details");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Register user
+  // 📝 Register
   const handleRegister = async (e) => {
     e.preventDefault();
     if (loading) return;
-
     const validPassword = Object.values(passwordChecks).every(Boolean);
-    if (!validPassword || username.length < 5)
-      return alert("Please fix the highlighted issues before continuing.");
+    if (!validPassword || form.username.length < 5)
+      return alert("Please complete all requirements before registering.");
 
     setLoading(true);
     try {
-      const success = await register({ username, email, password, phone, whatsapp });
+      const success = await register({
+        username: form.username,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        whatsapp: form.whatsapp,
+      });
       if (success) {
         switchMode("login");
         navigate("/login");
@@ -181,21 +170,21 @@ export default function RegisterForm({ switchMode }) {
     }
   };
 
-  // ✅ Motion fade variants
+  // ✨ Framer Motion Variants
   const fade = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.15 } },
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.15, ease: "easeInOut" } },
   };
 
   return (
-    <>
-      <div className="mt-1 mb-3">
-        <h1 className="text-3xl font-bold pt-1 pb-3">Create Free Account</h1>
-      </div>
+    <div className="w-full max-w-sm mx-auto p-4 sm:p-6 bg-white/5 rounded-2xl backdrop-blur-md border border-white/20">
+      <h1 className="text-2xl sm:text-3xl  font-bold text-center mb-5 text-gray-900">
+        Create Free Account
+      </h1>
 
       <form
-        className="w-full relative"
+        className="space-y-4"
         onSubmit={
           step === "email"
             ? handleSendOtp
@@ -205,49 +194,36 @@ export default function RegisterForm({ switchMode }) {
         }
       >
         <AnimatePresence mode="wait">
-          {/* STEP 1: EMAIL */}
+          {/* STEP 1 — EMAIL */}
           {step === "email" && (
             <motion.div key="email" initial="hidden" animate="visible" exit="exit" variants={fade}>
-              <label className="block mb-1 font-medium text-gray-700">
+              <label className="block font-medium text-gray-700 mb-1">
                 Email <span className="text-red-500">*</span>
               </label>
-
-              <div className="relative mb-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailStatus(null);
-                  }}
-                  className="w-full px-4 py-2 pr-10 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-                  required
-                />
-              </div>
-
-              <div className="mb-2 min-h-[20px]">
-                {emailStatus === "available" && (
-                  <motion.p className="text-green-600 text-sm" >
-                    ✅ Email available
-                  </motion.p>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                required
+              />
+              <p className="text-sm mt-1 min-h-[20px]">
+                {status.email === "available" && (
+                  <span className="text-green-600">✅ Email available</span>
                 )}
-                {emailStatus === "taken" && (
-                  <motion.p className="text-red-500 text-sm" >
-                    ❌ Email already in use
-                  </motion.p>
+                {status.email === "taken" && (
+                  <span className="text-red-500">❌ Email already registered</span>
                 )}
-                {emailStatus === "error" && (
-                  <motion.p className="text-gray-500 text-sm" {...fade}>
-                    ⚠️ Could not check email
-                  </motion.p>
+                {status.email === "error" && (
+                  <span className="text-gray-500">⚠️ Could not check email</span>
                 )}
-              </div>
+              </p>
 
               <button
                 type="submit"
                 disabled={loading || timer > 0}
-                className={`w-full py-2 rounded-full font-semibold text-white transition ${
+                className={`w-full py-2 rounded-full font-semibold text-white transition-all ${
                   loading || timer > 0
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
@@ -262,25 +238,22 @@ export default function RegisterForm({ switchMode }) {
             </motion.div>
           )}
 
-          {/* STEP 2: OTP */}
+          {/* STEP 2 — OTP */}
           {step === "otp" && (
             <motion.div key="otp" initial="hidden" animate="visible" exit="exit" variants={fade}>
-              <label className="block mb-1 font-medium text-gray-700">
-                OTP <span className="text-red-500">*</span>
-              </label>
+              <label className="block font-medium text-gray-700 mb-1">Enter OTP</label>
               <input
                 type="text"
                 placeholder="Enter OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="mb-3 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                value={form.otp}
+                onChange={(e) => setForm((p) => ({ ...p, otp: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
                 required
               />
-
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-2 rounded-full font-semibold text-white transition ${
+                className={`w-full py-2 rounded-full font-semibold text-white ${
                   loading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
@@ -289,11 +262,9 @@ export default function RegisterForm({ switchMode }) {
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-2">
                 {timer > 0 ? (
-                  <span className="text-gray-500 text-sm">
-                    Resend available in {timer}s
-                  </span>
+                  <p className="text-gray-500 text-sm">Resend available in {timer}s</p>
                 ) : (
                   <button
                     type="button"
@@ -305,52 +276,45 @@ export default function RegisterForm({ switchMode }) {
                         : "text-green-600 hover:underline"
                     }`}
                   >
-                    {loading ? "Sending..." : "Resend OTP"}
+                    Resend OTP
                   </button>
                 )}
               </div>
             </motion.div>
           )}
 
-          {/* STEP 3: DETAILS */}
+          {/* STEP 3 — DETAILS */}
           {step === "details" && (
             <motion.div key="details" initial="hidden" animate="visible" exit="exit" variants={fade}>
               {/* Username */}
-              <label className="block mb-1 font-medium text-gray-700">
-                Username <span className="text-red-500">*</span>
-              </label>
+              <label className="block font-medium text-gray-700 mb-1">Username</label>
               <input
                 type="text"
-                placeholder="Enter username (min 5 chars)"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setUsernameStatus(null);
-                }}
-                className="mb-2 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                placeholder="Min 5 characters"
+                value={form.username}
+                onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
                 required
               />
-
-              <div className="mb-2 min-h-[20px]">
-                {username && username.length < 5 && (
-                  <p className="text-red-500 text-sm">❌ Must be at least 5 characters</p>
+              <p className="text-sm min-h-[20px]">
+                {form.username && form.username.length < 5 && (
+                  <span className="text-red-500">❌ Too short</span>
                 )}
-                {usernameStatus === "available" && (
-                  <p className="text-green-600 text-sm">✅ Username available</p>
+                {status.username === "available" && (
+                  <span className="text-green-600">✅ Username available</span>
                 )}
-                {usernameStatus === "taken" && (
-                  <p className="text-red-500 text-sm">❌ Username not available</p>
+                {status.username === "taken" && (
+                  <span className="text-red-500">❌ Username not available</span>
                 )}
-              </div>
-
-              {usernameSuggestions.length > 0 && (
+              </p>
+              {status.usernameSuggestions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {usernameSuggestions.map((s, i) => (
+                  {status.usernameSuggestions.map((s, i) => (
                     <button
                       key={i}
                       type="button"
+                      onClick={() => setForm((p) => ({ ...p, username: s }))}
                       className="text-sm text-green-600 hover:underline"
-                      onClick={() => setUsername(s)}
                     >
                       {s}
                     </button>
@@ -358,90 +322,85 @@ export default function RegisterForm({ switchMode }) {
                 </div>
               )}
 
-              {/* Phone */}
-              <label className="block mb-1 font-medium text-gray-700">
-                Mobile Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="Enter phone number"
-                value={phone}
-                maxLength={10}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  if (val.length <= 10) setPhone(val);
-                }}
-                className="mb-2 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-                required
-              />
-
-              {/* WhatsApp */}
-              <label className="block mb-1 font-medium text-gray-700">
-                WhatsApp Number <span className="text-red-500">*</span>
-              </label>
-              <div className="relative mb-2">
-                <input
-                  type="tel"
-                  placeholder="Enter WhatsApp number"
-                  value={whatsapp}
-                  maxLength={10}
-                  onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))}
-                  className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-                  required
-                />
-                <span
-                  onClick={() => {
-                    setSameAsWhatsapp((prev) => !prev);
-                    setWhatsapp(phone);
-                  }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-green-600 cursor-pointer hover:underline"
-                >
-                  Same as Phone
-                </span>
+              {/* Phone / WhatsApp */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">Mobile</label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        phone: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                    placeholder="Enter mobile"
+                    className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={form.whatsapp}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          whatsapp: e.target.value.replace(/\D/g, ""),
+                        }))
+                      }
+                      placeholder="Enter WhatsApp"
+                      className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                    />
+                    <span
+                      onClick={() => setSameAsWhatsapp((prev) => !prev)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-green-600 cursor-pointer hover:underline"
+                    >
+                      Same as Phone
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Password */}
-              <label className="block mb-1 font-medium text-gray-700">
-                Password <span className="text-red-500">*</span>
-              </label>
+              <label className="block font-medium text-gray-700 mt-2 mb-1">Password</label>
               <input
                 type="password"
                 placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mb-2 w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-                required
+                value={form.password}
+                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
               />
 
-              {/* Password checklist */}
               <motion.div
-                className="text-xs text-gray-700 mb-3 space-y-1"
+                className="text-xs sm:text-sm text-gray-700 mt-2 space-y-1"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 {Object.entries({
                   length: "At least 8 characters",
-                  uppercase: "One uppercase letter",
-                  lowercase: "One lowercase letter",
+                  uppercase: "One uppercase",
+                  lowercase: "One lowercase",
                   number: "One number",
-                  special: "One special character (!@#$%^&*)",
-                }).map(([key, label]) => (
-                  <motion.p
+                  special: "One special character",
+                }).map(([key, text]) => (
+                  <p
                     key={key}
-                    className={`flex items-center gap-1 ${
-                      passwordChecks[key] ? "text-green-600" : "text-red-500"
-                    }`}
-                    layout
+                    className={passwordChecks[key] ? "text-green-600" : "text-red-500"}
                   >
-                    {passwordChecks[key] ? "✅" : "❌"} {label}
-                  </motion.p>
+                    {passwordChecks[key] ? "✅" : "❌"} {text}
+                  </p>
                 ))}
               </motion.div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-2 rounded-full font-semibold text-white transition ${
+                className={`w-full mt-4 py-2 rounded-full font-semibold text-white transition ${
                   loading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
@@ -453,7 +412,8 @@ export default function RegisterForm({ switchMode }) {
           )}
         </AnimatePresence>
       </form>
-
-    </>
+    </div>
   );
 }
+
+export default memo(RegisterForm);

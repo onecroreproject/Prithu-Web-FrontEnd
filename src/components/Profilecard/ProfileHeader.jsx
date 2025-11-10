@@ -9,8 +9,10 @@ import {
   Edit,
   Camera,
   Briefcase,
+  FolderGit2, // 🆕 Portfolio icon
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
 import { useUserProfile } from "../../hook/userProfile";
@@ -26,13 +28,18 @@ const defaultAvatar =
   "https://res.cloudinary.com/demo/image/upload/v1720000000/default-avatar.jpg";
 
 export default function ProfileHeader({ activeTab, setActiveTab }) {
-  const { token } = useAuth();
+  const { token ,userId} = useAuth();
+  const navigate = useNavigate();
   const { data: user, isLoading, refetch } = useUserProfile(token);
 
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
   const bannerInputRef = useRef(null);
   const profileInputRef = useRef(null);
+
+  // ✅ Get user ID from localStorage
+  const id = localStorage.getItem("userId");
+  
 
   // ✅ Sync user data to local preview states
   useEffect(() => {
@@ -42,7 +49,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     }
   }, [user]);
 
-  // 🔹 Handle Cover Photo Upload
+  // ✅ Cover Photo Upload
   const handleBannerChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -60,7 +67,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     }
   };
 
-  // 🔹 Handle Profile Avatar Upload
+  // ✅ Profile Photo Upload
   const handleProfileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -81,6 +88,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
   if (isLoading)
     return <p className="text-gray-500 p-4">Loading profile...</p>;
 
+  // 🧭 Tabs (includes Portfolio)
   const tabs = [
     { id: "Activity", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
@@ -89,8 +97,21 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     { id: "adverts", Icon: Megaphone, label: "Adverts" },
     { id: "forums", Icon: MessageCircle, label: "Forums" },
     { id: "jobs", Icon: Briefcase, label: "Jobs" },
+    { id: "portfolio", Icon: FolderGit2, label: "Portfolio" },
     { id: "more", Icon: MoreHorizontal, label: "More" },
   ];
+
+  // ✅ Handle tab click
+  const handleTabClick = (tab) => {
+    setActiveTab(tab.id);
+
+    // 🧭 Navigate to portfolio if clicked
+    if (tab.id === "portfolio" && id) {
+      navigate(`/portfolio/${id}`);
+    } else if (tab.id === "portfolio" && !id) {
+      toast.error("⚠️ User ID not found in localStorage!");
+    }
+  };
 
   return (
     <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
@@ -173,7 +194,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
               className="flex flex-col justify-end"
             >
               <h2 className="text-lg font-bold text-gray-900">
-                {user?.userName || "User"}
+                {user?.name || user?.userName || "User"}
               </h2>
               <p className="text-xs text-gray-600 mt-1">
                 <span className="font-medium text-gray-800">
@@ -197,7 +218,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
                 return (
                   <motion.button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabClick(tab)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-lg transition-all ${

@@ -1,5 +1,5 @@
 // ✅ src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect, useContext, useRef } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
@@ -23,19 +23,80 @@ export const AuthProvider = ({ children }) => {
   const [deviceId, setDeviceId] = useState(localStorage.getItem("deviceId") || null);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [socketConnected, setSocketConnected] = useState(false);
-  const [resetEmail, setResetEmail] = useState(null); // ✅ Added — was missing
-
-  // ---------------------- 🧠 Refs ----------------------
-  const socketRef = useRef(null);
-  const locationIntervalRef = useRef(null);
+  const [resetEmail, setResetEmail] = useState(null);
 
   // ---------------------- 🚀 Hooks ----------------------
   useAutoLogin({ setToken, setUser, setSessionId, navigate });
   usePresenceTracker({ token, sessionId, user });
 
+  // ---------------------- ⚡ Global Socket Connection ----------------------
+  useEffect(() => {
+    if (!token || !sessionId || !user?._id) return;
+
+    console.log("🔗 Establishing global socket connection...");
+    const socket = connectSocket(token, sessionId);
+
+    socket.on("connect", () => {
+      console.log("✅ [SOCKET] Connected:", socket.id);
+      setSocketConnected(true);
+
+      // 🟢 Mark current user online
+      socket.emit("userOnline", { userId: user._id });
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("🔌 [SOCKET] Disconnected:", reason);
+      setSocketConnected(false);
+      socket.emit("userOffline", { userId: user._id });
+    });
+
+    // ---------------------- 🟢 User Presence Updates ----------------------
+    socket.on("userOnline", ({ userId }) => {
+      console.log("🟢 [SOCKET] User online:", userId);
+      setOnlineUsers((prev) => new Set([...prev, userId]));
+    });
+
+    socket.on("userOffline", ({ userId }) => {
+      console.log("🔴 [SOCKET] User offline:", userId);
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev);
+        updated.delete(userId);
+        return updated;
+      });
+    });
+
+    // ---------------------- 🔔 GLOBAL NOTIFICATIONS ----------------------
+
+    // ✅ When a new notification arrives from backend
+    socket.on("newNotification", (notification) => {
+      console.log("📬 [GLOBAL SOCKET] New Notification received:", notification);
+
+      // 🔊 Dispatch event globally so any component (Header, etc.) can listen
+      const event = new CustomEvent("socket:newNotification", { detail: notification });
+      document.dispatchEvent(event);
+
+      // 🔔 Optional: Instant user feedback
+      toast.success(`🔔 ${notification.title || "New notification received!"}`);
+    });
+
+    // ✅ When notification is marked as read
+    socket.on("notificationRead", (data) => {
+      console.log("📨 [GLOBAL SOCKET] Notification read event:", data);
+      const event = new CustomEvent("socket:notificationRead", { detail: data });
+      document.dispatchEvent(event);
+    });
+
+    // ---------------------- 🧹 Cleanup ----------------------
+    return () => {
+      console.log("🧹 Cleaning up global socket...");
+      socket.emit("userOffline", { userId: user._id });
+      disconnectSocket();
+      setSocketConnected(false);
+    };
+  }, [token, sessionId, user?._id]);
+
   // ---------------------- 🧩 Auth Actions ----------------------
 
-  /** 🔹 Register new user */
   const register = async ({ username, email, password, referralCode, phone, whatsapp }) => {
     setLoading(true);
     try {
@@ -44,7 +105,7 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         referralCode,
-        phone, 
+        phone,
         whatsapp,
       });
       toast.success("🎉 Account created successfully!");
@@ -58,7 +119,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Login */
   const login = async ({ identifier, password }) => {
     setLoading(true);
     try {
@@ -72,27 +132,22 @@ export const AuthProvider = ({ children }) => {
         os,
         browser,
       });
-
-      const { accessToken, refreshToken, sessionId } = data;
-
+console.log(data)
+      const { accessToken, refreshToken, sessionId ,userId} = data;
       if (!accessToken) throw new Error("Invalid login response");
 
-      // ✅ Persist session
       localStorage.setItem("token", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("sessionId", sessionId);
       localStorage.setItem("deviceId", deviceId);
+      localStorage.setItem("userId", userId);
+
 
       setToken(accessToken);
       setRefreshToken(refreshToken);
       setSessionId(sessionId);
 
       await fetchUserProfile(accessToken);
-
-      // ✅ Connect socket
-      const socket = connectSocket(accessToken, sessionId);
-      socketRef.current = socket;
-      setSocketConnected(true);
 
       toast.success("✅ Logged in successfully!");
       navigate("/");
@@ -104,20 +159,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Fetch user profile */
   const fetchUserProfile = async (customToken) => {
     try {
       const res = await api.get("/api/get/profile/detail", {
         headers: { Authorization: `Bearer ${customToken || token}` },
       });
-      setUser(res.data.profile);
       console.log("✅ User Profile Loaded:", res.data.profile);
     } catch (err) {
       console.warn("❌ Failed to fetch profile:", err.message);
     }
   };
 
-  /** 🔹 Send OTP (for new user or password reset) */
   const sendOtpForReset = async (email) => {
     try {
       const res = await api.post("/api/auth/user/otp-send", { email });
@@ -130,7 +182,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Verify OTP (new user) */
   const verifyOtpForNewUser = async ({ email, otp }) => {
     try {
       const res = await api.post("/api/auth/new/user/verify-otp", { email, otp });
@@ -142,10 +193,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Verify OTP (reset flow) */
   const verifyOtpForReset = async ({ otp }) => {
     try {
-      const res = await api.post("/api/auth/user/verify-otp-exist", { otp });
+      const res = await api.post("/api/auth/exist/user/verify-otp", { otp });
       toast.success(res.data.message || "OTP verified successfully ✅");
       setResetEmail(res.data.email);
       return true;
@@ -155,7 +205,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Reset Password */
   const resetPassword = async (newPassword) => {
     try {
       if (!resetEmail) {
@@ -169,7 +218,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       toast.success(res.data.message || "Password reset successfully 🎉");
-      navigate("/login"); // ✅ fixed from SwitchMode()
+      navigate("/login");
       return true;
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to reset password ❌");
@@ -177,7 +226,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /** 🔹 Logout */
   const logout = async () => {
     try {
       await api.post(
@@ -195,7 +243,6 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(null);
       setSessionId(null);
       setSocketConnected(false);
-      socketRef.current = null;
       toast.success("👋 Logged out successfully");
       navigate("/login");
     }
@@ -211,7 +258,6 @@ export const AuthProvider = ({ children }) => {
     deviceId,
     onlineUsers,
     socketConnected,
-    socketRef,
     register,
     login,
     logout,

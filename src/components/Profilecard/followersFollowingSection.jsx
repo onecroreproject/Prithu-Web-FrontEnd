@@ -1,7 +1,6 @@
-// src/components/FriendsSection.jsx
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { UserCheck, UserPlus, X, Check } from "lucide-react";
+import { UserCheck, UserPlus, X, ShieldBan } from "lucide-react";
 
 export default function FriendsSection() {
   const [activeSubTab, setActiveSubTab] = useState("followers");
@@ -9,21 +8,15 @@ export default function FriendsSection() {
   const [followings, setFollowings] = useState([]);
   const [loading, setLoading] = useState(false);
 
-
-  // Fetch followers and followings
+  // ✅ Fetch followers and followings
   useEffect(() => {
     const fetchFollowData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-
         const [followersRes, followingsRes] = await Promise.all([
           api.get(`/api/user/followers`),
           api.get(`/api/user/following`),
         ]);
-
-        console.log("Followers API Response:", followersRes.data);
-        console.log("Followings API Response:", followingsRes.data);
 
         setFollowers(followersRes.data.followers || []);
         setFollowings(followingsRes.data.following || []);
@@ -42,15 +35,44 @@ export default function FriendsSection() {
     { id: "followings", label: "Followings", Icon: UserPlus },
   ];
 
+  const handleUnfollow = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api.post(
+        `/api/user/unfollow/creator`,
+        { userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.status === 200) {
+        setFollowers((prev) => prev.filter((f) => f.userId !== userId));
+        setFollowings((prev) => prev.filter((f) => f.userId !== userId));
+        console.log("✅ Unfollowed user:", userId);
+      }
+    } catch (err) {
+      console.error("❌ Unfollow API error:", err.response?.data || err.message);
+    }
+  };
+
+  const handleBlock = async (userId) => {
+    try {
+      // 🔒 Placeholder — replace with your block API if available
+      console.log("🚫 Blocked user:", userId);
+      setFollowings((prev) => prev.filter((f) => f.userId !== userId));
+    } catch (err) {
+      console.error("❌ Block user error:", err);
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return <p className="text-center text-gray-500 py-10">Loading...</p>;
     }
 
     if (activeSubTab === "followers")
-      return <FollowersTab followers={followers} />;
+      return <FollowersTab followers={followers} onUnfollow={handleUnfollow} />;
     if (activeSubTab === "followings")
-      return <FollowingsTab followings={followings} />;
+      return <FollowingsTab followings={followings} onBlock={handleBlock} />;
 
     return null;
   };
@@ -86,14 +108,16 @@ export default function FriendsSection() {
 }
 
 /* ───────── Followers Tab ───────── */
-function FollowersTab({ followers }) {
+function FollowersTab({ followers, onUnfollow }) {
   if (!followers || followers.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
           <UserCheck className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">No followers yet</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          No followers yet
+        </h3>
         <p className="text-sm text-gray-600">Start connecting with people!</p>
       </div>
     );
@@ -120,6 +144,12 @@ function FollowersTab({ followers }) {
               <p className="text-xs text-gray-500">{f.followedAt}</p>
             </div>
           </div>
+          <button
+            onClick={() => onUnfollow(f.userId)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-all"
+          >
+            <X className="w-4 h-4" /> Unfollow
+          </button>
         </div>
       ))}
     </div>
@@ -127,14 +157,16 @@ function FollowersTab({ followers }) {
 }
 
 /* ───────── Followings Tab ───────── */
-function FollowingsTab({ followings }) {
+function FollowingsTab({ followings, onBlock }) {
   if (!followings || followings.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
           <UserPlus className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">No followings yet</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          No followings yet
+        </h3>
         <p className="text-sm text-gray-600">You’re all caught up!</p>
       </div>
     );
@@ -161,6 +193,13 @@ function FollowingsTab({ followings }) {
               <p className="text-xs text-gray-500">{r.followedAt}</p>
             </div>
           </div>
+
+          <button
+            onClick={() => onBlock(r.userId)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-all"
+          >
+            <ShieldBan className="w-4 h-4" /> Block
+          </button>
         </div>
       ))}
     </div>

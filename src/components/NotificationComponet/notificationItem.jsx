@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { BellRing, Trash2, Check } from "lucide-react";
+import { BellRing} from "lucide-react";
 
 export default function NotificationItem({ notif, onClick, onDelete }) {
   const sender = notif.sender || {};
@@ -65,7 +65,7 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
         title="Delete notification"
         className="text-gray-400 hover:text-red-500 transition"
       >
-        <Trash2 className="w-4 h-4" />
+
       </button>
     </motion.div>
   );

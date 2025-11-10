@@ -11,6 +11,7 @@ import {
   Skeleton,
   Snackbar,
   CardMedia,
+  Chip, // ✅ Added for "Job" tag
 } from "@mui/material";
 import {
   FavoriteBorder as FavoriteBorderIcon,
@@ -20,6 +21,7 @@ import {
   LocationOn as LocationOnIcon,
   CurrencyRupee as CurrencyRupeeIcon,
   Business as BusinessIcon,
+  Work as WorkIcon, // ✅ Added for icon inside tag
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import api from "../../api/axios";
@@ -89,7 +91,7 @@ const JobCard = ({ jobData }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  // ❤️ Like API
+  // ❤️ Like
   const handleLike = async () => {
     try {
       await api.post("/job/update", { jobId: _id, actionType: "like" });
@@ -102,7 +104,7 @@ const JobCard = ({ jobData }) => {
     }
   };
 
-  // 🔗 Share API
+  // 🔗 Share
   const handleShare = async () => {
     try {
       const shareUrl = `${window.location.origin}/jobs/${_id}`;
@@ -147,7 +149,7 @@ const JobCard = ({ jobData }) => {
 
   return (
     <>
-      {/* ✅ Animated Job Card */}
+      {/* ✅ Job Card with Header */}
       <motion.div
         whileHover={{ scale: 1.02 }}
         initial={{ opacity: 0, y: 20 }}
@@ -162,10 +164,7 @@ const JobCard = ({ jobData }) => {
             mb: 3,
             borderRadius: 3,
             boxShadow: "0px 3px 10px rgba(0,0,0,0.08)",
-            transition: "0.3s",
-            "&:hover": {
-              boxShadow: "0px 6px 18px rgba(0,0,0,0.15)",
-            },
+            "&:hover": { boxShadow: "0px 6px 18px rgba(0,0,0,0.15)" },
           }}
         >
           {/* 🧠 Header */}
@@ -185,14 +184,36 @@ const JobCard = ({ jobData }) => {
                   border: "1px solid #ddd",
                 }}
               />
-              <Stack>
+              <Stack direction="row" alignItems="center" spacing={1}>
                 <Typography fontWeight={600}>{userName}</Typography>
-                <Typography variant="caption" color="gray">
-                  {timeAgo(createdAt)}
-                </Typography>
+
+                {/* ✅ Job Tag beside username */}
+                <Chip
+                  label="Job"
+                  size="small"
+                  icon={<WorkIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    color: "white",
+                    backgroundColor: "#6C63FF",
+                    borderRadius: "6px",
+                    height: 22,
+                    px: 0.5,
+                  }}
+                />
               </Stack>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: 1 }}
+              >
+                {timeAgo(createdAt)}
+              </Typography>
             </Stack>
 
+            {/* ❤️ Like & 🔗 Share */}
             <Stack direction="row" spacing={1} alignItems="center">
               <motion.div whileTap={{ scale: 0.8 }}>
                 <IconButton onClick={handleLike}>
@@ -214,7 +235,7 @@ const JobCard = ({ jobData }) => {
             </Stack>
           </Stack>
 
-          {/* 🧠 Job Details */}
+          {/* ✅ Job Details Below */}
           <Box px={2} pb={2}>
             <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
               {title}
