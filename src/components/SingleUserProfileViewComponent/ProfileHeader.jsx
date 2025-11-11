@@ -13,13 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { useUserProfile } from "../../hook/userProfile";
-import {
-  updateCoverPhoto,
-  updateProfileAvatar,
-} from "../../Service/profileService";
 
 // ✅ Default images (fallback)
 const defaultBanner =
@@ -27,10 +21,9 @@ const defaultBanner =
 const defaultAvatar =
   "https://res.cloudinary.com/demo/image/upload/v1720000000/default-avatar.jpg";
 
-export default function ProfileHeader({ activeTab, setActiveTab }) {
-  const { token ,userId} = useAuth();
+export default function ProfileHeader({ activeTab, setActiveTab,userData }) {
+
   const navigate = useNavigate();
-  const { data: user, isLoading, refetch } = useUserProfile(token);
 
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
@@ -40,54 +33,23 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
   // ✅ Get user ID from localStorage
   const id = localStorage.getItem("userId");
 
-  
-
-  // ✅ Sync user data to local preview states
+  // ✅ Mock user (no API fetch)
+  const user = {
+    name: "John Doe",
+    userName: "johndoe",
+    lastActive: "2h ago",
+    coverPhoto: defaultBanner,
+    profileAvatar: defaultAvatar,
+  };
+console.log(userData)
+  // ✅ Sync mock user data to local preview states
   useEffect(() => {
     if (user) {
-      setBannerUrl(user.coverPhoto || defaultBanner);
-      setProfileUrl(user.profileAvatar || defaultAvatar);
+      setBannerUrl(userData.coverPhoto || defaultBanner);
+      setProfileUrl(userData.profileAvatar || defaultAvatar);
     }
-  }, [user]);
+  }, []);
 
-  // ✅ Cover Photo Upload
-  const handleBannerChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setBannerUrl(previewUrl);
-
-    try {
-      await updateCoverPhoto(file, token);
-      toast.success("✅ Cover photo updated successfully!");
-      refetch();
-    } catch (err) {
-      console.error("❌ Cover upload error:", err);
-      toast.error(err.response?.data?.message || "Failed to upload cover photo");
-    }
-  };
-
-  // ✅ Profile Photo Upload
-  const handleProfileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setProfileUrl(previewUrl);
-
-    try {
-      await updateProfileAvatar(file, token);
-      toast.success("✅ Profile photo updated successfully!");
-      refetch();
-    } catch (err) {
-      console.error("❌ Profile upload error:", err);
-      toast.error(err.response?.data?.message || "Failed to upload profile photo");
-    }
-  };
-
-  if (isLoading)
-    return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   // 🧭 Tabs (includes Portfolio)
   const tabs = [
@@ -95,20 +57,15 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     { id: "profile", Icon: User, label: "Profile" },
     { id: "friends", Icon: Users, label: "Followers" },
     { id: "groups", Icon: Users, label: "Groups" },
-    { id: "adverts", Icon: Megaphone, label: "Adverts" },
-    { id: "forums", Icon: MessageCircle, label: "Forums" },
     { id: "jobs", Icon: Briefcase, label: "Jobs" },
     { id: "portfolio", Icon: FolderGit2, label: "Portfolio" },
-    { id: "more", Icon: MoreHorizontal, label: "More" },
   ];
 
   // ✅ Handle tab click
   const handleTabClick = (tab) => {
     setActiveTab(tab.id);
-
-    // 🧭 Navigate to portfolio if clicked
     if (tab.id === "portfolio" && id) {
-      navigate(`/portfolio/${user.userName}`);
+      navigate(`/portfolio/${userData.userName}`);
     } else if (tab.id === "portfolio" && !id) {
       toast.error("⚠️ User ID not found in localStorage!");
     }
@@ -135,24 +92,7 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
             PROFILE
           </motion.h1>
         </div>
-
-        {/* ✏️ Edit Cover Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => bannerInputRef.current?.click()}
-          className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm p-2.5 rounded-lg transition-all"
-        >
-          <Edit className="w-5 h-5 text-gray-900" />
-        </motion.button>
-        <input
-          ref={bannerInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleBannerChange}
-        />
-      </motion.div>
+        </motion.div>
 
       {/* 👤 PROFILE SECTION */}
       <div className="border-b border-gray-200">
@@ -167,23 +107,8 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
             >
               <img
                 src={profileUrl}
-                alt={user?.userName || "User"}
+                alt={userData.userName}
                 className="w-36 h-36 rounded-xl border-4 border-white object-cover shadow-lg bg-white"
-              />
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => profileInputRef.current?.click()}
-                className="absolute bottom-2 right-2 bg-white hover:bg-gray-100 p-1.5 rounded-lg shadow-md transition-all"
-              >
-                <Camera className="w-4 h-4 text-gray-700" />
-              </motion.button>
-              <input
-                ref={profileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleProfileChange}
               />
             </motion.div>
 
@@ -195,14 +120,14 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
               className="flex flex-col justify-end"
             >
               <h2 className="text-lg font-bold text-gray-900">
-                {user?.name || user?.userName || "User"}
+                {userData.userName}
               </h2>
               <p className="text-xs text-gray-600 mt-1">
                 <span className="font-medium text-gray-800">
-                  @{user?.userName || "username"}
+                  @{userData.userName}
                 </span>
                 <span className="mx-1.5 text-gray-400">•</span>
-                <span>Active {user?.lastActive || "just now"}</span>
+                <span>Active {user.lastActive}</span>
               </p>
             </motion.div>
 

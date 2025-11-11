@@ -1,42 +1,25 @@
 // ✅ src/context/AuthContextComponents/usePresenceTracker.js
 import { useEffect, useRef } from "react";
-import api from "../../api/axios";
 
-export const usePresenceTracker = ({ token, sessionId, user }) => {
+export const usePresenceTracker = ({ token, sessionId, user, socket }) => {
   const isOnlineRef = useRef(false);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!token || !sessionId || !user?._id) return;
+    if (!token || !sessionId || !user?._id || !socket) return;
 
-    const markOnline = async () => {
+    const markOnline = () => {
       if (isOnlineRef.current) return; // prevent duplicate
-      try {
-        await api.post(
-          "/api/user/session/presence",
-          { sessionId, isOnline: true },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        isOnlineRef.current = true;
-        console.log(`🟢 Marked online (API): ${user.userName}`);
-      } catch (err) {
-        console.error("❌ Error marking online:", err.message);
-      }
+      socket.emit("userOnline", { userId: user._id });
+      isOnlineRef.current = true;
+      console.log(`🟢 Marked online (Socket): ${user.userName}`);
     };
 
-    const markOffline = async () => {
+    const markOffline = () => {
       if (!isOnlineRef.current) return;
-      try {
-        await api.post(
-          "/api/user/session/presence",
-          { sessionId, isOnline: false },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        isOnlineRef.current = false;
-        console.log(`🔴 Marked offline (API): ${user.userName}`);
-      } catch (err) {
-        console.error("⚠️ Error marking offline:", err.message);
-      }
+      socket.emit("userOffline", { userId: user._id });
+      isOnlineRef.current = false;
+      console.log(`🔴 Marked offline (Socket): ${user.userName}`);
     };
 
     const handleFocus = () => {
@@ -49,17 +32,9 @@ export const usePresenceTracker = ({ token, sessionId, user }) => {
     };
 
     const handleBeforeUnload = () => {
-      // 🧠 Use sendBeacon for reliable offline mark on tab close
-      try {
-        const payload = JSON.stringify({ sessionId, isOnline: false });
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_BACKEND_URL}/api/user/session/presence`,
-          payload
-        );
-        console.log(`🟤 Beacon sent (offline): ${user.userName}`);
-      } catch (err) {
-        console.warn("⚠️ Beacon failed:", err.message);
-      }
+      // Emit offline on tab close
+      socket.emit("userOffline", { userId: user._id });
+      console.log(`🟤 Offline emitted on unload: ${user.userName}`);
     };
 
     // Initial presence update
@@ -77,5 +52,5 @@ export const usePresenceTracker = ({ token, sessionId, user }) => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       markOffline();
     };
-  }, [token, sessionId, user?._id]);
+  }, [token, sessionId, user?._id, socket]);
 };

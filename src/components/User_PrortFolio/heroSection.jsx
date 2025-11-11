@@ -12,20 +12,10 @@ export default function HeroSection({ user }) {
   const jobTitle = user?.experience?.[0]?.jobTitle || "Professional Developer";
 
   // 🌐 Detect environment (localhost vs production)
-  const baseUrl =
-    window.location.hostname === "localhost"
-      ? window.location.origin
-      : "https://prithu.app";
+  const host = window.location.origin;
+  const portfolioUrl = `${host}/portfolio/${user?.userName}`;
 
-  // 🧭 Portfolio share URL
- // 🧭 Dynamically detect full hostname (localhost or production)
-const host = window.location.origin; 
-
-
-const portfolioUrl = `${host}/portfolio/${user?._id}`;
-
-
-  // 📥 Handle download
+  // 📥 Handle resume download
   const handleDownloadResume = () => {
     const resumeUrl = user?.resumeFile || user?.shareableLink;
     if (resumeUrl) {
@@ -40,10 +30,8 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
     }
   };
 
-  // 📤 Open modal instead of native share
-  const handleShareClick = () => {
-    setShowShareModal(true);
-  };
+  // 📤 Share modal toggle
+  const handleShareClick = () => setShowShareModal(true);
 
   // 📋 Copy to clipboard
   const handleCopy = async () => {
@@ -58,21 +46,23 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
 
   return (
     <>
+      {/* 🌿 Hero Section */}
       <motion.section
-        className="relative overflow-hidden bg-gray-200 dark:bg-[#2d2d3a] text-center py-20 px-6 sm:px-10 lg:px-20 transition-all duration-500"
+        className="relative overflow-hidden text-center py-20 px-6 sm:px-10 lg:px-20 transition-all duration-500"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #b3ffab 0%, #12fff7 100%)", // ✅ fresh green gradient
+        }}
       >
-        {/* 🖼️ Background Cover */}
+        {/* 🌸 Subtle pattern overlay */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-80 dark:opacity-25"
+          className="absolute inset-0 pointer-events-none opacity-25"
           style={{
-            backgroundImage: `url(${
-              user?.coverPhoto ||
-              user?.modifiedCoverPhoto ||
-              "https://via.placeholder.com/1200x500"
-            })`,
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.5) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.3) 0%, transparent 50%)",
           }}
         ></div>
 
@@ -85,7 +75,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
               target="_blank"
               rel="noopener noreferrer"
               title="View Online Resume"
-              className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#ffc107] hover:text-black text-gray-800 dark:text-gray-200 transition-all"
+              className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#16a34a] hover:text-white text-gray-800 dark:text-gray-200 transition-all"
             >
               <ExternalLink className="w-5 h-5" />
             </a>
@@ -95,7 +85,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
           <button
             onClick={handleShareClick}
             title="Share Portfolio"
-            className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#ffc107] hover:text-black text-gray-800 dark:text-gray-200 transition-all"
+            className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#16a34a] hover:text-white text-gray-800 dark:text-gray-200 transition-all"
           >
             <Share2 className="w-5 h-5" />
           </button>
@@ -104,7 +94,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
           <button
             onClick={handleDownloadResume}
             title="Download Resume"
-            className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#ffc107] hover:text-black text-gray-800 dark:text-gray-200 transition-all"
+            className="bg-white/80 dark:bg-[#333] p-2.5 rounded-full shadow-md hover:bg-[#16a34a] hover:text-white text-gray-800 dark:text-gray-200 transition-all"
           >
             <Download className="w-5 h-5" />
           </button>
@@ -114,7 +104,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
         <div className="relative z-10 flex flex-col items-center justify-center mt-8">
           {/* 👤 Name */}
           <motion.h1
-            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 bg-gradient-to-r from-red-400 to-orange-500 bg-clip-text text-transparent drop-shadow-md"
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 bg-gradient-to-r from-green-700 to-teal-600 bg-clip-text text-transparent drop-shadow-md"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -124,7 +114,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
 
           {/* 💼 Job Title */}
           <motion.h2
-            className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-700 dark:text-gray-300 mb-2"
+            className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-700 dark:text-gray-200 mb-2"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -150,20 +140,20 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
               Share Your Portfolio
             </h2>
 
-            {/* 🔗 Link box */}
+            {/* 🔗 Link Box */}
             <div className="flex items-center justify-between border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 mb-4">
               <span className="truncate text-sm text-gray-700 dark:text-gray-300">
                 {portfolioUrl}
               </span>
               <button
                 onClick={handleCopy}
-                className="ml-2 text-purple-600 hover:text-purple-700"
+                className="ml-2 text-green-600 hover:text-green-700"
               >
                 {copied ? "✅" : <Copy size={16} />}
               </button>
             </div>
 
-            {/* 🧠 QR Code with Prithu Logo */}
+            {/* 🧠 QR Code with logo */}
             <div className="relative inline-block">
               <QRCodeCanvas
                 value={portfolioUrl}
@@ -173,7 +163,7 @@ const portfolioUrl = `${host}/portfolio/${user?._id}`;
                 level="H"
                 includeMargin={true}
                 imageSettings={{
-                  src: "https://res.cloudinary.com/dzp2c7ed9/image/upload/v1761117129/profile/images/y7onrvr4do1h5vgd7ldc.jpg", // ✅ Prithu logo
+                  src: "https://res.cloudinary.com/dzp2c7ed9/image/upload/v1761117129/profile/images/y7onrvr4do1h5vgd7ldc.jpg",
                   height: 48,
                   width: 48,
                   excavate: true,

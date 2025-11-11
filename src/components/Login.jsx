@@ -39,7 +39,7 @@ function LoginPage() {
           stiffness: 120,
           damping: 14,
         }}
-        className="relative flex flex-col md:flex-row w-[95%] max-w-[850px] bg-white/10 rounded-3xl border border-white/20 backdrop-blur-md overflow-hidden z-10 shadow-lg md:shadow-xl"
+        className="relative flex flex-col md:flex-row w-[100%] max-w-[900px] bg-white/10 rounded-3xl border border-white/20 backdrop-blur-md overflow-hidden z-10 shadow-lg md:shadow-xl"
       >
         <Suspense
         >

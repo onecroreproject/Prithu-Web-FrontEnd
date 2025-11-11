@@ -1,6 +1,6 @@
 // ✅ src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { getDeviceDetails } from "../utils/getDeviceDetails";
@@ -23,153 +23,200 @@ export const AuthProvider = ({ children }) => {
   const [deviceId, setDeviceId] = useState(localStorage.getItem("deviceId") || null);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [socketConnected, setSocketConnected] = useState(false);
+  const [socket, setSocket] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
 
   // ---------------------- 🚀 Hooks ----------------------
   useAutoLogin({ setToken, setUser, setSessionId, navigate });
-  usePresenceTracker({ token, sessionId, user });
+  usePresenceTracker({ token, sessionId, user, socket });
 
-  // ---------------------- ⚡ Global Socket Connection ----------------------
+  // ---------------------- ⚡ Socket Connection ----------------------
   useEffect(() => {
     if (!token || !sessionId || !user?._id) return;
 
-    console.log("🔗 Establishing global socket connection...");
-    const socket = connectSocket(token, sessionId);
+    const newSocket = connectSocket(token, sessionId);
+    setSocket(newSocket);
 
-    socket.on("connect", () => {
-      console.log("✅ [SOCKET] Connected:", socket.id);
+    newSocket.on("connect", () => {
+      console.log("✅ [SOCKET] Connected:", newSocket.id);
       setSocketConnected(true);
-
-      // 🟢 Mark current user online
-      socket.emit("userOnline", { userId: user._id });
+      newSocket.emit("userOnline", { userId: user._id });
     });
 
-    socket.on("disconnect", (reason) => {
+    newSocket.on("disconnect", (reason) => {
       console.warn("🔌 [SOCKET] Disconnected:", reason);
       setSocketConnected(false);
-      socket.emit("userOffline", { userId: user._id });
+      newSocket.emit("userOffline", { userId: user._id });
     });
 
-    // ---------------------- 🟢 User Presence Updates ----------------------
-    socket.on("userOnline", ({ userId }) => {
-      console.log("🟢 [SOCKET] User online:", userId);
-      setOnlineUsers((prev) => new Set([...prev, userId]));
-    });
-
-    socket.on("userOffline", ({ userId }) => {
-      console.log("🔴 [SOCKET] User offline:", userId);
+    // 🟢 Presence Updates
+    newSocket.on("userOnline", ({ userId }) =>
+      setOnlineUsers((prev) => new Set([...prev, userId]))
+    );
+    newSocket.on("userOffline", ({ userId }) =>
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
         updated.delete(userId);
         return updated;
-      });
-    });
+      })
+    );
 
-    // ---------------------- 🔔 GLOBAL NOTIFICATIONS ----------------------
-
-    // ✅ When a new notification arrives from backend
-    socket.on("newNotification", (notification) => {
-      console.log("📬 [GLOBAL SOCKET] New Notification received:", notification);
-
-      // 🔊 Dispatch event globally so any component (Header, etc.) can listen
+    // 🔔 Global Notifications
+    newSocket.on("newNotification", (notification) => {
       const event = new CustomEvent("socket:newNotification", { detail: notification });
       document.dispatchEvent(event);
-
-      // 🔔 Optional: Instant user feedback
       toast.success(`🔔 ${notification.title || "New notification received!"}`);
     });
 
-    // ✅ When notification is marked as read
-    socket.on("notificationRead", (data) => {
-      console.log("📨 [GLOBAL SOCKET] Notification read event:", data);
+    newSocket.on("notificationRead", (data) => {
       const event = new CustomEvent("socket:notificationRead", { detail: data });
       document.dispatchEvent(event);
     });
 
-    // ---------------------- 🧹 Cleanup ----------------------
     return () => {
-      console.log("🧹 Cleaning up global socket...");
-      socket.emit("userOffline", { userId: user._id });
+      newSocket.emit("userOffline", { userId: user?._id });
       disconnectSocket();
       setSocketConnected(false);
+      setSocket(null);
     };
   }, [token, sessionId, user?._id]);
 
   // ---------------------- 🧩 Auth Actions ----------------------
 
-  const register = async ({ username, email, password, referralCode, phone, whatsapp }) => {
-    setLoading(true);
-    try {
-      await api.post("/api/auth/user/register", {
-        username,
-        email,
-        password,
-        referralCode,
-        phone,
-        whatsapp,
-      });
-      toast.success("🎉 Account created successfully!");
+ const register = async ({
+  username,
+  email,
+  password,
+  referralCode,
+  phone,
+  whatsapp,
+}) => {
+  setLoading(true);
+  try {
+    await api.post("/api/auth/user/register", {
+      username,
+      email,
+      password,
+      referralCode,
+      phone,
+      whatsapp,
+    });
+
+    toast.success("🎉 Account created successfully!");
+
+    // ✅ Get redirect param from current URL (if user came from a shared post)
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get("redirect");
+
+    // ✅ After registration, go to login with same redirect parameter preserved
+    if (redirectPath) {
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+    } else {
       navigate("/login");
-      return true;
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed ❌");
-      return false;
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const login = async ({ identifier, password }) => {
-    setLoading(true);
-    try {
-      const { deviceId, deviceType, os, browser } = getDeviceDetails();
+    return true;
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Registration failed ❌");
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const { data } = await api.post("/api/auth/user/login", {
-        identifier,
-        password,
-        deviceId,
-        deviceType,
-        os,
-        browser,
-      });
-console.log(data)
-      const { accessToken, refreshToken, sessionId ,userId} = data;
-      if (!accessToken) throw new Error("Invalid login response");
+/**
+ * 🔐 Login with redirect support (and device-aware session)
+ */
+const login = async ({ identifier, password }) => {
+  setLoading(true);
+  try {
+    // ✅ 1️⃣ Check for stored deviceId
+    let storedDeviceId = localStorage.getItem("deviceId");
+    let deviceType, os, browser;
 
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("sessionId", sessionId);
-      localStorage.setItem("deviceId", deviceId);
-      localStorage.setItem("userId", userId);
-
-
-      setToken(accessToken);
-      setRefreshToken(refreshToken);
-      setSessionId(sessionId);
-
-      await fetchUserProfile(accessToken);
-
-      toast.success("✅ Logged in successfully!");
-      navigate("/");
-    } catch (err) {
-      console.error("Login Error:", err);
-      toast.error(err.response?.data?.error || "Login failed ❌");
-    } finally {
-      setLoading(false);
+    if (!storedDeviceId) {
+      const deviceDetails = getDeviceDetails();
+      storedDeviceId = deviceDetails.deviceId;
+      deviceType = deviceDetails.deviceType;
+      os = deviceDetails.os;
+      browser = deviceDetails.browser;
+      localStorage.setItem("deviceId", storedDeviceId);
+    } else {
+      const { deviceType: dType, os: dOs, browser: dBrowser } = getDeviceDetails();
+      deviceType = dType;
+      os = dOs;
+      browser = dBrowser;
     }
-  };
 
+    const existingSessionId = localStorage.getItem("sessionId");
+
+    const loginPayload = {
+      identifier,
+      password,
+      deviceId: storedDeviceId,
+      deviceType,
+      os,
+      browser,
+      sessionId: existingSessionId || null,
+    };
+
+   
+
+    const { data } = await api.post("/api/auth/user/login", loginPayload);
+    const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
+
+    if (!accessToken) throw new Error("Invalid login response");
+
+    // ✅ Save credentials
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("sessionId", newSessionId);
+    localStorage.setItem("deviceId", storedDeviceId);
+    localStorage.setItem("userId", userId);
+
+    setToken(accessToken);
+    setRefreshToken(refreshToken);
+    setSessionId(newSessionId);
+
+    await fetchUserProfile(accessToken);
+    toast.success("✅ Logged in successfully!");
+
+    // ✅  Redirect logic (handles shared post redirect)
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get("redirect");
+
+    if (redirectPath) {
+      navigate(redirectPath, { replace: true });
+    } else {
+      navigate("/", { replace: true });
+    }
+
+  } catch (err) {
+    console.error("Login Error:", err);
+    toast.error(err.response?.data?.error || "Login failed ❌");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  /**
+   * 👤 Fetch user profile
+   */
   const fetchUserProfile = async (customToken) => {
     try {
       const res = await api.get("/api/get/profile/detail", {
         headers: { Authorization: `Bearer ${customToken || token}` },
       });
-      console.log("✅ User Profile Loaded:", res.data.profile);
+      setUser(res.data.profile || null);
     } catch (err) {
       console.warn("❌ Failed to fetch profile:", err.message);
     }
   };
 
+  /**
+   * 📩 Forgot Password Flows
+   */
   const sendOtpForReset = async (email) => {
     try {
       const res = await api.post("/api/auth/user/otp-send", { email });
@@ -226,27 +273,46 @@ console.log(data)
     }
   };
 
+  /**
+   * 🚪 Logout
+   */
   const logout = async () => {
-    try {
-      await api.post(
-        "/api/auth/user/logout",
-        { sessionId: localStorage.getItem("sessionId") },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (err) {
-      console.error("Logout error:", err.message);
-    } finally {
-      disconnectSocket();
-      localStorage.clear();
-      setToken(null);
-      setUser(null);
-      setRefreshToken(null);
-      setSessionId(null);
-      setSocketConnected(false);
-      toast.success("👋 Logged out successfully");
-      navigate("/login");
+  try {
+    await api.post(
+      "/api/auth/user/logout",
+      { deviceId: localStorage.getItem("deviceId") },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  } catch (err) {
+    console.error("Logout error:", err.message);
+  } finally {
+    if (socket) socket.emit("userOffline", { userId: user?._id });
+    disconnectSocket();
+
+    // ✅ Preserve deviceId (and optionally other data)
+    const preservedDeviceId = localStorage.getItem("deviceId");
+
+    // Clear all other data
+    localStorage.clear();
+
+    // Restore preserved values
+    if (preservedDeviceId) {
+      localStorage.setItem("deviceId", preservedDeviceId);
     }
-  };
+
+    // 🔄 Reset states
+    setToken(null);
+    setUser(null);
+    setRefreshToken(null);
+    setSessionId(null);
+    setSocketConnected(false);
+    setSocket(null);
+
+    toast.success("👋 Logged out successfully");
+    navigate("/login");
+  }
+};
+
 
   // ---------------------- 🌍 Context Value ----------------------
   const contextValue = {
@@ -258,6 +324,7 @@ console.log(data)
     deviceId,
     onlineUsers,
     socketConnected,
+    socket,
     register,
     login,
     logout,

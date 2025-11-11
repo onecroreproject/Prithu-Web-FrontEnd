@@ -1,24 +1,35 @@
-import React, { useState, useContext } from "react";
-import api from "../api/axios";               // <-- your axios instance
+import React, { useState, useEffect, useContext } from "react";
+import api from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 
-const plans = [
-  { title: "3 Months", price: 1, features: ["Unlimited access to podcasts", "Unlimited songs download", "Unlimited skips"] },
-  { title: "6 Months", price: 1, features: ["Unlimited access to podcasts", "Unlimited songs download", "Unlimited skips"] },
-  {
-    title: "12 Months",
-    price: 1,
-    features: ["Unlimited access to podcasts", "Unlimited songs download", "Unlimited skips"],
-    highlight: true,
-    discount: "Most Popular - Save 40%",
-  },
-];
-
 const SubscriptionPage = () => {
-  const { token } = useContext(AuthContext);               // <-- JWT from AuthContext
+  const { token } = useContext(AuthContext);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [alertMsg, setAlertMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  /* --------------------------------------------------- */
+  // ✅ Fetch all subscription plans from backend
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const { data } = await api.get("/api/user/getall/subscriptions", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log(data)
+        setPlans(data.plans || []);
+      } catch (err) {
+        console.error("Error fetching plans:", err);
+        setErrorMsg("Failed to load subscription plans");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlans();
+  }, [token]);
 
   /* --------------------------------------------------- */
   const handleSelectPlan = (plan) => {
@@ -32,17 +43,15 @@ const SubscriptionPage = () => {
 
     try {
       const payload = {
-        planId: selectedPlan.title,                     // <-- only planId required
-        result: { paymentId: "test123", status: "success" }, // fake Razorpay result
+        planId: selectedPlan._id,
+        result: { paymentId: "test123", status: "success" },
       };
 
-      const { data } = await api.post(
-        "/api/user/plan/subscription",
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post("/api/user/plan/subscription", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      setAlertMsg(`Subscribed Successfully to ${selectedPlan.title}`);
+      setAlertMsg(`Subscribed Successfully to ${selectedPlan.planName}`);
     } catch (err) {
       console.error(err);
       setAlertMsg("Subscription Failed");
@@ -70,6 +79,23 @@ const SubscriptionPage = () => {
     }
   };
 
+  /* --------------------------------------------------- */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500 text-lg">Loading plans...</p>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600 text-lg">
+        {errorMsg}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-16 px-4 relative">
       {/* ---------- Alert ---------- */}
@@ -85,9 +111,13 @@ const SubscriptionPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
         {plans.map((plan) => (
           <div
-            key={plan.title}
+            key={plan._id}
             className={`relative bg-white rounded-3xl shadow-2xl p-8 flex flex-col border-2 
-                        ${plan.highlight ? "border-green-400 ring-2 ring-green-400" : "border-gray-200"}
+                        ${
+                          plan.highlight
+                            ? "border-green-400 ring-2 ring-green-400"
+                            : "border-gray-200"
+                        }
                         transition-transform hover:scale-105`}
           >
             {plan.discount && (
@@ -95,21 +125,32 @@ const SubscriptionPage = () => {
                 {plan.discount}
               </div>
             )}
-            <h3 className="text-2xl font-semibold mb-2">{plan.title}</h3>
+            <h3 className="text-2xl font-semibold mb-2">{plan.planName}</h3>
             <p className="text-3xl font-bold mb-4">₹{plan.price}</p>
 
-            <ul className="mb-6 space-y-2">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-center gap-2">
-                  <span className="text-green-500 font-bold">Check</span> {f}
-                </li>
-              ))}
-            </ul>
+            <p className="text-gray-600 mb-4">
+              Duration: {plan.durationYears} year
+              {plan.durationYears > 1 ? "s" : ""}
+            </p>
+
+            {plan.features && (
+              <ul className="mb-6 space-y-2">
+                {plan.features.map((f, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="text-green-500 font-bold">✔</span> {f}
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <button
               onClick={() => handleSelectPlan(plan)}
               className={`py-3 rounded-xl font-semibold text-white 
-                         ${plan.highlight ? "bg-green-500 hover:bg-green-600" : "bg-gray-800 hover:bg-gray-700"}`}
+                         ${
+                           plan.highlight
+                             ? "bg-green-500 hover:bg-green-600"
+                             : "bg-gray-800 hover:bg-gray-700"
+                         }`}
             >
               Subscribe Now
             </button>
@@ -120,11 +161,16 @@ const SubscriptionPage = () => {
       {/* ---------- Confirmation Modal ---------- */}
       {modalOpen && selectedPlan && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-white/30 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
+          <div
+            className="absolute inset-0 bg-white/30 backdrop-blur-sm"
+            onClick={() => setModalOpen(false)}
+          />
           <div className="relative bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
             <h3 className="text-xl font-bold mb-4">Confirm Subscription</h3>
             <p className="mb-6">
-              Subscribe to <strong>{selectedPlan.title}</strong> plan for ₹{selectedPlan.price}?
+              Subscribe to{" "}
+              <strong>{selectedPlan.planName}</strong> plan for ₹
+              {selectedPlan.price}?
             </p>
             <div className="flex justify-center gap-4">
               <button

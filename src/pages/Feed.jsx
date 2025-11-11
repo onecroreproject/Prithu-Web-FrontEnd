@@ -75,6 +75,19 @@ const Feed = ({ authUser }) => {
   const [showReels, setShowReels] = useState(false);
   const JOB_RATIO = 3;
 
+  // ✅ Track selected role (for filtering)
+  const [selectedRole, setSelectedRole] = useState(null);
+
+  // ✅ Listen to TopJobRoles click
+  useEffect(() => {
+    const handleRoleClick = (e) => {
+      const clickedRole = e.detail?.role;
+      setSelectedRole((prev) => (prev === clickedRole ? null : clickedRole));
+    };
+    window.addEventListener("filterByRole", handleRoleClick);
+    return () => window.removeEventListener("filterByRole", handleRoleClick);
+  }, []);
+
   // ✅ Fetch jobs
   const {
     data: jobs = [],
@@ -85,6 +98,14 @@ const Feed = ({ authUser }) => {
     queryFn: () => getTopRankedJobs(token),
     enabled: !!token,
   });
+console.log(jobs)
+  // ✅ Filter jobs if a role is selected
+  const filteredJobs =
+    selectedRole && jobs.length > 0
+      ? jobs.filter((job) =>
+          job.title?.toLowerCase().includes(selectedRole.toLowerCase())
+        )
+      : jobs;
 
   // ✅ Fetch feeds (infinite)
   const {
@@ -102,7 +123,7 @@ const Feed = ({ authUser }) => {
     enabled: !!token,
     refetchOnWindowFocus: false,
   });
-console.log(feedPages)
+
   const feeds = feedPages?.pages.flat() || [];
 
   // ✅ Combine feeds and jobs
@@ -132,7 +153,8 @@ console.log(feedPages)
     ? feeds.filter((f) => f.type === "video")
     : feeds;
 
-  const mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : jobs);
+  // ✅ Merge with filtered jobs
+  const mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : filteredJobs);
 
   // ✅ Toggle Reels Mode
   useEffect(() => {
@@ -204,7 +226,7 @@ console.log(feedPages)
                   <JobCard key={idx} jobData={mapJobForCard(item)} />
                 ) : (
                   <Postcard
-                  key={idx}
+                    key={idx}
                     postData={item}
                     authUser={authUser}
                     token={token}
@@ -221,6 +243,8 @@ console.log(feedPages)
             >
               {feedsError || jobsError
                 ? "⚠️ Failed to load content."
+                : selectedRole
+                ? `No jobs found for "${selectedRole}".`
                 : showReels
                 ? "No reels found 🎬"
                 : "No content available."}

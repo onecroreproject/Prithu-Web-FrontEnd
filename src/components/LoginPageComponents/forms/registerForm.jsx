@@ -8,7 +8,6 @@ function RegisterForm({ switchMode }) {
   const { sendOtpForReset, verifyOtpForNewUser, register } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // 🧠 State Management
   const [step, setStep] = useState("email");
   const [form, setForm] = useState({
     email: "",
@@ -35,41 +34,38 @@ function RegisterForm({ switchMode }) {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
 
-  // 🕒 Timer (Resend OTP)
+  /* --------------------------- TIMER --------------------------- */
   useEffect(() => {
     if (!timer) return;
     const t = setTimeout(() => setTimer((prev) => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [timer]);
 
-  // 📩 Email Availability Check (Debounced + Abort-safe)
+  /* --------------------------- EMAIL CHECK --------------------------- */
   useEffect(() => {
     if (step !== "email" || !form.email.trim()) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        setStatus((prev) => ({ ...prev, checkingEmail: true }));
+        setStatus((p) => ({ ...p, checkingEmail: true }));
         const { data } = await api.get("/api/check/email/availability", {
           params: { email: form.email },
           signal: controller.signal,
         });
-        setStatus((prev) => ({
-          ...prev,
-          email: data.available ? "available" : "taken",
-        }));
+        setStatus((p) => ({ ...p, email: data.available ? "available" : "taken" }));
       } catch {
-        setStatus((prev) => ({ ...prev, email: "error" }));
+        setStatus((p) => ({ ...p, email: "error" }));
       } finally {
-        setStatus((prev) => ({ ...prev, checkingEmail: false }));
+        setStatus((p) => ({ ...p, checkingEmail: false }));
       }
-    }, 600);
+    }, 500);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
   }, [form.email, step]);
 
-  // 👤 Username Availability + Suggestions
+  /* --------------------------- USERNAME CHECK --------------------------- */
   useEffect(() => {
     if (step !== "details" || form.username.length < 5) return;
     const delay = setTimeout(async () => {
@@ -78,11 +74,11 @@ function RegisterForm({ switchMode }) {
           params: { username: form.username },
         });
         if (data.available) {
-          setStatus((prev) => ({ ...prev, username: "available", usernameSuggestions: [] }));
+          setStatus((p) => ({ ...p, username: "available", usernameSuggestions: [] }));
         } else {
           const rand = Math.floor(Math.random() * 1000);
-          setStatus((prev) => ({
-            ...prev,
+          setStatus((p) => ({
+            ...p,
             username: "taken",
             usernameSuggestions: [
               `${form.username}${rand}`,
@@ -92,13 +88,13 @@ function RegisterForm({ switchMode }) {
           }));
         }
       } catch {
-        setStatus((prev) => ({ ...prev, username: "error" }));
+        setStatus((p) => ({ ...p, username: "error" }));
       }
     }, 400);
     return () => clearTimeout(delay);
   }, [form.username, step]);
 
-  // 🔐 Password Validation
+  /* --------------------------- PASSWORD VALIDATION --------------------------- */
   useEffect(() => {
     const pass = form.password;
     setPasswordChecks({
@@ -110,12 +106,12 @@ function RegisterForm({ switchMode }) {
     });
   }, [form.password]);
 
-  // 🔁 Sync WhatsApp with Phone
+  /* --------------------------- WHATSAPP SYNC --------------------------- */
   useEffect(() => {
-    if (sameAsWhatsapp) setForm((prev) => ({ ...prev, whatsapp: prev.phone }));
+    if (sameAsWhatsapp) setForm((p) => ({ ...p, whatsapp: p.phone }));
   }, [sameAsWhatsapp, form.phone]);
 
-  // 📤 Send OTP
+  /* --------------------------- HANDLERS --------------------------- */
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (loading || timer > 0) return;
@@ -131,7 +127,6 @@ function RegisterForm({ switchMode }) {
     }
   };
 
-  // 🔎 Verify OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -144,7 +139,6 @@ function RegisterForm({ switchMode }) {
     }
   };
 
-  // 📝 Register
   const handleRegister = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -170,16 +164,16 @@ function RegisterForm({ switchMode }) {
     }
   };
 
-  // ✨ Framer Motion Variants
-  const fade = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.15, ease: "easeInOut" } },
+  /* --------------------------- LIGHT ANIMATION VARIANTS --------------------------- */
+  const fadeSlide = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeIn" } },
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto p-4 sm:p-6 bg-white/5 rounded-2xl backdrop-blur-md border border-white/20">
-      <h1 className="text-2xl sm:text-3xl  font-bold text-center mb-5 text-gray-900">
+    <div className="w-full bg-white/5 rounded-2xl backdrop-blur-md border border-white/20">
+      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-5 text-gray-900">
         Create Free Account
       </h1>
 
@@ -196,7 +190,7 @@ function RegisterForm({ switchMode }) {
         <AnimatePresence mode="wait">
           {/* STEP 1 — EMAIL */}
           {step === "email" && (
-            <motion.div key="email" initial="hidden" animate="visible" exit="exit" variants={fade}>
+            <motion.div key="email" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
               <label className="block font-medium text-gray-700 mb-1">
                 Email <span className="text-red-500">*</span>
               </label>
@@ -240,7 +234,7 @@ function RegisterForm({ switchMode }) {
 
           {/* STEP 2 — OTP */}
           {step === "otp" && (
-            <motion.div key="otp" initial="hidden" animate="visible" exit="exit" variants={fade}>
+            <motion.div key="otp" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
               <label className="block font-medium text-gray-700 mb-1">Enter OTP</label>
               <input
                 type="text"
@@ -285,7 +279,7 @@ function RegisterForm({ switchMode }) {
 
           {/* STEP 3 — DETAILS */}
           {step === "details" && (
-            <motion.div key="details" initial="hidden" animate="visible" exit="exit" variants={fade}>
+            <motion.div key="details" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
               {/* Username */}
               <label className="block font-medium text-gray-700 mb-1">Username</label>
               <input
@@ -307,6 +301,7 @@ function RegisterForm({ switchMode }) {
                   <span className="text-red-500">❌ Username not available</span>
                 )}
               </p>
+
               {status.usernameSuggestions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
                   {status.usernameSuggestions.map((s, i) => (
@@ -322,7 +317,7 @@ function RegisterForm({ switchMode }) {
                 </div>
               )}
 
-              {/* Phone / WhatsApp */}
+              {/* Phone & WhatsApp */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">Mobile</label>
@@ -331,10 +326,7 @@ function RegisterForm({ switchMode }) {
                     maxLength={10}
                     value={form.phone}
                     onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        phone: e.target.value.replace(/\D/g, ""),
-                      }))
+                      setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "") }))
                     }
                     placeholder="Enter mobile"
                     className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
@@ -348,10 +340,7 @@ function RegisterForm({ switchMode }) {
                       maxLength={10}
                       value={form.whatsapp}
                       onChange={(e) =>
-                        setForm((p) => ({
-                          ...p,
-                          whatsapp: e.target.value.replace(/\D/g, ""),
-                        }))
+                        setForm((p) => ({ ...p, whatsapp: e.target.value.replace(/\D/g, "") }))
                       }
                       placeholder="Enter WhatsApp"
                       className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
@@ -390,7 +379,7 @@ function RegisterForm({ switchMode }) {
                 }).map(([key, text]) => (
                   <p
                     key={key}
-                    className={passwordChecks[key] ? "text-green-600" : "text-red-500"}
+                    className={passwordChecks[key] ? "text-green-600" : "text-gray-500"}
                   >
                     {passwordChecks[key] ? "✅" : "❌"} {text}
                   </p>

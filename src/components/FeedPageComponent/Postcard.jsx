@@ -1,57 +1,30 @@
-/* ✅ src/components/FeedPageComponent/Postcard.jsx */
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Avatar,
-  Card,
-  CardMedia,
-  IconButton,
-  Stack,
-  Typography,
-  Box,
-  Snackbar,
-  Skeleton,
-  Button,
-  Paper,
-} from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import {
-  FavoriteBorder as FavoriteBorderIcon,
-  Favorite as FavoriteIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  ShareOutlined as ShareOutlinedIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  Bookmark as BookmarkIcon,
-  VolumeUp as VolumeUpIcon,
-  VolumeOff as VolumeOffIcon,
-  PlayArrow as PlayArrowIcon,
-  Pause as PauseIcon,
-  Download as DownloadIcon,
-} from "@mui/icons-material";
-
 import api from "../../api/axios";
-import SubscriptionModal from "./SubscriptionModal";
-import PostCommentsModal from "./PostCommentsModal";
-import PostOptionsMenu from "./PostOptionsMenu";
 
-const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested }) => {
+import PostHeader from "./postCardComponent/postHeader";
+import PostMedia from "./postCardComponent/postMeadia";
+import PostActions from "./postCardComponent/postActions";
+import PostCommentsModal from "./PostCommentsModal";
+
+export default function Postcard({
+  postData = {},
+  authUser,
+  token,
+  onHidePost,
+  onNotInterested,
+}) {
   const navigate = useNavigate();
   const videoRef = useRef(null);
-
-  // 🔹 UI States
   const [isLiked, setIsLiked] = useState(postData.isLiked || false);
   const [isSaved, setIsSaved] = useState(postData.isSaved || false);
-  const [isFollowing, setIsFollowing] = useState(postData.isFollowing || false);
+  const [comments, setComments] = useState([]);
+  const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState("");
-  const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
-
-  // 🧠 Tooltip Profile State
-  const [hoverProfile, setHoverProfile] = useState(null);
-  const [showProfileCard, setShowProfileCard] = useState(false);
-  const hoverTimeout = useRef(null);
 
   const {
     feedId = "",
@@ -62,67 +35,65 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     type = "image",
     caption = "",
     likesCount: initialLikes = 0,
-    commentsCount: initialComments = 0,
     timeAgo = "",
   } = postData;
 
   const [likesCount, setLikesCount] = useState(initialLikes);
-  const [commentsCount] = useState(initialComments);
   const tempUser = authUser || { _id: "guestUser", userName: "You" };
 
-  // ✅ Simulated loading
+  /* ----------------------------- Fetch comments ----------------------------- */
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const res = await api.post(`/api/get/comments/for/feed`, { feedId });
+        setComments(res.data.comments?.slice(0, 10) || []);
+      } catch (err) {
+        console.error("Error fetching comments:", err);
+      }
+    };
+    if (feedId) fetchComments();
+  }, [feedId]);
+
+  /* --------------------------- Rotate visible comments --------------------------- */
+  useEffect(() => {
+    if (!comments.length) return;
+    const interval = setInterval(
+      () => setCurrentCommentIndex((prev) => (prev + 1) % comments.length),
+      3500
+    );
+    return () => clearInterval(interval);
+  }, [comments]);
+
+  /* ------------------------------- Simulate loading ------------------------------ */
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(timer);
   }, [postData]);
 
-  // ✅ Video autoplay/pause
-  useEffect(() => {
-    if (!videoRef.current || type !== "video") return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            videoRef.current.play();
-            setIsPlaying(true);
-          } else {
-            videoRef.current.pause();
-            setIsPlaying(false);
-          }
-        });
-      },
-      { threshold: 0.7 }
-    );
-    observer.observe(videoRef.current);
-    return () => observer.disconnect();
-  }, [type]);
-
-  // 🎥 Video control
+  /* --------------------------- Video play/pause toggle --------------------------- */
   const togglePlayPause = () => {
     if (!videoRef.current) return;
     isPlaying ? videoRef.current.pause() : videoRef.current.play();
     setIsPlaying(!isPlaying);
   };
-
   const toggleMute = () => {
-    setIsMuted((prev) => !prev);
+    setIsMuted(!isMuted);
     if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
   };
 
-  // ❤️ Like
+  /* ----------------------------- Like post handler ----------------------------- */
   const handleLikeFeed = async () => {
     const newLiked = !isLiked;
     setIsLiked(newLiked);
     setLikesCount((prev) => (newLiked ? prev + 1 : Math.max(prev - 1, 0)));
     try {
       await api.post("/api/user/feed/like", { feedId, userId: tempUser._id });
-    } catch (err) {
-      console.error("Like failed:", err);
+    } catch {
       setIsLiked(!newLiked);
     }
   };
 
-  // 💾 Save
+  /* ---------------------------- Save post handler ---------------------------- */
   const handleSave = async () => {
     try {
       const res = await api.post("/api/user/feed/save", { feedId });
@@ -130,364 +101,129 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
       const saved = savedIds.includes(feedId);
       setIsSaved(saved);
       setToastMsg(saved ? "Post saved!" : "Post unsaved!");
-    } catch (err) {
-      console.error("Save error:", err);
+    } catch {
       setToastMsg("Error saving post");
     }
   };
 
-  // ⬇️ Download
+  /* --------------------------- Download post handler --------------------------- */
   const handleDownload = async () => {
     try {
-      const res = await api.post(
-        "/api/user/feed/download",
-        { feedId },
-        { responseType: "blob" }
-      );
-      const contentType = res.headers["content-type"];
-      const ext = contentType?.split("/")[1] || (type === "image" ? "jpg" : "mp4");
-      const blob = new Blob([res.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.setAttribute("download", `post-${feedId}.${ext}`);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      setToastMsg("Downloaded successfully!");
+      const res = await api.post("/api/user/feed/download", { feedId });
+      if (res.data?.downloadLink) {
+        const a = document.createElement("a");
+        a.href = res.data.downloadLink;
+        a.setAttribute("download", `post-${feedId}`);
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setToastMsg("Downloaded successfully!");
+        return;
+      }
+      if (res.data instanceof Blob) {
+        const blob = new Blob([res.data], { type: res.headers["content-type"] });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.setAttribute("download", `post-${feedId}`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setToastMsg("Downloaded successfully!");
+        return;
+      }
+      console.warn("Unexpected download response:", res.data);
+      setToastMsg("Unable to download file.");
     } catch (err) {
       console.error("Download failed:", err);
       setToastMsg("Download failed.");
     }
   };
 
-  // 👤 Follow/Unfollow
-  const handleFollowToggle = async (shouldFollow) => {
-    if (isFollowLoading) return;
-    setIsFollowLoading(true);
-    try {
-      const url = shouldFollow
-        ? "/api/user/follow/creator"
-        : "/api/user/unfollow/creator";
-      const res = await api.post(
-        url,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.status === 200) {
-        setIsFollowing(shouldFollow);
-        setToastMsg(
-          shouldFollow ? "✅ Followed successfully!" : "👋 Unfollowed successfully!"
-        );
-      }
-    } catch (err) {
-      console.error("Follow toggle error:", err.response?.data || err.message);
-      setToastMsg(err.response?.data?.message || "Action failed");
-    } finally {
-      setIsFollowLoading(false);
-    }
-  };
-
-  // 📤 Share
+  /* ----------------------------- Share post handler ----------------------------- */
   const handleShare = () => {
     const shareUrl = `${window.location.origin}/post/${feedId}`;
-    if (navigator.share) {
-      navigator
-        .share({ title: "Check this post", text: caption, url: shareUrl })
-        .catch(() => setToastMsg("Share failed."));
-    } else {
-      navigator.clipboard
-        .writeText(shareUrl)
-        .then(() => setToastMsg("Link copied!"))
-        .catch(() => setToastMsg("Failed to copy link"));
-    }
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => setToastMsg("Link copied!"))
+      .catch(() => setToastMsg("Failed to copy link"));
   };
 
-  // 👁️‍🗨️ Hover profile preview fetch
-  const fetchProfilePreview = async (id) => {
-    try {
-      const res = await api.get(`/api/user/profile/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setHoverProfile(res.data?.profile || null);
-    } catch (err) {
-      console.error("Profile preview fetch error:", err);
-    }
-  };
-
-  const handleMouseEnter = () => {
-    if (!userId) return;
-    hoverTimeout.current = setTimeout(() => {
-      fetchProfilePreview(userId);
-      setShowProfileCard(true);
-    }, 400);
-  };
-
-  const handleMouseLeave = () => {
-    clearTimeout(hoverTimeout.current);
-    setShowProfileCard(false);
-  };
-
-  // 🦴 Loading skeleton
+  /* --------------------------- Loading placeholder --------------------------- */
   if (loading) {
     return (
-      <Card sx={{ maxWidth: 600, mx: "auto", mb: 3, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" spacing={1} p={2}>
-          <Skeleton variant="circular" width={40} height={40} />
-          <Stack flex={1}>
-            <Skeleton variant="text" width="40%" />
-            <Skeleton variant="text" width="20%" />
-          </Stack>
-        </Stack>
-        <Skeleton variant="rectangular" width="100%" height={480} />
-      </Card>
+      <div className="max-w-xl mx-auto mb-4 bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-sm overflow-hidden animate-pulse">
+        <div className="flex items-center gap-3 p-4">
+          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          <div className="flex-1">
+            <div className="h-3 w-1/3 bg-gray-300 mb-2 rounded"></div>
+            <div className="h-3 w-1/5 bg-gray-300 rounded"></div>
+          </div>
+        </div>
+        <div className="w-full h-[480px] bg-gray-300"></div>
+      </div>
     );
   }
 
-  // 🧩 Main Postcard
+  /* ------------------------------- Main Post UI ------------------------------- */
   return (
-    <Card
-      sx={{
-        width: "100%",
-        maxWidth: 600,
-        mx: "auto",
-        mb: 4,
-        borderRadius: 3,
-        boxShadow: "0px 3px 10px rgba(0,0,0,0.08)",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* 🧠 Header */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        p={2}
-        onMouseLeave={handleMouseLeave}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ cursor: "pointer", position: "relative" }}
-          onMouseEnter={handleMouseEnter}
-          onClick={() => navigate(`/profile/${userId}`)}
-        >
-          <Avatar src={profileAvatar} sx={{ width: 44, height: 44 }} />
-          <Stack>
-            <Typography fontWeight={600}>{userName}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {timeAgo || "Recently"}
-            </Typography>
-          </Stack>
+    <div className="w-full max-w-xl mx-auto mb-6 bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-md  dark:border-gray-700 overflow-hidden transition-all">
+      {/* 🔹 Header */}
+      <PostHeader
+        userId={userId}
+        userName={userName}
+        profileAvatar={profileAvatar}
+        timeAgo={timeAgo}
+        navigate={navigate}
+        feedId={feedId}
+        tempUser={tempUser}
+        token={token}
+        onHidePost={onHidePost}
+        onNotInterested={onNotInterested}
+      />
 
-          {/* 🔥 Hover Profile Preview */}
-          {showProfileCard && hoverProfile && (
-            <Paper
-              elevation={5}
-              sx={{
-                p: 2,
-                width: 240,
-                borderRadius: 3,
-                backgroundColor: "#fff",
-                position: "absolute",
-                top: "60px",
-                left: "0",
-                zIndex: 50,
-              }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar
-                  src={hoverProfile.profileAvatar || "https://i.pravatar.cc/100"}
-                  sx={{ width: 44, height: 44 }}
-                />
-                <Stack>
-                  <Typography fontWeight={600}>
-                    {hoverProfile.userName || "Unknown"}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {hoverProfile.bio || "No bio available"}
-                  </Typography>
-                </Stack>
-              </Stack>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                Followers: {hoverProfile.followerCount || 0}
-              </Typography>
-              {tempUser._id !== userId && (
-                <Button
-                  fullWidth
-                  size="small"
-                  sx={{ mt: 1, textTransform: "none", borderRadius: "10px" }}
-                  variant={hoverProfile.isFollowing ? "outlined" : "contained"}
-                  color={hoverProfile.isFollowing ? "secondary" : "primary"}
-                  onClick={() => handleFollowToggle(!hoverProfile.isFollowing)}
-                >
-                  {hoverProfile.isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              )}
-            </Paper>
-          )}
-        </Stack>
+      {/* 🔹 Media (Image/Video) */}
+      <PostMedia
+        type={type}
+        contentUrl={contentUrl}
+        videoRef={videoRef}
+        isMuted={isMuted}
+        isPlaying={isPlaying}
+        togglePlayPause={togglePlayPause}
+        toggleMute={toggleMute}
+      />
 
-        <PostOptionsMenu
-          feedId={feedId}
-          authUserId={tempUser._id}
-          token={token}
-          onHidePost={onHidePost}
-          onNotInterested={onNotInterested}
-        />
-      </Stack>
+      {/* 🔹 Actions (Facebook-style bar) */}
+      <PostActions
+        isLiked={isLiked}
+        isSaved={isSaved}
+        likesCount={likesCount}
+        handleLikeFeed={handleLikeFeed}
+        handleShare={handleShare}
+        handleDownload={handleDownload}
+        handleSave={handleSave}
+        onCommentsClick={() => setShowCommentsModal(true)}
+        userName={userName}
+        caption={caption}
+      />
 
-      {/* 🎞️ Media Section (Fixed Height, No Crop) */}
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          height: 480,
-          backgroundColor: "#000",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {type === "image" ? (
-          <CardMedia
-            component="img"
-            image={contentUrl}
-            sx={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain", // 👈 shows full image without cropping
-              backgroundColor: "#000",
-            }}
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={contentUrl}
-            loop
-            muted={isMuted}
-            playsInline
-            onClick={togglePlayPause}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain", // 👈 keeps full video in frame
-              backgroundColor: "#000",
-              cursor: "pointer",
-            }}
-          />
-        )}
-
-        {/* 🎛 Video controls */}
-        {type === "video" && (
-          <>
-            <IconButton
-              onClick={togglePlayPause}
-              sx={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                color: "#fff",
-                bgcolor: "rgba(0,0,0,0.5)",
-                "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-              }}
-            >
-              {isPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
-            </IconButton>
-
-            <IconButton
-              onClick={toggleMute}
-              sx={{
-                position: "absolute",
-                bottom: 16,
-                right: 16,
-                color: "#fff",
-                bgcolor: "rgba(0,0,0,0.5)",
-                "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-              }}
-            >
-              {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-            </IconButton>
-          </>
-        )}
-      </Box>
-
-      {/* ❤️ Actions */}
-      <Stack px={2} pt={1.5} pb={2}>
-        <Stack direction="row" justifyContent="space-between">
-          <Stack direction="row" spacing={1}>
-            <IconButton onClick={handleLikeFeed}>
-              {isLiked ? <FavoriteIcon sx={{ color: "red" }} /> : <FavoriteBorderIcon />}
-            </IconButton>
-            <IconButton onClick={() => setShowCommentsModal(true)}>
-              <ChatBubbleOutlineIcon />
-            </IconButton>
-            <IconButton onClick={handleShare}>
-              <ShareOutlinedIcon />
-            </IconButton>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <IconButton onClick={handleDownload}>
-              <DownloadIcon />
-            </IconButton>
-            <IconButton onClick={handleSave}>
-              {isSaved ? <BookmarkIcon sx={{ color: "primary.main" }} /> : <BookmarkBorderIcon />}
-            </IconButton>
-          </Stack>
-        </Stack>
-
-        <Typography fontWeight={500} sx={{ mt: 0.5 }}>
-          {likesCount} likes
-        </Typography>
-
-        {caption && (
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 0.5,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            <b>{userName}</b> {caption}
-          </Typography>
-        )}
-
-        {commentsCount > 0 && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5, cursor: "pointer" }}
-            onClick={() => setShowCommentsModal(true)}
-          >
-            View all {commentsCount} comments
-          </Typography>
-        )}
-      </Stack>
-
+      {/* 🔹 Comments modal */}
       <PostCommentsModal
         open={showCommentsModal}
         onClose={() => setShowCommentsModal(false)}
-        feedId={feedId}
+        post={postData}
         authUser={tempUser}
+        feedId={feedId}
       />
 
-      <Snackbar
-        open={!!toastMsg}
-        autoHideDuration={2000}
-        onClose={() => setToastMsg("")}
-        message={toastMsg}
-      />
-
-      <SubscriptionModal open={false} onClose={() => {}} />
-    </Card>
+      {/* 🔹 Toast message */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-sm py-2 px-4 rounded-lg shadow-lg z-50 animate-fade-in">
+          {toastMsg}
+        </div>
+      )}
+    </div>
   );
-};
-
-export default Postcard;
+}

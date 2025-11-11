@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { AuthContext } from "../../../context/AuthContext";
 
-// ✅ Lazy load heavy dependencies if needed
-const Spinner = lazy(() => import("../../../components/spiner")); // optional spinner
+const Spinner = lazy(() => import("../../../components/spiner")); // Optional spinner
 
 function ForgotForm({ switchMode }) {
   const { sendOtpForReset, verifyOtpForReset, resetPassword } = useContext(AuthContext);
@@ -23,14 +22,14 @@ function ForgotForm({ switchMode }) {
     special: false,
   });
 
-  // ✅ Countdown Timer
+  // ✅ Countdown timer
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // ✅ Email Availability Check (debounced)
+  // ✅ Email availability check (debounced)
   useEffect(() => {
     const checkEmail = async () => {
       if (!email || !email.includes("@")) {
@@ -46,11 +45,11 @@ function ForgotForm({ switchMode }) {
         setEmailStatus(null);
       }
     };
-    const timeout = setTimeout(checkEmail, 600);
+    const timeout = setTimeout(checkEmail, 500);
     return () => clearTimeout(timeout);
   }, [email]);
 
-  // ✅ Password Strength Rules
+  // ✅ Password strength validation
   useEffect(() => {
     setPasswordChecks({
       length: newPassword.length >= 8,
@@ -91,19 +90,19 @@ function ForgotForm({ switchMode }) {
     switchMode("login");
   };
 
-  // ✅ Motion Variants for Smooth Transitions
-  const fieldVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
-    exit: { opacity: 0, y: -15, transition: { duration: 0.25, ease: "easeInOut" } },
+  // ✅ Lightweight motion variants
+  const fadeSlide = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeIn" } },
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 30 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.4, type: "spring", stiffness: 120, damping: 12 }}
-      className="flex flex-col items-center w-full max-w-sm mx-auto p-4 sm:p-6  backdrop-blur-md  "
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex flex-col items-center w-full max-w-sm mx-auto p-4 sm:p-6 backdrop-blur-md"
     >
       <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 text-gray-900">
         Forgot Password
@@ -122,7 +121,13 @@ function ForgotForm({ switchMode }) {
         >
           <AnimatePresence mode="wait">
             {step === "email" && (
-              <motion.div key="email" variants={fieldVariants} initial="hidden" animate="visible" exit="exit">
+              <motion.div
+                key="email"
+                variants={fadeSlide}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
                 <label className="text-sm font-medium text-gray-700">Email</label>
                 <input
                   type="email"
@@ -136,13 +141,21 @@ function ForgotForm({ switchMode }) {
                   <p className="text-red-500 text-xs mt-1">Email not found in our records.</p>
                 )}
                 {emailStatus === "not-available" && (
-                  <p className="text-green-600 text-xs mt-1">✅ Email found. You can reset now.</p>
+                  <p className="text-green-600 text-xs mt-1">
+                    ✅ Email found. You can reset now.
+                  </p>
                 )}
               </motion.div>
             )}
 
             {step === "otp" && (
-              <motion.div key="otp" variants={fieldVariants} initial="hidden" animate="visible" exit="exit">
+              <motion.div
+                key="otp"
+                variants={fadeSlide}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
                 <label className="text-sm font-medium text-gray-700">OTP</label>
                 <input
                   type="text"
@@ -168,7 +181,13 @@ function ForgotForm({ switchMode }) {
             )}
 
             {step === "reset" && (
-              <motion.div key="reset" variants={fieldVariants} initial="hidden" animate="visible" exit="exit">
+              <motion.div
+                key="reset"
+                variants={fadeSlide}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
                 <label className="text-sm font-medium text-gray-700">New Password</label>
                 <input
                   type="password"
@@ -179,30 +198,29 @@ function ForgotForm({ switchMode }) {
                   required
                 />
                 <div className="text-xs sm:text-sm mt-2 space-y-1 text-gray-600">
-                  <p className={`${passwordChecks.length ? "text-green-600" : "text-gray-500"}`}>
-                    {passwordChecks.length ? "✅" : "❌"} At least 8 characters
-                  </p>
-                  <p className={`${passwordChecks.upper ? "text-green-600" : "text-gray-500"}`}>
-                    {passwordChecks.upper ? "✅" : "❌"} One uppercase letter
-                  </p>
-                  <p className={`${passwordChecks.lower ? "text-green-600" : "text-gray-500"}`}>
-                    {passwordChecks.lower ? "✅" : "❌"} One lowercase letter
-                  </p>
-                  <p className={`${passwordChecks.number ? "text-green-600" : "text-gray-500"}`}>
-                    {passwordChecks.number ? "✅" : "❌"} One number
-                  </p>
-                  <p className={`${passwordChecks.special ? "text-green-600" : "text-gray-500"}`}>
-                    {passwordChecks.special ? "✅" : "❌"} One special character
-                  </p>
+                  {[
+                    { key: "length", text: "At least 8 characters" },
+                    { key: "upper", text: "One uppercase letter" },
+                    { key: "lower", text: "One lowercase letter" },
+                    { key: "number", text: "One number" },
+                    { key: "special", text: "One special character" },
+                  ].map((rule) => (
+                    <p
+                      key={rule.key}
+                      className={passwordChecks[rule.key] ? "text-green-600" : "text-gray-500"}
+                    >
+                      {passwordChecks[rule.key] ? "✅" : "❌"} {rule.text}
+                    </p>
+                  ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ✅ Action Button */}
+          {/* ✅ Submit Button */}
           <motion.button
             type="submit"
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.98 }}
             disabled={step === "email" && emailStatus === "available"}
             className={`w-full py-2 mt-2 rounded-full font-semibold text-white shadow-md transition-all ${
               step === "email" && emailStatus === "available"

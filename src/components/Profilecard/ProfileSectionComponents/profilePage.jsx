@@ -10,17 +10,20 @@ import {
   Award,
   Share2,
   Copy,
+  FolderGit2, // 📁 New icon for projects
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
 import { useUserProfile, useTogglePublish } from "../../../hook/userProfile";
 import { toast } from "react-hot-toast";
 
+// ✅ Import your sections
 import EditProfile from "./editProfile";
 import EditEducation from "./editEductionProfile";
 import EditExperience from "./editExperience";
 import EditSkill from "./editSkillProfile";
 import EditCertification from "./editCertificationProfile";
+import EditProject from "./editProject"; // ✅ New import
 
 export default function ProfilePage() {
   const [expandedSection, setExpandedSection] = useState("profile");
@@ -38,7 +41,6 @@ export default function ProfilePage() {
       const newState = !localProfile?.isPublished;
       const response = await toggleMutation.mutateAsync(newState);
 
-      // ✅ Update local state instantly
       if (response?.success) {
         const updatedProfile = {
           ...localProfile,
@@ -63,6 +65,7 @@ export default function ProfilePage() {
   if (isLoading)
     return <p className="text-gray-500 p-4">Loading profile...</p>;
 
+  // ✅ All Profile Sections
   const profileSections = [
     {
       key: "profile",
@@ -81,6 +84,12 @@ export default function ProfilePage() {
       title: "Work Experience",
       icon: <Briefcase className="w-5 h-5 text-purple-600" />,
       component: <EditExperience />,
+    },
+    {
+      key: "projects",
+      title: "Projects",
+      icon: <FolderGit2 className="w-5 h-5 text-purple-600" />,
+      component: <EditProject />, // ✅ New Project Section
     },
     {
       key: "skills",
@@ -122,7 +131,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ✅ Show shareable link when published */}
+      {/* ✅ Shareable link */}
       {isPublished && shareLink && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
