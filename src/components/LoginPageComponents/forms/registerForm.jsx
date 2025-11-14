@@ -16,7 +16,9 @@ function RegisterForm({ switchMode }) {
     password: "",
     phone: "",
     whatsapp: "",
+    accountType: "",
   });
+
   const [sameAsWhatsapp, setSameAsWhatsapp] = useState(false);
   const [status, setStatus] = useState({
     email: null,
@@ -24,6 +26,7 @@ function RegisterForm({ switchMode }) {
     checkingEmail: false,
     usernameSuggestions: [],
   });
+
   const [passwordChecks, setPasswordChecks] = useState({
     length: false,
     uppercase: false,
@@ -31,6 +34,7 @@ function RegisterForm({ switchMode }) {
     number: false,
     special: false,
   });
+
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
 
@@ -41,29 +45,44 @@ function RegisterForm({ switchMode }) {
     return () => clearTimeout(t);
   }, [timer]);
 
+
+  /* --------------------------- CHANGE EMAIL --------------------------- */
+  const handleChangeEmail = () => {
+    setStep("email");
+    setForm((p) => ({ ...p, otp: "" }));
+    setTimer(0);
+  };
+
+
   /* --------------------------- EMAIL CHECK --------------------------- */
   useEffect(() => {
     if (step !== "email" || !form.email.trim()) return;
     const controller = new AbortController();
-    const timer = setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       try {
         setStatus((p) => ({ ...p, checkingEmail: true }));
         const { data } = await api.get("/api/check/email/availability", {
           params: { email: form.email },
           signal: controller.signal,
         });
-        setStatus((p) => ({ ...p, email: data.available ? "available" : "taken" }));
+
+        setStatus((p) => ({
+          ...p,
+          email: data.available ? null : "taken",
+        }));
       } catch {
         setStatus((p) => ({ ...p, email: "error" }));
       } finally {
         setStatus((p) => ({ ...p, checkingEmail: false }));
       }
     }, 500);
+
     return () => {
-      clearTimeout(timer);
+      clearTimeout(timeout);
       controller.abort();
     };
   }, [form.email, step]);
+
 
   /* --------------------------- USERNAME CHECK --------------------------- */
   useEffect(() => {
@@ -73,8 +92,13 @@ function RegisterForm({ switchMode }) {
         const { data } = await api.get("/api/check/username/availability", {
           params: { username: form.username },
         });
+
         if (data.available) {
-          setStatus((p) => ({ ...p, username: "available", usernameSuggestions: [] }));
+          setStatus((p) => ({
+            ...p,
+            username: "available",
+            usernameSuggestions: [],
+          }));
         } else {
           const rand = Math.floor(Math.random() * 1000);
           setStatus((p) => ({
@@ -91,8 +115,10 @@ function RegisterForm({ switchMode }) {
         setStatus((p) => ({ ...p, username: "error" }));
       }
     }, 400);
+
     return () => clearTimeout(delay);
   }, [form.username, step]);
+
 
   /* --------------------------- PASSWORD VALIDATION --------------------------- */
   useEffect(() => {
@@ -106,15 +132,20 @@ function RegisterForm({ switchMode }) {
     });
   }, [form.password]);
 
+
   /* --------------------------- WHATSAPP SYNC --------------------------- */
   useEffect(() => {
     if (sameAsWhatsapp) setForm((p) => ({ ...p, whatsapp: p.phone }));
   }, [sameAsWhatsapp, form.phone]);
 
+
   /* --------------------------- HANDLERS --------------------------- */
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (loading || timer > 0) return;
+
+    if (status.email === "taken") return;
+
     setLoading(true);
     try {
       const success = await sendOtpForReset(form.email);
@@ -127,24 +158,35 @@ function RegisterForm({ switchMode }) {
     }
   };
 
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (loading) return;
+
     setLoading(true);
     try {
-      const success = await verifyOtpForNewUser({ email: form.email, otp: form.otp });
+      const success = await verifyOtpForNewUser({
+        email: form.email,
+        otp: form.otp,
+      });
+
       if (success) setStep("details");
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleRegister = async (e) => {
     e.preventDefault();
     if (loading) return;
+
     const validPassword = Object.values(passwordChecks).every(Boolean);
     if (!validPassword || form.username.length < 5)
       return alert("Please complete all requirements before registering.");
+
+    if (!form.accountType)
+      return alert("Please select account type.");
 
     setLoading(true);
     try {
@@ -154,7 +196,9 @@ function RegisterForm({ switchMode }) {
         password: form.password,
         phone: form.phone,
         whatsapp: form.whatsapp,
+        accountType: form.accountType,
       });
+
       if (success) {
         switchMode("login");
         navigate("/login");
@@ -164,13 +208,16 @@ function RegisterForm({ switchMode }) {
     }
   };
 
-  /* --------------------------- LIGHT ANIMATION VARIANTS --------------------------- */
+
+  /* --------------------------- ANIMATION --------------------------- */
   const fadeSlide = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
     exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeIn" } },
   };
 
+
+  /* --------------------------- UI --------------------------- */
   return (
     <div className="w-full bg-white/5 rounded-2xl backdrop-blur-md border border-white/20">
       <h1 className="text-2xl sm:text-3xl font-bold text-center mb-5 text-gray-900">
@@ -188,12 +235,14 @@ function RegisterForm({ switchMode }) {
         }
       >
         <AnimatePresence mode="wait">
-          {/* STEP 1 — EMAIL */}
+
+          {/* ---------------------------------- STEP 1: EMAIL ---------------------------------- */}
           {step === "email" && (
             <motion.div key="email" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
               <label className="block font-medium text-gray-700 mb-1">
                 Email <span className="text-red-500">*</span>
               </label>
+
               <input
                 type="email"
                 placeholder="Enter your email"
@@ -202,40 +251,62 @@ function RegisterForm({ switchMode }) {
                 className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                 required
               />
+
               <p className="text-sm mt-1 min-h-[20px]">
-                {status.email === "available" && (
-                  <span className="text-green-600">✅ Email available</span>
-                )}
+
                 {status.email === "taken" && (
-                  <span className="text-red-500">❌ Email already registered</span>
+                  <span className="text-red-500 flex flex-col gap-1">
+                    ❌ Email already registered.
+                    <span className="flex justify-between mt-7">
+                      <button
+                        type="button"
+                        onClick={() => switchMode("login")}
+                        className="text-blue-600 underline text-sm"
+                      >
+                        Back to Login
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchMode("forgot")}
+                        className="text-blue-600 underline text-sm"
+                      >
+                        Forgot Password?
+                      </button>
+                    </span>
+                  </span>
                 )}
+
                 {status.email === "error" && (
                   <span className="text-gray-500">⚠️ Could not check email</span>
                 )}
               </p>
 
-              <button
-                type="submit"
-                disabled={loading || timer > 0}
-                className={`w-full py-2 rounded-full font-semibold text-white transition-all ${
-                  loading || timer > 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
-                }`}
-              >
-                {loading
-                  ? "Sending..."
-                  : timer > 0
-                  ? `Resend OTP in ${timer}s`
-                  : "Register Now"}
-              </button>
+              {status.email !== "taken" && (
+                <button
+                  type="submit"
+                  disabled={loading || timer > 0}
+                  className={`w-full py-2 rounded-full font-semibold text-white transition-all ${
+                    loading || timer > 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                  }`}
+                >
+                  {loading
+                    ? "Sending..."
+                    : timer > 0
+                    ? `Resend OTP in ${timer}s`
+                    : "Register Now"}
+                </button>
+              )}
             </motion.div>
           )}
 
-          {/* STEP 2 — OTP */}
+
+          {/* ---------------------------------- STEP 2: OTP ---------------------------------- */}
           {step === "otp" && (
             <motion.div key="otp" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
               <label className="block font-medium text-gray-700 mb-1">Enter OTP</label>
+
               <input
                 type="text"
                 placeholder="Enter OTP"
@@ -244,6 +315,7 @@ function RegisterForm({ switchMode }) {
                 className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
                 required
               />
+
               <button
                 type="submit"
                 disabled={loading}
@@ -256,7 +328,9 @@ function RegisterForm({ switchMode }) {
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
 
-              <div className="text-center mt-2">
+              {/* Timer + Resend + Change Email */}
+              <div className="text-center mt-3 space-y-2">
+
                 {timer > 0 ? (
                   <p className="text-gray-500 text-sm">Resend available in {timer}s</p>
                 ) : (
@@ -273,15 +347,27 @@ function RegisterForm({ switchMode }) {
                     Resend OTP
                   </button>
                 )}
+
+                {/* 🔥 NEW: CHANGE EMAIL */}
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="block w-full text-sm text-blue-600 hover:underline"
+                >
+                  Change Email
+                </button>
               </div>
             </motion.div>
           )}
 
-          {/* STEP 3 — DETAILS */}
+
+          {/* ---------------------------------- STEP 3: DETAILS ---------------------------------- */}
           {step === "details" && (
             <motion.div key="details" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
+              
               {/* Username */}
               <label className="block font-medium text-gray-700 mb-1">Username</label>
+
               <input
                 type="text"
                 placeholder="Min 5 characters"
@@ -290,6 +376,7 @@ function RegisterForm({ switchMode }) {
                 className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
                 required
               />
+
               <p className="text-sm min-h-[20px]">
                 {form.username && form.username.length < 5 && (
                   <span className="text-red-500">❌ Too short</span>
@@ -302,24 +389,28 @@ function RegisterForm({ switchMode }) {
                 )}
               </p>
 
-              {status.usernameSuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {status.usernameSuggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, username: s }))}
-                      className="text-sm text-green-600 hover:underline"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
 
-              {/* Phone & WhatsApp */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+              {/* Account Type */}
+              <label className="block font-medium text-gray-700 mb-1 mt-2">
+                Account For <span className="text-red-500">*</span>
+              </label>
+
+              <select
+                value={form.accountType}
+                onChange={(e) => setForm((p) => ({ ...p, accountType: e.target.value }))}
+                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2 bg-white"
+                required
+              >
+                <option value="">Select account type</option>
+                <option value="personal">Personal</option>
+                <option value="company">Company</option>
+              </select>
+
+
+              {/* Phone + WhatsApp */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Mobile */}
+                <div className="flex-1">
                   <label className="block font-medium text-gray-700 mb-1">Mobile</label>
                   <input
                     type="tel"
@@ -332,7 +423,9 @@ function RegisterForm({ switchMode }) {
                     className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                   />
                 </div>
-                <div>
+
+                {/* WhatsApp */}
+                <div className="flex-1">
                   <label className="block font-medium text-gray-700 mb-1">WhatsApp</label>
                   <div className="relative">
                     <input
@@ -355,8 +448,10 @@ function RegisterForm({ switchMode }) {
                 </div>
               </div>
 
+
               {/* Password */}
               <label className="block font-medium text-gray-700 mt-2 mb-1">Password</label>
+
               <input
                 type="password"
                 placeholder="Enter password"
@@ -377,15 +472,14 @@ function RegisterForm({ switchMode }) {
                   number: "One number",
                   special: "One special character",
                 }).map(([key, text]) => (
-                  <p
-                    key={key}
-                    className={passwordChecks[key] ? "text-green-600" : "text-gray-500"}
-                  >
+                  <p key={key} className={passwordChecks[key] ? "text-green-600" : "text-gray-500"}>
                     {passwordChecks[key] ? "✅" : "❌"} {text}
                   </p>
                 ))}
               </motion.div>
 
+
+              {/* Register Button */}
               <button
                 type="submit"
                 disabled={loading}

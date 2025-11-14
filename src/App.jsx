@@ -18,9 +18,7 @@ import Profilelayout from "./pages/Profilelayout.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import SubscriptionPage from "./pages/SubscriptionPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
-import ReelsPage from "./pages/ReelsPage.jsx";
 import InviteFriends from "./pages/InviteFriends.jsx";
-import ReferralPage from "./pages/ReferralPage.jsx";
 import SubscriptionDetails from "./pages/SubscriptionDetail.jsx";
 import SavedPage from "./pages/SavedPage.jsx";
 import LikedPosts from "./pages/LikedPosts.jsx";
@@ -33,6 +31,9 @@ import PortfolioLayout from "./components/User_PrortFolio/profileLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
 import PostDetails from "./components/FeedPageComponent/postView.jsx"; // ✅ (you likely need to import this)
 import SingleUserProfilelayout from "./pages/singleUserProfileview.jsx";
+import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx";
+import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
+import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -67,9 +68,7 @@ function AppRoutes() {
         <Route path="profile" element={<Profilelayout />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
-        <Route path="reels" element={<ReelsPage />} />
         <Route path="invite" element={<InviteFriends />} />
-        <Route path="referrals" element={<ReferralPage />} />
 
         {/* Settings with nested routes */}
         <Route path="settings/*" element={<SettingsPage />}>
@@ -95,7 +94,6 @@ function AppRoutes() {
           <Route path="hidden-posts" element={<Hiddenpost />} />
           <Route path="theme" element={<PlaceholderPage title="Theme" />} />
           <Route path="payment" element={<PlaceholderPage title="Payment" />} />
-          <Route path="referral" element={<PlaceholderPage title="Referral" />} />
           <Route path="subscription-details" element={<SubscriptionDetails />} />
           <Route path="invite-friends" element={<InviteFriends />} />
         </Route>
@@ -108,6 +106,8 @@ function AppRoutes() {
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
       <Route path="/user/profile/:username" element={<SingleUserProfilelayout/>} />
+      <Route path="/referral" element={<ReferralUnderConstruction/>} />
+      <Route path="/job/view/:id" element={<SearchJobDetailsPopup/>}/>
 
       {/* ✅ Shared Post Redirect Route */}
       <Route

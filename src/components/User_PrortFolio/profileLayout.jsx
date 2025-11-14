@@ -10,6 +10,7 @@ import StatsBar from "./statusBar";
 import ServicesSection from "./serviceSection";
 import SkillSetSection from "./skillSetSection";
 import RecommendationsSection from "./recomentedSection";
+import PortfolioUnderConstruction from "../../UnderConstructionPages/portfolioUnderConstruction";
 
 export default function PortfolioLayout() {
   const { username } = useParams();
@@ -20,7 +21,7 @@ export default function PortfolioLayout() {
     const fetchPortfolio = async () => {
       try {
         const { data } = await api.get(`/api/user/portfolio/${username}`);
-        console.log(data)
+
         setUserData(data.data);
       } catch (err) {
         console.error("❌ Failed to fetch portfolio:", err);
@@ -43,9 +44,7 @@ export default function PortfolioLayout() {
   // ✅ Not Found State
   if (!userData)
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500 dark:text-gray-400 text-center px-4">
-        Portfolio for <strong className="mx-1">{username}</strong> not found.
-      </div>
+     <PortfolioUnderConstruction username={username}/>
     );
 
   return (

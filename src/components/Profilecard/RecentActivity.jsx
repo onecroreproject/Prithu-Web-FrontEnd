@@ -23,6 +23,18 @@ const RecentActivity = () => {
     refetchOnWindowFocus: false,
   });
 
+  // 🔹 Filter today's activities only
+  const today = new Date();
+  const todayActivities = activities.filter((a) => {
+    if (!a.createdAt) return false;
+    const created = new Date(a.createdAt);
+    return (
+      created.getDate() === today.getDate() &&
+      created.getMonth() === today.getMonth() &&
+      created.getFullYear() === today.getFullYear()
+    );
+  });
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-4 flex justify-center">
@@ -45,10 +57,10 @@ const RecentActivity = () => {
     );
   }
 
-  if (!activities.length) {
+  if (!todayActivities.length) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-4 text-center text-gray-500">
-        No recent activities found.
+        No activities found for today.
       </div>
     );
   }
@@ -56,18 +68,18 @@ const RecentActivity = () => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Recent Activity
+        Today's Activity
       </h3>
 
       <ul className="space-y-3">
-        {activities.map((activity, index) => {
+        {todayActivities.map((activity, index) => {
           const target =
             activity?.targetId?.title ||
             activity?.targetId?.userName ||
-            activity?.targetId?.companyName ||"";
+            activity?.targetId?.companyName ||
+            "";
 
           const time = new Date(activity.createdAt).toLocaleString([], {
-            dateStyle: "medium",
             timeStyle: "short",
           });
 
@@ -85,11 +97,8 @@ const RecentActivity = () => {
                   {activity.actionType
                     .replace(/_/g, " ")
                     .toLowerCase()
-                    .replace(/\b\w/g, (c) => c.toUpperCase())}
-                  {" "}
-                  <span className="text-gray-600 font-medium">
-                    {target}
-                  </span>
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}{" "}
+                  <span className="text-gray-600 font-medium">{target}</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{time}</p>
               </div>

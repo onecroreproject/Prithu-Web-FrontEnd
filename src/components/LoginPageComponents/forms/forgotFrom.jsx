@@ -142,7 +142,7 @@ function ForgotForm({ switchMode }) {
                 )}
                 {emailStatus === "not-available" && (
                   <p className="text-green-600 text-xs mt-1">
-                    ✅ Email found. You can reset now.
+                    Welcome ! You can reset now.
                   </p>
                 )}
               </motion.div>

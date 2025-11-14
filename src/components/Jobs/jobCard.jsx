@@ -1,5 +1,5 @@
-/* ✅ src/components/JobPageComponent/JobCard.jsx */
-import React, { useState, useEffect } from "react";
+// src/components/Jobs/jobCard.jsx
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   ShareOutlined,
   FavoriteBorder,
@@ -11,13 +11,15 @@ import {
 } from "@mui/icons-material";
 import api from "../../api/axios";
 import JobDetailsPopup from "./jobCardPop-Up";
+import { FEED_CARD_STYLE } from "../../constance/feedLayout";
+import { toast } from "react-hot-toast";
 
 const JobCard = ({ jobData }) => {
   const [isLiked, setIsLiked] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
-  const [stats, setStats] = useState({ totalLikes: 0, totalShares: 0 });
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({});
   const [showPopup, setShowPopup] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const cardRef = useRef(null);
 
   const {
     _id,
@@ -32,171 +34,167 @@ const JobCard = ({ jobData }) => {
     profileAvatar = "",
     userName = "Anonymous",
     postedAt = "Recently",
+    createdAt,
   } = jobData || {};
 
-  /* 🧠 Fetch Engagement Stats */
-  const fetchStats = async () => {
+  // 🔥 NEW — Detect if job was posted today
+  const isNew = useMemo(() => {
+    if (!createdAt) return false;
+
+    const posted = new Date(createdAt);
+    const today = new Date();
+
+    return (
+      posted.getDate() === today.getDate() &&
+      posted.getMonth() === today.getMonth() &&
+      posted.getFullYear() === today.getFullYear()
+    );
+  }, [createdAt]);
+
+  const fetchStats = useCallback(async () => {
     try {
       const { data } = await api.get(`/job/stats/${_id}`);
       if (data?.stats) setStats(data.stats);
     } catch (err) {
-      console.error("Error fetching job stats:", err);
+      console.error("Stats error:", err);
     }
-  };
-console.log(jobData)
-  useEffect(() => {
-    let mounted = true;
-    const timer = setTimeout(() => mounted && setLoading(false), 300);
-    fetchStats();
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
   }, [_id]);
 
-  /* ❤️ Like */
-  const handleLike = async () => {
+  // Observe visibility and fetch stats only when visible
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    if (cardRef.current) obs.observe(cardRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (visible) fetchStats();
+  }, [visible, fetchStats]);
+
+  const handleLike = useCallback(async () => {
     try {
       await api.post("/job/update", { jobId: _id, actionType: "like" });
-      setIsLiked((prev) => !prev);
+      setIsLiked((p) => !p);
       fetchStats();
-      setToastMsg(isLiked ? "Removed from favorites" : "Added to favorites");
+      toast.success(isLiked ? "Removed from favorites" : "Added to favorites");
     } catch {
-      setToastMsg("Failed to update like.");
+      toast.error("Failed to update like.");
     }
-  };
+  }, [_id, fetchStats, isLiked]);
 
-  /* 🔗 Share */
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       const shareUrl = `${window.location.origin}/jobs/${_id}`;
       await navigator.clipboard.writeText(shareUrl);
       await api.post("/job/update", { jobId: _id, actionType: "share" });
-      fetchStats();
-      setToastMsg("Job link copied!");
+      toast.success("Link copied!");
     } catch {
-      setToastMsg("Failed to share job.");
+      toast.error("Failed to share job.");
     }
-  };
+  }, [_id]);
 
-  /* 🧱 Loading Skeleton */
-  if (loading) {
-    return (
-      <div className="w-[600px] h-[500px] mx-auto rounded-2xl bg-gray-100 animate-pulse shadow-md" />
-    );
-  }
-
-  /* 🎨 Render Job Card */
   return (
     <>
-      <div className="w-[600px] h-[500px] bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 mx-auto flex flex-col overflow-hidden border border-gray-100">
-        {/* 🖼️ Header Image */}
-        <div
-          className="relative h-44 w-full bg-gray-100 flex items-center justify-center overflow-hidden"
-          style={{
-            backgroundImage: image
-              ? `url(${image})`
-              : "url('https://cdn-icons-png.flaticon.com/512/1187/1187541.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-          {/* Top Right Icons */}
+      <div ref={cardRef} className={FEED_CARD_STYLE}>
+        {/* TOP IMAGE SECTION */}
+        <div className="relative h-40 sm:h-48 w-full overflow-hidden">
+          <img
+            loading="lazy"
+            src={image || "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+          {/* 🔥 NEW Badge */}
+          {isNew && (
+            <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse shadow-md">
+              NEW
+            </span>
+          )}
+
+          {/* Right Actions */}
           <div className="absolute top-2 right-2 flex space-x-2 text-white">
-            <button onClick={handleShare} className="hover:text-gray-200">
+            <button onClick={handleShare} className="hover:text-gray-200" aria-label="Share job">
               <ShareOutlined fontSize="small" />
             </button>
-            <button onClick={handleLike} className="hover:text-red-400">
+
+            <button onClick={handleLike} className="hover:text-red-400" aria-label="Like job">
               {isLiked ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
             </button>
-            <button className="hover:text-gray-200">
+
+            <button className="hover:text-gray-200" aria-hidden>
               <MoreVert fontSize="small" />
             </button>
           </div>
         </div>
 
-        {/* 👤 Posted By */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white">
+        {/* USER INFO (POSTED BY) */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
           <img
-            src={
-              profileAvatar ||
-              "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            }
+            loading="lazy"
+            src={profileAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
             alt={userName}
-            className="w-10 h-10 rounded-full border border-gray-200"
+            className="w-10 h-10 rounded-full border border-gray-300 object-cover"
           />
-          <div className="flex flex-col">
+          <div>
             <p className="text-sm font-semibold text-gray-800">{userName}</p>
             <p className="text-xs text-gray-500">Posted {postedAt}</p>
           </div>
         </div>
 
-        {/* 📋 Job Details */}
-        <div className="flex-1 px-5 py-4">
-          <p className="text-lg font-bold text-gray-900 leading-tight mb-1">
-            {title}
-          </p>
-
-          <p className="text-sm font-semibold text-blue-700 mb-1">
-            {companyName}
-          </p>
-
-          <p className="text-sm font-semibold text-gray-800 mb-2">
+        {/* JOB DETAILS */}
+        <div className="px-5 py-4">
+          <p className="text-lg font-bold text-gray-900">{title}</p>
+          <p className="text-sm font-semibold text-blue-700 mt-1">{companyName}</p>
+          <p className="text-sm font-semibold text-gray-800 mt-1 mb-2">
             Salary: {salaryRange}
           </p>
 
-          <div className="text-xs text-gray-600 space-y-1.5 mb-3">
+          <div className="text-xs text-gray-600 space-y-1 mb-3">
             <div className="flex items-center gap-1">
-              <LocationOn fontSize="small" className="text-gray-400" />
-              <span>{location}</span>
+              <LocationOn fontSize="small" /> {location}
             </div>
             <div className="flex items-center gap-1">
-              <WorkOutline fontSize="small" className="text-gray-400" />
-              <span>{jobType}</span>
+              <WorkOutline fontSize="small" /> {jobType}
             </div>
             <div className="flex items-center gap-1">
-              <AccessTime fontSize="small" className="text-gray-400" />
-              <span>Experience: {experience}</span>
+              <AccessTime fontSize="small" /> Experience: {experience}
             </div>
           </div>
 
-          {/* 📝 Description */}
-          <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-            {description}
-          </p>
+    <div
+  className="text-sm text-gray-600 line-clamp-3"
+  dangerouslySetInnerHTML={{ __html: description }}
+/>
+
         </div>
 
-        {/* 🔹 Footer */}
-        <div className="border-t border-gray-100 flex justify-center py-3">
+        {/* VIEW JOB BUTTON */}
+        <div className="py-3 flex justify-center">
           <button
             onClick={() => setShowPopup(true)}
             className="bg-black text-white text-sm font-semibold rounded-lg px-6 py-2 hover:bg-gray-900 transition-all flex items-center gap-1"
           >
-            View Job
-            <span className="rotate-[-45deg]">↗</span>
+            View Job <span className="rotate-[-45deg]">↗</span>
           </button>
         </div>
       </div>
 
-      {/* 🪟 Popup */}
       {showPopup && (
-        <JobDetailsPopup
-          open={showPopup}
-          onClose={() => setShowPopup(false)}
-          job={jobData}
-        />
-      )}
-
-      {/* 🍞 Toast */}
-      {toastMsg && (
-        <div className="fixed bottom-5 right-5 bg-black text-white text-sm px-4 py-2 rounded-lg shadow-lg animate-fade-in">
-          {toastMsg}
-        </div>
+        <JobDetailsPopup open={showPopup} onClose={() => setShowPopup(false)} job={jobData} />
       )}
     </>
   );
 };
 
-export default JobCard;
+export default React.memo(JobCard);

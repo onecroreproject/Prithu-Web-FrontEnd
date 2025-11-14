@@ -7,18 +7,25 @@ const JobDetailsPopup = ({ open, onClose, job }) => {
   if (!open || !job) return null;
 
   const {
+    _id,
     title,
     companyName,
+    category,
     location,
-    salaryRange,
-    description,
+    jobRole,
+    jobType,
+    salary,
     experience,
-    contactLink,
-    mobileNumber,
+    description,
     image,
-    profileAvatar,
-    userName,
     tags = [],
+    postedBy = {},
+    status,
+    isApproved,
+    isPaid,
+    startDate,
+    endDate,
+    postedAt,
   } = job;
 
   const tagArray =
@@ -26,54 +33,74 @@ const JobDetailsPopup = ({ open, onClose, job }) => {
       ? tags.split(",").map((t) => t.trim()).filter(Boolean)
       : tags;
 
+  const formatDate = (date) =>
+    date
+      ? new Date(date).toLocaleDateString("en-IN", { dateStyle: "medium" })
+      : "—";
+
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50  flex items-center justify-center bg-black/40 backdrop-blur-sm px-2"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           {/* 🌿 Modal Container */}
           <motion.div
-            className="relative w-full h-[700px] max-w-9xl mx-auto bg-white/90 dark:bg-[#1e1e28]/90 backdrop-blur-xl 
+            className="relative w-full h-[600px] max-w-6xl mx-auto bg-white/90 dark:bg-[#1e1e28]/90 backdrop-blur-xl 
                        border border-white/20 rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(34,197,94,0.3)] flex flex-col md:flex-row"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 25 }}
           >
-            {/* 🌈 Header (Only on mobile view) */}
+            {/* 🌈 Mobile Header */}
             <div className="md:hidden relative bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 text-white py-3 text-center">
               <h2 className="text-lg font-semibold tracking-wide drop-shadow-md">
                 {title}
               </h2>
             </div>
 
-            {/* 🖼️ Left Section — Full Job Image */}
-            <div className="relative md:w-1/2 w-full h-64 md:h-auto overflow-hidden">
+            {/* 🖼️ Left Section — Job Image */}
+            <div className="relative md:w-1/2 w-full h-64 md:h-auto overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+              {/* 🔹 Blurred Background */}
               <img
                 src={
                   image ||
                   "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
                 }
                 alt={title}
-                className="w-full h-full object-cover transition-transform duration-500 "
+                className="absolute inset-0 w-full h-full object-cover blur-lg scale-105 opacity-70"
               />
+
+              {/* 🔹 Foreground (clear) Image */}
+              <img
+                src={
+                  image ||
+                  "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
+                }
+                alt={title}
+                className="relative z-10 w-full h-full object-contain transition-transform duration-500"
+              />
+
+              {/* 🔹 Mobile Gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:hidden"></div>
             </div>
 
             {/* 📋 Right Section — Job Details */}
-            <div className="flex-1 flex flex-col justify-between p-5 md:p-8 overflow-y-auto max-h-[90vh]">
-              {/* Header with title + company */}
-                <button
+            <div className="flex-1 flex flex-col justify-between p-5 md:p-8 overflow-y-auto max-h-[90vh] relative">
+              {/* ❌ Close Button */}
+              <button
                 onClick={onClose}
-                className="absolute top-3 right-3 text-white bg-black hover:text-black hover:bg-white  rounded-full transition"
+                className="absolute top-3 right-3 text-white bg-black hover:text-black hover:bg-white rounded-full transition"
               >
                 <X className="w-6 h-6" />
               </button>
+
               <div>
+                {/* Job Title & Company */}
                 <div className="hidden md:block mb-3">
                   <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                     {title}
@@ -83,34 +110,67 @@ const JobDetailsPopup = ({ open, onClose, job }) => {
                   </p>
                 </div>
 
-                {/* Creator Info */}
+                {/* 👤 Posted By */}
                 <div className="flex items-center gap-3 mt-3">
                   <img
                     src={
-                      profileAvatar ||
+                      postedBy.profileAvatar ||
                       "https://cdn-icons-png.flaticon.com/512/149/149071.png"
                     }
-                    alt={userName}
+                    alt={postedBy.userName}
                     className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600"
                   />
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                    Posted by <span className="font-semibold">{userName}</span>
-                  </p>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      Posted by{" "}
+                      <span className="font-semibold">
+                        {postedBy.userName || "Unknown User"}
+                      </span>
+                    </p>
+                    {postedBy.email && (
+                      <p className="text-xs text-gray-500">{postedBy.email}</p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Job Info Grid */}
+                {/* 📊 Job Info */}
                 <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300 mt-4 mb-4">
                   <p>
                     <strong>Experience:</strong> {experience || "—"}
                   </p>
                   <p>
-                    <strong>Salary:</strong> {salaryRange || "—"}
+                    <strong>Salary:</strong> {salary || "—"}
                   </p>
                   <p>
-                    <strong>Job Type:</strong> {job.jobType || "—"}
+                    <strong>Job Role:</strong> {jobRole || "—"}
+                  </p>
+                  <p>
+                    <strong>Job Type:</strong> {jobType || "—"}
+                  </p>
+                  <p>
+                    <strong>Category:</strong> {category || "—"}
                   </p>
                   <p>
                     <strong>Location:</strong> {location || "—"}
+                  </p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={`font-semibold ${
+                        status === "active"
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {status || "—"}
+                    </span>
+                  </p>
+
+                  <p>
+                    <strong>Posted:</strong> {postedAt || "—"}
+                  </p>
+                  <p>
+                    <strong>End Date:</strong> {formatDate(endDate)}
                   </p>
                 </div>
 
@@ -142,25 +202,6 @@ const JobDetailsPopup = ({ open, onClose, job }) => {
                     {description || "No description provided."}
                   </p>
                 </div>
-              </div>
-
-              {/* 📞 Contact Section */}
-              <div className="mt-4 flex flex-col items-center gap-3">
-                {contactLink && (
-                  <a
-                    href={contactLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-lg px-6 py-2 hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-400/40"
-                  >
-                    Contact via Link
-                  </a>
-                )}
-                {mobileNumber && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    📞 <strong>Mobile:</strong> {mobileNumber}
-                  </p>
-                )}
               </div>
             </div>
           </motion.div>

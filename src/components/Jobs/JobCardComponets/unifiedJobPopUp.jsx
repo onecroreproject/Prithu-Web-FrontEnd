@@ -77,14 +77,14 @@ const UnifiedJobPopup = ({ open, onClose, type, data, allJobs = [] }) => {
             exit={{ opacity: 0 }}
           >
             {/* 🌿 Modal Container */}
-            <motion.div
-              className="relative w-full h-[700px] max-w-8xl mx-auto bg-white/90 dark:bg-[#1e1e28]/90 backdrop-blur-xl 
-                         border border-white/20 rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(34,197,94,0.3)] flex flex-col md:flex-row"
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-            >
+                      <motion.div
+                        className="relative w-full h-[600px] max-w-6xl mx-auto bg-white/90 dark:bg-[#1e1e28]/90 backdrop-blur-xl 
+                                   border border-white/20 rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(34,197,94,0.3)] flex flex-col md:flex-row"
+                        initial={{ y: 40, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 40, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                      >
               {/* 🌈 Header for mobile */}
               <div className="md:hidden relative bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 text-white py-3 text-center">
                 <h2 className="text-lg font-semibold tracking-wide drop-shadow-md">
@@ -93,16 +93,30 @@ const UnifiedJobPopup = ({ open, onClose, type, data, allJobs = [] }) => {
               </div>
 
               {/* 🖼️ Left Section — Full Job Image */}
-              <div className="relative md:w-1/2 w-full h-64 md:h-auto overflow-hidden">
-                <img
-                  src={
-                    image ||
-                    "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
-                  }
-                  alt={title}
-                  className="w-full h-full object-cover transition-transform duration-500 "
-                />
-              </div>
+      <div className="relative md:w-1/2 w-full h-64 md:h-auto overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+  {/* 🔹 Blurred Background Image */}
+  <img
+    src={
+      image ||
+      "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
+    }
+    alt={title}
+    className="absolute inset-0 w-full h-full object-cover blur-lg scale-105 opacity-70"
+  />
+
+  {/* 🔹 Foreground (clear) Image */}
+  <img
+    src={
+      image ||
+      "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
+    }
+    alt={title}
+    className="relative z-10 w-full h-full object-contain transition-transform duration-500"
+  />
+
+  {/* 🔹 Mobile gradient overlay */}
+  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:hidden"></div>
+</div>
 
               {/* 📋 Right Section — Job Details */}
               <div className="flex-1 flex flex-col justify-between p-5 md:p-8 overflow-y-auto max-h-[90vh] relative">

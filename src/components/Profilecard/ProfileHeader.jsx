@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import Cropper from "react-easy-crop";
 import {
   MessageSquare,
   User,
@@ -9,7 +10,7 @@ import {
   Edit,
   Camera,
   Briefcase,
-  FolderGit2, // 🆕 Portfolio icon
+  FolderGit2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -20,29 +21,36 @@ import {
   updateCoverPhoto,
   updateProfileAvatar,
 } from "../../Service/profileService";
+import { getCroppedImg } from "../../components/ProfileHeaderComponent/ImageCropmodel";
 
-// ✅ Default images (fallback)
 const defaultBanner =
   "https://res.cloudinary.com/demo/image/upload/v1720000000/default-cover.jpg";
 const defaultAvatar =
   "https://res.cloudinary.com/demo/image/upload/v1720000000/default-avatar.jpg";
 
 export default function ProfileHeader({ activeTab, setActiveTab }) {
-  const { token ,userId} = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const { data: user, isLoading, refetch } = useUserProfile(token);
 
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
+
+  // File Refs
   const bannerInputRef = useRef(null);
   const profileInputRef = useRef(null);
 
-  // ✅ Get user ID from localStorage
+  // Crop modal state
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [cropFor, setCropFor] = useState(""); // "cover" | "profile"
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
   const id = localStorage.getItem("userId");
 
-  
-
-  // ✅ Sync user data to local preview states
   useEffect(() => {
     if (user) {
       setBannerUrl(user.coverPhoto || defaultBanner);
@@ -50,46 +58,58 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     }
   }, [user]);
 
-  // ✅ Cover Photo Upload
-  const handleBannerChange = async (e) => {
+  // Open crop modal
+  const openCropModal = (file, type) => {
+    const imageURL = URL.createObjectURL(file);
+    setImageToCrop(imageURL);
+    setCropFor(type);
+    setCropModalOpen(true);
+  };
+
+  // Handle raw file input
+  const handleBannerChange = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (file) openCropModal(file, "cover");
+  };
 
-    const previewUrl = URL.createObjectURL(file);
-    setBannerUrl(previewUrl);
+  const handleProfileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) openCropModal(file, "profile");
+  };
 
-    try {
+  // Save cropped image
+const handleSaveCrop = async () => {
+  try {
+    setIsUploading(true);
+
+    const aspect = cropFor === "profile" ? 1 : 3;
+    const { file, url } = await getCroppedImg(
+      imageToCrop,
+      croppedAreaPixels,
+      aspect
+    );
+
+    if (cropFor === "cover") {
+      setBannerUrl(url);
       await updateCoverPhoto(file, token);
-      toast.success("✅ Cover photo updated successfully!");
-      refetch();
-    } catch (err) {
-      console.error("❌ Cover upload error:", err);
-      toast.error(err.response?.data?.message || "Failed to upload cover photo");
-    }
-  };
-
-  // ✅ Profile Photo Upload
-  const handleProfileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setProfileUrl(previewUrl);
-
-    try {
+      toast.success("Cover updated!");
+    } else {
+      setProfileUrl(url);
       await updateProfileAvatar(file, token);
-      toast.success("✅ Profile photo updated successfully!");
-      refetch();
-    } catch (err) {
-      console.error("❌ Profile upload error:", err);
-      toast.error(err.response?.data?.message || "Failed to upload profile photo");
+      toast.success("Profile updated!");
     }
-  };
 
-  if (isLoading)
-    return <p className="text-gray-500 p-4">Loading profile...</p>;
+    await refetch();
+    setCropModalOpen(false);
+  } catch (err) {
+    toast.error("Upload failed");
+    console.error(err);
+  } finally {
+    setIsUploading(false);
+  }
+};
 
-  // 🧭 Tabs (includes Portfolio)
+
   const tabs = [
     { id: "Activity", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
@@ -102,141 +122,137 @@ export default function ProfileHeader({ activeTab, setActiveTab }) {
     { id: "more", Icon: MoreHorizontal, label: "More" },
   ];
 
-  // ✅ Handle tab click
   const handleTabClick = (tab) => {
     setActiveTab(tab.id);
 
-    // 🧭 Navigate to portfolio if clicked
     if (tab.id === "portfolio" && id) {
-      navigate(`/portfolio/${user.userName}`);
+      navigate(`/portfolio/${id}`);
     } else if (tab.id === "portfolio" && !id) {
-      toast.error("⚠️ User ID not found in localStorage!");
+      toast.error("User ID not found!");
     }
   };
 
+  if (isLoading)
+    return <p className="text-gray-500 p-4">Loading profile...</p>;
+
   return (
-    <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
-      {/* 🖼 COVER BANNER */}
-      <motion.div
-        className="relative h-56 bg-cover bg-center overflow-hidden"
-        style={{ backgroundImage: `url(${bannerUrl})` }}
-        initial={{ opacity: 0.6 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.h1
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-7xl font-black tracking-wider text-white opacity-90 select-none"
-          >
-            PROFILE
-          </motion.h1>
-        </div>
+    <>
+      {/* =============================== */}
+      {/* MAIN PROFILE HEADER START */}
+      {/* =============================== */}
 
-        {/* ✏️ Edit Cover Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => bannerInputRef.current?.click()}
-          className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm p-2.5 rounded-lg transition-all"
+      <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
+        <motion.div
+          className="relative h-40 sm:h-48 md:h-56 bg-cover bg-center overflow-hidden"
+          style={{ backgroundImage: `url(${bannerUrl})` }}
         >
-          <Edit className="w-5 h-5 text-gray-900" />
-        </motion.button>
-        <input
-          ref={bannerInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleBannerChange}
-        />
-      </motion.div>
+          {/* Edit cover button */}
+          <motion.button
+            onClick={() => bannerInputRef.current.click()}
+            className="absolute top-3 right-3 bg-white/30 p-2 rounded-lg"
+          >
+            <Edit />
+          </motion.button>
 
-      {/* 👤 PROFILE SECTION */}
-      <div className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-end gap-6 -mt-16 pb-6">
-            {/* Avatar */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="relative"
-            >
-              <img
-                src={profileUrl}
-                alt={user?.userName || "User"}
-                className="w-36 h-36 rounded-xl border-4 border-white object-cover shadow-lg bg-white"
-              />
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => profileInputRef.current?.click()}
-                className="absolute bottom-2 right-2 bg-white hover:bg-gray-100 p-1.5 rounded-lg shadow-md transition-all"
-              >
-                <Camera className="w-4 h-4 text-gray-700" />
-              </motion.button>
-              <input
-                ref={profileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleProfileChange}
-              />
-            </motion.div>
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerChange}
+          />
+        </motion.div>
 
-            {/* User Info */}
-            <motion.div
-              initial={{ x: -15, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-col justify-end"
+        {/* Profile section */}
+        <div className="relative px-6 -mt-14">
+          <div className="relative w-32 h-32">
+            <img
+              src={profileUrl}
+              className="w-32 h-32 rounded-xl border-4 border-white object-cover shadow-lg"
+            />
+            <button
+              onClick={() => profileInputRef.current.click()}
+              className="absolute bottom-2 right-2 bg-white p-2 rounded-lg shadow"
             >
-              <h2 className="text-lg font-bold text-gray-900">
-                {user?.name || user?.userName || "User"}
-              </h2>
-              <p className="text-xs text-gray-600 mt-1">
-                <span className="font-medium text-gray-800">
-                  @{user?.userName || "username"}
-                </span>
-                <span className="mx-1.5 text-gray-400">•</span>
-                <span>Active {user?.lastActive || "just now"}</span>
-              </p>
-            </motion.div>
-
-            {/* Navigation Tabs */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-center gap-4 overflow-x-auto scrollbar-hide pb-4"
-            >
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const Icon = tab.Icon;
-                return (
-                  <motion.button
-                    key={tab.id}
-                    onClick={() => handleTabClick(tab)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-lg transition-all ${
-                      isActive
-                        ? "bg-purple-600 text-white"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-xs font-medium">{tab.label}</span>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
+              <Camera />
+            </button>
+            <input
+              ref={profileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleProfileChange}
+            />
           </div>
         </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 p-4 overflow-x-auto">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.Icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab)}
+                className={`px-3 py-2 rounded-lg flex items-center gap-2 ${
+                  isActive ? "bg-blue-600 text-white" : "bg-gray-100"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* =============================== */}
+      {/* CROP MODAL */}
+      {/* =============================== */}
+
+      {cropModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg w-full max-w-lg">
+            <h2 className="font-bold mb-4">
+              Crop {cropFor === "profile" ? "Profile Photo" : "Cover Photo"}
+            </h2>
+
+            <div className="relative w-full h-72 bg-black/10">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={cropFor === "profile" ? 1 : 3}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, pixels) =>
+                  setCroppedAreaPixels(pixels)
+                }
+              />
+            </div>
+
+           <div className="flex justify-end gap-2 mt-4">
+  <button
+    disabled={isUploading}
+    onClick={() => !isUploading && setCropModalOpen(false)}
+    className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+  >
+    Cancel
+  </button>
+
+  <button
+    disabled={isUploading}
+    onClick={handleSaveCrop}
+    className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+  >
+    {isUploading ? "Uploading..." : "Save & Upload"}
+  </button>
+</div>
+
+          </div>
+        </div>
+      )}
+    </>
   );
 }

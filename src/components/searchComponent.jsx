@@ -11,16 +11,16 @@ export default function SearchBar({ token }) {
   const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
 
-  // 🔹 Debounced search handler
+  /* ----------------------------- 🔹 Debounced Search ----------------------------- */
   const searchHandler = useCallback(
     debounce(async (value) => {
-      if (!value.trim()) return setResults({ categories: [], people: [], jobs: [] });
+      if (!value.trim())
+        return setResults({ categories: [], people: [], jobs: [] });
       try {
         const { data } = await api.get(`/api/global/search?q=${value}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // ✅ Local filter for "starts with" letter
         const q = value.toLowerCase();
         const startsWith = (text) => text?.toLowerCase().startsWith(q);
 
@@ -45,23 +45,30 @@ export default function SearchBar({ token }) {
     [token]
   );
 
-  // 🔹 Handle input
+  /* ----------------------------- 🔹 Input Handler ----------------------------- */
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
     searchHandler(value);
   };
 
-  // 🔹 Navigate to user profile page
+  /* ----------------------------- 🔹 Navigation Handlers ----------------------------- */
   const handleUserClick = (username) => {
     setIsFocused(false);
     setQuery("");
     navigate(`/user/profile/${username}`);
   };
 
+  const handleJobClick = (jobId) => {
+    setIsFocused(false);
+    setQuery("");
+    navigate(`/job/view/${jobId}`);
+  };
+
+  /* ----------------------------- 💻 UI ----------------------------- */
   return (
     <div className="relative w-full max-w-lg">
-      {/* 🔍 Search Input */}
+      {/* 🔍 Input Field */}
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
       <input
         value={query}
@@ -72,7 +79,7 @@ export default function SearchBar({ token }) {
         className="w-full rounded-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-green-400 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
       />
 
-      {/* 🔹 Search Dropdown */}
+      {/* 🔽 Dropdown Results */}
       <AnimatePresence>
         {isFocused && query && (
           <motion.div
@@ -140,6 +147,7 @@ export default function SearchBar({ token }) {
                 results.jobs.map((job) => (
                   <div
                     key={job._id}
+                    onClick={() => handleJobClick(job._id)} // ✅ Navigate on click
                     className="px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition"
                   >
                     <p className="font-medium text-gray-800 dark:text-gray-200">
