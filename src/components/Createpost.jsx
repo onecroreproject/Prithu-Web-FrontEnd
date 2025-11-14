@@ -1,72 +1,122 @@
 // src/components/Createpost.jsx
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { FaCamera, FaSmile, FaVideo } from "react-icons/fa";
-import CreatePostModal from "./CreatePostModal"; // Import modal
+import { motion, AnimatePresence } from "framer-motion";
+import CreatePostModal from "./CreatePostModal";
 
 const Createpost = () => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [comingSoon, setComingSoon] = useState(false);
 
-  const handleOpenModal = () => setModalOpen(true);
-  const handleCloseModal = () => setModalOpen(false);
+  /* --------------------------------------------
+     ⚡ Optimized Handlers (stable with useCallback)
+  --------------------------------------------- */
+  const handleOpenModal = useCallback(() => setModalOpen(true), []);
+  const handleCloseModal = useCallback(() => setModalOpen(false), []);
 
-  const handleSubmit = (postData) => {
+  const handleSubmit = useCallback((postData) => {
     console.log("Post submitted:", postData);
-    // Send to backend here
     setModalOpen(false);
-  };
+  }, []);
 
+  const handleComingSoon = useCallback(() => {
+    setComingSoon(true);
+    setTimeout(() => setComingSoon(false), 1500);
+  }, []);
+
+  /* --------------------------------------------
+     ⚡ Component UI
+  --------------------------------------------- */
   return (
     <>
-      {/* Input Box – Click to Open Modal */}
-      <div
-        onClick={handleOpenModal}
-        className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm w-full mb-6 cursor-pointer hover:shadow-md transition-shadow"
-      >
-        {/* Header */}
-        <div className="mb-2 font-semibold text-[17px] text-[#23236A]">
-          Create New Post
-        </div>
+      <div className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-5 shadow-sm mb-6 transition hover:shadow-md">
 
-        {/* Input */}
-        <div className="flex items-center mb-4">
-          <span className="mr-2 text-blue-600">
-            <svg width="22" height="22" fill="none" stroke="currentColor" className="inline-block align-middle">
-              <path d="M7 17V9.5a4.5 4.5 0 119 0V17m-9 0h9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Header */}
+        <h3 className="font-semibold text-[16px] sm:text-[17px] text-[#23236A] dark:text-gray-100 mb-3">
+          Create New Post
+        </h3>
+
+        {/* Input — opens modal */}
+        <div
+          onClick={handleOpenModal}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <span className="text-blue-600 dark:text-blue-400">
+            <svg width="22" height="22" fill="none" stroke="currentColor">
+              <path
+                d="M7 17V9.5a4.5 4.5 0 119 0V17m-9 0h9"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
+
           <input
             type="text"
-            placeholder="Create New Post"
             readOnly
-            className="w-full rounded-full border border-gray-300 px-4 py-2 text-gray-700 bg-gray-50 focus:outline-none cursor-pointer"
+            placeholder="What's on your mind?"
+            className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-900 cursor-pointer text-[14px] sm:text-[15px]"
           />
         </div>
 
-        {/* Footer Buttons */}
-        <div className="flex justify-start space-x-8 mt-2">
-          <button className="flex items-center space-x-2 text-[15px] text-[#23236A] font-medium hover:underline focus:outline-none">
-            <FaCamera className="text-green-500" />
+        {/* Buttons */}
+        <div className="flex flex-wrap gap-6 sm:gap-10 mt-4 text-[14px] sm:text-[15px] font-medium">
+
+          {/* Photo/Video */}
+          <button
+            onClick={handleOpenModal}
+            className="flex items-center gap-2 text-[#23236A] dark:text-gray-100 hover:opacity-80"
+          >
+            <FaCamera className="text-green-500 text-lg" />
             <span>Photo/Video</span>
           </button>
-          <button className="flex items-center space-x-2 text-[15px] text-[#23236A] font-medium hover:underline focus:outline-none">
-            <FaSmile className="text-yellow-500" />
+
+          {/* Feeling */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleComingSoon();
+            }}
+            className="flex items-center gap-2 text-[#23236A] dark:text-gray-100 hover:opacity-80"
+          >
+            <FaSmile className="text-yellow-500 text-lg" />
             <span>Feeling/Activity</span>
           </button>
-          <button className="flex items-center space-x-2 text-[15px] text-[#23236A] font-medium hover:underline focus:outline-none">
-            <FaVideo className="text-pink-500" />
+
+          {/* Live Stream */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleComingSoon();
+            }}
+            className="flex items-center gap-2 text-[#23236A] dark:text-gray-100 hover:opacity-80"
+          >
+            <FaVideo className="text-pink-500 text-lg" />
             <span>Live Stream</span>
           </button>
         </div>
       </div>
 
-      {/* Modal Popup */}
-      <CreatePostModal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        onSubmit={handleSubmit}
-      />
+      {/* Modal */}
+      <CreatePostModal open={modalOpen} onClose={handleCloseModal} onSubmit={handleSubmit} />
+
+      {/* Coming Soon Popup */}
+      <AnimatePresence>
+        {comingSoon && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg text-sm z-50"
+          >
+            🚀 Coming Soon
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
 
-export default Createpost;
+export default React.memo(Createpost);

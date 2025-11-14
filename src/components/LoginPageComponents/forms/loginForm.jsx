@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"; // lightweight icons
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { AuthContext } from "../../../context/AuthContext";
 
 export default function LoginForm({ switchMode }) {
@@ -25,51 +25,57 @@ export default function LoginForm({ switchMode }) {
     }
   };
 
-  // ✅ Framer Motion variants
-  const fade = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  // ✅ Simple fade-slide variant
+  const fadeSlide = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
   };
 
   return (
     <motion.div
       initial="hidden"
       animate="visible"
-      variants={fade}
+      variants={fadeSlide}
       className="w-full max-w-xs mx-auto"
     >
-      <h1 className="text-3xl text-center font-bold pt-1 pb-4 text-gray-900">
-        Welcome Back 
+      <h1 className="text-3xl text-center font-bold pb-4 text-gray-900">
+        Welcome Back
       </h1>
 
       <form onSubmit={handleLogin} className="flex flex-col space-y-4">
         {/* ✅ Email Field */}
         <div className="relative">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Mail
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="email"
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition"
+            className="w-full pl-10 pr-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition-all"
             required
           />
         </div>
 
         {/* ✅ Password Field */}
         <div className="relative">
-          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Lock
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition"
+            className="w-full pl-10 pr-10 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none transition-all"
             required
           />
           <div
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer hover:text-green-600 transition"
             onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer hover:text-green-600 transition"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </div>
@@ -78,8 +84,8 @@ export default function LoginForm({ switchMode }) {
         {/* ✅ Error Message */}
         {error && (
           <motion.p
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="text-red-500 text-sm text-center -mt-2"
           >
             {error}
@@ -88,7 +94,7 @@ export default function LoginForm({ switchMode }) {
 
         {/* ✅ Login Button */}
         <motion.button
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.98 }}
           disabled={loading}
           type="submit"
           className={`w-full py-2 rounded-full font-semibold text-white transition-all ${

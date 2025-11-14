@@ -5,21 +5,11 @@ import PrithuLogo from "../../assets/prithu_logo.webp";
 import FeatureItem from "./feautureItem";
 
 export default function LeftPanel() {
-  // ✅ Animation variants for staggered reveal
-  const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (delay = 0) => ({
-      opacity: 1,
-      y: 0,
-      transition: { delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-    }),
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className="
         flex-1 min-h-screen md:min-h-full
         bg-gradient-to-br from-green-700 via-emerald-600 to-lime-600
@@ -27,20 +17,12 @@ export default function LeftPanel() {
         relative overflow-hidden
       "
     >
-      {/* ✅ Decorative background glow */}
+      {/* ✅ Subtle background gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-emerald-200/10 to-lime-100/10 mix-blend-overlay opacity-20" />
 
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 max-w-md mx-auto md:mx-0"
-      >
-        {/* ✅ Logo */}
-        <motion.div
-          variants={fadeUp}
-          custom={0.1}
-          className="flex items-center gap-3 mb-6"
-        >
+      <div className="relative z-10 max-w-md mx-auto md:mx-0">
+        {/* ✅ Logo Section */}
+        <div className="flex items-center gap-3 mb-6 transition-all duration-500">
           <img
             src={PrithuLogo}
             alt="Prithu Logo"
@@ -50,10 +32,14 @@ export default function LeftPanel() {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
             Prithu
           </h1>
-        </motion.div>
+        </div>
 
-        {/* ✅ Heading & Description */}
-        <motion.div variants={fadeUp} custom={0.2}>
+        {/* ✅ Title & Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+        >
           <h2 className="text-xl sm:text-2xl font-semibold mb-2">
             Join the Healing Circle 🌱
           </h2>
@@ -63,10 +49,11 @@ export default function LeftPanel() {
           </p>
         </motion.div>
 
-        {/* ✅ Feature List */}
+        {/* ✅ Feature Items */}
         <motion.div
-          variants={fadeUp}
-          custom={0.3}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
           className="space-y-5 sm:space-y-6"
         >
           <FeatureItem
@@ -85,15 +72,10 @@ export default function LeftPanel() {
             text="Track and nurture your personal wellness path."
           />
         </motion.div>
-      </motion.div>
+      </div>
 
-      {/* ✅ Floating Glow Element for style */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.15, scale: 1 }}
-        transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-        className="absolute bottom-20 right-10 w-40 h-40 bg-emerald-300 rounded-full blur-3xl"
-      />
+      {/* ✅ Soft floating glow (static — no heavy animation) */}
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-emerald-300/20 rounded-full blur-3xl" />
     </motion.div>
   );
 }

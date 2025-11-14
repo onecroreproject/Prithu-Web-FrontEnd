@@ -1,344 +1,200 @@
-/* ✅ src/components/JobPageComponent/JobCard.jsx */
-import React, { useState, useEffect } from "react";
+// src/components/Jobs/jobCard.jsx
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
-  Avatar,
-  Card,
-  Stack,
-  Typography,
-  Box,
-  Button,
-  IconButton,
-  Skeleton,
-  Snackbar,
-  CardMedia,
-  Chip, // ✅ Added for "Job" tag
-} from "@mui/material";
-import {
-  FavoriteBorder as FavoriteBorderIcon,
-  Favorite as FavoriteIcon,
-  ShareOutlined as ShareOutlinedIcon,
-  WorkOutline as WorkOutlineIcon,
-  LocationOn as LocationOnIcon,
-  CurrencyRupee as CurrencyRupeeIcon,
-  Business as BusinessIcon,
-  Work as WorkIcon, // ✅ Added for icon inside tag
+  ShareOutlined,
+  FavoriteBorder,
+  Favorite,
+  MoreVert,
+  WorkOutline,
+  LocationOn,
+  AccessTime,
 } from "@mui/icons-material";
-import { motion } from "framer-motion";
 import api from "../../api/axios";
 import JobDetailsPopup from "./jobCardPop-Up";
+import { FEED_CARD_STYLE } from "../../constance/feedLayout";
+import { toast } from "react-hot-toast";
 
 const JobCard = ({ jobData }) => {
   const [isLiked, setIsLiked] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalLikes: 0, totalShares: 0 });
+  const [stats, setStats] = useState({});
   const [showPopup, setShowPopup] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const cardRef = useRef(null);
 
   const {
     _id,
-    title = "Job Title",
+    title = "Software Engineer",
     companyName = "Unknown Company",
     location = "Not specified",
-    salaryRange = "—",
-    experience = "—",
     jobType = "Full-time",
-    description = "",
+    experience = "—",
+    salaryRange = "Based on Experience",
+    description = "No description provided",
     image = "",
-    profileAvatar,
-    userName,
+    profileAvatar = "",
+    userName = "Anonymous",
+    postedAt = "Recently",
     createdAt,
   } = jobData || {};
 
-  // 🕒 Time formatting helper
-  const timeAgo = (date) => {
-    if (!date) return "Recently posted";
-    const diff = Date.now() - new Date(date);
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days < 1) {
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      return hours <= 0 ? "Just now" : `${hours}h ago`;
-    }
-    return `${days}d ago`;
-  };
+  // 🔥 NEW — Detect if job was posted today
+  const isNew = useMemo(() => {
+    if (!createdAt) return false;
 
-  // 🧩 Fallbacks
-  const jobImage =
-    image && image.trim() !== ""
-      ? image
-      : "https://cdn-icons-png.flaticon.com/512/1187/1187541.png";
+    const posted = new Date(createdAt);
+    const today = new Date();
 
-  const avatarImg =
-    profileAvatar && profileAvatar.trim() !== ""
-      ? profileAvatar
-      : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    return (
+      posted.getDate() === today.getDate() &&
+      posted.getMonth() === today.getMonth() &&
+      posted.getFullYear() === today.getFullYear()
+    );
+  }, [createdAt]);
 
-  // 📊 Fetch engagement stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const { data } = await api.get(`/job/stats/${_id}`);
-      setStats({
-        totalLikes: data.stats.totalLikes,
-        totalShares: data.stats.totalShares,
-      });
+      if (data?.stats) setStats(data.stats);
     } catch (err) {
-      console.error("Error fetching job stats:", err);
+      console.error("Stats error:", err);
     }
-  };
+  }, [_id]);
 
+  // Observe visibility and fetch stats only when visible
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    fetchStats();
-    return () => clearTimeout(timer);
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    if (cardRef.current) obs.observe(cardRef.current);
+    return () => obs.disconnect();
   }, []);
 
-  // ❤️ Like
-  const handleLike = async () => {
+  useEffect(() => {
+    if (visible) fetchStats();
+  }, [visible, fetchStats]);
+
+  const handleLike = useCallback(async () => {
     try {
       await api.post("/job/update", { jobId: _id, actionType: "like" });
-      setIsLiked((prev) => !prev);
+      setIsLiked((p) => !p);
       fetchStats();
-      setToastMsg(isLiked ? "Removed from favorites" : "Added to favorites");
-    } catch (err) {
-      console.error("Error liking job:", err);
-      setToastMsg("Failed to update like.");
+      toast.success(isLiked ? "Removed from favorites" : "Added to favorites");
+    } catch {
+      toast.error("Failed to update like.");
     }
-  };
+  }, [_id, fetchStats, isLiked]);
 
-  // 🔗 Share
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       const shareUrl = `${window.location.origin}/jobs/${_id}`;
       await navigator.clipboard.writeText(shareUrl);
       await api.post("/job/update", { jobId: _id, actionType: "share" });
-      fetchStats();
-      setToastMsg("Job link copied & share recorded!");
-    } catch (err) {
-      console.error("Error sharing job:", err);
-      setToastMsg("Failed to share job.");
+      toast.success("Link copied!");
+    } catch {
+      toast.error("Failed to share job.");
     }
-  };
-
-  // 🧱 Skeleton Loader
-  if (loading) {
-    return (
-      <Card
-        sx={{
-          width: "100%",
-          maxWidth: 600,
-          mx: "auto",
-          mb: 3,
-          borderRadius: 3,
-          p: 2,
-        }}
-      >
-        <Skeleton variant="rectangular" width="100%" height={200} />
-        <Stack direction="row" alignItems="center" spacing={2} p={2}>
-          <Skeleton variant="circular" width={50} height={50} />
-          <Stack flex={1}>
-            <Skeleton variant="text" width="60%" />
-            <Skeleton variant="text" width="30%" />
-          </Stack>
-        </Stack>
-        <Stack p={2}>
-          <Skeleton variant="text" width="90%" />
-          <Skeleton variant="text" width="60%" />
-        </Stack>
-      </Card>
-    );
-  }
+  }, [_id]);
 
   return (
     <>
-      {/* ✅ Job Card with Header */}
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <Card
-          sx={{
-            width: "100%",
-            maxWidth: 600,
-            mx: "auto",
-            mb: 3,
-            borderRadius: 3,
-            boxShadow: "0px 3px 10px rgba(0,0,0,0.08)",
-            "&:hover": { boxShadow: "0px 6px 18px rgba(0,0,0,0.15)" },
-          }}
-        >
-          {/* 🧠 Header */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            p={2}
-          >
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Avatar
-                src={avatarImg}
-                alt={userName}
-                sx={{
-                  width: 45,
-                  height: 45,
-                  border: "1px solid #ddd",
-                }}
-              />
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography fontWeight={600}>{userName}</Typography>
-
-                {/* ✅ Job Tag beside username */}
-                <Chip
-                  label="Job"
-                  size="small"
-                  icon={<WorkIcon sx={{ fontSize: 16 }} />}
-                  sx={{
-                    fontSize: "0.7rem",
-                    fontWeight: 600,
-                    color: "white",
-                    backgroundColor: "#6C63FF",
-                    borderRadius: "6px",
-                    height: 22,
-                    px: 0.5,
-                  }}
-                />
-              </Stack>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ ml: 1 }}
-              >
-                {timeAgo(createdAt)}
-              </Typography>
-            </Stack>
-
-            {/* ❤️ Like & 🔗 Share */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <motion.div whileTap={{ scale: 0.8 }}>
-                <IconButton onClick={handleLike}>
-                  {isLiked ? (
-                    <FavoriteIcon color="error" />
-                  ) : (
-                    <FavoriteBorderIcon />
-                  )}
-                </IconButton>
-              </motion.div>
-              <Typography variant="caption">{stats.totalLikes}</Typography>
-
-              <motion.div whileTap={{ scale: 0.8 }}>
-                <IconButton onClick={handleShare}>
-                  <ShareOutlinedIcon />
-                </IconButton>
-              </motion.div>
-              <Typography variant="caption">{stats.totalShares}</Typography>
-            </Stack>
-          </Stack>
-
-          {/* ✅ Job Details Below */}
-          <Box px={2} pb={2}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
-              {title}
-            </Typography>
-
-            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-              <BusinessIcon fontSize="small" color="action" />
-              <Typography variant="body2">{companyName}</Typography>
-            </Stack>
-
-            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-              <WorkOutlineIcon fontSize="small" color="action" />
-              <Typography variant="body2">{jobType}</Typography>
-            </Stack>
-
-            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-              <LocationOnIcon fontSize="small" color="action" />
-              <Typography variant="body2">{location}</Typography>
-            </Stack>
-
-            <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-              <CurrencyRupeeIcon fontSize="small" color="success" />
-              <Typography variant="body2">{salaryRange}</Typography>
-            </Stack>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                mt: 1,
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                lineHeight: 1.4,
-              }}
-            >
-              {description || "No description provided."}
-            </Typography>
-
-            {/* 🖼️ Job Image */}
-            <Box mt={2}>
-              <CardMedia
-                component="img"
-                height="180"
-                image={jobImage}
-                alt={title}
-                sx={{
-                  objectFit: "cover",
-                  borderRadius: 2,
-                  border: "1px solid #eee",
-                }}
-              />
-            </Box>
-
-            {/* Footer */}
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", sm: "center" }}
-              mt={2}
-              spacing={{ xs: 1.5, sm: 0 }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Experience: {experience}
-              </Typography>
-              <Button
-                variant="contained"
-                size="small"
-                sx={{
-                  borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  px: 2,
-                  mt: { xs: 1, sm: 0 },
-                }}
-                onClick={() => setShowPopup(true)}
-              >
-                View Details
-              </Button>
-            </Stack>
-          </Box>
-
-          {/* 🧠 Toast */}
-          <Snackbar
-            open={!!toastMsg}
-            autoHideDuration={2000}
-            onClose={() => setToastMsg("")}
-            message={toastMsg}
+      <div ref={cardRef} className={FEED_CARD_STYLE}>
+        {/* TOP IMAGE SECTION */}
+        <div className="relative h-40 sm:h-48 w-full overflow-hidden">
+          <img
+            loading="lazy"
+            src={image || "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"}
+            alt={title}
+            className="w-full h-full object-cover"
           />
-        </Card>
-      </motion.div>
 
-      {/* 🪟 Popup */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+          {/* 🔥 NEW Badge */}
+          {isNew && (
+            <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse shadow-md">
+              NEW
+            </span>
+          )}
+
+          {/* Right Actions */}
+          <div className="absolute top-2 right-2 flex space-x-2 text-white">
+            <button onClick={handleShare} className="hover:text-gray-200" aria-label="Share job">
+              <ShareOutlined fontSize="small" />
+            </button>
+
+            <button onClick={handleLike} className="hover:text-red-400" aria-label="Like job">
+              {isLiked ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
+            </button>
+
+            <button className="hover:text-gray-200" aria-hidden>
+              <MoreVert fontSize="small" />
+            </button>
+          </div>
+        </div>
+
+        {/* USER INFO (POSTED BY) */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          <img
+            loading="lazy"
+            src={profileAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+            alt={userName}
+            className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+          />
+          <div>
+            <p className="text-sm font-semibold text-gray-800">{userName}</p>
+            <p className="text-xs text-gray-500">Posted {postedAt}</p>
+          </div>
+        </div>
+
+        {/* JOB DETAILS */}
+        <div className="px-5 py-4">
+          <p className="text-lg font-bold text-gray-900">{title}</p>
+          <p className="text-sm font-semibold text-blue-700 mt-1">{companyName}</p>
+          <p className="text-sm font-semibold text-gray-800 mt-1 mb-2">
+            Salary: {salaryRange}
+          </p>
+
+          <div className="text-xs text-gray-600 space-y-1 mb-3">
+            <div className="flex items-center gap-1">
+              <LocationOn fontSize="small" /> {location}
+            </div>
+            <div className="flex items-center gap-1">
+              <WorkOutline fontSize="small" /> {jobType}
+            </div>
+            <div className="flex items-center gap-1">
+              <AccessTime fontSize="small" /> Experience: {experience}
+            </div>
+          </div>
+
+    <div
+  className="text-sm text-gray-600 line-clamp-3"
+  dangerouslySetInnerHTML={{ __html: description }}
+/>
+
+        </div>
+
+        {/* VIEW JOB BUTTON */}
+        <div className="py-3 flex justify-center">
+          <button
+            onClick={() => setShowPopup(true)}
+            className="bg-black text-white text-sm font-semibold rounded-lg px-6 py-2 hover:bg-gray-900 transition-all flex items-center gap-1"
+          >
+            View Job <span className="rotate-[-45deg]">↗</span>
+          </button>
+        </div>
+      </div>
+
       {showPopup && (
-        <JobDetailsPopup
-          open={showPopup}
-          onClose={() => setShowPopup(false)}
-          job={jobData}
-        />
+        <JobDetailsPopup open={showPopup} onClose={() => setShowPopup(false)} job={jobData} />
       )}
     </>
   );
 };
 
-export default JobCard;
+export default React.memo(JobCard);

@@ -11,7 +11,7 @@ import api from "../api/axios";
 
 export default function CreatePostModal({ open, onClose }) {
   const [postText, setPostText] = useState("");
-  const [selectedBtn, setSelectedBtn] = useState(null);
+  const [selectedBtn, setSelectedBtn] = useState("media");
   const [files, setFiles] = useState([]);
   const [selectedGif, setSelectedGif] = useState(null);
   const [location, setLocation] = useState("");
@@ -23,41 +23,83 @@ export default function CreatePostModal({ open, onClose }) {
   const [isScheduled, setIsScheduled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const fileRef = useRef(null);
 
-  // 🟢 Fetch categories
+  /* --------------------------------------------
+      RESET — runs only when modal closes
+  --------------------------------------------- */
+  const resetAll = () => {
+    files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
+
+    setPostText("");
+    setSelectedBtn("media");
+    setFiles([]);
+    setSelectedGif(null);
+    setLocation("");
+    setTaggedFriends([]);
+    setLanguage("");
+    setCategoryId("");
+    setScheduleDate("");
+    setIsScheduled(false);
+    setType("");
+  };
+
+  const handleClose = () => {
+    resetAll();
+    onClose?.();
+  };
+
+  /* ------------------------------------------------------
+      SET DEFAULT TAB WHEN MODAL OPENS
+  ------------------------------------------------------- */
+  useEffect(() => {
+    if (open) {
+      setSelectedBtn("media");
+    }
+  }, [open]);
+
+  /* ------------------------------------------------------
+      FETCH CATEGORIES
+  ------------------------------------------------------- */
   useEffect(() => {
     if (!open) return;
+
     const fetchCategories = async () => {
       try {
         const res = await api.get(`api/user/get/all/category`);
         setCategories(res.data.categories || []);
       } catch (err) {
-        console.error("Error fetching categories:", err);
         toast.error("Failed to load categories");
       }
     };
+
     fetchCategories();
   }, [open]);
 
-  // 🟢 Handle file upload
+  /* ------------------------------------------------------
+      FILE HANDLING
+  ------------------------------------------------------- */
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
     const fileType = selectedFile.type.startsWith("video") ? "video" : "image";
+
     if (files.length > 0 && files[0].type !== fileType) {
       toast.error("Upload only one type (image or video)");
       return;
     }
 
     setType(fileType);
+
     const newFile = {
       file: selectedFile,
       preview: URL.createObjectURL(selectedFile),
       name: selectedFile.name,
-      type: selectedFile.type,
+      mime: selectedFile.type,
     };
+
     setFiles([newFile]);
   };
 
@@ -70,16 +112,22 @@ export default function CreatePostModal({ open, onClose }) {
   const handleDrop = (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) handleFileChange({ target: { files: [file] } });
+    if (file)
+      handleFileChange({
+        target: { files: [file] },
+      });
   };
 
-  // 🟢 Publish or Schedule feed
+  /* ------------------------------------------------------
+      PUBLISH / SCHEDULE
+  ------------------------------------------------------- */
   const publish = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return toast.error("Please login first");
 
       setLoading(true);
+
       const formData = {
         dec: postText,
         files,
@@ -91,6 +139,8 @@ export default function CreatePostModal({ open, onClose }) {
 
       const res = await uploadCreatorFeed(formData, token);
       toast.success(res.message || "Feed uploaded successfully");
+
+      resetAll();
       onClose?.();
     } catch (err) {
       toast.error(err.message || "Upload failed");
@@ -101,11 +151,13 @@ export default function CreatePostModal({ open, onClose }) {
 
   if (!open) return null;
 
+  /* ------------------------------------------------------
+      UI RENDER
+  ------------------------------------------------------- */
   return (
     <>
-      {/* 🟣 Overlay */}
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -115,11 +167,12 @@ export default function CreatePostModal({ open, onClose }) {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.25 }}
         >
+          {/* Close */}
           <button
             className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-blue-700 font-bold"
-            onClick={onClose}
+            onClick={handleClose}
           >
             ×
           </button>
@@ -135,7 +188,7 @@ export default function CreatePostModal({ open, onClose }) {
             />
 
             <div className="flex-1 flex flex-col">
-              {/* 📝 Post Text */}
+              {/* text */}
               <textarea
                 className="w-full border rounded-md px-3 py-2 text-base min-h-[70px] focus:outline-none"
                 placeholder="What's on your mind?"
@@ -144,15 +197,16 @@ export default function CreatePostModal({ open, onClose }) {
                 rows={3}
               />
 
+              {/* Media Section */}
               <AnimatePresence>
                 {selectedBtn === "media" && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
                   >
-                    {/* 🔹 Dropdowns */}
+                    {/* Dropdowns */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                       <select
                         value={language}
@@ -178,27 +232,24 @@ export default function CreatePostModal({ open, onClose }) {
                         ))}
                       </select>
 
-                      {/* 🕓 Schedule Toggle */}
+                      {/* Schedule Toggle */}
                       <div className="flex items-center gap-2">
                         <span className="text-gray-700 text-sm">Schedule</span>
                         <div
                           onClick={() => setIsScheduled(!isScheduled)}
                           className={`w-12 h-6 flex items-center rounded-full cursor-pointer p-1 transition-all ${
-                            isScheduled
-                              ? "bg-blue-500"
-                              : "bg-gray-300"
+                            isScheduled ? "bg-blue-500" : "bg-gray-300"
                           }`}
                         >
                           <motion.div
                             className="bg-white w-4 h-4 rounded-full shadow-md"
                             layout
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* 📅 Schedule Picker */}
+                    {/* Schedule Picker */}
                     <AnimatePresence>
                       {isScheduled && (
                         <motion.div
@@ -221,7 +272,7 @@ export default function CreatePostModal({ open, onClose }) {
                       )}
                     </AnimatePresence>
 
-                    {/* 📤 Media Upload Section */}
+                    {/* Media Uploader */}
                     <MediaUploader
                       files={files}
                       fileRef={fileRef}
@@ -234,7 +285,7 @@ export default function CreatePostModal({ open, onClose }) {
                 )}
               </AnimatePresence>
 
-              {/* 🟢 Other Tabs */}
+              {/* Other Tabs */}
               {selectedBtn === "gif" && (
                 <GifSelector
                   selectedGif={selectedGif}
@@ -243,7 +294,10 @@ export default function CreatePostModal({ open, onClose }) {
               )}
 
               {selectedBtn === "location" && (
-                <LocationInput location={location} setLocation={setLocation} />
+                <LocationInput
+                  location={location}
+                  setLocation={setLocation}
+                />
               )}
 
               {selectedBtn === "tag" && (
@@ -253,7 +307,7 @@ export default function CreatePostModal({ open, onClose }) {
                 />
               )}
 
-              {/* 🟢 Publish Button */}
+              {/* Publish Button */}
               <button
                 className="w-full bg-[#26Aeee] hover:bg-blue-600 text-white font-medium text-lg rounded-md py-2.5 mt-5 transition-all"
                 onClick={publish}

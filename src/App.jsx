@@ -8,6 +8,9 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { UserStatusProvider } from "./context/userContext.jsx";
 
+// 🔒 Protected Route Component (import only, don’t redeclare)
+import ProtectedRoute from "./context/authProtectedRoutes.jsx";
+
 // Pages
 import Login from "./components/Login.jsx";
 import Layout from "./components/Layout.jsx";
@@ -15,9 +18,7 @@ import Profilelayout from "./pages/Profilelayout.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import SubscriptionPage from "./pages/SubscriptionPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
-import ReelsPage from "./pages/ReelsPage.jsx";
 import InviteFriends from "./pages/InviteFriends.jsx";
-import ReferralPage from "./pages/ReferralPage.jsx";
 import SubscriptionDetails from "./pages/SubscriptionDetail.jsx";
 import SavedPage from "./pages/SavedPage.jsx";
 import LikedPosts from "./pages/LikedPosts.jsx";
@@ -28,24 +29,23 @@ import PublicResume from "./pages/publiceResume.jsx";
 import JobList from "./components/Jobs/jobCardPop-Up.jsx";
 import PortfolioLayout from "./components/User_PrortFolio/profileLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
-
-
+import PostDetails from "./components/FeedPageComponent/postView.jsx"; // ✅ (you likely need to import this)
+import SingleUserProfilelayout from "./pages/singleUserProfileview.jsx";
+import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx";
+import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
+import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
 
-// Placeholder page
+// ✅ Placeholder Page
 const PlaceholderPage = ({ title }) => (
   <div className="flex items-center justify-center w-full h-full">
-    <span className="text-gray-500 text-lg font-medium">{title} Page (Under Construction)</span>
+    <span className="text-gray-500 text-lg font-medium">
+      {title} Page (Under Construction)
+    </span>
   </div>
 );
-
-const ProtectedRoute = ({ children }) => {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
-  return children;
-};
 
 function AppRoutes() {
   const { token } = useAuth();
@@ -68,9 +68,7 @@ function AppRoutes() {
         <Route path="profile" element={<Profilelayout />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
-        <Route path="reels" element={<ReelsPage />} />
         <Route path="invite" element={<InviteFriends />} />
-        <Route path="referrals" element={<ReferralPage />} />
 
         {/* Settings with nested routes */}
         <Route path="settings/*" element={<SettingsPage />}>
@@ -96,19 +94,32 @@ function AppRoutes() {
           <Route path="hidden-posts" element={<Hiddenpost />} />
           <Route path="theme" element={<PlaceholderPage title="Theme" />} />
           <Route path="payment" element={<PlaceholderPage title="Payment" />} />
-          <Route path="referral" element={<PlaceholderPage title="Referral" />} />
           <Route path="subscription-details" element={<SubscriptionDetails />} />
           <Route path="invite-friends" element={<InviteFriends />} />
         </Route>
       </Route>
 
+      {/* Public routes */}
       <Route path="/logout" element={<Navigate to="/login" replace />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/r/:username" element={<PublicResume/>}/>
-      <Route path='/portfolio/:id' element={<PortfolioLayout/>}/>
-      <Route path="/admin/notification" element={<AdminSendNotification/>}/>
-     
+      <Route path="/r/:username" element={<PublicResume />} />
+      <Route path="/portfolio/:username" element={<PortfolioLayout />} />
+      <Route path="/admin/notification" element={<AdminSendNotification />} />
+      <Route path="/user/profile/:username" element={<SingleUserProfilelayout/>} />
+      <Route path="/referral" element={<ReferralUnderConstruction/>} />
+      <Route path="/job/view/:id" element={<SearchJobDetailsPopup/>}/>
 
+      {/* ✅ Shared Post Redirect Route */}
+      <Route
+        path="/post/:feedId"
+        element={
+          <ProtectedRoute>
+            <PostDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch-all */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

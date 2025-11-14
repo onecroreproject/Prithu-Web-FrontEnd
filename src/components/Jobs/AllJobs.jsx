@@ -1,4 +1,4 @@
-// src/components/jobs/AllJobs.jsx
+// ✅ src/components/jobs/AllJobs.jsx
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -7,10 +7,12 @@ import {
   Building,
   Trash2,
   Loader2,
+  Calendar,
 } from "lucide-react";
 import api from "../../api/axios";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import dayjs from "dayjs"; // ✅ Added for clean date formatting
 
 export default function AllJobs() {
   const [jobs, setJobs] = useState([]);
@@ -35,7 +37,7 @@ export default function AllJobs() {
       setLoading(false);
     }
   };
-
+console.log(jobs)
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -88,7 +90,7 @@ export default function AllJobs() {
     if (!window.confirm("Are you sure you want to delete this job?")) return;
     try {
       setDeleting(jobId);
-      await api.delete(`/api/job/delete/jobs/${jobId}`);
+      await api.delete(`/job/delete/jobs/${jobId}`);
       setJobs((prev) => prev.filter((job) => job._id !== jobId));
       toast.success("Job deleted successfully");
     } catch (err) {
@@ -188,6 +190,17 @@ export default function AllJobs() {
                     <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                       <MapPin className="w-4 h-4" /> {job.location}
                     </p>
+
+                    {/* ✅ Job Ending Date */}
+                    {job.endDate && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Calendar className="w-3 h-3 text-purple-500" />
+                        <span>
+                          <b>Ends On:</b>{" "}
+                          {dayjs(job.endDate).format("YYYY-MM-DD")}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -13,7 +13,7 @@ import debounce from "lodash.debounce";
 export default function EditProfile() {
   const { token } = useAuth();
   const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token);
-  console.log(user);
+
   const [isEditing, setIsEditing] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

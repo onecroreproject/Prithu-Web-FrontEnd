@@ -11,7 +11,9 @@ import Postcard from "../components/FeedPageComponent/Postcard";
 import JobCard from "../components/Jobs/jobCard";
 import { Skeleton } from "@mui/material";
 
-// 🕒 Helper for "time ago"
+/* ---------------------------------- Utils --------------------------------- */
+
+// ⏳ Time Ago
 const timeAgoFrom = (iso) => {
   if (!iso) return "Recently posted";
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -23,31 +25,66 @@ const timeAgoFrom = (iso) => {
   return `${days}d ago`;
 };
 
-// 🧩 Normalize job data for JobCard
+// 🧩 Normalize job data (NO EXPORT — FIXES HMR)
 const mapJobForCard = (job) => ({
   _id: job._id,
   title: job.title || "Untitled Job",
   companyName: job.companyName || "Unknown Company",
+  category: job.category || "General",
   location: job.location || "Remote",
-  salaryRange: job.salaryRange || "—",
+  jobRole: job.jobRole || job.role || "—",
+  jobType: job.jobType || "Full-time",
+  language: job.language || "en",
+  salary:
+    typeof job.salary === "number" && job.salary > 0
+      ? `₹${job.salary.toLocaleString()}`
+      : job.salaryRange || "—",
   experience:
-    typeof job.experience === "number"
+    typeof job.experience === "number" && job.experience >= 0
       ? `${job.experience}+ yrs`
       : job.experience || "—",
-  jobType: job.jobType || "Full-time",
-  description: job.description || "",
-  image: job.image || "",
-  userName: job.userName || "Unknown User",
-  profileAvatar:
-    job.profileAvatar ||
-    "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+  image:
+    job.image ||
+    "https://cdn-icons-png.flaticon.com/512/1187/1187541.png",
+  postedBy: {
+    _id: job.postedBy?._id || null,
+    userName: job.postedBy?.userName || "Unknown User",
+    email: job.postedBy?.email || "Not available",
+    profileAvatar:
+      job.postedBy?.profileAvatar ||
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+  },
+  tags: Array.isArray(job.tags)
+    ? job.tags.filter(Boolean)
+    : typeof job.tags === "string"
+    ? job.tags.split(",").map((t) => t.trim())
+    : [],
+  startDate: job.startDate ? new Date(job.startDate) : null,
+  endDate: job.endDate ? new Date(job.endDate) : null,
   createdAt: job.createdAt,
   postedAt: timeAgoFrom(job.createdAt),
-  score: job.score || 0,
-  isPaid: job.isPaid || false,
+  status: job.status || "active",
+  isApproved: !!job.isApproved,
+  reasonForBlock: job.reasonForBlock || null,
+  isPaid: !!job.isPaid,
+  priorityScore: job.priorityScore || 0,
+  stats: {
+    views: job.stats?.views || 0,
+    likes: job.stats?.likes || 0,
+    shares: job.stats?.shares || 0,
+    downloads: job.stats?.downloads || 0,
+    appliedCount: job.stats?.appliedCount || 0,
+    engagementScore: job.stats?.engagementScore || 0,
+  },
+  description:
+    job.description?.slice(0, 250).trim() +
+      (job.description?.length > 250 ? "..." : "") ||
+    "No description provided.",
+  score:
+    job.priorityScore + (job.isPaid ? 5 : 0) + (job.isApproved ? 2 : 0),
 });
 
-// 🦴 Skeleton Loader
+// 🦴 Skeleton
 const FeedSkeleton = () => (
   <motion.div
     initial={{ opacity: 0, y: 15 }}
@@ -70,12 +107,24 @@ const FeedSkeleton = () => (
   </motion.div>
 );
 
+/* ------------------------------- Feed Component ------------------------------ */
+
 const Feed = ({ authUser }) => {
   const { token } = useContext(AuthContext);
   const [showReels, setShowReels] = useState(false);
   const JOB_RATIO = 3;
 
-  // ✅ Fetch jobs
+  const [selectedRole, setSelectedRole] = useState(null);
+
+  useEffect(() => {
+    const handleRoleClick = (e) => {
+      const clickedRole = e.detail?.role;
+      setSelectedRole((prev) => (prev === clickedRole ? null : clickedRole));
+    };
+    window.addEventListener("filterByRole", handleRoleClick);
+    return () => window.removeEventListener("filterByRole", handleRoleClick);
+  }, []);
+
   const {
     data: jobs = [],
     isLoading: isJobsLoading,
@@ -86,7 +135,13 @@ const Feed = ({ authUser }) => {
     enabled: !!token,
   });
 
-  // ✅ Fetch feeds (infinite)
+  const filteredJobs =
+    selectedRole && jobs.length > 0
+      ? jobs.filter((job) =>
+          job.title?.toLowerCase().includes(selectedRole.toLowerCase())
+        )
+      : jobs;
+
   const {
     data: feedPages,
     fetchNextPage,
@@ -102,10 +157,9 @@ const Feed = ({ authUser }) => {
     enabled: !!token,
     refetchOnWindowFocus: false,
   });
-console.log(feedPages)
+
   const feeds = feedPages?.pages.flat() || [];
 
-  // ✅ Combine feeds and jobs
   const mixFeedsAndJobs = useCallback(
     (feedArr = [], jobArr = [], ratio = JOB_RATIO) => {
       const out = [];
@@ -127,21 +181,21 @@ console.log(feedPages)
     [JOB_RATIO]
   );
 
-  // ✅ Filter reels
   const filteredFeeds = showReels
     ? feeds.filter((f) => f.type === "video")
     : feeds;
 
-  const mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : jobs);
+  const mixed = mixFeedsAndJobs(
+    filteredFeeds,
+    showReels ? [] : filteredJobs
+  );
 
-  // ✅ Toggle Reels Mode
   useEffect(() => {
     const handleToggle = (e) => setShowReels(e.detail?.isActive || false);
     window.addEventListener("toggleReels", handleToggle);
     return () => window.removeEventListener("toggleReels", handleToggle);
   }, []);
 
-  // ✅ Infinite Scroll
   useEffect(() => {
     const handleScroll = () => {
       if (!hasNextPage || isFetchingNextPage) return;
@@ -152,14 +206,13 @@ console.log(feedPages)
       }
     };
 
-    const throttledScroll = throttle(handleScroll, 400);
-    window.addEventListener("scroll", throttledScroll);
-    return () => window.removeEventListener("scroll", throttledScroll);
+    const throttled = throttle(handleScroll, 400);
+    window.addEventListener("scroll", throttled);
+    return () => window.removeEventListener("scroll", throttled);
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const isLoading = isFeedsLoading || isJobsLoading;
 
-  // ✅ Utility to prevent scroll spam
   function throttle(fn, delay) {
     let lastCall = 0;
     return (...args) => {
@@ -177,7 +230,6 @@ console.log(feedPages)
         showReels ? "bg-gray-50" : "bg-white"
       }`}
     >
-      {/* ✅ Always show Stories and Createpost */}
       <div className="w-full">
         <Stories />
       </div>
@@ -186,7 +238,6 @@ console.log(feedPages)
         <Createpost authUser={authUser} token={token} />
       </div>
 
-      {/* ✅ Feed Content */}
       <AnimatePresence>
         <div className="flex flex-col gap-5">
           {isLoading ? (
@@ -201,10 +252,9 @@ console.log(feedPages)
                 transition={{ duration: 0.4 }}
               >
                 {item.__kind === "job" ? (
-                  <JobCard key={idx} jobData={mapJobForCard(item)} />
+                  <JobCard jobData={mapJobForCard(item)} />
                 ) : (
                   <Postcard
-                  key={idx}
                     postData={item}
                     authUser={authUser}
                     token={token}
@@ -221,6 +271,8 @@ console.log(feedPages)
             >
               {feedsError || jobsError
                 ? "⚠️ Failed to load content."
+                : selectedRole
+                ? `No jobs found for "${selectedRole}".`
                 : showReels
                 ? "No reels found 🎬"
                 : "No content available."}
@@ -229,7 +281,6 @@ console.log(feedPages)
         </div>
       </AnimatePresence>
 
-      {/* ✅ Infinite scroll spinner */}
       {isFetchingNextPage && (
         <div className="flex justify-center py-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>

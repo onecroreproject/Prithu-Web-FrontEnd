@@ -3,6 +3,8 @@ import { io } from "socket.io-client";
 
 let socket = null;
 let heartbeatInterval = null;
+let isConnecting = false;
+
 
 export const connectSocket = (token, sessionId) => {
   if (!token || !sessionId) {

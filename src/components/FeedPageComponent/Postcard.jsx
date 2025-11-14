@@ -1,57 +1,38 @@
-/* ✅ src/components/FeedPageComponent/Postcard.jsx */
-import React, { useState, useEffect, useRef } from "react";
-import {
-  Avatar,
-  Card,
-  CardMedia,
-  IconButton,
-  Stack,
-  Typography,
-  Box,
-  Snackbar,
-  Skeleton,
-  Button,
-  Paper,
-} from "@mui/material";
+// src/components/FeedPageComponent/Postcard.jsx
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  FavoriteBorder as FavoriteBorderIcon,
-  Favorite as FavoriteIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  ShareOutlined as ShareOutlinedIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  Bookmark as BookmarkIcon,
-  VolumeUp as VolumeUpIcon,
-  VolumeOff as VolumeOffIcon,
-  PlayArrow as PlayArrowIcon,
-  Pause as PauseIcon,
-  Download as DownloadIcon,
-} from "@mui/icons-material";
-
 import api from "../../api/axios";
-import SubscriptionModal from "./SubscriptionModal";
+import PostHeader from "./postCardComponent/postHeader";
+import PostMedia from "./postCardComponent/postMeadia";
+import PostActions from "./postCardComponent/postsActions";
 import PostCommentsModal from "./PostCommentsModal";
-import PostOptionsMenu from "./PostOptionsMenu";
+import { FEED_CARD_STYLE } from "../../constance/feedLayout";
+import { toast } from "react-hot-toast";
 
-const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested }) => {
+/**
+ * Optimized Postcard:
+ * - Memoized (export default React.memo(Postcard))
+ * - Comments fetched on demand (when opening modal)
+ * - Double-tap like via onDoubleTap prop in PostMedia
+ * - Uses toast for notifications (global)
+ */
+
+function Postcard({
+  postData = {},
+  authUser,
+  token,
+  onHidePost,
+  onNotInterested,
+  nextItem, // optional hint for preloading next media
+}) {
   const navigate = useNavigate();
   const videoRef = useRef(null);
-
-  // 🔹 UI States
-  const [isLiked, setIsLiked] = useState(postData.isLiked || false);
-  const [isSaved, setIsSaved] = useState(postData.isSaved || false);
-  const [isFollowing, setIsFollowing] = useState(postData.isFollowing || false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [toastMsg, setToastMsg] = useState("");
-  const [isFollowLoading, setIsFollowLoading] = useState(false);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-
-  // 🧠 Tooltip Profile State
-  const [hoverProfile, setHoverProfile] = useState(null);
-  const [showProfileCard, setShowProfileCard] = useState(false);
-  const hoverTimeout = useRef(null);
 
   const {
     feedId = "",
@@ -62,432 +43,219 @@ const Postcard = ({ postData = {}, authUser, token, onHidePost, onNotInterested 
     type = "image",
     caption = "",
     likesCount: initialLikes = 0,
-    commentsCount: initialComments = 0,
     timeAgo = "",
-  } = postData;
+  } = postData || {};
 
+  const tempUser = authUser || { _id: "guest", userName: "You" };
+
+  // Local state
+  const [isLiked, setIsLiked] = useState(postData.isLiked || false);
+  const [isSaved, setIsSaved] = useState(postData.isSaved || false);
+  const [comments, setComments] = useState([]);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikes);
-  const [commentsCount] = useState(initialComments);
-  const tempUser = authUser || { _id: "guestUser", userName: "You" };
+  const [isFollowing, setIsFollowing] = useState(postData?.isFollowing || false);
+  const [loading, setLoading] = useState(true);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  // ✅ Simulated loading
+  // fetchComments on demand only
+  const fetchComments = useCallback(async () => {
+    try {
+      const res = await api.post(`/api/get/comments/for/feed`, { feedId });
+      setComments(res.data.comments?.slice(0, 10) || []);
+    } catch (err) {
+      console.error("Comments error:", err);
+    }
+  }, [feedId]);
+
+  // Simulated initial shimmer — kept small
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setLoading(false), 180);
+    return () => clearTimeout(t);
   }, [postData]);
 
-  // ✅ Video autoplay/pause
-  useEffect(() => {
-    if (!videoRef.current || type !== "video") return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            videoRef.current.play();
-            setIsPlaying(true);
-          } else {
-            videoRef.current.pause();
-            setIsPlaying(false);
-          }
-        });
-      },
-      { threshold: 0.7 }
-    );
-    observer.observe(videoRef.current);
-    return () => observer.disconnect();
-  }, [type]);
+  // video control toggles
+  const togglePlayPause = useCallback(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    isPlaying ? vid.pause() : vid.play();
+    setIsPlaying((p) => !p);
+  }, [isPlaying]);
 
-  // 🎥 Video control
-  const togglePlayPause = () => {
-    if (!videoRef.current) return;
-    isPlaying ? videoRef.current.pause() : videoRef.current.play();
-    setIsPlaying(!isPlaying);
-  };
+  const toggleMute = useCallback(() => {
+    const vid = videoRef.current;
+    if (vid) vid.muted = !isMuted;
+    setIsMuted((p) => !p);
+  }, [isMuted]);
 
-  const toggleMute = () => {
-    setIsMuted((prev) => !prev);
-    if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
-  };
+  const handleFollow = useCallback(async () => {
+  try {
+    setIsFollowing(true); // optimistic update
+    await api.post("/api/user/follow/creator", {
+      userId,                 // creator to follow
+      currentUserId: tempUser._id,
+    });
 
-  // ❤️ Like
-  const handleLikeFeed = async () => {
-    const newLiked = !isLiked;
-    setIsLiked(newLiked);
-    setLikesCount((prev) => (newLiked ? prev + 1 : Math.max(prev - 1, 0)));
+    toast.success("Following");
+  } catch (err) {
+    setIsFollowing(false); // revert on fail
+    toast.error(err?.response?.data?.message || "Follow failed");
+  }
+}, [userId, tempUser._id]);
+
+// --- UNFOLLOW USER ---
+const handleUnfollow = useCallback(async () => {
+  try {
+    setIsFollowing(false); // optimistic
+    await api.post("/api/user/unfollow/creator", {
+      userId,
+      currentUserId: tempUser._id,
+    });
+
+    toast.success("Unfollowed");
+  } catch (err) {
+    setIsFollowing(true);
+    toast.error(err?.response?.data?.message || "Unfollow failed");
+  }
+}, [userId, tempUser._id]);
+
+  // like action (optimistic)
+  const handleLikeFeed = useCallback(async () => {
+    const updated = !isLiked;
+    setIsLiked(updated);
+    setLikesCount((p) => (updated ? p + 1 : Math.max(p - 1, 0)));
     try {
       await api.post("/api/user/feed/like", { feedId, userId: tempUser._id });
-    } catch (err) {
-      console.error("Like failed:", err);
-      setIsLiked(!newLiked);
+    } catch {
+      setIsLiked(!updated);
+      toast.error("Failed to update like");
     }
-  };
+  }, [isLiked, feedId, tempUser._id]);
 
-  // 💾 Save
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
       const res = await api.post("/api/user/feed/save", { feedId });
-      const savedIds = res.data.savedFeeds?.map((f) => f.feedId) || [];
-      const saved = savedIds.includes(feedId);
+      const saved = res.data.savedFeeds?.some((f) => f.feedId === feedId);
       setIsSaved(saved);
-      setToastMsg(saved ? "Post saved!" : "Post unsaved!");
-    } catch (err) {
-      console.error("Save error:", err);
-      setToastMsg("Error saving post");
+      toast.success(saved ? "Saved!" : "Removed!");
+    } catch {
+      toast.error("Save failed");
     }
-  };
+  }, [feedId]);
 
-  // ⬇️ Download
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     try {
-      const res = await api.post(
-        "/api/user/feed/download",
-        { feedId },
-        { responseType: "blob" }
-      );
-      const contentType = res.headers["content-type"];
-      const ext = contentType?.split("/")[1] || (type === "image" ? "jpg" : "mp4");
-      const blob = new Blob([res.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.setAttribute("download", `post-${feedId}.${ext}`);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      setToastMsg("Downloaded successfully!");
-    } catch (err) {
-      console.error("Download failed:", err);
-      setToastMsg("Download failed.");
-    }
-  };
-
-  // 👤 Follow/Unfollow
-  const handleFollowToggle = async (shouldFollow) => {
-    if (isFollowLoading) return;
-    setIsFollowLoading(true);
-    try {
-      const url = shouldFollow
-        ? "/api/user/follow/creator"
-        : "/api/user/unfollow/creator";
-      const res = await api.post(
-        url,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.status === 200) {
-        setIsFollowing(shouldFollow);
-        setToastMsg(
-          shouldFollow ? "✅ Followed successfully!" : "👋 Unfollowed successfully!"
-        );
+      const res = await api.post("/api/user/feed/download", { feedId });
+      const link = res.data?.downloadLink;
+      if (link) {
+        const a = document.createElement("a");
+        a.href = link;
+        a.download = `post-${feedId}`;
+        a.click();
+        return toast.success("Downloaded!");
       }
-    } catch (err) {
-      console.error("Follow toggle error:", err.response?.data || err.message);
-      setToastMsg(err.response?.data?.message || "Action failed");
-    } finally {
-      setIsFollowLoading(false);
+      toast.error("Could not download");
+    } catch {
+      toast.error("Download failed");
     }
-  };
+  }, [feedId]);
 
-  // 📤 Share
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/post/${feedId}`;
-    if (navigator.share) {
-      navigator
-        .share({ title: "Check this post", text: caption, url: shareUrl })
-        .catch(() => setToastMsg("Share failed."));
-    } else {
-      navigator.clipboard
-        .writeText(shareUrl)
-        .then(() => setToastMsg("Link copied!"))
-        .catch(() => setToastMsg("Failed to copy link"));
+const handleShare = useCallback(async () => {
+  try {
+    // Request backend to log/share
+    const { data } = await api.post("/api/user/feed/share", {
+      feedId,
+      userId: tempUser._id,
+    });
+
+    // FRONTEND SHARE URL (Universal)
+    const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
+
+    // Copy to clipboard
+    await navigator.clipboard.writeText(shareUrl);
+
+    toast.success("Share link copied!");
+  } catch (err) {
+    console.error("Share error:", err);
+    toast.error(err?.response?.data?.message || "Share failed");
+  }
+}, [feedId, tempUser._id]);
+
+
+
+  // double-tap handler (passed to PostMedia)
+  const handleDoubleTap = useCallback(() => {
+    if (!isLiked) {
+      setIsLiked(true);
+      setLikesCount((p) => p + 1);
+      api.post("/api/user/feed/like", { feedId, userId: tempUser._id }).catch(() => {});
     }
-  };
+    // show quick heart animation inside PostMedia via prop (PostMedia will show it visually)
+  }, [isLiked, feedId, tempUser._id]);
 
-  // 👁️‍🗨️ Hover profile preview fetch
-  const fetchProfilePreview = async (id) => {
-    try {
-      const res = await api.get(`/api/user/profile/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setHoverProfile(res.data?.profile || null);
-    } catch (err) {
-      console.error("Profile preview fetch error:", err);
-    }
-  };
-
-  const handleMouseEnter = () => {
-    if (!userId) return;
-    hoverTimeout.current = setTimeout(() => {
-      fetchProfilePreview(userId);
-      setShowProfileCard(true);
-    }, 400);
-  };
-
-  const handleMouseLeave = () => {
-    clearTimeout(hoverTimeout.current);
-    setShowProfileCard(false);
-  };
-
-  // 🦴 Loading skeleton
   if (loading) {
-    return (
-      <Card sx={{ maxWidth: 600, mx: "auto", mb: 3, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" spacing={1} p={2}>
-          <Skeleton variant="circular" width={40} height={40} />
-          <Stack flex={1}>
-            <Skeleton variant="text" width="40%" />
-            <Skeleton variant="text" width="20%" />
-          </Stack>
-        </Stack>
-        <Skeleton variant="rectangular" width="100%" height={480} />
-      </Card>
-    );
+    return <div className="w-full h-80 bg-gray-200 animate-pulse rounded-2xl mx-auto" />;
   }
 
-  // 🧩 Main Postcard
   return (
-    <Card
-      sx={{
-        width: "100%",
-        maxWidth: 600,
-        mx: "auto",
-        mb: 4,
-        borderRadius: 3,
-        boxShadow: "0px 3px 10px rgba(0,0,0,0.08)",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      {/* 🧠 Header */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        p={2}
-        onMouseLeave={handleMouseLeave}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ cursor: "pointer", position: "relative" }}
-          onMouseEnter={handleMouseEnter}
-          onClick={() => navigate(`/profile/${userId}`)}
-        >
-          <Avatar src={profileAvatar} sx={{ width: 44, height: 44 }} />
-          <Stack>
-            <Typography fontWeight={600}>{userName}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {timeAgo || "Recently"}
-            </Typography>
-          </Stack>
+    <div className={FEED_CARD_STYLE}>
+      <PostHeader
+        userId={userId}
+        userName={userName}
+        profileAvatar={profileAvatar}
+        timeAgo={timeAgo}
+        navigate={navigate}
+        feedId={feedId}
+        tempUser={tempUser}
+        token={token}
+        dec={postData.description}
+        onHidePost={onHidePost}
+        onNotInterested={onNotInterested}
+          isFollowing={postData.isFollowing}              
+  onFollow={handleFollow}                
+  onUnfollow={handleUnfollow}
+      />
 
-          {/* 🔥 Hover Profile Preview */}
-          {showProfileCard && hoverProfile && (
-            <Paper
-              elevation={5}
-              sx={{
-                p: 2,
-                width: 240,
-                borderRadius: 3,
-                backgroundColor: "#fff",
-                position: "absolute",
-                top: "60px",
-                left: "0",
-                zIndex: 50,
-              }}
-            >
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar
-                  src={hoverProfile.profileAvatar || "https://i.pravatar.cc/100"}
-                  sx={{ width: 44, height: 44 }}
-                />
-                <Stack>
-                  <Typography fontWeight={600}>
-                    {hoverProfile.userName || "Unknown"}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {hoverProfile.bio || "No bio available"}
-                  </Typography>
-                </Stack>
-              </Stack>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                Followers: {hoverProfile.followerCount || 0}
-              </Typography>
-              {tempUser._id !== userId && (
-                <Button
-                  fullWidth
-                  size="small"
-                  sx={{ mt: 1, textTransform: "none", borderRadius: "10px" }}
-                  variant={hoverProfile.isFollowing ? "outlined" : "contained"}
-                  color={hoverProfile.isFollowing ? "secondary" : "primary"}
-                  onClick={() => handleFollowToggle(!hoverProfile.isFollowing)}
-                >
-                  {hoverProfile.isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              )}
-            </Paper>
-          )}
-        </Stack>
+      <PostMedia
+        type={type}
+        contentUrl={contentUrl}
+        videoRef={videoRef}
+        isMuted={isMuted}
+        isPlaying={isPlaying}
+        togglePlayPause={togglePlayPause}
+        toggleMute={toggleMute}
+        onDoubleTap={handleDoubleTap}
+        preloadNext={nextItem?.contentUrl} // optional hint for preloading the next media
+      />
 
-        <PostOptionsMenu
-          feedId={feedId}
-          authUserId={tempUser._id}
-          token={token}
-          onHidePost={onHidePost}
-          onNotInterested={onNotInterested}
-        />
-      </Stack>
-
-      {/* 🎞️ Media Section (Fixed Height, No Crop) */}
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          height: 480,
-          backgroundColor: "#000",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+      <PostActions
+        isLiked={isLiked}
+        isSaved={isSaved}
+        likesCount={likesCount}
+        post={postData}
+        handleLikeFeed={handleLikeFeed}
+        handleShare={handleShare}
+        handleDownload={handleDownload}
+        handleSave={handleSave}
+        caption={caption}
+        userName={userName}
+        onCommentsClick={() => {
+          fetchComments();
+          setShowCommentsModal(true);
         }}
-      >
-        {type === "image" ? (
-          <CardMedia
-            component="img"
-            image={contentUrl}
-            sx={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain", // 👈 shows full image without cropping
-              backgroundColor: "#000",
-            }}
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={contentUrl}
-            loop
-            muted={isMuted}
-            playsInline
-            onClick={togglePlayPause}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain", // 👈 keeps full video in frame
-              backgroundColor: "#000",
-              cursor: "pointer",
-            }}
-          />
-        )}
-
-        {/* 🎛 Video controls */}
-        {type === "video" && (
-          <>
-            <IconButton
-              onClick={togglePlayPause}
-              sx={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                color: "#fff",
-                bgcolor: "rgba(0,0,0,0.5)",
-                "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-              }}
-            >
-              {isPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
-            </IconButton>
-
-            <IconButton
-              onClick={toggleMute}
-              sx={{
-                position: "absolute",
-                bottom: 16,
-                right: 16,
-                color: "#fff",
-                bgcolor: "rgba(0,0,0,0.5)",
-                "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
-              }}
-            >
-              {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-            </IconButton>
-          </>
-        )}
-      </Box>
-
-      {/* ❤️ Actions */}
-      <Stack px={2} pt={1.5} pb={2}>
-        <Stack direction="row" justifyContent="space-between">
-          <Stack direction="row" spacing={1}>
-            <IconButton onClick={handleLikeFeed}>
-              {isLiked ? <FavoriteIcon sx={{ color: "red" }} /> : <FavoriteBorderIcon />}
-            </IconButton>
-            <IconButton onClick={() => setShowCommentsModal(true)}>
-              <ChatBubbleOutlineIcon />
-            </IconButton>
-            <IconButton onClick={handleShare}>
-              <ShareOutlinedIcon />
-            </IconButton>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <IconButton onClick={handleDownload}>
-              <DownloadIcon />
-            </IconButton>
-            <IconButton onClick={handleSave}>
-              {isSaved ? <BookmarkIcon sx={{ color: "primary.main" }} /> : <BookmarkBorderIcon />}
-            </IconButton>
-          </Stack>
-        </Stack>
-
-        <Typography fontWeight={500} sx={{ mt: 0.5 }}>
-          {likesCount} likes
-        </Typography>
-
-        {caption && (
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 0.5,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            <b>{userName}</b> {caption}
-          </Typography>
-        )}
-
-        {commentsCount > 0 && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5, cursor: "pointer" }}
-            onClick={() => setShowCommentsModal(true)}
-          >
-            View all {commentsCount} comments
-          </Typography>
-        )}
-      </Stack>
+      />
 
       <PostCommentsModal
         open={showCommentsModal}
         onClose={() => setShowCommentsModal(false)}
-        feedId={feedId}
+        post={postData}
         authUser={tempUser}
+        feedId={feedId}
+        comments={comments}
       />
-
-      <Snackbar
-        open={!!toastMsg}
-        autoHideDuration={2000}
-        onClose={() => setToastMsg("")}
-        message={toastMsg}
-      />
-
-      <SubscriptionModal open={false} onClose={() => {}} />
-    </Card>
+    </div>
   );
-};
+}
 
-export default Postcard;
+export default React.memo(Postcard);

@@ -1,19 +1,22 @@
+
+
+ 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import api from "../../api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationHeader from "./notificationHeader";
 import NotificationItem from "./notificationItem";
 import NotificationPopup from "./notificationPopUpReader";
-import { Trash2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import toast from "react-hot-toast";
-
+ 
 export default function NotificationDropdown({ isOpen, onClose, onUpdateCount }) {
   const [notifications, setNotifications] = useState([]);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const dropdownRef = useRef(null);
   const token = localStorage.getItem("token");
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
-
+ 
   // ✅ Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
@@ -24,7 +27,7 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
       console.error("❌ Fetch error:", err);
     }
   }, []);
-
+ 
   // ✅ Live socket updates
   useEffect(() => {
     const handleNewNotif = (e) => {
@@ -34,12 +37,12 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
     document.addEventListener("socket:newNotification", handleNewNotif);
     return () => document.removeEventListener("socket:newNotification", handleNewNotif);
   }, [onUpdateCount]);
-
+ 
   // ✅ Fetch when dropdown opens
   useEffect(() => {
     if (isOpen) fetchNotifications();
   }, [isOpen, fetchNotifications]);
-
+ 
   // ✅ Mark all as read
   const markAllAsRead = async () => {
     try {
@@ -51,36 +54,42 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
       toast.error("Failed to mark notifications as read");
     }
   };
-
+ 
   // ✅ Delete all notifications
   const handleDeleteAllNotifications = async () => {
     try {
       await api.delete("/api/user/delete/all/notification", authHeader);
       setNotifications([]);
       onUpdateCount?.();
-      toast.success("All notifications deleted 🗑️");
+      toast.success("All notifications deleted");
     } catch (err) {
       console.error("❌ Delete all error:", err);
       toast.error("Failed to delete all notifications");
     }
   };
-
+ 
   // ✅ Mark single notification as read + open popup
-  const handleNotificationClick = async (notif) => {
-    setSelectedNotif(notif);
-    if (!notif.isRead) {
-      try {
-        await api.put("/api/user/read", { notificationId: notif._id }, authHeader);
-        setNotifications((prev) =>
-          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
-        );
-        onUpdateCount?.();
-      } catch (err) {
-        console.error("❌ Mark read error:", err);
-      }
-    }
-  };
+ const handleNotificationClick = async (notif) => {
+  setSelectedNotif({ ...notif });   // <-- send full data
 
+  if (!notif.isRead) {
+    try {
+      await api.put("/api/user/read", { notificationId: notif._id }, authHeader);
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n._id === notif._id ? { ...n, isRead: true } : n
+        )
+      );
+
+      onUpdateCount?.();
+    } catch (err) {
+      console.error("❌ Mark read error:", err);
+    }
+  }
+};
+
+ 
   // ✅ Delete individual notification
   const handleDeleteNotification = async (notifId) => {
     try {
@@ -88,16 +97,16 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
         ...authHeader,
         data: { notificationId: notifId },
       });
-
+ 
       setNotifications((prev) => prev.filter((n) => n._id !== notifId));
       onUpdateCount?.();
-      toast.success("Notification deleted successfully 🗑️");
+      toast.success("Notification deleted successfully");
     } catch (err) {
       console.error("❌ Delete error:", err);
       toast.error("Failed to delete notification");
     }
   };
-
+ 
   // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleOutside = (e) => {
@@ -106,66 +115,88 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [onClose]);
-
+ 
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+ 
   return (
     <>
       <AnimatePresence>
         {isOpen && (
           <motion.div
             ref={dropdownRef}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 top-10 w-96 bg-white rounded-xl shadow-xl border overflow-hidden z-50"
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed sm:absolute right-0 top-14 sm:top-12 w-full sm:w-96 max-w-sm mx-auto sm:mx-0 bg-white rounded-none sm:rounded-xl shadow-2xl sm:shadow-xl border-0 sm:border border-gray-200 overflow-hidden z-50 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[80vh]"
           >
-            {/* ✅ Header with Mark All + Delete All */}
+            {/* Header */}
             <NotificationHeader
               notifications={notifications}
               onMarkAllAsRead={markAllAsRead}
               onDeleteAll={handleDeleteAllNotifications}
+              unreadCount={unreadCount}
+              onClose={onClose}
             />
-
-            {/* ✅ Notification List */}
-            <div className="max-h-96 overflow-y-auto">
+ 
+            {/* Notification List */}
+            <div className="flex-1 overflow-y-auto h-full sm:max-h-96">
               {notifications.length === 0 ? (
-                <p className="text-center py-4 text-gray-400 text-sm">No notifications yet.</p>
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Bell size={28} className="text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
+                  <p className="text-gray-500 text-sm">When you get notifications, they'll appear here</p>
+                </div>
               ) : (
-                notifications.map((notif) => (
-                  <motion.div
-                    key={notif._id}
-                    layout
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="flex items-center justify-between px-3 py-2 border-b hover:bg-gray-50 transition"
-                  >
-                    <div
-                      className="flex-1 cursor-pointer"
-                      onClick={() => handleNotificationClick(notif)}
+                <div className="p-2 sm:p-0">
+                  {notifications.map((notif, index) => (
+                    <motion.div
+                      key={notif._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
                     >
-                      <NotificationItem notif={notif} />
-                    </div>
-
-                    {/* 🗑️ Individual Delete */}
-                    <button
-                      onClick={() => handleDeleteNotification(notif._id)}
-                      className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
-                      title="Delete notification"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </motion.div>
-                ))
+                      <NotificationItem
+                        notif={notif}
+                        onClick={() => handleNotificationClick(notif)}
+                        onDelete={handleDeleteNotification}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </div>
+ 
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="bg-white border-t border-gray-100 p-4 sm:p-3">
+                <button className="w-full text-center text-sm text-gray-700 font-medium hover:text-gray-900 py-3 sm:py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 border border-gray-300">
+                  View All Notifications
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ✅ Notification Reader Popup */}
+ 
+      {/* Backdrop for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 z-40 sm:hidden"
+          onClick={onClose}
+        />
+      )}
+ 
+      {/* Notification Reader Popup */}
       {selectedNotif && (
-        <NotificationPopup notification={selectedNotif} onClose={() => setSelectedNotif(null)} />
+        <NotificationPopup
+          notification={selectedNotif}
+          onClose={() => setSelectedNotif(null)}
+        />
       )}
     </>
   );
 }
+ 

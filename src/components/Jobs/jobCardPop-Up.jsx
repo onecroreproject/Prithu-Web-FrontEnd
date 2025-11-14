@@ -1,228 +1,213 @@
-
+/* ✅ src/components/JobPageComponent/JobDetailsPopup.jsx */
 import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Typography,
-  Box,
-  Stack,
-  IconButton,
-  Avatar,
-  Divider,
-  Button,
-  useMediaQuery,
-  useTheme,
-  Slide,
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-
-// ✅ Transition Animation (Slide-Up + Fade)
-const Transition = React.forwardRef(function Transition(props, ref) {
-  return <Slide direction="up" ref={ref} {...props} timeout={400} />;
-});
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
 const JobDetailsPopup = ({ open, onClose, job }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  if (!job) return null;
+  if (!open || !job) return null;
 
   const {
+    _id,
     title,
     companyName,
+    category,
     location,
-    salaryRange,
-    description,
+    jobRole,
+    jobType,
+    salary,
     experience,
-    contactLink,
-    mobileNumber,
+    description,
     image,
-    profileAvatar,
-    userName,
+    tags = [],
+    postedBy = {},
+    status,
+    isApproved,
+    isPaid,
+    startDate,
+    endDate,
+    postedAt,
   } = job;
 
+  const tagArray =
+    typeof tags === "string"
+      ? tags.split(",").map((t) => t.trim()).filter(Boolean)
+      : tags;
+
+  const formatDate = (date) =>
+    date
+      ? new Date(date).toLocaleDateString("en-IN", { dateStyle: "medium" })
+      : "—";
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      TransitionComponent={Transition}
-      fullScreen
-      PaperProps={{
-        sx: {
-          bgcolor: "#fff",
-          overflow: "hidden",
-        },
-      }}
-    >
-      {/* ---------- Header ---------- */}
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          px: { xs: 2, md: 4 },
-          py: { xs: 1.5, md: 2 },
-          bgcolor: "#f9fafb",
-          borderBottom: "1px solid #e5e7eb",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        <Typography
-          fontWeight={700}
-          fontSize={{ xs: "1rem", md: "1.25rem" }}
-          color="text.primary"
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
-          {title}
-        </Typography>
-
-        <IconButton
-          onClick={onClose}
-          sx={{
-            bgcolor: "#fff",
-            border: "1px solid #e5e7eb",
-            "&:hover": { bgcolor: "#f3f4f6" },
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-
-      {/* ---------- Content ---------- */}
-      <DialogContent
-        sx={{
-          p: { xs: 2, sm: 3, md: 4 },
-          overflowY: "auto",
-          height: "100%",
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          gap: 3,
-        }}
-      >
-        {/* 🖼️ Left — Image Section */}
-        <Box
-          flex={1}
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            mb: { xs: 2, md: 0 },
-          }}
-        >
-          <img
-            src={
-              image ||
-              "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
-            }
-            alt={title}
-            style={{
-              width: isMobile ? "100%" : "90%",
-              height: isMobile ? "auto" : "80vh",
-              objectFit: "cover",
-              borderRadius: "12px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
-              transition: "transform 0.4s ease",
-            }}
-          />
-        </Box>
-
-        {/* 📄 Right — Job Details Section */}
-        <Box
-          flex={1}
-          sx={{
-            p: { xs: 1, sm: 2 },
-            maxHeight: "80vh",
-            overflowY: "auto",
-          }}
-        >
-          {/* Creator Info */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={2}
-            mb={2}
-            sx={{
-              borderBottom: "1px solid #eee",
-              pb: 1.5,
-            }}
+          {/* 🌿 Modal Container */}
+          <motion.div
+            className="relative w-full h-[600px] max-w-6xl mx-auto bg-white/90 dark:bg-[#1e1e28]/90 backdrop-blur-xl 
+                       border border-white/20 rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(34,197,94,0.3)] flex flex-col md:flex-row"
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
           >
-            <Avatar
-              src={
-                profileAvatar ||
-                "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-              }
-              alt={userName}
-              sx={{ width: 48, height: 48 }}
-            />
-            <Typography fontWeight={600} fontSize="1rem">
-              {userName}
-            </Typography>
-          </Stack>
+            {/* 🌈 Mobile Header */}
+            <div className="md:hidden relative bg-gradient-to-r from-emerald-500 via-green-500 to-lime-500 text-white py-3 text-center">
+              <h2 className="text-lg font-semibold tracking-wide drop-shadow-md">
+                {title}
+              </h2>
+            </div>
 
-          {/* Company Info */}
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}
-          >
-            {companyName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {location}
-          </Typography>
+            {/* 🖼️ Left Section — Job Image */}
+            <div className="relative md:w-1/2 w-full h-64 md:h-auto overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+              {/* 🔹 Blurred Background */}
+              <img
+                src={
+                  image ||
+                  "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
+                }
+                alt={title}
+                className="absolute inset-0 w-full h-full object-cover blur-lg scale-105 opacity-70"
+              />
 
-          <Divider sx={{ my: 2 }} />
+              {/* 🔹 Foreground (clear) Image */}
+              <img
+                src={
+                  image ||
+                  "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"
+                }
+                alt={title}
+                className="relative z-10 w-full h-full object-contain transition-transform duration-500"
+              />
 
-          {/* Job Description */}
-          <Typography
-            variant="body1"
-            color="text.primary"
-            sx={{
-              mb: 2,
-              lineHeight: 1.6,
-              whiteSpace: "pre-line",
-            }}
-          >
-            {description || "No description provided."}
-          </Typography>
+              {/* 🔹 Mobile Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:hidden"></div>
+            </div>
 
-          <Stack spacing={0.6} mb={2}>
-            <Typography variant="body2" color="text.secondary">
-              <strong>Experience:</strong> {experience}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              <strong>Salary:</strong> {salaryRange}
-            </Typography>
-          </Stack>
-
-          {/* Contact Info */}
-          {contactLink && (
-            <Box mt={2}>
-              <Button
-                href={contactLink}
-                target="_blank"
-                variant="contained"
-                color="primary"
-                sx={{
-                  borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 500,
-                }}
+            {/* 📋 Right Section — Job Details */}
+            <div className="flex-1 flex flex-col justify-between p-5 md:p-8 overflow-y-auto max-h-[90vh] relative">
+              {/* ❌ Close Button */}
+              <button
+                onClick={onClose}
+                className="absolute top-3 right-3 text-white bg-black hover:text-black hover:bg-white rounded-full transition"
               >
-                Contact via Link
-              </Button>
-            </Box>
-          )}
+                <X className="w-6 h-6" />
+              </button>
 
-          {mobileNumber && (
-            <Typography mt={2} variant="body2">
-              📞 <strong>Mobile:</strong> {mobileNumber}
-            </Typography>
-          )}
-        </Box>
-      </DialogContent>
-    </Dialog>
+              <div>
+                {/* Job Title & Company */}
+                <div className="hidden md:block mb-3">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {title}
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {companyName} — {location}
+                  </p>
+                </div>
+
+                {/* 👤 Posted By */}
+                <div className="flex items-center gap-3 mt-3">
+                  <img
+                    src={
+                      postedBy.profileAvatar ||
+                      "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                    }
+                    alt={postedBy.userName}
+                    className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      Posted by{" "}
+                      <span className="font-semibold">
+                        {postedBy.userName || "Unknown User"}
+                      </span>
+                    </p>
+                    {postedBy.email && (
+                      <p className="text-xs text-gray-500">{postedBy.email}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 📊 Job Info */}
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300 mt-4 mb-4">
+                  <p>
+                    <strong>Experience:</strong> {experience || "—"}
+                  </p>
+                  <p>
+                    <strong>Salary:</strong> {salary || "—"}
+                  </p>
+                  <p>
+                    <strong>Job Role:</strong> {jobRole || "—"}
+                  </p>
+                  <p>
+                    <strong>Job Type:</strong> {jobType || "—"}
+                  </p>
+                  <p>
+                    <strong>Category:</strong> {category || "—"}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {location || "—"}
+                  </p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={`font-semibold ${
+                        status === "active"
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {status || "—"}
+                    </span>
+                  </p>
+
+                  <p>
+                    <strong>Posted:</strong> {postedAt || "—"}
+                  </p>
+                  <p>
+                    <strong>End Date:</strong> {formatDate(endDate)}
+                  </p>
+                </div>
+
+                {/* 🏷️ Tags */}
+                {tagArray.length > 0 && (
+                  <div className="mb-4">
+                    <strong className="text-gray-900 dark:text-white">
+                      Tags:
+                    </strong>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {tagArray.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 text-xs font-semibold rounded-full"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 📝 Description */}
+                <div className="mb-4">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Description:
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-[#2a2a37] border border-gray-200 dark:border-gray-700 rounded-lg p-3 leading-relaxed">
+                    {description || "No description provided."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
