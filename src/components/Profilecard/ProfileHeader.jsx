@@ -121,12 +121,12 @@ const handleSaveCrop = async () => {
     { id: "portfolio", Icon: FolderGit2, label: "Portfolio" },
     { id: "more", Icon: MoreHorizontal, label: "More" },
   ];
-
+console.log(user)
   const handleTabClick = (tab) => {
     setActiveTab(tab.id);
 
     if (tab.id === "portfolio" && id) {
-      navigate(`/portfolio/${id}`);
+      navigate(`/portfolio/${user.userName}`);
     } else if (tab.id === "portfolio" && !id) {
       toast.error("User ID not found!");
     }

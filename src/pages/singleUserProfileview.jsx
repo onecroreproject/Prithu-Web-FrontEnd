@@ -26,7 +26,7 @@ const SingleUserProfilelayout = () => {
     animate: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -15, scale: 0.98 },
   };
-
+console.log(username)
   // 🔹 Fetch profile by username
   useEffect(() => {
     const fetchProfileByUsername = async () => {

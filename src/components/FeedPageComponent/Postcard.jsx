@@ -163,24 +163,40 @@ const handleUnfollow = useCallback(async () => {
 
 const handleShare = useCallback(async () => {
   try {
-    // Request backend to log/share
+    // Backend log/share API
     const { data } = await api.post("/api/user/feed/share", {
       feedId,
       userId: tempUser._id,
     });
 
-    // FRONTEND SHARE URL (Universal)
+    // UNIVERSAL SHARE URL
     const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
 
-    // Copy to clipboard
-    await navigator.clipboard.writeText(shareUrl);
+    // If mobile/desktop supports Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Check this post",
+          text: "Look at this post!",
+          url: shareUrl,
+        });
 
-    toast.success("Share link copied!");
+        toast.success("Shared successfully");
+        return;
+      } catch (error) {
+        console.warn("Native share cancelled or failed → fallback");
+      }
+    }
+
+    // Fallback: Copy to clipboard
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success("Share link copied to clipboard!");
   } catch (err) {
     console.error("Share error:", err);
     toast.error(err?.response?.data?.message || "Share failed");
   }
 }, [feedId, tempUser._id]);
+
 
 
 

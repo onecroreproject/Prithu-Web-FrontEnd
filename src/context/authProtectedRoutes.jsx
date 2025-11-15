@@ -6,10 +6,11 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (!token) {
-    // Redirect to login page, but keep the original destination
-    return (
-      <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} />
+    const redirectUrl = encodeURIComponent(
+      location.pathname + location.search
     );
+
+    return <Navigate to={`/login?redirect=${redirectUrl}`} replace />;
   }
 
   return children;

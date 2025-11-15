@@ -34,6 +34,7 @@ import SingleUserProfilelayout from "./pages/singleUserProfileview.jsx";
 import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx";
 import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
 import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
+import { Feed } from "@mui/icons-material";
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -108,6 +109,7 @@ function AppRoutes() {
       <Route path="/user/profile/:username" element={<SingleUserProfilelayout/>} />
       <Route path="/referral" element={<ReferralUnderConstruction/>} />
       <Route path="/job/view/:id" element={<SearchJobDetailsPopup/>}/>
+      <Route path="/feed" element={<Feed/>}/>
 
       {/* ✅ Shared Post Redirect Route */}
       <Route
