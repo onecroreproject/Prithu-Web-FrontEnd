@@ -1,5 +1,5 @@
 // ✅ src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext,useCallback } from "react";
 import { useNavigate,useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
 
   // ---------------------- 🧩 Auth Actions ----------------------
 
- const register = async ({
+const register = async ({
   username,
   email,
   password,
@@ -104,11 +104,10 @@ export const AuthProvider = ({ children }) => {
 
     toast.success("🎉 Account created successfully!");
 
-    // ✅ Get redirect param from current URL (if user came from a shared post)
+    // Read redirect param (from shared link)
     const params = new URLSearchParams(window.location.search);
     const redirectPath = params.get("redirect");
 
-    // ✅ After registration, go to login with same redirect parameter preserved
     if (redirectPath) {
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
     } else {
@@ -124,13 +123,13 @@ export const AuthProvider = ({ children }) => {
   }
 };
 
+
 /**
  * 🔐 Login with redirect support (and device-aware session)
  */
 const login = async ({ identifier, password }) => {
   setLoading(true);
   try {
-    // ✅ 1️⃣ Check for stored deviceId
     let storedDeviceId = localStorage.getItem("deviceId");
     let deviceType, os, browser;
 
@@ -142,10 +141,10 @@ const login = async ({ identifier, password }) => {
       browser = deviceDetails.browser;
       localStorage.setItem("deviceId", storedDeviceId);
     } else {
-      const { deviceType: dType, os: dOs, browser: dBrowser } = getDeviceDetails();
-      deviceType = dType;
-      os = dOs;
-      browser = dBrowser;
+      const deviceDetails = getDeviceDetails();
+      deviceType = deviceDetails.deviceType;
+      os = deviceDetails.os;
+      browser = deviceDetails.browser;
     }
 
     const existingSessionId = localStorage.getItem("sessionId");
@@ -160,14 +159,12 @@ const login = async ({ identifier, password }) => {
       sessionId: existingSessionId || null,
     };
 
-   
-
     const { data } = await api.post("/api/auth/user/login", loginPayload);
     const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
 
     if (!accessToken) throw new Error("Invalid login response");
 
-    // ✅ Save credentials
+    // Save tokens
     localStorage.setItem("token", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("sessionId", newSessionId);
@@ -179,40 +176,52 @@ const login = async ({ identifier, password }) => {
     setSessionId(newSessionId);
 
     await fetchUserProfile(accessToken);
-    toast.success("✅ Logged in successfully!");
+    
 
-    // ✅  Redirect logic (handles shared post redirect)
+
+    // -------------------------------
+    // FIX: Remove redirect from URL
+    // -------------------------------
+    window.history.replaceState({}, "", "/login");
+
+    // --------------------------------
+    // Redirect logic (correct)
+    // --------------------------------
     const params = new URLSearchParams(window.location.search);
     const redirectPath = params.get("redirect");
 
     if (redirectPath) {
-      navigate(redirectPath, { replace: true });
+      const decoded = decodeURIComponent(redirectPath);
+      navigate(decoded, { replace: true });
     } else {
       navigate("/", { replace: true });
     }
 
+
   } catch (err) {
     console.error("Login Error:", err);
-    toast.error(err.response?.data?.error || "Login failed ❌");
+  
   } finally {
     setLoading(false);
   }
 };
 
 
+
   /**
    * 👤 Fetch user profile
    */
-  const fetchUserProfile = async (customToken) => {
-    try {
-      const res = await api.get("/api/get/profile/detail", {
-        headers: { Authorization: `Bearer ${customToken || token}` },
-      });
-      setUser(res.data.profile || null);
-    } catch (err) {
-      console.warn("❌ Failed to fetch profile:", err.message);
-    }
-  };
+ const fetchUserProfile = useCallback(async (customToken) => {
+  try {
+    const res = await api.get("/api/get/profile/detail", {
+      headers: { Authorization: `Bearer ${customToken || token}` },
+    });
+    setUser(res.data.profile);
+  } catch (err) {
+    console.warn("❌ Failed to fetch profile:", err.message);
+  }
+}, [token]);
+
 
   /**
    * 📩 Forgot Password Flows
