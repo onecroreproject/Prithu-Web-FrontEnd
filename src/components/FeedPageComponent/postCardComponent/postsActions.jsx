@@ -11,10 +11,12 @@ import {
 const PostActions = ({
   isLiked,
   likesCount = 0,
+  shareCount=0,
   handleLikeFeed,
   handleShare,
   handleDownload,
   post,
+  commentCount,
   onCommentsClick,
 }) => {
 
@@ -22,14 +24,14 @@ const PostActions = ({
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
 
-  const [localSharesCount, setLocalSharesCount] = useState(post.sharesCount || 0);
+  const [localSharesCount, setLocalSharesCount] = useState(post.shareCount || 0);
   const [localDownloadsCount, setLocalDownloadsCount] = useState(post.downloadsCount || 0);
 
   // Sync when feed changes
   useEffect(() => {
     setLocalLiked(isLiked);
     setLocalLikesCount(likesCount);
-    setLocalSharesCount(post.sharesCount || 0);
+    setLocalSharesCount(post.shareCount || 0);
     setLocalDownloadsCount(post.downloadsCount || 0);
   }, [isLiked, likesCount, post.sharesCount, post.downloadsCount]);
 
@@ -93,7 +95,7 @@ const PostActions = ({
 
         {/* 💬 Comments + Shares + Downloads */}
         <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <span>{post.commentsCount} comments</span>
+          <span>{commentCount} comments</span>
           <span>{localSharesCount} shares</span>
           <span>{localDownloadsCount} downloads</span>
         </div>

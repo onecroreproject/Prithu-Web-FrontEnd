@@ -6,7 +6,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-quer
 import { getAllFeeds, getTopRankedJobs } from "../Service/feedService";
 
 import Stories from "../components/Stories";
-import Createpost from "../components/Createpost";
+import Createpost from "../components/postCreatedCard";
 import Postcard from "../components/FeedPageComponent/Postcard";
 import JobCard from "../components/Jobs/jobCard";
 import { Skeleton } from "@mui/material";

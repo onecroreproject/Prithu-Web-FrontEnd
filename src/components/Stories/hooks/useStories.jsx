@@ -140,10 +140,11 @@ export const useStories = () => {
 
   // Fetch replies
 const fetchReplies = async (commentId) => {
+ const  parentCommentId=commentId
   try {
     setReplyLoading((prev) => ({ ...prev, [commentId]: true }));
 
-    const res = await api.post('/api/get/comments/relpy/for/feed', { commentId });
+    const res = await api.post('/api/get/comments/relpy/for/feed', { parentCommentId });
 
     setReplies((prev) => ({
       ...prev,
@@ -158,35 +159,40 @@ const fetchReplies = async (commentId) => {
 
 
   // Post reply
-const postReply = async (feedId, commentId) => {
-  const text = replyInputs[commentId];
-  if (!text?.trim()) return;
-
+const postReply = async ({ feedId, parentCommentId, replyText }) => {
   try {
     const res = await api.post('/api/user/feed/reply/comment', {
       feedId,
-      parentCommentId: commentId,
-      commentText: text,
+      parentCommentId:parentCommentId.parentCommentId,
+      commentText:parentCommentId.replyText,
     });
 
-    const replyObj = res.data?.comment; // ⬅ backend sends { comment: {...} }
+    const replyObj = res.data?.comment;
+    if (!replyObj) return;
 
-    setReplies((prev) => ({
+    setReplies(prev => ({
       ...prev,
-      [commentId]: [...(prev[commentId] || []), replyObj],
+      [parentCommentId]: [...(prev[parentCommentId] || []), replyObj],
     }));
 
-    setReplyInputs((prev) => ({ ...prev, [commentId]: "" }));
+    setReplyInputs(prev => ({
+      ...prev,
+      [parentCommentId]: "",
+    }));
   } catch (err) {
     console.error("Reply failed:", err);
   }
 };
 
 
+
+
   // Like reply
  const likeReply = async (replyId, commentId) => {
+  console.log({replyId, commentId})
+  const replyCommentId =replyId
   try {
-    const { data } = await api.post('/api/user/comment/reply/like', { replyId });
+    const { data } = await api.post('/api/user/replycomment/like', { replyCommentId });
 
     setReplies((prev) => ({
       ...prev,

@@ -1,9 +1,50 @@
-// ✅ src/components/jobs/LatestOpenings.jsx
-import React, { memo } from "react";
+import React, { useState, memo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchRankedJobs } from "../../../Service/jobservice";
+import UnifiedJobPopup from "./unifiedJobPopUp";
 import { Flame, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
-const LatestOpenings = ({ openings = [], onOpeningSelect }) => {
+export default function JobLatestOpeningsCard() {
+  
+   const { data: jobs = [], isLoading, isError } = useQuery({
+      queryKey: ["rankedJobs"],
+      queryFn: fetchRankedJobs,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
+
+  const latestOpenings = jobs
+    .slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
+
+  const [popup, setPopup] = useState({ open: false, data: null });
+  const openPopup = (data) => setPopup({ open: true, data });
+  const closePopup = () => setPopup({ open: false, data: null });
+
+  if (isLoading) return <div className="p-4 bg-white rounded-xl">Loading…</div>;
+  if (isError) return <div className="p-4 bg-red-100 rounded-xl">Error</div>;
+
+  return (
+    <div className="bg-white dark:bg-[#1b1b1f] rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+      <LatestOpenings openings={latestOpenings} onOpeningSelect={openPopup} />
+
+      <UnifiedJobPopup
+        open={popup.open}
+        onClose={closePopup}
+        type="role"
+        data={popup.data}
+        allJobs={jobs}
+      />
+    </div>
+  );
+}
+
+/* ============================================================================
+   ⭐ Combined LatestOpenings Component (Previously LatestOpenings.jsx)
+   ============================================================================ */
+const LatestOpenings = memo(function LatestOpenings({ openings = [], onOpeningSelect }) {
   const fade = {
     hidden: { opacity: 0, y: 8 },
     visible: {
@@ -34,7 +75,7 @@ const LatestOpenings = ({ openings = [], onOpeningSelect }) => {
               variants={fade}
               initial="hidden"
               animate="visible"
-              onClick={() => onOpeningSelect && onOpeningSelect(job)} // ✅ handle click properly
+              onClick={() => onOpeningSelect && onOpeningSelect(job)}
               className="p-3 rounded-lg bg-gray-50/50 dark:bg-[#202024]/50 
                          hover:bg-orange-50 dark:hover:bg-orange-900/20 
                          hover:shadow-sm transition-all duration-200 cursor-pointer"
@@ -64,6 +105,4 @@ const LatestOpenings = ({ openings = [], onOpeningSelect }) => {
       )}
     </div>
   );
-};
-
-export default memo(LatestOpenings);
+});

@@ -52,6 +52,7 @@ function Postcard({
   const [isLiked, setIsLiked] = useState(postData.isLiked || false);
   const [isSaved, setIsSaved] = useState(postData.isSaved || false);
   const [comments, setComments] = useState([]);
+  const [commentCount, setCommentCount] = useState(postData.commentsCount || 0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikes);
@@ -163,16 +164,21 @@ const handleUnfollow = useCallback(async () => {
 
 const handleShare = useCallback(async () => {
   try {
-    // Backend log/share API
-    const { data } = await api.post("/api/user/feed/share", {
+    const shareChannel = navigator.share ? "native_share" : "copy_link";
+    const shareTarget = null;
+
+    // Call backend (log share + save in DB)
+    await api.post("/api/user/feed/share", {
       feedId,
       userId: tempUser._id,
+      shareChannel,
+      shareTarget,
     });
 
-    // UNIVERSAL SHARE URL
+    // Universal share URL
     const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
 
-    // If mobile/desktop supports Web Share API
+    // Native mobile/desktop share
     if (navigator.share) {
       try {
         await navigator.share({
@@ -184,11 +190,11 @@ const handleShare = useCallback(async () => {
         toast.success("Shared successfully");
         return;
       } catch (error) {
-        console.warn("Native share cancelled or failed → fallback");
+        console.warn("Native share cancelled → fallback");
       }
     }
 
-    // Fallback: Copy to clipboard
+    // Fallback: copy link
     await navigator.clipboard.writeText(shareUrl);
     toast.success("Share link copied to clipboard!");
   } catch (err) {
@@ -196,6 +202,7 @@ const handleShare = useCallback(async () => {
     toast.error(err?.response?.data?.message || "Share failed");
   }
 }, [feedId, tempUser._id]);
+
 
 
 
@@ -256,6 +263,7 @@ const handleShare = useCallback(async () => {
         handleSave={handleSave}
         caption={caption}
         userName={userName}
+        commentCount={commentCount}
         onCommentsClick={() => {
           fetchComments();
           setShowCommentsModal(true);
@@ -268,7 +276,9 @@ const handleShare = useCallback(async () => {
         post={postData}
         authUser={tempUser}
         feedId={feedId}
+        setCommentCount={setCommentCount}
         comments={comments}
+       
       />
     </div>
   );

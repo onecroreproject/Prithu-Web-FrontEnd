@@ -22,6 +22,7 @@ const PostHeader = ({
   const [isFollowing, setIsFollowing] = useState(initialFollowState); // <-- local instant update
 
   const descRef = useRef(null);
+console.log(tempUser)
 
   useEffect(() => {
     setIsFollowing(initialFollowState); 
@@ -78,18 +79,18 @@ const PostHeader = ({
 
         {/* Follow Button */}
         <div className="flex items-center gap-2">
-          {tempUser?._id !== userId && (
-            <button
-              onClick={handleToggleFollow}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
-                isFollowing
-                  ? "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
-                  : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isFollowing ? "Unfollow" : "Follow"}
-            </button>
-          )}
+           {tempUser?._id && userId && tempUser.userName !== userId && (
+    <button
+      onClick={handleToggleFollow}
+      className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+        isFollowing
+          ? "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+          : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+      }`}
+    >
+      {isFollowing ? "Unfollow" : "Follow"}
+    </button>
+  )}
 
           <PostOptionsMenu
             feedId={feedId}
