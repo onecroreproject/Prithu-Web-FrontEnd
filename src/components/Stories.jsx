@@ -1,13 +1,13 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useStories } from '../components/Stories/hooks/useStories';
-import StoriesThumbnails from '../components/Stories/storiesThumbnail';
-import StoriesModal from '../components/Stories/storiesModel';
-import MobileStoriesView from '../components/Stories/mobileStoriesView';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useStories } from "../components/Stories/hooks/useStories";
+import StoriesThumbnails from "../components/Stories/storiesThumbnail";
+import StoriesModal from "../components/Stories/storiesModel";
+import MobileStoriesView from "../components/Stories/mobileStoriesView";
 
 const Stories = () => {
   const {
-    // States
+    // states
     feeds,
     selectedFeedIndex,
     thumbnails,
@@ -27,12 +27,12 @@ const Stories = () => {
     showArrows,
     showLeftArrow,
     showRightArrow,
-    
-    // Refs
+
+    // refs
     videoRef,
     scrollContainerRef,
-    
-    // Setters
+
+    // setters
     setSelectedFeedIndex,
     setNewComment,
     setReplyInputs,
@@ -45,8 +45,8 @@ const Stories = () => {
     setShowLeftArrow,
     setShowRightArrow,
     setProgress,
-    
-    // Functions
+
+    // functions
     fetchComments,
     handleAddComment,
     likeComment,
@@ -57,6 +57,7 @@ const Stories = () => {
     toggleSaveFeed,
     shareFeedAction,
     navigateFeed,
+    handleVideoTimeUpdate,
   } = useStories();
 
   const selectedFeed = selectedFeedIndex !== null ? feeds[selectedFeedIndex] : null;
@@ -74,7 +75,7 @@ const Stories = () => {
         feeds={feeds}
         loading={loading}
         thumbnails={thumbnails}
-        setSelectedFeedIndex={setSelectedFeedIndex}
+        setSelectedFeedIndex={(i) => setSelectedFeedIndex(i)}
         fetchComments={fetchComments}
         setProgress={setProgress}
         setIsPaused={setIsPaused}
@@ -87,7 +88,6 @@ const Stories = () => {
         setShowRightArrow={setShowRightArrow}
       />
 
-      {/* Modal */}
       <AnimatePresence>
         {selectedFeedIndex !== null && selectedFeed && (
           <motion.div
@@ -101,14 +101,14 @@ const Stories = () => {
               setIsPaused(false);
               setShowComments(false);
             }}
-            style={{ overflow: 'hidden' }}
+            style={{ overflow: "hidden" }}
           >
-            {/* Desktop Layout */}
+            {/* Desktop */}
             <div className="hidden md:block">
               <StoriesModal
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
-                setSelectedFeedIndex={setSelectedFeedIndex}
+                setSelectedFeedIndex={(i) => setSelectedFeedIndex(i)}
                 setIsPaused={setIsPaused}
                 setShowComments={setShowComments}
                 videoRef={videoRef}
@@ -117,13 +117,17 @@ const Stories = () => {
                 isHovering={isHovering}
                 setIsHovering={setIsHovering}
                 navigateFeed={navigateFeed}
-                // Comments props
-                comments={comments}
+                handleVideoTimeUpdate={handleVideoTimeUpdate}
+
+                // comments (pass array safely)
+                comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
                 commentLoading={commentLoading}
                 newComment={newComment}
                 setNewComment={setNewComment}
-                handleAddComment={handleAddComment}
-                likeComment={likeComment}
+                handleAddComment={() => handleAddComment(selectedFeed._id)}
+                likeComment={(commentId) => likeComment(commentId, selectedFeed._id)}
+
+                // replies
                 replies={replies}
                 replyInputs={replyInputs}
                 setReplyInputs={setReplyInputs}
@@ -131,20 +135,27 @@ const Stories = () => {
                 showReplies={showReplies}
                 setShowReplies={setShowReplies}
                 fetchReplies={fetchReplies}
-                postReply={postReply}
+                postReply={(commentId) =>
+  postReply({
+    feedId: selectedFeed._id,
+    parentCommentId: commentId,
+    replyText: replyInputs[commentId] || ""
+  })}
                 likeReply={likeReply}
-                likeFeedAction={likeFeedAction}
-                toggleSaveFeed={toggleSaveFeed}
-                shareFeedAction={shareFeedAction}
+
+                // feed actions
+                likeFeedAction={(idx) => likeFeedAction(selectedFeed._id, idx)}
+                toggleSaveFeed={() => toggleSaveFeed(selectedFeed._id, selectedFeedIndex)}
+                shareFeedAction={() => shareFeedAction(selectedFeed._id)}
               />
             </div>
 
-            {/* Mobile Layout */}
+            {/* Mobile */}
             <div className="md:hidden">
               <MobileStoriesView
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
-                setSelectedFeedIndex={setSelectedFeedIndex}
+                setSelectedFeedIndex={(i) => setSelectedFeedIndex(i)}
                 videoRef={videoRef}
                 progress={progress}
                 isPaused={isPaused}
@@ -153,12 +164,17 @@ const Stories = () => {
                 showComments={showComments}
                 touchStartTime={touchStartTime}
                 setTouchStartTime={setTouchStartTime}
-                comments={comments}
+                handleVideoTimeUpdate={handleVideoTimeUpdate}
+
+                // comments (array)
+                comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
                 commentLoading={commentLoading}
                 newComment={newComment}
                 setNewComment={setNewComment}
-                handleAddComment={handleAddComment}
-                likeComment={likeComment}
+                handleAddComment={() => handleAddComment(selectedFeed._id)}
+                likeComment={(commentId) => likeComment(commentId, selectedFeed._id)}
+
+                // replies
                 replies={replies}
                 replyInputs={replyInputs}
                 setReplyInputs={setReplyInputs}
@@ -166,11 +182,13 @@ const Stories = () => {
                 showReplies={showReplies}
                 setShowReplies={setShowReplies}
                 fetchReplies={fetchReplies}
-                postReply={postReply}
+                postReply={(commentId) => postReply(selectedFeed._id, commentId)}
                 likeReply={likeReply}
-                likeFeedAction={likeFeedAction}
-                toggleSaveFeed={toggleSaveFeed}
-                shareFeedAction={shareFeedAction}
+
+                // feed actions
+                likeFeedAction={(idx) => likeFeedAction(selectedFeed._id, idx)}
+                toggleSaveFeed={() => toggleSaveFeed(selectedFeed._id, selectedFeedIndex)}
+                shareFeedAction={() => shareFeedAction(selectedFeed._id)}
                 navigateFeed={navigateFeed}
               />
             </div>

@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import StoriesPlayer from './storiesPlayer';
-import CommentsSection from './commentSection';
+import React from "react";
+import { motion } from "framer-motion";
+import StoriesPlayer from "./storiesPlayer";
+import CommentsSection from "./commentSection";
 
 const StoriesModal = ({
   feed,
@@ -15,6 +15,8 @@ const StoriesModal = ({
   isHovering,
   setIsHovering,
   navigateFeed,
+  handleVideoTimeUpdate,
+
   // Comments props
   comments,
   commentLoading,
@@ -22,6 +24,8 @@ const StoriesModal = ({
   setNewComment,
   handleAddComment,
   likeComment,
+
+  // Replies
   replies,
   replyInputs,
   setReplyInputs,
@@ -31,10 +35,12 @@ const StoriesModal = ({
   fetchReplies,
   postReply,
   likeReply,
+
+  // Feed actions
   likeFeedAction,
   toggleSaveFeed,
   shareFeedAction,
-}) => {
+}) => {console.log(postReply)
   return (
     <motion.div
       className="hidden md:flex relative h-[90vh] max-h-[700px] w-[850px] bg-white rounded-lg overflow-hidden mx-auto"
@@ -50,18 +56,20 @@ const StoriesModal = ({
         feed={feed}
         videoRef={videoRef}
         progress={progress}
+        setProgress={() => {}}
         isPaused={isPaused}
-        isHovering={isHovering}
         setIsPaused={setIsPaused}
+        isHovering={isHovering}
+        setIsHovering={setIsHovering}
         navigateFeed={navigateFeed}
         setSelectedFeedIndex={setSelectedFeedIndex}
         setShowComments={setShowComments}
-        fetchComments={() => {}} // Handled in navigateFeed
+        handleVideoTimeUpdate={handleVideoTimeUpdate}
       />
 
       <CommentsSection
         feed={feed}
-        comments={comments}
+        comments={comments || []}
         commentLoading={commentLoading}
         newComment={newComment}
         setNewComment={setNewComment}
@@ -80,7 +88,7 @@ const StoriesModal = ({
         toggleSaveFeed={toggleSaveFeed}
         shareFeedAction={shareFeedAction}
         selectedFeedIndex={selectedFeedIndex}
-        showComments={false} // Not used in desktop
+        showComments={false}
         setShowComments={setShowComments}
       />
     </motion.div>

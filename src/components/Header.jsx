@@ -10,7 +10,8 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
-  BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X
+  BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
+  CalendarDays, Briefcase // ⭐ Added icons
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -35,9 +36,9 @@ const TRENDING_CACHE_TTL = 60 * 60 * 1000;
 
 const navItems = [
   { to: "/", label: "Home", Icon: Home },
-  { to: "/search", label: "Search", Icon: Search },
-  { to: "/subscriptions", label: "Subscriptions", Icon: BellRing },
+  { to: "/portfolio", label: "Portfolio", Icon: User },
   { to: "/profile", label: "Profile", Icon: User },
+  { to: "/subscriptions", label: "Subscriptions", Icon: BellRing },
   { to: "/referral", label: "Referral", Icon: Gift },
   { to: "/settings", label: "Settings", Icon: Settings }
 ];
@@ -153,7 +154,6 @@ export default function Header() {
     }
   };
 
-  // -- Score & filter --
   const scoreAndFilter = useCallback((query, items = [], keys = ["name"]) => {
     if (!query) return items;
     const q = query.toLowerCase();
@@ -171,7 +171,6 @@ export default function Header() {
       .map(s => s.item);
   }, []);
 
-  // -- Trending fetch with cache --
   const fetchTrending = async () => {
     try {
       const cacheRaw = localStorage.getItem(TRENDING_CACHE_KEY);
@@ -202,7 +201,6 @@ export default function Header() {
     fetchTrending();
   }, []);
 
-  // -- Search API --
   const performSearch = useCallback(async q => {
     const qs = (q || "").trim();
     if (!qs) {
@@ -232,7 +230,6 @@ export default function Header() {
     [performSearch]
   );
 
-  // -- Derived scored results --
   const scoredResults = useMemo(() => {
     const q = (searchQuery || "").trim();
     return {
@@ -242,7 +239,6 @@ export default function Header() {
     };
   }, [searchResults, searchQuery, scoreAndFilter]);
 
-  // -- Click handlers for search results, history, trending --
   const handleSelectResult = (type, payload) => {
     const text =
       type === "people"
@@ -252,18 +248,23 @@ export default function Header() {
         : type === "jobs"
         ? payload.title || ""
         : payload;
+
     saveToHistory(text);
+
     if (type === "people") {
       navigate(`/user/profile/${payload.userName}`);
     } else if (type === "categories") {
       navigate(`/category/${payload._id}`);
     } else if (type === "jobs") {
       navigate(`/job/view/${payload._id}`);
+    } else if (type === "portfolio") {
+      navigate(`/portfolio/${payload.userName}`);
     } else if (type === "hashtag") {
       navigate(`/hashtag/${encodeURIComponent(payload)}`);
     } else {
       navigate(`/search?q=${encodeURIComponent(text)}`);
     }
+
     setShowSearchDropdown(false);
     setMobileSearchOpen(false);
     setSearchQuery("");
@@ -327,6 +328,7 @@ export default function Header() {
             PRITHU
           </h1>
         </div>
+
         {/* Desktop Search */}
         <SearchBar
           searchQuery={searchQuery}
@@ -347,16 +349,32 @@ export default function Header() {
           handleSelectResult={handleSelectResult}
           searchRef={searchRef}
         />
+
         {/* Actions */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile search button */}
           <button onClick={() => setMobileSearchOpen(true)} className="p-2 rounded-md hover:bg-gray-100 sm:hidden">
             <Search className="w-5 h-5" />
           </button>
+
           {/* Desktop Actions */}
           <div className="hidden sm:flex items-center gap-3">
             <HeaderIcon Icon={Plus} onClick={() => setIsCreatePostOpen(true)} />
             <HeaderIcon Icon={Video} onClick={handleReelClick} active={isReelsActive} />
+
+            {/* ⭐ Event Icon */}
+            <HeaderIcon
+              Icon={CalendarDays}
+              onClick={() => toast("📅 Events coming soon!", { icon: "⏳" })}
+            />
+
+            {/* ⭐ Jobs Icon */}
+            <HeaderIcon
+              Icon={Briefcase}
+              onClick={() => toast("💼 Jobs feature coming soon!", { icon: "⏳" })}
+            />
+
+            {/* Notification */}
             <div ref={notificationRef} className="relative">
               <HeaderIcon Icon={BellRing} badge={notifCount} onClick={() => setNotifOpen((p) => !p)} />
               <NotificationDropdown
@@ -366,8 +384,23 @@ export default function Header() {
               />
             </div>
           </div>
+
           {/* Mobile Actions */}
           <div className="flex sm:hidden items-center gap-2">
+
+            {/* ⭐ Event */}
+            <HeaderIcon
+              Icon={CalendarDays}
+              onClick={() => toast("📅 Events coming soon!", { icon: "⏳" })}
+            />
+
+            {/* ⭐ Jobs */}
+            <HeaderIcon
+              Icon={Briefcase}
+              onClick={() => toast("💼 Jobs coming soon!", { icon: "⏳" })}
+            />
+
+            {/* Notification */}
             <div ref={notificationRef} className="relative">
               <HeaderIcon Icon={BellRing} badge={notifCount} onClick={() => setNotifOpen((p) => !p)} />
               <NotificationDropdown
@@ -376,6 +409,8 @@ export default function Header() {
                 onUpdateCount={fetchNotificationCount}
               />
             </div>
+
+            {/* Hamburger */}
             <button
               onClick={() => setMobileMenuOpen((p) => !p)}
               className="p-2 rounded-md hover:bg-gray-100"
@@ -383,6 +418,7 @@ export default function Header() {
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
+
           {/* Desktop Profile Dropdown */}
           <div ref={dropdownRef} className="relative hidden sm:flex items-center gap-2">
             <motion.button
@@ -393,6 +429,8 @@ export default function Header() {
               <span className="font-medium">{user?.userName || "User"}</span>
               <ProfileAvatar user={user} />
             </motion.button>
+
+            {/* Profile Dropdown */}
             <AnimatePresence>
               {dropdownOpen && (
                 <motion.div
@@ -405,7 +443,11 @@ export default function Header() {
                   {navItems.map(({ to, label, Icon }) => (
                     <NavLink
                       key={to}
-                      to={to}
+                      to={
+                        label === "Portfolio"
+                          ? `/portfolio/${user?.userName || ""}`
+                          : to
+                      }
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50"
                     >
@@ -413,6 +455,8 @@ export default function Header() {
                       {label}
                     </NavLink>
                   ))}
+
+                  {/* Logout */}
                   <button
                     onClick={logout}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 w-full text-left"
@@ -426,6 +470,7 @@ export default function Header() {
           </div>
         </div>
       </motion.header>
+
       {/* Mobile Menu */}
       <MobileMenu
         mobileMenuOpen={mobileMenuOpen}
@@ -438,6 +483,7 @@ export default function Header() {
         handleReelClick={handleReelClick}
         logout={logout}
       />
+
       {/* Mobile menu backdrop */}
       {mobileMenuOpen && (
         <div
@@ -445,6 +491,7 @@ export default function Header() {
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
+
       {/* MOBILE SEARCH (full-screen slide) */}
       <MobileSearchBar
         mobileSearchOpen={mobileSearchOpen}
@@ -463,6 +510,7 @@ export default function Header() {
         scoredResults={scoredResults}
         handleSelectResult={handleSelectResult}
       />
+
       {/* Create Post Modal */}
       <CreatePostModal open={isCreatePostOpen} onClose={() => setIsCreatePostOpen(false)} />
     </Fragment>

@@ -8,14 +8,16 @@ export default function MediaUploader({
   onDropFiles,
   onRemoveFile,
   type,
-}) {
+}) 
+
+{
   const acceptedTypes =
     type === "video"
       ? "video/*"
       : type === "image"
       ? "image/*"
       : "image/*,video/*";
-
+console.log(files)
   return (
     <motion.div
       className="mt-4 p-3 border border-dashed border-gray-400 rounded-lg bg-[#F9FAFB] min-h-[120px] flex flex-col items-center justify-center"
@@ -61,7 +63,7 @@ export default function MediaUploader({
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
               >
-                {f.type.startsWith("image/") ? (
+                {f.mime.startsWith("image/") ? (
                   <img
                     src={f.preview}
                     alt=""

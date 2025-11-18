@@ -1,11 +1,13 @@
 // ✅ src/app/Layout.jsx
 import Header from "./Header";
 import Feed from "../pages/Feed";
-import UpcomingEvents from "./UpcomingEvents";
 import Birthdays from "./Birthdays";
-import JobCard from "./jobCard";
-import LeftColumn from "./LeftColumn";
 import { Outlet, useLocation } from "react-router-dom";
+import LeftColumn from "./LeftColumn";
+
+import JobTopRolesCard from "./Jobs/JobCardComponets/topRoles";
+import JobLatestOpeningsCard from "./Jobs/JobCardComponets/latestOpenings";
+import JobFeaturedCompaniesCard from "./Jobs/JobCardComponets/featureCompanies";
 
 export default function Layout() {
   const location = useLocation();
@@ -17,52 +19,52 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#121212]">
-      {/* 🧭 Fixed Header */}
+      {/* -------------------- Fixed Header -------------------- */}
       <Header />
 
-      {/* 🧱 Main Container */}
-      <main className="flex-1 pt-[88px] px-2 sm:px-4 md:px-6 w-full max-w-[1550px] mx-auto">
-        <div className="flex gap-4 md:gap-6">
-          {/* 🧩 LEFT COLUMN */}
+      {/* -------------------- Main Scrollable Content -------------------- */}
+      <main className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto">
+        <div className="flex gap-3 pb-20 lg:pb-0">
+          
+          {/* -------------------- LEFT COLUMN (280px) -------------------- */}
           {showColumns && (
-            <aside className="hidden mt-5 lg:flex w-[220px] flex-shrink-0">
+            <aside className="hidden lg:flex w-[280px] flex-shrink-0 mt-3">
               <LeftColumn />
             </aside>
           )}
 
-          {/* 🏠 CENTER CONTENT */}
+          {/* -------------------- CENTER FEED -------------------- */}
           <section
             className={`flex-1 min-w-0 ${
-              isFullWidth || !isHome ? "" : "max-w-2xl mx-auto"
+              isFullWidth || !isHome ? "" : "w-full"
             }`}
           >
             {isHome ? <Feed /> : <Outlet />}
           </section>
 
-          {/* 🧩 RIGHT COLUMN */}
+          {/* -------------------- RIGHT COLUMN (280px) -------------------- */}
           {showColumns && (
-            <aside className="hidden xl:flex gap-2 w-[600px] flex-shrink-0">
-              <div className="w-[250px] mt-6 flex flex-col gap-3">
-                <UpcomingEvents />
+            <aside className="hidden xl:flex w-[280px] flex-shrink-0 mt-3">
+              <div className="flex flex-col gap-4 w-full">
                 <Birthdays />
-              </div>
-              <div className="flex-1 min-w-[280px]">
-                <JobCard />
+                <JobTopRolesCard />
+                <JobLatestOpeningsCard />
+                <JobFeaturedCompaniesCard />
               </div>
             </aside>
           )}
         </div>
       </main>
 
-      {/* 📱 Mobile Bottom Nav Placeholder */}
-      <div className="lg:hidden" />
+      {/* -------------------- Mobile Bottom Nav Placeholder -------------------- */}
+      <div className="lg:hidden"></div>
 
-      {/* 🎨 Scrollbar Styling */}
+      {/* -------------------- Scrollbar Styling -------------------- */}
       <style>
         {`
           html {
             scrollbar-width: thin;
-            scrollbar-color: rgba(136, 136, 136, 0.5) transparent;
+            scrollbar-color: rgba(136, 136, 136, 0.6) transparent;
           }
           ::-webkit-scrollbar {
             width: 6px;

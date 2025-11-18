@@ -92,7 +92,7 @@ function RegisterForm({ switchMode }) {
         const { data } = await api.get("/api/check/username/availability", {
           params: { username: form.username },
         });
-
+console.log(data)
         if (data.available) {
           setStatus((p) => ({
             ...p,

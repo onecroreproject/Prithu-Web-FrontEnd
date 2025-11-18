@@ -1,9 +1,49 @@
-// ✅ src/components/jobs/FeaturedCompanies.jsx
-import React, { memo } from "react";
+import React, { useState, memo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchRankedJobs } from "../../../Service/jobservice";
+import UnifiedJobPopup from "./unifiedJobPopUp";
 import { Star, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 
-const FeaturedCompanies = ({ companies = [], onCompanySelect }) => {
+export default function JobFeaturedCompaniesCard() {
+   const { data: jobs = [], isLoading, isError } = useQuery({
+      queryKey: ["rankedJobs"],
+      queryFn: fetchRankedJobs,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
+
+  const featuredCompanies = [...new Set(jobs.map((j) => j.companyName))].slice(0, 5);
+
+  const [popup, setPopup] = useState({ open: false, data: null });
+
+  const openPopup = (company) =>
+    setPopup({ open: true, data: { name: company } });
+
+  const closePopup = () => setPopup({ open: false, data: null });
+
+  if (isLoading) return <div className="p-4 bg-white rounded-xl">Loading…</div>;
+  if (isError) return <div className="p-4 bg-red-100 rounded-xl">Error</div>;
+
+  return (
+    <div className="bg-white dark:bg-[#1b1b1f] rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+      <FeaturedCompanies companies={featuredCompanies} onCompanySelect={openPopup} />
+
+      <UnifiedJobPopup
+        open={popup.open}
+        onClose={closePopup}
+        type="company"
+        data={popup.data}
+        allJobs={jobs}
+      />
+    </div>
+  );
+}
+
+/* ============================================================================
+   ⭐ Combined FeaturedCompanies Component
+   ============================================================================ */
+const FeaturedCompanies = memo(function FeaturedCompanies({ companies = [], onCompanySelect }) {
   const fade = {
     hidden: { opacity: 0, y: 6 },
     visible: {
@@ -25,22 +65,23 @@ const FeaturedCompanies = ({ companies = [], onCompanySelect }) => {
         </h3>
       </div>
 
-      {/* Companies List */}
+      {/* List */}
       {companies.length > 0 ? (
         <ul className="grid gap-2 sm:gap-3">
           {companies.map((company, i) => (
             <motion.li
-              key={company?._id || i}
+              key={company?._id || company || i}
               variants={fade}
               initial="hidden"
               animate="visible"
-              onClick={() => onCompanySelect && onCompanySelect(company)} // ✅ Added callback
-              className="flex items-center gap-2 p-3 rounded-lg 
-                         bg-gray-50/50 dark:bg-[#202024]/50 
-                         hover:bg-yellow-50 dark:hover:bg-yellow-900/20 
+              onClick={() => onCompanySelect && onCompanySelect(company)}
+              className="flex items-center gap-2 p-3 rounded-lg
+                         bg-gray-50/50 dark:bg-[#202024]/50
+                         hover:bg-yellow-50 dark:hover:bg-yellow-900/20
                          hover:shadow-sm transition-all duration-200 cursor-pointer"
             >
               <Building2 className="w-4 h-4 text-yellow-500 shrink-0" />
+
               <span className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 truncate">
                 {company?.name || company || "Unnamed Company"}
               </span>
@@ -54,6 +95,4 @@ const FeaturedCompanies = ({ companies = [], onCompanySelect }) => {
       )}
     </div>
   );
-};
-
-export default memo(FeaturedCompanies);
+});

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import SendIcon from "@mui/icons-material/Send";
 import api from "../../api/axios";
 
-const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
+const CommentItem = ({ comment, authUser, feedId, refreshComments, isReply = false }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(comment.isLiked || false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
@@ -14,20 +14,36 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
   const [replyCount, setReplyCount] = useState(comment.replyCount || 0);
   const repliesContainerRef = useRef(null);
 
+  /* ======================================================
+     FETCH REPLIES - MAP REPLY PROPERLY
+  ====================================================== */
   const fetchReplies = useCallback(async () => {
     try {
       const res = await api.post("/api/get/comments/relpy/for/feed", {
         parentCommentId: comment.commentId,
       });
 
-      if (res.data.replies) {
-        setReplies(res.data.replies);
-        setReplyCount(res.data.replies.length);
+      if (res?.data?.replies) {
+        const mappedReplies = res.data.replies.map(r => ({
+          commentId: r.replyId,       // use replyId as commentId internally
+          replyId: r.replyId,         // keep original replyId
+          commentText: r.replyText,
+          likeCount: r.likeCount,
+          isLiked: r.isLiked,
+          username: r.username,
+          avatar: r.avatar,
+          timeAgo: r.timeAgo,
+          replyCount: 0
+        }));
+
+        setReplies(mappedReplies);
+        setReplyCount(mappedReplies.length);
       }
 
       setTimeout(() => {
         if (repliesContainerRef.current) {
-          repliesContainerRef.current.scrollTop = repliesContainerRef.current.scrollHeight;
+          repliesContainerRef.current.scrollTop =
+            repliesContainerRef.current.scrollHeight;
         }
       }, 50);
     } catch (err) {
@@ -39,21 +55,37 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
     if (showReplyBox && replies.length === 0) fetchReplies();
   }, [showReplyBox, fetchReplies, replies.length]);
 
+  /* ======================================================
+     LIKE MAIN COMMENT / LIKE REPLY COMMENT
+  ====================================================== */
   const handleLikeComment = async () => {
     const prevLiked = isLiked;
+
     setIsLiked(!prevLiked);
-    setLikeCount(prevLiked ? Math.max(likeCount - 1, 0) : likeCount + 1);
+    setLikeCount(prevLiked ? likeCount - 1 : likeCount + 1);
 
     try {
-      await api.post("/api/user/comment/like", { commentId: comment.commentId });
+      if (!isReply) {
+        await api.post("/api/user/comment/like", {
+          commentId: comment.commentId,
+        });
+      } else {
+        await api.post("/api/user/replyComment/like", {
+          replyCommentId: comment.replyId, // correct field
+        });
+      }
+
       refreshComments();
     } catch (err) {
       console.error(err);
       setIsLiked(prevLiked);
-      setLikeCount(prevLiked ? likeCount + 1 : Math.max(likeCount - 1, 0));
+      setLikeCount(prevLiked ? likeCount + 1 : likeCount - 1);
     }
   };
 
+  /* ======================================================
+     POST A REPLY (MAIN COMMENT ONLY)
+  ====================================================== */
   const handleReplyPost = async () => {
     if (!replyText.trim()) return;
     try {
@@ -64,9 +96,9 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
       });
 
       setReplyText("");
-      await fetchReplies(); // refresh local replies
-      setReplyCount((prev) => prev + 1);
-      refreshComments(); // optionally refresh parent comment list
+      await fetchReplies();
+      setReplyCount(prev => prev + 1);
+      refreshComments();
     } catch (err) {
       console.error("Reply post error:", err);
     }
@@ -76,19 +108,14 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
     <Stack direction="column" spacing={0.5} sx={{ mb: 2 }}>
       <Stack direction="row" spacing={1} alignItems="flex-start">
         <Avatar
-          src={comment.avatar || comment.user?.profileAvatar}
+          src={comment.avatar}
           sx={{ width: 32, height: 32, cursor: "pointer" }}
-          onClick={() => navigate(`/profile/${comment.user?._id}`)}
         />
+
         <Box sx={{ flex: 1 }}>
           <Typography variant="body2">
-            <b
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate(`/profile/${comment.user?._id}`)}
-            >
-              {comment.username || comment.user?.userName || "Anonymous"}
-            </b>{" "}
-            {comment.commentText || comment.comment}
+            <b style={{ cursor: "pointer" }}>{comment.username}</b>{" "}
+            {comment.commentText}
           </Typography>
 
           <Typography variant="caption" color="textSecondary">
@@ -99,12 +126,15 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
             <Button size="small" onClick={handleLikeComment}>
               {isLiked ? `❤️ ${likeCount}` : `🤍 ${likeCount}`}
             </Button>
-            <Button size="small" onClick={() => setShowReplyBox((prev) => !prev)}>
-              💬 Reply ({replyCount})
-            </Button>
+
+            {!isReply && (
+              <Button size="small" onClick={() => setShowReplyBox(prev => !prev)}>
+                💬 Reply ({replyCount})
+              </Button>
+            )}
           </Stack>
 
-          {showReplyBox && (
+          {!isReply && showReplyBox && (
             <Stack direction="row" spacing={1} mt={1} alignItems="center">
               <TextField
                 variant="standard"
@@ -113,9 +143,9 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
                 onChange={(e) => setReplyText(e.target.value)}
                 fullWidth
                 InputProps={{ disableUnderline: true }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && replyText.trim()) handleReplyPost();
-                }}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && replyText.trim() && handleReplyPost()
+                }
               />
               <IconButton onClick={handleReplyPost} disabled={!replyText.trim()}>
                 <SendIcon fontSize="small" />
@@ -123,15 +153,19 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
             </Stack>
           )}
 
-          {replies.length > 0 && (
-            <Box ref={repliesContainerRef} sx={{ pl: 4, mt: 1, maxHeight: 200, overflowY: "auto" }}>
-              {replies.map((r) => (
+          {!isReply && replies.length > 0 && (
+            <Box
+              ref={repliesContainerRef}
+              sx={{ pl: 4, mt: 1, maxHeight: 200, overflowY: "auto" }}
+            >
+              {replies.map((reply) => (
                 <CommentItem
-                  key={r.commentId}
-                  comment={r}
+                  key={reply.commentId}
+                  comment={reply}
                   authUser={authUser}
                   feedId={feedId}
-                  refreshComments={fetchReplies} // recursive refresh
+                  refreshComments={fetchReplies}
+                  isReply={true}
                 />
               ))}
             </Box>
@@ -141,4 +175,5 @@ const CommentItem = ({ comment, authUser, feedId, refreshComments }) => {
     </Stack>
   );
 };
+
 export default CommentItem;
