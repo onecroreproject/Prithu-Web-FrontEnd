@@ -11,19 +11,27 @@ export default function LoginForm({ switchMode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const success = await login({ identifier: email, password });
-      if (!success) setError("Invalid credentials. Please try again.");
-    } catch {
-      setError("Login failed. Please check your connection.");
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+
+  try {
+    await login({ identifier: email, password });
+
+  } catch (err) {
+    const backendError =
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      "Login failed. Please try again.";
+
+    setError(backendError);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   // ✅ Simple fade-slide variant
   const fadeSlide = {

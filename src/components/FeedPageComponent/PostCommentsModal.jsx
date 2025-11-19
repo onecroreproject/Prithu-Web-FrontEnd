@@ -56,32 +56,34 @@ const PostCommentsModal = ({
 
   /* ---------------------------- Submit Comment ---------------------------- */
   const handlePostComment = async () => {
-    if (!newComment.trim()) return;
+  if (!newComment.trim()) return;
 
-    try {
-      const response = await api.post("/api/user/feed/comment", {
-        feedId: currentFeedId,
-        commentText: newComment,
-        userId: authUser._id,
-        parentCommentId: null,
-      });
+  try {
+    await api.post("/api/user/feed/comment", {
+      feedId: currentFeedId,
+      commentText: newComment,
+      userId: authUser._id,
+      parentCommentId: null,
+    });
 
-      const createdComment = response.data.comment;
+    // Immediately reload comments so new comment has:
+    // - commentId
+    // - isLiked
+    // - likeCount
+    // - replyCount
+    // - timeAgo
+    await fetchComments();          // 🔥 FIX #1
 
-      // Add new comment instantly
-      setComments(prev => [createdComment, ...prev]);
+    setCommentCount(prev => prev + 1);
+    setNewComment("");
+    setToastMsg("Comment posted");
 
-      // Increase count instantly
-      setCommentCount(prev => prev + 1);
+  } catch (err) {
+    console.error("Error posting comment:", err);
+    setToastMsg(err.response?.data?.message || "Failed to post");
+  }
+};
 
-      setNewComment("");
-      setToastMsg("Comment posted");
-
-    } catch (err) {
-      console.error("Error posting comment:", err);
-      setToastMsg(err.response?.data?.message || "Failed to post");
-    }
-  };
 
   return (
     <Dialog

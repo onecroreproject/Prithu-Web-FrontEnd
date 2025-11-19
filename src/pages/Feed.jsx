@@ -91,6 +91,22 @@ const Feed = ({ authUser }) => {
   const [selectedRole, setSelectedRole] = useState(null);
   const JOB_RATIO = 3;
 
+
+
+  useEffect(() => {
+  const shouldScroll = localStorage.getItem("scrollToFeed");
+
+  if (shouldScroll === "true") {
+    setTimeout(() => {
+      const feed = document.getElementById("feedTop");
+      feed?.scrollIntoView({ behavior: "smooth" });
+    }, 300);
+
+    localStorage.removeItem("scrollToFeed");
+  }
+}, []);
+
+
   /* ---------------------- LISTEN FOR CATEGORY FILTER ------------------------ */
   useEffect(() => {
     const handler = (e) => {
@@ -223,6 +239,7 @@ const Feed = ({ authUser }) => {
   /* ------------------------------- UI ------------------------------------- */
 
   return (
+    <> <div id="feedTop">
     <div
       className={`mx-auto px-3 sm:px-4 md:px-6 py-5 max-w-3xl transition-all duration-300 ${
         showReels ? "bg-gray-50" : "bg-white"
@@ -283,7 +300,7 @@ const Feed = ({ authUser }) => {
         </div>
       )}
     </div>
-  );
+  </div></>);
 };
 
 export default Feed;

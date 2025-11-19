@@ -1,3 +1,4 @@
+ 
 import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LeftSidebarButtons from "./createPostModelComponets/leftSidebarButtons";
@@ -8,7 +9,7 @@ import TagFriends from "./createPostModelComponets/tagFriends";
 import { uploadCreatorFeed } from "../API_Services/postServices";
 import { toast } from "react-hot-toast";
 import api from "../api/axios";
-
+ 
 export default function CreatePostModal({ open, onClose }) {
   const [postText, setPostText] = useState("");
   const [selectedBtn, setSelectedBtn] = useState("media");
@@ -23,15 +24,15 @@ export default function CreatePostModal({ open, onClose }) {
   const [isScheduled, setIsScheduled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-
+ 
   const fileRef = useRef(null);
-
+ 
   /* --------------------------------------------
       RESET — runs only when modal closes
   --------------------------------------------- */
   const resetAll = () => {
     files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
-
+ 
     setPostText("");
     setSelectedBtn("media");
     setFiles([]);
@@ -44,12 +45,12 @@ export default function CreatePostModal({ open, onClose }) {
     setIsScheduled(false);
     setType("");
   };
-
+ 
   const handleClose = () => {
     resetAll();
     onClose?.();
   };
-
+ 
   /* ------------------------------------------------------
       SET DEFAULT TAB WHEN MODAL OPENS
   ------------------------------------------------------- */
@@ -58,13 +59,13 @@ export default function CreatePostModal({ open, onClose }) {
       setSelectedBtn("media");
     }
   }, [open]);
-
+ 
   /* ------------------------------------------------------
       FETCH CATEGORIES
   ------------------------------------------------------- */
   useEffect(() => {
     if (!open) return;
-
+ 
     const fetchCategories = async () => {
       try {
         const res = await api.get(`api/user/get/all/category`);
@@ -73,42 +74,42 @@ export default function CreatePostModal({ open, onClose }) {
         toast.error("Failed to load categories");
       }
     };
-
+ 
     fetchCategories();
   }, [open]);
-
+ 
   /* ------------------------------------------------------
       FILE HANDLING
   ------------------------------------------------------- */
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
-
+ 
     const fileType = selectedFile.type.startsWith("video") ? "video" : "image";
-
+ 
     if (files.length > 0 && files[0].type !== fileType) {
       toast.error("Upload only one type (image or video)");
       return;
     }
-
+ 
     setType(fileType);
-
+ 
     const newFile = {
       file: selectedFile,
       preview: URL.createObjectURL(selectedFile),
       name: selectedFile.name,
       mime: selectedFile.type,
     };
-
+ 
     setFiles([newFile]);
   };
-
+ 
   const handleRemoveFile = (index) => {
     URL.revokeObjectURL(files[index]?.preview);
     setFiles([]);
     setType("");
   };
-
+ 
   const handleDrop = (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
@@ -117,7 +118,7 @@ export default function CreatePostModal({ open, onClose }) {
         target: { files: [file] },
       });
   };
-
+ 
   /* ------------------------------------------------------
       PUBLISH / SCHEDULE
   ------------------------------------------------------- */
@@ -125,9 +126,9 @@ export default function CreatePostModal({ open, onClose }) {
     try {
       const token = localStorage.getItem("token");
       if (!token) return toast.error("Please login first");
-
+ 
       setLoading(true);
-
+ 
       const formData = {
         dec: postText,
         files,
@@ -136,10 +137,10 @@ export default function CreatePostModal({ open, onClose }) {
         type,
         scheduleDate: isScheduled ? scheduleDate : null,
       };
-
+ 
       const res = await uploadCreatorFeed(formData, token);
       toast.success(res.message || "Feed uploaded successfully");
-
+ 
       resetAll();
       onClose?.();
     } catch (err) {
@@ -148,19 +149,20 @@ export default function CreatePostModal({ open, onClose }) {
       setLoading(false);
     }
   };
-
+ 
   if (!open) return null;
-
+ 
   /* ------------------------------------------------------
       UI RENDER
   ------------------------------------------------------- */
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={handleClose}
       >
         <motion.div
           className="relative bg-white rounded-lg shadow-xl w-full max-w-5xl mx-4 pb-2 px-0"
@@ -168,6 +170,7 @@ export default function CreatePostModal({ open, onClose }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
           transition={{ duration: 0.25 }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Close */}
           <button
@@ -176,17 +179,44 @@ export default function CreatePostModal({ open, onClose }) {
           >
             ×
           </button>
-
+ 
           <div className="text-center mt-6 mb-4 text-2xl font-semibold text-blue-500">
             + Create New Post
           </div>
-
+ 
+          {/* Mobile Tab Selector - Only on mobile */}
+          {/* <div className="lg:hidden mb-4 px-6">
+            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+              {[
+                { id: "media", label: "Media" },
+                { id: "gif", label: "GIF" },
+                { id: "location", label: "Location" },
+                { id: "tag", label: "Tag Friends" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedBtn(tab.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedBtn === tab.id
+                      ? "bg-blue-500 text-white shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div> */}
+ 
           <div className="flex gap-5 px-6 pb-6">
-            <LeftSidebarButtons
-              selectedBtn={selectedBtn}
-              onSelect={setSelectedBtn}
-            />
-
+            {/* Left Sidebar - Hidden on mobile, shown on desktop */}
+            <div className="hidden lg:block">
+              <LeftSidebarButtons
+                selectedBtn={selectedBtn}
+                onSelect={setSelectedBtn}
+              />
+            </div>
+ 
             <div className="flex-1 flex flex-col">
               {/* text */}
               <textarea
@@ -196,7 +226,7 @@ export default function CreatePostModal({ open, onClose }) {
                 onChange={(e) => setPostText(e.target.value)}
                 rows={3}
               />
-
+ 
               {/* Media Section */}
               <AnimatePresence>
                 {selectedBtn === "media" && (
@@ -218,7 +248,7 @@ export default function CreatePostModal({ open, onClose }) {
                         <option value="english">English</option>
                         <option value="hindi">Hindi</option>
                       </select>
-
+ 
                       <select
                         value={categoryId}
                         onChange={(e) => setCategoryId(e.target.value)}
@@ -231,7 +261,7 @@ export default function CreatePostModal({ open, onClose }) {
                           </option>
                         ))}
                       </select>
-
+ 
                       {/* Schedule Toggle */}
                       <div className="flex items-center gap-2">
                         <span className="text-gray-700 text-sm">Schedule</span>
@@ -248,7 +278,7 @@ export default function CreatePostModal({ open, onClose }) {
                         </div>
                       </div>
                     </div>
-
+ 
                     {/* Schedule Picker */}
                     <AnimatePresence>
                       {isScheduled && (
@@ -271,7 +301,7 @@ export default function CreatePostModal({ open, onClose }) {
                         </motion.div>
                       )}
                     </AnimatePresence>
-
+ 
                     {/* Media Uploader */}
                     <MediaUploader
                       files={files}
@@ -284,7 +314,7 @@ export default function CreatePostModal({ open, onClose }) {
                   </motion.div>
                 )}
               </AnimatePresence>
-
+ 
               {/* Other Tabs */}
               {selectedBtn === "gif" && (
                 <GifSelector
@@ -292,21 +322,21 @@ export default function CreatePostModal({ open, onClose }) {
                   setSelectedGif={setSelectedGif}
                 />
               )}
-
+ 
               {selectedBtn === "location" && (
                 <LocationInput
                   location={location}
                   setLocation={setLocation}
                 />
               )}
-
+ 
               {selectedBtn === "tag" && (
                 <TagFriends
                   taggedFriends={taggedFriends}
                   setTaggedFriends={setTaggedFriends}
                 />
               )}
-
+ 
               {/* Publish Button */}
               <button
                 className="w-full bg-[#26Aeee] hover:bg-blue-600 text-white font-medium text-lg rounded-md py-2.5 mt-5 transition-all"
@@ -322,3 +352,4 @@ export default function CreatePostModal({ open, onClose }) {
     </>
   );
 }
+ 
