@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 // Components
 import PostHeader from "../components/Profilecard/ProfileHeader";
 import ProfileStats from "../components/Profilecard/ProfileStats";
-import PhotoGallery from "../components/Profilecard/PhotoGallery";
+import ProfileTab from "../components/Profilecard/profileTabs";
 import RecentActivity from "../components/Profilecard/RecentActivity";
 import ProfileSection from "../components/Profilecard/ProfileSection";
 import ActivitySection from "../components/Profilecard/ActivitySection";
@@ -15,11 +15,19 @@ import GroupsSection from "../components/Profilecard/GroupsSection";
 import Advertisement from "../components/Profilecard/Advertisement";
 import ForumsSection from "../components/Profilecard/FormsSection";
 import Jobsection from "../components/Jobs/Jobsection";
+
 const Profilelayout = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [profileStats, setProfileStats] = useState({
+    followersCount: 0,
+    followingCount: 0,
+    totalPost: 0
+  });
+
+  console.log(userData);
 
   // 🔹 Animation Variants
   const pageVariants = {
@@ -29,21 +37,51 @@ const Profilelayout = () => {
   };
 
   // 🔹 Fetch user profile overview data
-  useEffect(() => {
-    const fetchProfileOverview = async () => {
-      try {
-        const res = await api.get(`/api/get/profile/overview`);
-        setUserData(res.data?.data);
-      } catch (err) {
-        console.error("Error fetching profile overview:", err);
-        setError("Failed to load profile data");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProfileOverview = async () => {
+    try {
+      const res = await api.get(`/api/get/profile/overview`);
+      const userData = res.data?.data;
+      setUserData(userData);
+      
+      // Update profile stats from user data
+      setProfileStats({
+        followersCount: userData.followerCount || 0,
+        followingCount: userData.followingCount || 0,
+        totalPost: userData.postCount || 0
+      });
+    } catch (err) {
+      console.error("Error fetching profile overview:", err);
+      setError("Failed to load profile data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProfileOverview();
   }, []);
+
+  // 🔹 Handle follow data updates from FriendsSection
+  const handleFollowDataUpdate = (newCounts) => {
+    console.log("Updating follow counts:", newCounts);
+    
+    // Update both profileStats state and userData
+    setProfileStats(prev => ({
+      ...prev,
+      followersCount: newCounts.followersCount,
+      followingCount: newCounts.followingCount
+    }));
+
+    // Also update userData to keep everything in sync
+    setUserData(prev => prev ? {
+      ...prev,
+      followerCount: newCounts.followersCount,
+      followingCount: newCounts.followingCount
+    } : null);
+
+    // Optional: Refresh the entire profile data
+    // fetchProfileOverview();
+  };
 
   const photos = [
     "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300",
@@ -70,7 +108,11 @@ const Profilelayout = () => {
       case "profile":
         return <ProfileSection userData={userData} />;
       case "friends":
-        return <FriendsSection userData={userData} />;
+        return (
+          <FriendsSection 
+            onFollowDataUpdate={handleFollowDataUpdate}
+          />
+        );
       case "groups":
         return <GroupsSection />;
       case "adverts":
@@ -78,7 +120,7 @@ const Profilelayout = () => {
       case "forums":
         return <ForumsSection />;
       case "jobs":
-        return <Jobsection/>
+        return <Jobsection />;
       default:
         return (
           <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -142,8 +184,6 @@ const Profilelayout = () => {
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
       <PostHeader
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         coverImage={userData.coverPhoto}
         profileImage={userData.profileAvatar}
         userName={userData.displayName || userData.userName}
@@ -154,15 +194,21 @@ const Profilelayout = () => {
         {/* Left Sidebar */}
         <div className="lg:col-span-1 space-y-8">
           <ProfileStats
-            followersCount={userData.followerCount || 0}
-            followingCount={userData.followingCount || 0}
-            totalPost={userData.postCount || 0}
+            followersCount={profileStats.followersCount}
+            followingCount={profileStats.followingCount}
+            totalPost={profileStats.totalPost}
           />
-          <PhotoGallery photos={photos} />
+     
+<ProfileTab
+ activeTab={activeTab}
+ setActiveTab={setActiveTab}
+/>
+
+     
         </div>
 
         {/* Center Section with Animation */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -179,9 +225,9 @@ const Profilelayout = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="lg:col-span-1">
+        {/* <div className="lg:col-span-1">
           <RecentActivity activities={userData.recentActivities || []} />
-        </div>
+        </div> */}
       </div>
     </div>
   );

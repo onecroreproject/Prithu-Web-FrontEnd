@@ -145,22 +145,32 @@ const handleUnfollow = useCallback(async () => {
     }
   }, [feedId]);
 
-  const handleDownload = useCallback(async () => {
-    try {
-      const res = await api.post("/api/user/feed/download", { feedId });
-      const link = res.data?.downloadLink;
-      if (link) {
-        const a = document.createElement("a");
-        a.href = link;
-        a.download = `post-${feedId}`;
-        a.click();
-        return toast.success("Downloaded!");
-      }
-      toast.error("Could not download");
-    } catch {
-      toast.error("Download failed");
+const handleDownload = useCallback(async () => {
+  try {
+    const res = await api.post("/api/user/feed/download", { feedId });
+    const link = res.data?.downloadLink;
+
+    if (link) {
+      const a = document.createElement("a");
+      a.href = link;
+      a.target = "_blank";               // ← Important
+      a.rel = "noopener noreferrer";     // ← Security
+      a.download = `post-${feedId}`;     // ← Filename
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      toast.success("Downloaded!");
+      return;
     }
-  }, [feedId]);
+
+    toast.error("Could not download");
+
+  } catch {
+    toast.error("Download failed");
+  }
+}, [feedId]);
+
 
 const handleShare = useCallback(async () => {
   try {

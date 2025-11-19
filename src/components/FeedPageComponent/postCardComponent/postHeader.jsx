@@ -20,9 +20,10 @@ const PostHeader = ({
   const [expanded, setExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialFollowState); // <-- local instant update
+ const currentUser = localStorage.getItem("userId");
+
 
   const descRef = useRef(null);
-console.log(tempUser)
 
   useEffect(() => {
     setIsFollowing(initialFollowState); 
@@ -62,7 +63,7 @@ console.log(tempUser)
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div
-          onClick={() => navigate(`/profile/${userId}`)}
+          onClick={() => navigate(`/user/profile/${userName.replace(/\s+/g, "").trim()}`)}
           className="flex items-center gap-3 cursor-pointer"
         >
           <img
@@ -79,7 +80,7 @@ console.log(tempUser)
 
         {/* Follow Button */}
         <div className="flex items-center gap-2">
-           {tempUser?._id && userId && tempUser.userName !== userId && (
+           {userId!==currentUser && (
     <button
       onClick={handleToggleFollow}
       className={`px-3 py-1 rounded-full text-sm font-medium border transition ${

@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/Header"
 
-const PortfolioUnderConstruction = ({ username}) => {
+const PortfolioUnderConstruction = ({ username }) => {
   const [darkMode, setDarkMode] = useState(false);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   return (
     <div
@@ -13,7 +14,7 @@ const PortfolioUnderConstruction = ({ username}) => {
         darkMode ? "bg-gray-900 text-gray-300" : "bg-gray-100 text-gray-700"
       }`}
     >
-
+     <Header />
       {/* ✨ Animated Message */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -30,17 +31,21 @@ const PortfolioUnderConstruction = ({ username}) => {
             repeatType: "reverse",
           }}
         >
-          Welcome, <span className="text-blue-500 dark:text-blue-400">{username}</span>!
+          Welcome,{" "}
+          <span className="text-blue-500 dark:text-blue-400">{username}</span>!
         </motion.h1>
 
         <p className="text-lg leading-relaxed mb-6">
-          Your <strong>portfolio</strong> is currently under construction by our
-          team. 🚧 <br />
-          Please update your <strong>curriculum</strong> in your{" "}
-          <button  onClick={() => navigate("/profile")} className="text-blue-500 dark:text-blue-400 font-medium cursor-pointer">
+          We are currently preparing to{" "}
+          <strong>create your profile</strong>. 🚧 <br />
+          Please update your <strong>profile</strong> and{" "}
+          <button
+            onClick={() => navigate("/profile")}
+            className="text-blue-500 dark:text-blue-400 font-medium cursor-pointer"
+          >
             Profile Settings
           </button>{" "}
-          to get started.
+          to continue.
         </p>
 
         {/* Loading animation */}

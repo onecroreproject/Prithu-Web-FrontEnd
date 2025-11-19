@@ -1,4 +1,3 @@
- 
 import React from "react";
 import { CheckCheck, ArchiveX, Bell, X } from "lucide-react";
  
@@ -52,30 +51,13 @@ export default function NotificationHeader({
           </div>
         </div>
  
-        {/* Action Buttons */}
-        {hasNotifications && (
-          <div className="hidden sm:flex items-center gap-2">
-            {hasUnread && (
-              <button
-                onClick={onMarkAllAsRead}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-all duration-200 hover:shadow-sm"
-                title="Mark all as read"
-              >
-                <CheckCheck className="w-4 h-4" />
-                <span>Mark Read</span>
-              </button>
-            )}
-           
-            <button
-              onClick={onDeleteAll}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-all duration-200 hover:shadow-sm"
-              title="Delete all notifications"
-            >
-              <ArchiveX className="w-4 h-4" />
-              <span>Clear All</span>
-            </button>
-          </div>
-        )}
+        {/* Close button for desktop */}
+        <button
+          onClick={onClose}
+          className="hidden sm:flex p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <X size={20} className="text-gray-600" />
+        </button>
       </div>
  
       {/* Mobile Stats & Actions */}

@@ -90,6 +90,7 @@ const register = async ({
   referralCode,
   phone,
   whatsapp,
+  accountType,
 }) => {
   setLoading(true);
   try {
@@ -100,6 +101,7 @@ const register = async ({
       referralCode,
       phone,
       whatsapp,
+      accountType,
     });
 
     toast.success("🎉 Account created successfully!");
@@ -176,35 +178,31 @@ const login = async ({ identifier, password }) => {
     setSessionId(newSessionId);
 
     await fetchUserProfile(accessToken);
-    
 
-
-    // -------------------------------
-    // FIX: Remove redirect from URL
-    // -------------------------------
     window.history.replaceState({}, "", "/login");
 
-    // --------------------------------
-    // Redirect logic (correct)
-    // --------------------------------
     const params = new URLSearchParams(window.location.search);
     const redirectPath = params.get("redirect");
 
     if (redirectPath) {
-      const decoded = decodeURIComponent(redirectPath);
-      navigate(decoded, { replace: true });
+      navigate(decodeURIComponent(redirectPath), { replace: true });
     } else {
       navigate("/", { replace: true });
     }
 
+    return true;
 
   } catch (err) {
     console.error("Login Error:", err);
-  
+
+    // ⭐ RE-THROW BACKEND ERROR SO UI CAN SHOW IT
+    throw err;
+
   } finally {
     setLoading(false);
   }
 };
+
 
 
 

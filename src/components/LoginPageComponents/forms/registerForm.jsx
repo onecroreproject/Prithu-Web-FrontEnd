@@ -21,7 +21,7 @@ function RegisterForm({ switchMode }) {
 
   const [sameAsWhatsapp, setSameAsWhatsapp] = useState(false);
   const [status, setStatus] = useState({
-    email: null,
+    email: null, // null | "taken" | "available" | "error"
     username: null,
     checkingEmail: false,
     usernameSuggestions: [],
@@ -45,7 +45,6 @@ function RegisterForm({ switchMode }) {
     return () => clearTimeout(t);
   }, [timer]);
 
-
   /* --------------------------- CHANGE EMAIL --------------------------- */
   const handleChangeEmail = () => {
     setStep("email");
@@ -53,36 +52,57 @@ function RegisterForm({ switchMode }) {
     setTimer(0);
   };
 
-
-  /* --------------------------- EMAIL CHECK --------------------------- */
+  /* --------------------------- EMAIL CHECK (improved) --------------------------- */
   useEffect(() => {
-    if (step !== "email" || !form.email.trim()) return;
+    if (step !== "email") return;
+
+    const raw = form.email;
+    const emailClean = raw.replace(/\s/g, ""); // remove all whitespace for checking
+    // When empty, reset status and skip
+    if (!emailClean) {
+      setStatus((p) => ({ ...p, email: null, checkingEmail: false }));
+      return;
+    }
+
+    // Basic heuristic: check while user types, but avoid calling API immediately for nonsense input.
+    // We require at least an '@' plus 3 chars to start checking; this keeps checking responsive while avoiding useless calls.
+    const shouldCheck = emailClean.includes("@") && emailClean.length > 3;
+
+    if (!shouldCheck) {
+      // still clear any previous state (but keep "typing")
+      setStatus((p) => ({ ...p, email: null, checkingEmail: false }));
+      return;
+    }
+
     const controller = new AbortController();
+    setStatus((p) => ({ ...p, checkingEmail: true }));
+
     const timeout = setTimeout(async () => {
       try {
-        setStatus((p) => ({ ...p, checkingEmail: true }));
         const { data } = await api.get("/api/check/email/availability", {
-          params: { email: form.email },
+          params: { email: emailClean },
           signal: controller.signal,
         });
-
+  
         setStatus((p) => ({
           ...p,
-          email: data.available ? null : "taken",
+          email: data.available ? "available" : "taken",
+          checkingEmail: false,
         }));
-      } catch {
-        setStatus((p) => ({ ...p, email: "error" }));
-      } finally {
-        setStatus((p) => ({ ...p, checkingEmail: false }));
+      } catch (err) {
+        if (err.name === "CanceledError" || err.name === "AbortError") {
+          // request was aborted intentionally — do nothing
+          return;
+        }
+        setStatus((p) => ({ ...p, email: "error", checkingEmail: false }));
       }
-    }, 500);
+    }, 400); // debounce
 
     return () => {
       clearTimeout(timeout);
       controller.abort();
     };
   }, [form.email, step]);
-
 
   /* --------------------------- USERNAME CHECK --------------------------- */
   useEffect(() => {
@@ -92,7 +112,7 @@ function RegisterForm({ switchMode }) {
         const { data } = await api.get("/api/check/username/availability", {
           params: { username: form.username },
         });
-console.log(data)
+        console.log(data);
         if (data.available) {
           setStatus((p) => ({
             ...p,
@@ -119,7 +139,6 @@ console.log(data)
     return () => clearTimeout(delay);
   }, [form.username, step]);
 
-
   /* --------------------------- PASSWORD VALIDATION --------------------------- */
   useEffect(() => {
     const pass = form.password;
@@ -132,12 +151,10 @@ console.log(data)
     });
   }, [form.password]);
 
-
   /* --------------------------- WHATSAPP SYNC --------------------------- */
   useEffect(() => {
     if (sameAsWhatsapp) setForm((p) => ({ ...p, whatsapp: p.phone }));
   }, [sameAsWhatsapp, form.phone]);
-
 
   /* --------------------------- HANDLERS --------------------------- */
   const handleSendOtp = async (e) => {
@@ -148,7 +165,8 @@ console.log(data)
 
     setLoading(true);
     try {
-      const success = await sendOtpForReset(form.email);
+      // send trimmed email to backend
+      const success = await sendOtpForReset(form.email.replace(/\s/g, ""));
       if (success) {
         setStep("otp");
         setTimer(30);
@@ -158,7 +176,6 @@ console.log(data)
     }
   };
 
-
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -166,7 +183,7 @@ console.log(data)
     setLoading(true);
     try {
       const success = await verifyOtpForNewUser({
-        email: form.email,
+        email: form.email.replace(/\s/g, ""),
         otp: form.otp,
       });
 
@@ -176,7 +193,6 @@ console.log(data)
     }
   };
 
-
   const handleRegister = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -185,14 +201,13 @@ console.log(data)
     if (!validPassword || form.username.length < 5)
       return alert("Please complete all requirements before registering.");
 
-    if (!form.accountType)
-      return alert("Please select account type.");
+    if (!form.accountType) return alert("Please select account type.");
 
     setLoading(true);
     try {
       const success = await register({
         username: form.username,
-        email: form.email,
+        email: form.email.replace(/\s/g, ""),
         password: form.password,
         phone: form.phone,
         whatsapp: form.whatsapp,
@@ -208,14 +223,12 @@ console.log(data)
     }
   };
 
-
   /* --------------------------- ANIMATION --------------------------- */
   const fadeSlide = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
     exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeIn" } },
   };
-
 
   /* --------------------------- UI --------------------------- */
   return (
@@ -235,7 +248,6 @@ console.log(data)
         }
       >
         <AnimatePresence mode="wait">
-
           {/* ---------------------------------- STEP 1: EMAIL ---------------------------------- */}
           {step === "email" && (
             <motion.div key="email" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
@@ -252,12 +264,16 @@ console.log(data)
                 required
               />
 
-              <p className="text-sm mt-1 min-h-[20px]">
+              {/* Stable response area */}
+              <p className="text-sm mt-1 min-h-[48px] flex items-center">
+                {status.checkingEmail && (
+                  <span className="text-gray-500">Checking email availability...</span>
+                )}
 
-                {status.email === "taken" && (
+                {!status.checkingEmail && status.email === "taken" && (
                   <span className="text-red-500 flex flex-col gap-1">
                     ❌ Email already registered.
-                    <span className="flex justify-between mt-7">
+                    <span className="flex justify-between mt-2">
                       <button
                         type="button"
                         onClick={() => switchMode("login")}
@@ -276,7 +292,11 @@ console.log(data)
                   </span>
                 )}
 
-                {status.email === "error" && (
+                {!status.checkingEmail && status.email === "available" && (
+                  <span className="text-green-600">✅ Email available</span>
+                )}
+
+                {!status.checkingEmail && status.email === "error" && (
                   <span className="text-gray-500">⚠️ Could not check email</span>
                 )}
               </p>
@@ -291,16 +311,11 @@ console.log(data)
                       : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
                   }`}
                 >
-                  {loading
-                    ? "Sending..."
-                    : timer > 0
-                    ? `Resend OTP in ${timer}s`
-                    : "Register Now"}
+                  {loading ? "Sending..." : timer > 0 ? `Resend OTP in ${timer}s` : "Register Now"}
                 </button>
               )}
             </motion.div>
           )}
-
 
           {/* ---------------------------------- STEP 2: OTP ---------------------------------- */}
           {step === "otp" && (
@@ -320,9 +335,7 @@ console.log(data)
                 type="submit"
                 disabled={loading}
                 className={`w-full py-2 rounded-full font-semibold text-white ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
                 }`}
               >
                 {loading ? "Verifying..." : "Verify OTP"}
@@ -330,7 +343,6 @@ console.log(data)
 
               {/* Timer + Resend + Change Email */}
               <div className="text-center mt-3 space-y-2">
-
                 {timer > 0 ? (
                   <p className="text-gray-500 text-sm">Resend available in {timer}s</p>
                 ) : (
@@ -338,17 +350,12 @@ console.log(data)
                     type="button"
                     onClick={handleSendOtp}
                     disabled={loading}
-                    className={`text-sm ${
-                      loading
-                        ? "text-gray-400 cursor-not-allowed"
-                        : "text-green-600 hover:underline"
-                    }`}
+                    className={`text-sm ${loading ? "text-gray-400 cursor-not-allowed" : "text-green-600 hover:underline"}`}
                   >
                     Resend OTP
                   </button>
                 )}
 
-                {/* 🔥 NEW: CHANGE EMAIL */}
                 <button
                   type="button"
                   onClick={handleChangeEmail}
@@ -360,11 +367,9 @@ console.log(data)
             </motion.div>
           )}
 
-
           {/* ---------------------------------- STEP 3: DETAILS ---------------------------------- */}
           {step === "details" && (
             <motion.div key="details" initial="hidden" animate="visible" exit="exit" variants={fadeSlide}>
-              
               {/* Username */}
               <label className="block font-medium text-gray-700 mb-1">Username</label>
 
@@ -378,17 +383,10 @@ console.log(data)
               />
 
               <p className="text-sm min-h-[20px]">
-                {form.username && form.username.length < 5 && (
-                  <span className="text-red-500">❌ Too short</span>
-                )}
-                {status.username === "available" && (
-                  <span className="text-green-600">✅ Username available</span>
-                )}
-                {status.username === "taken" && (
-                  <span className="text-red-500">❌ Username not available</span>
-                )}
+                {form.username && form.username.length < 5 && <span className="text-red-500">❌ Too short</span>}
+                {status.username === "available" && <span className="text-green-600">✅ Username available</span>}
+                {status.username === "taken" && <span className="text-red-500">❌ Username not available</span>}
               </p>
-
 
               {/* Account Type */}
               <label className="block font-medium text-gray-700 mb-1 mt-2">
@@ -406,9 +404,8 @@ console.log(data)
                 <option value="company">Company</option>
               </select>
 
-
               {/* Phone + WhatsApp */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className=" sm:flex-row gap-3">
                 {/* Mobile */}
                 <div className="flex-1">
                   <label className="block font-medium text-gray-700 mb-1">Mobile</label>
@@ -416,9 +413,7 @@ console.log(data)
                     type="tel"
                     maxLength={10}
                     value={form.phone}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "") }))
-                    }
+                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "") }))}
                     placeholder="Enter mobile"
                     className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                   />
@@ -432,9 +427,7 @@ console.log(data)
                       type="tel"
                       maxLength={10}
                       value={form.whatsapp}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, whatsapp: e.target.value.replace(/\D/g, "") }))
-                      }
+                      onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value.replace(/\D/g, "") }))}
                       placeholder="Enter WhatsApp"
                       className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                     />
@@ -448,7 +441,6 @@ console.log(data)
                 </div>
               </div>
 
-
               {/* Password */}
               <label className="block font-medium text-gray-700 mt-2 mb-1">Password</label>
 
@@ -460,11 +452,7 @@ console.log(data)
                 className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
               />
 
-              <motion.div
-                className="text-xs sm:text-sm text-gray-700 mt-2 space-y-1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+              <motion.div className="text-xs sm:text-sm text-gray-700 mt-2 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {Object.entries({
                   length: "At least 8 characters",
                   uppercase: "One uppercase",
@@ -478,15 +466,12 @@ console.log(data)
                 ))}
               </motion.div>
 
-
               {/* Register Button */}
               <button
                 type="submit"
                 disabled={loading}
                 className={`w-full mt-4 py-2 rounded-full font-semibold text-white transition ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
                 }`}
               >
                 {loading ? "Registering..." : "Register"}

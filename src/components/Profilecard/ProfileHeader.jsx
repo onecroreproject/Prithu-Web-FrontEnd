@@ -114,12 +114,7 @@ const handleSaveCrop = async () => {
     { id: "Activity", Icon: MessageSquare, label: "Activity" },
     { id: "profile", Icon: User, label: "Profile" },
     { id: "friends", Icon: Users, label: "Followers" },
-    { id: "groups", Icon: Users, label: "Groups" },
-    { id: "adverts", Icon: Megaphone, label: "Adverts" },
-    { id: "forums", Icon: MessageCircle, label: "Forums" },
-    { id: "jobs", Icon: Briefcase, label: "Jobs" },
-    { id: "portfolio", Icon: FolderGit2, label: "Portfolio" },
-    { id: "more", Icon: MoreHorizontal, label: "More" },
+
   ];
 console.log(user)
   const handleTabClick = (tab) => {
@@ -184,26 +179,6 @@ console.log(user)
               onChange={handleProfileChange}
             />
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-2 p-4 overflow-x-auto">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.Icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                className={`px-3 py-2 rounded-lg flex items-center gap-2 ${
-                  isActive ? "bg-blue-600 text-white" : "bg-gray-100"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
         </div>
       </div>
 

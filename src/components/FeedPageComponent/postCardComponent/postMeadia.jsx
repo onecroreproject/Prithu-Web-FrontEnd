@@ -127,70 +127,63 @@ export default function PostMedia({
       Controls ONLY show when:
       - Manually paused (NOT autoplay)
   -------------------------------------------------------------- */
-  return (
-    <div
-      ref={containerRef}
-      onClick={handleTap}
-      className="relative w-full flex items-center justify-center overflow-hidden"
-      style={{
-        height: "min(80vh, 520px)",
+  /* --------------------------------------------------------------
+      VIDEO (INSTAGRAM BEHAVIOR — ALWAYS SOUND ON)
+-------------------------------------------------------------- */
+return (
+  <div
+    ref={containerRef}
+    onClick={handleTap}
+    className="relative w-full flex items-center justify-center overflow-hidden"
+    style={{
+      height: "min(80vh, 520px)",
+    }}
+  >
+    <ColorBackground />
+
+    {/* Video */}
+    <video
+      ref={videoRef}
+      src={contentUrl}
+      muted={false}               // 🔥 ALWAYS PLAY SOUND
+      playsInline
+      preload="metadata"
+      className="absolute inset-0 w-full h-full object-contain z-10"
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsAutoPlaying(false); // user interacting → no longer autoplay
+        togglePlayPause();
       }}
-    >
-      <ColorBackground />
+    />
 
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={contentUrl}
-        muted={isMuted}
-        playsInline
-        preload="metadata"
-        className="absolute inset-0 w-full h-full object-contain z-10"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsAutoPlaying(false); // user interacting → no longer autoplay
-          togglePlayPause();
-        }}
-      />
+    {/* ONLY SHOW PLAY BUTTON WHEN MANUALLY PAUSED */}
+    {!isAutoPlaying && !isPlaying && (
+      <>
+        {/* PLAY BUTTON */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlayPause();
+            setIsAutoPlaying(false);
+          }}
+          className="absolute z-20 flex items-center justify-center bg-black/45 text-white rounded-full"
+          style={{
+            width: 70,
+            height: 70,
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <PlayArrow sx={{ fontSize: 48 }} />
+        </button>
+      </>
+    )}
 
-      {/* ONLY SHOW ICONS WHEN MANUALLY PAUSED */}
-      {!isAutoPlaying && !isPlaying && (
-        <>
-          {/* PLAY BUTTON */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlayPause();
-              setIsAutoPlaying(false); // manual play
-            }}
-            className="absolute z-20 flex items-center justify-center bg-black/45 text-white rounded-full"
-            style={{
-              width: 70,
-              height: 70,
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <PlayArrow sx={{ fontSize: 48 }} />
-          </button>
+    {showHeart && <HeartAnimation />}
+  </div>
+);
 
-          {/* VOLUME BUTTON */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleMute();
-            }}
-            className="absolute right-4 bottom-4 p-3 bg-black/55 rounded-full text-white z-20"
-          >
-            {isMuted ? <VolumeOff /> : <VolumeUp />}
-          </button>
-        </>
-      )}
-
-      {showHeart && <HeartAnimation />}
-    </div>
-  );
 }
 
 /* --------------------------------------------------------------
