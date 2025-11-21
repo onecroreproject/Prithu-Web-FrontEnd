@@ -239,17 +239,6 @@ export default function CreatePostModal({ open, onClose }) {
                     {/* Dropdowns */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                       <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">Select Language</option>
-                        <option value="tamil">Tamil</option>
-                        <option value="english">English</option>
-                        <option value="hindi">Hindi</option>
-                      </select>
- 
-                      <select
                         value={categoryId}
                         onChange={(e) => setCategoryId(e.target.value)}
                         className="border border-gray-300 rounded px-2 py-1 text-sm"

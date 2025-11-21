@@ -165,7 +165,7 @@ const Stories = () => {
                 touchStartTime={touchStartTime}
                 setTouchStartTime={setTouchStartTime}
                 handleVideoTimeUpdate={handleVideoTimeUpdate}
-
+                setProgress={setProgress}
                 // comments (array)
                 comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
                 commentLoading={commentLoading}

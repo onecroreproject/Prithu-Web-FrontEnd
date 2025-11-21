@@ -27,10 +27,10 @@ import Hiddenpost from "./pages/Hiddenpost.jsx";
 import PrivacyPolicy from "./privacyPolicy.jsx";
 import PublicResume from "./pages/publiceResume.jsx";
 import JobList from "./components/Jobs/jobCardPop-Up.jsx";
-import PortfolioLayout from "./components/User_PrortFolio/profileLayout.jsx";
+import PortfolioLayout from "./components/User_PrortFolio/portFolioLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
 import PostDetails from "./components/FeedPageComponent/postView.jsx"; // ✅ (you likely need to import this)
-import SingleUserProfilelayout from "./pages/singleUserProfileview.jsx";
+import SingleUserProfilelayout from "./components/SingleUserProfileViewComponent/singleProfileLayout.jsx";
 import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx";
 import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
 import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
@@ -107,7 +107,7 @@ function AppRoutes() {
       <Route path="/r/:username" element={<PublicResume />} />
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
-      <Route path="/user/profile/:username" element={<SingleUserProfilelayout/>} />
+      <Route path="/user/profile/:id" element={<SingleUserProfilelayout/>} />
       <Route path="/referral" element={<ReferralUnderConstruction/>} />
       <Route path="/job/view/:id" element={<SearchJobDetailsPopup/>}/>
       <Route path="/feed" element={<Feed/>}/>

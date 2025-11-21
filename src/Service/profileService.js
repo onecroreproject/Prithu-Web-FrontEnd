@@ -194,9 +194,15 @@ export const getUserCurriculamProfile = async (token) => {
 // ------------------------------
 // 🔹 General User Profile
 // ------------------------------
-export const getUserProfile = async (token) => {
+export const getUserProfile = async (token, userId) => {
   try {
-    const { data } = await api.get("/api/get/profile/detail", authHeader(token));
+    const url = userId
+      ? `/api/get/single/profile/detail?id=${userId}`
+      : `/api/get/profile/detail`;
+
+    const config = userId ? {} : authHeader(token); // only send token for self
+
+    const { data } = await api.get(url, config);
     return data.profile;
   } catch (error) {
     console.error("❌ Error fetching user profile:", error.response?.data || error.message);
@@ -204,6 +210,7 @@ export const getUserProfile = async (token) => {
     throw error;
   }
 };
+
 
 
 // ------------------------------

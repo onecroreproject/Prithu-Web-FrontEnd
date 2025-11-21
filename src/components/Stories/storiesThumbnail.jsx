@@ -8,7 +8,6 @@ const StoriesThumbnails = ({
   setSelectedFeedIndex,
   fetchComments,
   setProgress,
-  setIsPaused,
   setShowComments,
   scrollContainerRef,
   showLeftArrow,
@@ -73,7 +72,6 @@ const StoriesThumbnails = ({
                   onClick={() => {
                     setSelectedFeedIndex(index);
                     setProgress(0);
-                    setIsPaused(false);
                     setShowComments(false);
                     fetchComments(feed._id);
                   }}

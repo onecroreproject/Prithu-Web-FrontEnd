@@ -1,161 +1,248 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiX, FiHeart, FiMessageCircle, FiSend, FiBookmark } from "react-icons/fi";
-
+ 
 const MobileStoriesView = ({
   feed,
   selectedFeedIndex,
-  setSelectedFeedIndex,
   videoRef,
   progress,
-  isPaused,
-  setIsPaused,
+  setProgress,
   setShowComments,
   showComments,
-  touchStartTime,
-  setTouchStartTime,
+  closePopup,
+  navigateFeed,
   comments = [],
   commentLoading,
   newComment,
   setNewComment,
   handleAddComment,
   likeComment,
-  replies = {},
-  replyInputs = {},
-  setReplyInputs,
-  replyLoading = {},
-  showReplies = {},
-  setShowReplies,
-  fetchReplies,
-  postReply,
-  likeReply,
   likeFeedAction,
   toggleSaveFeed,
   shareFeedAction,
-  navigateFeed,
-  handleVideoTimeUpdate,
 }) => {
+ 
+  // Handle video time update for progress
+  const handleVideoTimeUpdate = () => {
+    if (videoRef.current && videoRef.current.duration) {
+      const newProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      setProgress(newProgress);
+    }
+  };
+ 
+  // Handle video ended to go to next story
+  const handleVideoEnd = () => {
+    navigateFeed("next");
+  };
+ 
+  // Click handlers for navigation
+  const handleStoryClick = (e) => {
+    const clickX = e.nativeEvent.offsetX;
+    const width = e.currentTarget.offsetWidth;
+   
+    if (clickX < width / 3) {
+      navigateFeed("prev");
+    } else if (clickX > (2 * width) / 3) {
+      navigateFeed("next");
+    }
+    // Center click does nothing (no pause/play)
+  };
+ 
+  // Mobile-specific toggle comments
+  const toggleComments = () => {
+    setShowComments(!showComments);
+  };
+ 
   return (
-    <motion.div className="md:hidden flex flex-col w-full h-full bg-black" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={(e) => e.stopPropagation()} onTouchStart={() => { setTouchStartTime(Date.now()); setIsPaused(true); }} onTouchEnd={() => { if (touchStartTime && Date.now() - touchStartTime < 300) { setIsPaused(false); } setTouchStartTime(null); }}>
-      {/* Progress */}
-      <div className="absolute top-4 left-4 right-4 z-20">
-        <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-          <div className="h-full bg-white transition-all duration-150" style={{ width: `${progress}%` }} />
+    <motion.div
+      className="md:hidden flex flex-col w-full h-full bg-black"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Progress Bar with smooth transition */}
+      <div className="absolute top-4 left-4 right-4 z-10">
+        <div className="h-1.5 bg-gray-600 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white transition-all duration-150 ease-out"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
-
-      {/* Close */}
-      <button onClick={() => { setSelectedFeedIndex(null); setIsPaused(false); setShowComments(false); }} className="absolute top-6 right-4 text-white text-xl z-30">
+ 
+      {/* Close button */}
+      <button
+        onClick={closePopup}
+        className="absolute top-6 right-4 text-white text-xl z-20"
+      >
         <FiX />
       </button>
-
-      {/* User info */}
-      <div className="absolute top-16 left-4 z-20 flex items-center space-x-3">
-        <img src={feed.createdByProfile?.profileAvatar || ""} alt="avatar" className="w-10 h-10 rounded-full border-2 border-white" />
-        <span className="text-white font-semibold text-sm">{feed.createdByProfile?.userName || "Unknown User"}</span>
+ 
+      {/* User Info */}
+      <div className="absolute top-16 left-4 z-10 flex items-center space-x-3">
+        <img
+          src={feed.createdByProfile?.profileAvatar || "https://default-avatar.example.com/default.png"}
+          alt="avatar"
+          className="w-10 h-10 rounded-full object-cover border-2 border-white"
+        />
+        <span className="text-white font-semibold text-sm">
+          {feed.createdByProfile?.userName || "Unknown User"}
+        </span>
       </div>
-
-      {/* Media */}
-      <div className="flex-1 flex items-center justify-center relative" onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); const x = e.clientX - rect.left; const width = rect.width; if (x < width / 3) { navigateFeed("prev"); } else if (x > (2 * width) / 3) { navigateFeed("next"); } else { setIsPaused((p) => !p); if (videoRef.current) { if (isPaused) videoRef.current.play().catch(() => setIsPaused(true)); else videoRef.current.pause(); } } }}>
+ 
+      {/* Media Content - Full Screen with click zones */}
+      <div
+        className="flex-1 flex items-center justify-center relative"
+        onClick={handleStoryClick}
+      >
         {feed.type === "video" ? (
-          <video ref={videoRef} src={feed.contentUrl} className="w-full h-full object-contain" onTimeUpdate={() => { if (typeof handleVideoTimeUpdate === "function") handleVideoTimeUpdate(); }} onLoadedMetadata={() => { if (!isPaused) videoRef.current?.play().catch(() => setIsPaused(true)); }} onEnded={() => navigateFeed("next")} autoPlay muted playsInline />
+          <video
+            ref={videoRef}
+            src={feed.contentUrl}
+            className="w-full h-full object-contain"
+            onTimeUpdate={handleVideoTimeUpdate}
+            onLoadedMetadata={() => {
+              videoRef.current?.play().catch(error => {
+                console.log("Video play failed:", error);
+              });
+            }}
+            onEnded={handleVideoEnd}
+            playsInline
+            muted={false}
+            autoPlay
+          />
         ) : (
-          <img src={feed.contentUrl} className="w-full h-full object-contain" alt="feed" />
+          <img
+            src={feed.contentUrl}
+            alt="Feed content"
+            className="w-full h-full object-contain"
+          />
         )}
+       
+        {/* Invisible click zones for navigation */}
+        <div className="absolute inset-0 flex">
+          <div className="flex-1" onClick={() => navigateFeed("prev")} />
+          <div className="flex-1" /> {/* Center zone does nothing */}
+          <div className="flex-1" onClick={() => navigateFeed("next")} />
+        </div>
       </div>
-
-      {/* Bottom action bar */}
-      <div className="absolute bottom-4 left-4 right-4 z-30">
+ 
+      {/* Action Buttons - Bottom Section */}
+      <div className="absolute bottom-4 left-4 right-4 z-10">
+        {/* Like, Comment, Share Buttons */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-6">
-            <button onClick={() => likeFeedAction(feed._id, selectedFeedIndex)} className="text-white text-2xl">
+            <button
+              onClick={() => likeFeedAction(feed._id, selectedFeedIndex)}
+              className="text-white text-2xl hover:text-red-400 transition"
+            >
               <FiHeart className={feed.isLiked ? "text-red-500" : ""} />
             </button>
-
-            <button onClick={() => setShowComments((s) => !s)} className="text-white text-2xl"><FiMessageCircle /></button>
-
-            <button onClick={() => shareFeedAction(feed._id)} className="text-white text-2xl"><FiSend /></button>
+            <button
+              className="text-white text-2xl hover:text-blue-400 transition"
+              onClick={toggleComments}
+            >
+              <FiMessageCircle />
+            </button>
+            <button
+              onClick={() => shareFeedAction(feed._id)}
+              className="text-white text-2xl hover:text-green-400 transition"
+            >
+              <FiSend />
+            </button>
           </div>
-
-          <button onClick={() => toggleSaveFeed(feed._id, selectedFeedIndex)} className="text-white text-2xl">
+          <button
+            onClick={() => toggleSaveFeed(feed._id, selectedFeedIndex)}
+            className="text-white text-2xl hover:text-yellow-400 transition"
+          >
             <FiBookmark className={feed.isSaved ? "text-yellow-500" : ""} />
           </button>
         </div>
-
-        <div className="text-white text-base font-semibold mb-3">{feed.likesCount || 0} likes</div>
-
-        {/* Add comment (mobile) */}
-        <div className="flex items-center space-x-3 bg-black/70 rounded-xl px-4 py-3">
-          <input value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 bg-transparent text-white text-base" />
-          <button onClick={() => handleAddComment(feed._id)} disabled={!newComment.trim()} className={`text-blue-400 text-base ${!newComment.trim() ? "opacity-40" : "opacity-100"}`}>Post</button>
+ 
+        {/* Likes count */}
+        <div className="text-white text-base font-semibold mb-3">
+          {feed.likesCount || 0} likes
+        </div>
+ 
+        {/* Add Comment Input */}
+        <div className="flex items-center space-x-3 bg-black/70 rounded-xl px-4 py-3 backdrop-blur-sm">
+          <input
+            type="text"
+            placeholder="Add a comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddComment(feed._id)}
+            className="flex-1 bg-transparent border-none text-white text-base focus:ring-0 p-0 placeholder-gray-300"
+          />
+          <button
+            onClick={() => handleAddComment(feed._id)}
+            disabled={!newComment.trim()}
+            className={`font-semibold text-base px-3 py-1 rounded-full transition ${
+              !newComment.trim()
+                ? 'text-blue-400/50 cursor-not-allowed'
+                : 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/20'
+            }`}
+          >
+            Post
+          </button>
         </div>
       </div>
-
-      {/* Mobile Comments Panel */}
+ 
+      {/* Comments Panel for Mobile - Slides up from bottom */}
       <AnimatePresence>
         {showComments && (
-          <motion.div className="absolute inset-0 bg-white z-40" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: 0.3 }}>
+          <motion.div
+            className="absolute inset-0 bg-white z-30"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Comments Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <h3 className="font-semibold text-lg">Comments</h3>
-              <button onClick={() => setShowComments(false)} className="text-gray-600"><FiX /></button>
+              <button onClick={toggleComments} className="text-gray-600 text-xl">
+                <FiX />
+              </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+ 
+            {/* Comments List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 h-[calc(100vh-140px)]">
               {commentLoading ? (
-                <div>Loading...</div>
-              ) : comments && comments.length ? (
+                <div>Loading comments...</div>
+              ) : comments && comments.length > 0 ? (
                 comments.map((comment) => (
                   <div key={comment.commentId} className="flex items-start space-x-4">
-                    <img src={comment.avatar || ""} className="w-10 h-10 rounded-full" alt="" />
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">{comment.username}</span>
-                        <button className={`text-sm ${comment.isLiked ? "text-red-500" : "text-gray-500"}`} onClick={() => likeComment(comment.commentId, feed._id)}>
+                    <img
+                      src={comment.avatar || "https://default-avatar.example.com/default.png"}
+                      alt="avatar"
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-1">
+                        <span className="font-semibold text-base">{comment.username}</span>
+                        <span className="text-gray-500 text-sm">{comment.timeAgo}</span>
+                      </div>
+                      <p className="text-base text-gray-800 leading-relaxed">{comment.commentText}</p>
+                      <div className="flex items-center space-x-3 mt-1">
+                        <button
+                          className={`text-xs ${comment.isLiked ? "text-red-500" : "text-gray-500"}`}
+                          onClick={() => likeComment(comment.commentId, feed._id)}
+                        >
                           {comment.isLiked ? "♥" : "♡"} {comment.likeCount}
                         </button>
                       </div>
-
-                      <p className="text-gray-800">{comment.commentText}</p>
-                      <p className="text-xs text-gray-400">{comment.timeAgo}</p>
-
-                      <button className="text-xs text-blue-600 mt-1" onClick={() => { setShowReplies((prev) => ({ ...prev, [comment.commentId]: true })); fetchReplies(comment.commentId); }}>
-                        Reply ({comment.replyCount})
-                      </button>
-
-                      {showReplies[comment.commentId] && (
-                        <div className="pl-6 mt-3">
-                          {replyLoading[comment.commentId] ? (
-                            <div className="text-xs">Loading...</div>
-                          ) : (
-                            replies[comment.commentId]?.map((r) => (
-                              <div key={r.replyId} className="mb-3">
-                                <div className="flex items-start gap-3">
-                                  <img src={r.avatar || ""} className="w-8 h-8 rounded-full" alt="" />
-                                  <div>
-                                    <div className="flex justify-between">
-                                      <span className="font-semibold text-sm">{r.username}</span>
-                                      <button onClick={() => likeReply(r.replyId, comment.commentId)} className={`text-xs ${r.isLiked ? "text-red-500" : "text-gray-400"}`}>{r.isLiked ? "♥" : "♡"} {r.likeCount}</button>
-                                    </div>
-                                    <p className="text-sm">{r.replyText}</p>
-                                    <p className="text-xs text-gray-400">{r.timeAgo}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          )}
-
-                          <div className="mt-2 flex items-center space-x-2">
-                            <input value={replyInputs[comment.commentId] || ""} onChange={(e) => setReplyInputs((prev) => ({ ...prev, [comment.commentId]: e.target.value }))} placeholder="Write a reply..." className="flex-1 border px-3 py-2 text-sm rounded" />
-                            <button className="bg-blue-500 text-white px-3 py-1 rounded text-sm" onClick={() => postReply(feed._id, comment.commentId)}>Post</button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-gray-500">No comments yet</div>
+                <div className="text-center text-gray-500 py-12">
+                  <FiMessageCircle className="text-4xl mx-auto mb-3 opacity-50" />
+                  <p className="text-lg font-medium">No comments yet</p>
+                  <p className="text-sm">Be the first to comment!</p>
+                </div>
               )}
             </div>
           </motion.div>
@@ -164,5 +251,6 @@ const MobileStoriesView = ({
     </motion.div>
   );
 };
-
+ 
 export default MobileStoriesView;
+ 

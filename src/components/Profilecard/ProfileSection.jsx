@@ -17,18 +17,18 @@ import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
 import ProfileSettings from "./ProfileSectionComponents/profileSettings";
 import { useAuth } from "../../context/AuthContext";
 
-export default function PostSection() {
+export default function PostSection({ id }) {
   const [activeOption, setActiveOption] = useState("profilePage");
   const { token } = useAuth();
 
-  // ✅ React Query Hook for user data
+  // Load user profile
   const {
     data: user,
     isLoading,
     refetch: refetchUser,
-  } = useUserProfile(token);
+  } = useUserProfile(token, id);
 
-  // ✅ Mutations for updating profile info
+  // Mutations
   const updateProfileMutation = useMutation({
     mutationFn: (formData) => updateProfileDetails(formData, token),
     onSuccess: () => {
@@ -62,18 +62,32 @@ export default function PostSection() {
     },
   });
 
-  // ✅ Unified upload function (for general profile info)
   const uploadProfileDetail = async (formData) => {
     await updateProfileMutation.mutateAsync(formData);
   };
 
-  // ✅ Render components based on active option
+  // -----------------------------------------------------
+  // 🔥 HIDE TABS when id exists (viewing another user)
+  // -----------------------------------------------------
+  const options = id
+    ? [
+        // Only show ProfilePage for other users
+        { id: "profilePage", label: "Profile View" },
+      ]
+    : [
+        // Full options for own profile
+        { id: "profilePage", label: "Profile View" },
+        { id: "profile-photo", label: "Change Profile Photo" },
+        { id: "cover-image", label: "Change Cover Image" },
+        { id: "settings", label: "Settings" },
+      ];
+
+  // -----------------------------------------------------
+
   const renderContent = () => {
     switch (activeOption) {
       case "profilePage":
-        return (
-          <ProfilePage/>
-        );
+        return <ProfilePage id={id} />;
 
       case "profile-photo":
         return (
@@ -92,51 +106,64 @@ export default function PostSection() {
         );
 
       case "settings":
-        return <ProfileSettings user={user} />;
+        return <ProfileSettings user={user} id={id} />;
 
       default:
-        return <ProfilePage user={user} />;
+        return <ProfilePage id={id} />;
     }
   };
 
-  if (isLoading)
-    return <p className="text-gray-500 p-4">Loading profile...</p>;
-
-  const options = [
-    { id: "profilePage", label: "Profile View" },
-    { id: "profile-photo", label: "Change Profile Photo" },
-    { id: "cover-image", label: "Change Cover Image" },
-    { id: "settings", label: "Settings" },
-  ];
+  if (isLoading) return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm overflow-hidden">
-      {/* Navigation Tabs */}
-      <div className="flex gap-6 mb-8 border-b border-gray-200">
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => setActiveOption(opt.id)}
-            className={`relative pb-3 text-sm font-medium transition-all duration-200 ${
-              activeOption === opt.id
-                ? "text-purple-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            {opt.label}
-            {activeOption === opt.id && (
-              <motion.div
-                layoutId="underline"
-                className="absolute bottom-0 left-0 right-0 h-[2px] bg-purple-600 rounded-full"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-            )}
-          </button>
-        ))}
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Mobile Tabs */}
+      <div className="sm:hidden border-b border-gray-200">
+        <div className="flex overflow-x-auto px-4 py-2 hide-scrollbar">
+          {options.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setActiveOption(opt.id)}
+              className={`flex-shrink-0 px-4 py-3 mx-1 text-sm font-medium rounded-lg transition-all duration-200 ${
+                activeOption === opt.id
+                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Smoothly Resizing Content */}
-      <div className="mt-6">
+      {/* Desktop Tabs */}
+      <div className="hidden sm:block border-b border-gray-200">
+        <div className="flex px-6">
+          {options.map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => setActiveOption(opt.id)}
+              className={`relative px-4 py-4 text-sm font-medium transition-all duration-200 ${
+                activeOption === opt.id
+                  ? "text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              {opt.label}
+              {activeOption === opt.id && (
+                <motion.div
+                  layoutId="underline"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 sm:p-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeOption}
@@ -150,6 +177,17 @@ export default function PostSection() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Hide Scrollbar CSS */}
+      <style jsx>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }
