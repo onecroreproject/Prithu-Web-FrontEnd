@@ -36,6 +36,7 @@ import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
 import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
 import { Feed } from "@mui/icons-material";
 import RegisterForm from "./components/LoginPageComponents/forms/registerForm.jsx";
+import UserActivity from './components/UserActivity/userActivity.jsx';
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="search" element={<SearchPage />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="invite" element={<InviteFriends />} />
+        <Route path="/activity" element={<UserActivity />} />
 
         {/* Settings with nested routes */}
         <Route path="settings/*" element={<SettingsPage />}>

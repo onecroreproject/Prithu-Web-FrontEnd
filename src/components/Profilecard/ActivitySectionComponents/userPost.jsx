@@ -3,16 +3,33 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from ".././../../api/axios";
 import Postcard from "../../FeedPageComponent/Postcard";
 
-const UserPosts = ({ authUser, token,id }) => {
+const UserPosts = ({ authUser, token, id }) => {
   const [activeTab, setActiveTab] = useState("image");
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fullscreenVideo, setFullscreenVideo] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'allPhotos'
+  const [menuOpen, setMenuOpen] = useState(null); // Track which post's menu is open
+  const [deletingPost, setDeletingPost] = useState(null); // Track which post is being deleted
   const videoRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Fetch user posts
-   useEffect(() => {
+  useEffect(() => {
     const fetchPosts = async () => {
       try {
         let res;
@@ -28,7 +45,6 @@ const UserPosts = ({ authUser, token,id }) => {
         }
 
         console.log("User Posts:", res.data);
-
         setPosts(res.data?.feeds || []);
       } catch (err) {
         console.error("Error fetching posts:", err);
@@ -53,6 +69,41 @@ const UserPosts = ({ authUser, token,id }) => {
   };
 
   const currentPosts = getCurrentPosts();
+
+  // Handle menu toggle
+  const handleMenuToggle = (postId, event) => {
+    event.stopPropagation();
+    setMenuOpen(menuOpen === postId ? null : postId);
+  };
+
+  // Handle delete post
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
+
+    setDeletingPost(postId);
+    setMenuOpen(null);
+
+    try {
+      await api.delete("/api/user/delete/feed", {
+        data: { feedId: postId },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Remove post from state immediately
+      setPosts(prev => prev.filter(post => post._id !== postId));
+      
+      // Show success message
+      alert("Post deleted successfully!");
+      
+    } catch (err) {
+      console.error("Error deleting post:", err);
+      alert("Failed to delete post. Please try again.");
+    } finally {
+      setDeletingPost(null);
+    }
+  };
 
   // Handle video click to open fullscreen
   const handleVideoClick = (post) => {
@@ -102,6 +153,51 @@ const UserPosts = ({ authUser, token,id }) => {
       document.body.style.overflow = "unset";
     };
   }, [fullscreenVideo]);
+
+  // Render 3-dot menu for each card
+  const renderMenuButton = (post) => {
+    return (
+      <div className="relative" ref={menuRef}>
+        {/* Three dots button */}
+        <button
+          onClick={(e) => handleMenuToggle(post._id, e)}
+          className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-1.5 rounded-full transition-all z-10"
+          disabled={deletingPost === post._id}
+        >
+          {deletingPost === post._id ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+          )}
+        </button>
+
+        {/* Dropdown menu */}
+        <AnimatePresence>
+          {menuOpen === post._id && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-10 right-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]"
+            >
+              <button
+                onClick={() => handleDeletePost(post._id)}
+                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Delete</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
 
   // Render header based on view mode
   const renderHeader = () => {
@@ -209,7 +305,10 @@ const UserPosts = ({ authUser, token,id }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="relative"
             >
+              {/* Add menu button to Postcard view */}
+              {renderMenuButton(post)}
               <Postcard
                 postData={post}
                 authUser={authUser}
@@ -241,6 +340,9 @@ const UserPosts = ({ authUser, token,id }) => {
                   className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
                   whileHover={{ scale: 1.02 }}
                 >
+                  {/* Three dots menu */}
+                  {renderMenuButton(post)}
+
                   {post.type === "image" ? (
                     <div className="aspect-[4/3]">
                       <img

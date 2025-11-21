@@ -76,6 +76,11 @@ function Postcard({
     return () => clearTimeout(t);
   }, [postData]);
 
+  // Sync isFollowing state when postData changes from cache updates
+  useEffect(() => {
+    setIsFollowing(postData?.isFollowing || false);
+  }, [postData?.isFollowing]);
+
   // video control toggles
   const togglePlayPause = useCallback(() => {
     const vid = videoRef.current;
@@ -91,35 +96,35 @@ function Postcard({
   }, [isMuted]);
 
   const handleFollow = useCallback(async () => {
-  try {
-    setIsFollowing(true); // optimistic update
-    await api.post("/api/user/follow/creator", {
-      userId,                 // creator to follow
-      currentUserId: tempUser._id,
-    });
+    try {
+      setIsFollowing(true); // optimistic update
+      await api.post("/api/user/follow/creator", {
+        userId,                 // creator to follow
+        currentUserId: tempUser._id,
+      });
 
-    toast.success("Following");
-  } catch (err) {
-    setIsFollowing(false); // revert on fail
-    toast.error(err?.response?.data?.message || "Follow failed");
-  }
-}, [userId, tempUser._id]);
+      toast.success("Following");
+    } catch (err) {
+      setIsFollowing(false); // revert on fail
+      toast.error(err?.response?.data?.message || "Follow failed");
+    }
+  }, [userId, tempUser._id]);
 
-// --- UNFOLLOW USER ---
-const handleUnfollow = useCallback(async () => {
-  try {
-    setIsFollowing(false); // optimistic
-    await api.post("/api/user/unfollow/creator", {
-      userId,
-      currentUserId: tempUser._id,
-    });
+  // --- UNFOLLOW USER ---
+  const handleUnfollow = useCallback(async () => {
+    try {
+      setIsFollowing(false); // optimistic
+      await api.post("/api/user/unfollow/creator", {
+        userId,
+        currentUserId: tempUser._id,
+      });
 
-    toast.success("Unfollowed");
-  } catch (err) {
-    setIsFollowing(true);
-    toast.error(err?.response?.data?.message || "Unfollow failed");
-  }
-}, [userId, tempUser._id]);
+      toast.success("Unfollowed");
+    } catch (err) {
+      setIsFollowing(true);
+      toast.error(err?.response?.data?.message || "Unfollow failed");
+    }
+  }, [userId, tempUser._id]);
 
   // like action (optimistic)
   const handleLikeFeed = useCallback(async () => {
@@ -145,86 +150,86 @@ const handleUnfollow = useCallback(async () => {
     }
   }, [feedId]);
 
-const handleDownload = useCallback(async () => {
-  try {
-    // Step 1: Get JSON with downloadLink
-    const res = await api.post("/api/user/feed/download", { feedId });
-    const link = res.data?.downloadLink;
+  const handleDownload = useCallback(async () => {
+    try {
+      // Step 1: Get JSON with downloadLink
+      const res = await api.post("/api/user/feed/download", { feedId });
+      const link = res.data?.downloadLink;
 
-    if (link) {
-      // Step 2: Fetch the media file as a blob
-      const mediaResponse = await fetch(link, { mode: 'cors' }); // Or include credentials if required
-      if (!mediaResponse.ok) throw new Error("Media download failed");
+      if (link) {
+        // Step 2: Fetch the media file as a blob
+        const mediaResponse = await fetch(link, { mode: 'cors' }); // Or include credentials if required
+        if (!mediaResponse.ok) throw new Error("Media download failed");
 
-      const blob = await mediaResponse.blob();
-      const url = window.URL.createObjectURL(blob);
+        const blob = await mediaResponse.blob();
+        const url = window.URL.createObjectURL(blob);
 
-      // Step 3: Create a link, trigger download
-      const a = document.createElement("a");
-      a.href = url;
+        // Step 3: Create a link, trigger download
+        const a = document.createElement("a");
+        a.href = url;
 
-      // Optional: extract extension from the link
-      const ext = link.split('.').pop().split(/\#|\?/)[0];
-      a.download = `post-${feedId}.${ext}`; // preserves file type
+        // Optional: extract extension from the link
+        const ext = link.split('.').pop().split(/\#|\?/)[0];
+        a.download = `post-${feedId}.${ext}`; // preserves file type
 
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
 
-      toast.success("Downloaded!");
-      return;
-    }
-
-    toast.error("Could not download the file");
-  } catch {
-    toast.error("Download failed");
-  }
-}, [feedId]);
-
-
-
-
-const handleShare = useCallback(async () => {
-  try {
-    const shareChannel = navigator.share ? "native_share" : "copy_link";
-    const shareTarget = null;
-
-    // Call backend (log share + save in DB)
-    await api.post("/api/user/feed/share", {
-      feedId,
-      userId: tempUser._id,
-      shareChannel,
-      shareTarget,
-    });
-
-    // Universal share URL
-    const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
-
-    // Native mobile/desktop share
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Check this post",
-          text: "Look at this post!",
-          url: shareUrl,
-        });
-
-        toast.success("Shared successfully");
+        toast.success("Downloaded!");
         return;
-      } catch (error) {
-        console.warn("Native share cancelled → fallback");
       }
-    }
 
-    // Fallback: copy link
-    await navigator.clipboard.writeText(shareUrl);
-    toast.success("Share link copied to clipboard!");
-  } catch (err) {
-    console.error("Share error:", err);
-    toast.error(err?.response?.data?.message || "Share failed");
-  }
-}, [feedId, tempUser._id]);
+      toast.error("Could not download the file");
+    } catch {
+      toast.error("Download failed");
+    }
+  }, [feedId]);
+
+
+
+
+  const handleShare = useCallback(async () => {
+    try {
+      const shareChannel = navigator.share ? "native_share" : "copy_link";
+      const shareTarget = null;
+
+      // Call backend (log share + save in DB)
+      await api.post("/api/user/feed/share", {
+        feedId,
+        userId: tempUser._id,
+        shareChannel,
+        shareTarget,
+      });
+
+      // Universal share URL
+      const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
+
+      // Native mobile/desktop share
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Check this post",
+            text: "Look at this post!",
+            url: shareUrl,
+          });
+
+          toast.success("Shared successfully");
+          return;
+        } catch (error) {
+          console.warn("Native share cancelled → fallback");
+        }
+      }
+
+      // Fallback: copy link
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Share link copied to clipboard!");
+    } catch (err) {
+      console.error("Share error:", err);
+      toast.error(err?.response?.data?.message || "Share failed");
+    }
+  }, [feedId, tempUser._id]);
 
 
 
@@ -235,7 +240,7 @@ const handleShare = useCallback(async () => {
     if (!isLiked) {
       setIsLiked(true);
       setLikesCount((p) => p + 1);
-      api.post("/api/user/feed/like", { feedId, userId: tempUser._id }).catch(() => {});
+      api.post("/api/user/feed/like", { feedId, userId: tempUser._id }).catch(() => { });
     }
     // show quick heart animation inside PostMedia via prop (PostMedia will show it visually)
   }, [isLiked, feedId, tempUser._id]);
@@ -243,7 +248,7 @@ const handleShare = useCallback(async () => {
   if (loading) {
     return <div className="w-full h-80 bg-gray-200 animate-pulse rounded-2xl mx-auto" />;
   }
-console.log(postData)
+  console.log(postData)
   return (
     <div className={FEED_CARD_STYLE}>
       <PostHeader
@@ -259,9 +264,9 @@ console.log(postData)
         dec={postData.description}
         onHidePost={onHidePost}
         onNotInterested={onNotInterested}
-          isFollowing={postData.isFollowing}              
-  onFollow={handleFollow}                
-  onUnfollow={handleUnfollow}
+        isFollowing={postData.isFollowing}
+        onFollow={handleFollow}
+        onUnfollow={handleUnfollow}
       />
 
       <PostMedia
@@ -302,7 +307,7 @@ console.log(postData)
         feedId={feedId}
         setCommentCount={setCommentCount}
         comments={comments}
-       
+
       />
     </div>
   );
