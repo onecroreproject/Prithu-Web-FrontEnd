@@ -57,7 +57,7 @@ export default function PostMedia({
         if (visible) {
           // Autoplay mode
           setIsAutoPlaying(true);
-          vid.play().catch(() => {});
+          vid.play().catch(() => { });
         } else {
           // Exit autoplay mode
           setIsAutoPlaying(false);
@@ -130,59 +130,79 @@ export default function PostMedia({
   /* --------------------------------------------------------------
       VIDEO (INSTAGRAM BEHAVIOR — ALWAYS SOUND ON)
 -------------------------------------------------------------- */
-return (
-  <div
-    ref={containerRef}
-    onClick={handleTap}
-    className="relative w-full flex items-center justify-center overflow-hidden"
-    style={{
-      height: "min(80vh, 520px)",
-    }}
-  >
-    <ColorBackground />
-
-    {/* Video */}
-    <video
-      ref={videoRef}
-      src={contentUrl}
-      muted={false}               // 🔥 ALWAYS PLAY SOUND
-      playsInline
-      preload="metadata"
-      className="absolute inset-0 w-full h-full object-contain z-10"
-      onClick={(e) => {
-        e.stopPropagation();
-        setIsAutoPlaying(false); // user interacting → no longer autoplay
-        togglePlayPause();
+  return (
+    <div
+      ref={containerRef}
+      onClick={handleTap}
+      className="relative w-full flex items-center justify-center overflow-hidden"
+      style={{
+        height: "min(80vh, 520px)",
       }}
-    />
+    >
+      <ColorBackground />
 
-    {/* ONLY SHOW PLAY BUTTON WHEN MANUALLY PAUSED */}
-    {!isAutoPlaying && !isPlaying && (
-      <>
-        {/* PLAY BUTTON */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            togglePlayPause();
-            setIsAutoPlaying(false);
-          }}
-          className="absolute z-20 flex items-center justify-center bg-black/45 text-white rounded-full"
-          style={{
-            width: 70,
-            height: 70,
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          <PlayArrow sx={{ fontSize: 48 }} />
-        </button>
-      </>
-    )}
+      {/* Video */}
+      <video
+        ref={videoRef}
+        src={contentUrl}
+        muted={isMuted}             // 🔥 Controlled by parent (starts unmuted)
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-contain z-10"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsAutoPlaying(false); // user interacting → no longer autoplay
+          togglePlayPause();
+        }}
+      />
 
-    {showHeart && <HeartAnimation />}
-  </div>
-);
+      {/* MUTE/UNMUTE BUTTON - Bottom Right Corner */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleMute();
+        }}
+        className="absolute bottom-4 right-4 z-20 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-all duration-200 backdrop-blur-sm"
+        style={{
+          width: 40,
+          height: 40,
+        }}
+        title={isMuted ? "Unmute" : "Mute"}
+      >
+        {isMuted ? (
+          <VolumeOff sx={{ fontSize: 24 }} />
+        ) : (
+          <VolumeUp sx={{ fontSize: 24 }} />
+        )}
+      </button>
+
+      {/* ONLY SHOW PLAY BUTTON WHEN MANUALLY PAUSED */}
+      {!isAutoPlaying && !isPlaying && (
+        <>
+          {/* PLAY BUTTON */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlayPause();
+              setIsAutoPlaying(false);
+            }}
+            className="absolute z-20 flex items-center justify-center bg-black/45 text-white rounded-full"
+            style={{
+              width: 70,
+              height: 70,
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <PlayArrow sx={{ fontSize: 48 }} />
+          </button>
+        </>
+      )}
+
+      {showHeart && <HeartAnimation />}
+    </div>
+  );
 
 }
 

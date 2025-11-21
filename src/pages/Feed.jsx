@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllFeeds, getTopRankedJobs } from "../Service/feedService";
+import { useLocation } from "react-router-dom";
 
 import Stories from "../components/Stories";
 import Createpost from "../components/postCreatedCard";
@@ -91,6 +92,51 @@ const Feed = ({ authUser }) => {
   const [selectedRole, setSelectedRole] = useState(null);
   const JOB_RATIO = 3;
 
+  const location = useLocation();
+  const [highlightedFeedId, setHighlightedFeedId] = useState(null);
+
+  // Helper: move feed to top of cache and mark as highlighted
+  const moveFeedToTop = useCallback((feedId) => {
+    if (!feedId) return;
+
+    queryClient.setQueryData(["feeds", token], (oldData) => {
+      if (!oldData || !oldData.pages) return oldData;
+
+      // Flatten all pages to find the feed
+      const allItems = oldData.pages.flat();
+      const foundIndex = allItems.findIndex(
+        (it) => it.feedId === feedId || it._id === feedId
+      );
+
+      if (foundIndex !== -1) {
+        // Remove the feed from its current position
+        const [foundFeed] = allItems.splice(foundIndex, 1);
+
+        // Mark it as highlighted
+        const highlightedFeed = { ...foundFeed, __highlight: true };
+
+        // Add to the beginning of the first page
+        const firstPage = oldData.pages[0] || [];
+        const newFirstPage = [
+          highlightedFeed,
+          ...firstPage.filter(it => it.feedId !== feedId && it._id !== feedId)
+        ];
+
+        // Rebuild pages
+        const newPages = [
+          newFirstPage,
+          ...oldData.pages.slice(1).map(page =>
+            page.filter(it => it.feedId !== feedId && it._id !== feedId)
+          )
+        ];
+
+        return { ...oldData, pages: newPages };
+      }
+
+      return oldData;
+    });
+  }, [queryClient, token]);
+
 
 
   useEffect(() => {
@@ -123,6 +169,79 @@ const Feed = ({ authUser }) => {
       queryClient.removeQueries(["feeds", token]); // resets infinite scroll
     }
   }, [feedCategory]);
+
+  /* ---------------------- LISTEN FOR HIGHLIGHT FEED EVENT ------------------- */
+  useEffect(() => {
+    const handleHighlightFeed = (e) => {
+      const feedId = e?.detail?.feedId;
+      if (!feedId) return;
+
+      setHighlightedFeedId(feedId);
+      moveFeedToTop(feedId);
+
+      // Scroll to top after a short delay
+      setTimeout(() => {
+        const feedTop = document.getElementById("feedTop");
+        feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+
+      // Remove highlight after 5 seconds
+      setTimeout(() => {
+        setHighlightedFeedId(null);
+        queryClient.setQueryData(["feeds", token], (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map(page =>
+              page.map(item =>
+                (item.feedId === feedId || item._id === feedId)
+                  ? { ...item, __highlight: false }
+                  : item
+              )
+            )
+          };
+        });
+      }, 5000);
+    };
+
+    window.addEventListener("highlightFeed", handleHighlightFeed);
+    return () => window.removeEventListener("highlightFeed", handleHighlightFeed);
+  }, [token, queryClient, moveFeedToTop]);
+
+  /* ---------------------- CHECK LOCATION STATE ON MOUNT ---------------------- */
+  useEffect(() => {
+    if (location.state?.highlightFeed) {
+      const feedId = location.state.highlightFeed;
+      setHighlightedFeedId(feedId);
+      moveFeedToTop(feedId);
+
+      setTimeout(() => {
+        const feedTop = document.getElementById("feedTop");
+        feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+
+      // Remove highlight after 5 seconds
+      setTimeout(() => {
+        setHighlightedFeedId(null);
+        queryClient.setQueryData(["feeds", token], (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map(page =>
+              page.map(item =>
+                (item.feedId === feedId || item._id === feedId)
+                  ? { ...item, __highlight: false }
+                  : item
+              )
+            )
+          };
+        });
+      }, 5000);
+    }
+  }, [location, queryClient, token, moveFeedToTop]);
 
   /* --------------------------- FETCH JOBS ---------------------------------- */
 

@@ -60,11 +60,11 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
       await api.post("/api/user/profile/cover/update", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Cover image updated successfully!");
+     
       await fetchUserProfile();
     } catch (err) {
       console.error(err);
-      toast.error("Upload failed. Please try again.");
+
     } finally {
       setLoading(false);
     }
