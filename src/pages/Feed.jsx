@@ -55,8 +55,8 @@ const mapJobForCard = (job) => ({
   tags: Array.isArray(job.tags)
     ? job.tags.filter(Boolean)
     : typeof job.tags === "string"
-    ? job.tags.split(",").map((t) => t.trim())
-    : [],
+      ? job.tags.split(",").map((t) => t.trim())
+      : [],
   createdAt: job.createdAt,
   postedAt: timeAgoFrom(job.createdAt),
   score: job.priorityScore + (job.isPaid ? 5 : 0) + (job.isApproved ? 2 : 0),
@@ -94,17 +94,17 @@ const Feed = ({ authUser }) => {
 
 
   useEffect(() => {
-  const shouldScroll = localStorage.getItem("scrollToFeed");
+    const shouldScroll = localStorage.getItem("scrollToFeed");
 
-  if (shouldScroll === "true") {
-    setTimeout(() => {
-      const feed = document.getElementById("feedTop");
-      feed?.scrollIntoView({ behavior: "smooth" });
-    }, 300);
+    if (shouldScroll === "true") {
+      setTimeout(() => {
+        const feed = document.getElementById("feedTop");
+        feed?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
 
-    localStorage.removeItem("scrollToFeed");
-  }
-}, []);
+      localStorage.removeItem("scrollToFeed");
+    }
+  }, []);
 
 
   /* ---------------------- LISTEN FOR CATEGORY FILTER ------------------------ */
@@ -139,8 +139,8 @@ const Feed = ({ authUser }) => {
   const filteredJobs =
     selectedRole
       ? jobs.filter((job) =>
-          job.title?.toLowerCase().includes(selectedRole.toLowerCase())
-        )
+        job.title?.toLowerCase().includes(selectedRole.toLowerCase())
+      )
       : jobs;
 
   /* -------------------------- FETCH FEEDS ---------------------------------- */
@@ -200,6 +200,46 @@ const Feed = ({ authUser }) => {
     showReels ? [] : filteredJobs
   );
 
+
+  const handleHideFromUI = (feedId) => {
+    queryClient.setQueryData(["feeds", token], (oldData) => {
+      if (!oldData) return oldData;
+
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) =>
+          page.filter((item) => item.feedId !== feedId)
+        ),
+      };
+    });
+  };
+
+  /* ----------------------------- FOLLOW STATUS SYNC ------------------------- */
+  useEffect(() => {
+    const handleFollowStatusChange = (e) => {
+      const { userId, isFollowing } = e.detail;
+
+      // Update all feed posts from this user
+      queryClient.setQueryData(["feeds", token], (oldData) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) =>
+            page.map((item) =>
+              item.userId === userId
+                ? { ...item, isFollowing }
+                : item
+            )
+          ),
+        };
+      });
+    };
+
+    window.addEventListener("userFollowStatusChanged", handleFollowStatusChange);
+    return () => window.removeEventListener("userFollowStatusChanged", handleFollowStatusChange);
+  }, [queryClient, token]);
+
   /* ----------------------------- REELS TOGGLE ------------------------------ */
   useEffect(() => {
     const handleToggle = (e) => setShowReels(e.detail.isActive);
@@ -240,67 +280,66 @@ const Feed = ({ authUser }) => {
 
   return (
     <> <div id="feedTop">
-    <div
-      className={`mx-auto px-3 sm:px-4 md:px-6 py-5 max-w-3xl transition-all duration-300 ${
-        showReels ? "bg-gray-50" : "bg-white"
-      }`}
-    >
-      <Stories />
+      <div
+        className={`mx-auto px-3 sm:px-4 md:px-6 py-5 max-w-3xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"
+          }`}
+      >
+        <Stories />
 
-      <div className="mt-4 mb-6">
-        <Createpost authUser={authUser} token={token} />
-      </div>
+        <div className="mt-4 mb-6">
+          <Createpost authUser={authUser} token={token} />
+        </div>
 
-      <AnimatePresence>
-        <div className="flex flex-col gap-5">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
-          ) : mixed.length > 0 ? (
-            mixed.map((item, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4 }}
+        <AnimatePresence>
+          <div className="flex flex-col gap-5">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
+            ) : mixed.length > 0 ? (
+              mixed.map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {item.__kind === "job" ? (
+                    <JobCard jobData={mapJobForCard(item)} />
+                  ) : (
+                    <Postcard
+                      postData={item}
+                      authUser={authUser}
+                      token={token}
+                      onHideFromUI={handleHideFromUI}
+                    />
+                  )}
+                </motion.div>
+              ))
+            ) : (
+              <motion.p
+                className="text-center text-gray-500 py-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
               >
-                {item.__kind === "job" ? (
-                  <JobCard jobData={mapJobForCard(item)} />
-                ) : (
-                  <Postcard
-                    postData={item}
-                    authUser={authUser}
-                    token={token}
-                    onHidePost={() => {}}
-                  />
-                )}
-              </motion.div>
-            ))
-          ) : (
-            <motion.p
-              className="text-center text-gray-500 py-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {feedsError || jobsError
-                ? "⚠️ Failed to load content."
-                : feedCategory
-                ? "No feeds found for this category."
-                : showReels
-                ? "No reels found 🎬"
-                : "No content available."}
-            </motion.p>
-          )}
-        </div>
-      </AnimatePresence>
+                {feedsError || jobsError
+                  ? "⚠️ Failed to load content."
+                  : feedCategory
+                    ? "No feeds found for this category."
+                    : showReels
+                      ? "No reels found 🎬"
+                      : "No content available."}
+              </motion.p>
+            )}
+          </div>
+        </AnimatePresence>
 
-      {isFetchingNextPage && (
-        <div className="flex justify-center py-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-        </div>
-      )}
-    </div>
-  </div></>);
+        {isFetchingNextPage && (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+          </div>
+        )}
+      </div>
+    </div></>);
 };
 
 export default Feed;

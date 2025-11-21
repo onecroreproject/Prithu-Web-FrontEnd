@@ -84,6 +84,13 @@ export default function ProfileHeader({ id }) {
 
       toast.success("Followed successfully!");
       setIsFollowing(true);
+
+      // 🔥 Broadcast follow event to update feed posts
+      window.dispatchEvent(
+        new CustomEvent("userFollowStatusChanged", {
+          detail: { userId: id, isFollowing: true },
+        })
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to follow");
     } finally {
@@ -106,6 +113,13 @@ export default function ProfileHeader({ id }) {
 
       toast.success("Unfollowed successfully!");
       setIsFollowing(false);
+
+      // 🔥 Broadcast unfollow event to update feed posts
+      window.dispatchEvent(
+        new CustomEvent("userFollowStatusChanged", {
+          detail: { userId: id, isFollowing: false },
+        })
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to unfollow");
     } finally {
@@ -216,7 +230,7 @@ export default function ProfileHeader({ id }) {
         </motion.div>
 
         {/* Profile Picture + Follow Button */}
-       <div className="relative flex justify-between  items-end px-6 -mt-14">
+        <div className="relative flex justify-between  items-end px-6 -mt-14">
 
           <div className="relative w-32 h-32">
             <img

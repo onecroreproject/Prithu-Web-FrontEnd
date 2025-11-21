@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase
+  Calendar, Briefcase,Activity
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -69,6 +69,7 @@ export default function Header() {
     { to: "/settings", label: "Settings", Icon: Settings },
     { to: "/subscriptions", label: "Subscriptions", Icon: BellRing },
     { to: "/referral", label: "Referral", Icon: Gift },
+    { to: "/activity", label: "My Activity", Icon: Activity }
   ];
  
   useEffect(() => {

@@ -1,3 +1,4 @@
+// src/components/PostOptionsMenu.jsx
 import React, { useState } from "react";
 import {
   IconButton,
@@ -10,14 +11,12 @@ import {
 } from "@mui/material";
 import {
   MoreHoriz,
-  BookmarkBorder,
-  Bookmark,
   ThumbDown,
   VisibilityOff,
   Flag,
 } from "@mui/icons-material";
 import api from "../../api/axios";
-import ReportModal from "../../components/ReportModal"; // ✅ import dynamic modal
+import ReportModal from "../../components/ReportModal";
 
 const PostOptionsMenu = ({
   feedId,
@@ -25,48 +24,21 @@ const PostOptionsMenu = ({
   token,
   onNotInterested,
   onHidePost,
-  onSavePost,
-  isSaved: initialSaved = false,
+  onHideFromUI,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [toastMsg, setToastMsg] = useState("");
-  const [isSaved, setIsSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
-
-  const [openReportModal, setOpenReportModal] = useState(false); // ✅ NEW
+  const [openReportModal, setOpenReportModal] = useState(false);
 
   const open = Boolean(anchorEl);
 
   const handleOpen = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  // -------------------------------------------
-  // Save / Unsave
-  // -------------------------------------------
-  const handleSaveToggle = async () => {
-    setLoading(true);
-    try {
-      const endpoint = isSaved ? "/api/user/unsave/post" : "/api/user/save/post";
-      const res = await api.post(
-        endpoint,
-        { postId: feedId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setIsSaved(!isSaved);
-      setToastMsg(res.data.message || "Updated");
-      if (onSavePost) onSavePost(feedId, !isSaved);
-    } catch (err) {
-      setToastMsg("Action failed");
-    } finally {
-      setLoading(false);
-      handleClose();
-    }
-  };
-
-  // -------------------------------------------
-  // Not Interested
-  // -------------------------------------------
+  /* --------------------------------------------------
+     NOT INTERESTED
+  -------------------------------------------------- */
   const handleNotInterested = async () => {
     setLoading(true);
     try {
@@ -75,9 +47,11 @@ const PostOptionsMenu = ({
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setToastMsg(res.data.message);
-      if (onNotInterested) onNotInterested(feedId);
-    } catch (err) {
+      onNotInterested?.(feedId);
+
+    } catch {
       setToastMsg("Action failed");
     } finally {
       setLoading(false);
@@ -85,9 +59,9 @@ const PostOptionsMenu = ({
     }
   };
 
-  // -------------------------------------------
-  // Hide Post
-  // -------------------------------------------
+  /* --------------------------------------------------
+     HIDE POST
+  -------------------------------------------------- */
   const handleHidePost = async () => {
     setLoading(true);
     try {
@@ -96,9 +70,16 @@ const PostOptionsMenu = ({
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+console.log(res.data)
       setToastMsg(res.data.message);
-      if (onHidePost) onHidePost(feedId);
-    } catch (err) {
+
+      // 🔥 Remove from UI instantly
+      onHideFromUI?.(feedId);
+
+      // Optional callback
+      onHidePost?.(feedId);
+
+    } catch {
       setToastMsg("Hide failed");
     } finally {
       setLoading(false);
@@ -106,61 +87,47 @@ const PostOptionsMenu = ({
     }
   };
 
-  // -------------------------------------------
-  // REPORT → OPEN ReportModal
-  // -------------------------------------------
+  /* --------------------------------------------------
+     REPORT
+  -------------------------------------------------- */
   const handleReport = () => {
     handleClose();
-    setOpenReportModal(true); // ✅ open the new modal
+    setOpenReportModal(true);
   };
 
   return (
     <>
-      {/* MAIN MENU BUTTON */}
       <IconButton onClick={handleOpen} disabled={loading}>
         {loading ? <CircularProgress size={20} /> : <MoreHoriz />}
       </IconButton>
 
-      {/* MENU */}
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-        
-      
 
-        {/* Not Interested */}
         <MenuItem onClick={handleNotInterested}>
-          <ListItemIcon>
-            <ThumbDown />
-          </ListItemIcon>
+          <ListItemIcon><ThumbDown /></ListItemIcon>
           <ListItemText>Not Interested</ListItemText>
         </MenuItem>
 
-        {/* Hide */}
         <MenuItem onClick={handleHidePost}>
-          <ListItemIcon>
-            <VisibilityOff />
-          </ListItemIcon>
+          <ListItemIcon><VisibilityOff /></ListItemIcon>
           <ListItemText>Hide Post</ListItemText>
         </MenuItem>
 
-        {/* REPORT */}
         <MenuItem onClick={handleReport}>
-          <ListItemIcon>
-            <Flag />
-          </ListItemIcon>
+          <ListItemIcon><Flag /></ListItemIcon>
           <ListItemText>Report</ListItemText>
         </MenuItem>
+
       </Menu>
 
-      {/* FULL SCREEN REPORT MODAL */}
       {openReportModal && (
         <ReportModal
           targetId={feedId}
           targetType="Feed"
-          onClose={() => setOpenReportModal(false)} // close callback
+          onClose={() => setOpenReportModal(false)}
         />
       )}
 
-      {/* TOAST */}
       <Snackbar
         open={!!toastMsg}
         autoHideDuration={3000}

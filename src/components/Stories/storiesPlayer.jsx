@@ -15,7 +15,7 @@ const StoriesPlayer = ({
   setShowComments,
   handleVideoTimeUpdate,
 }) => {
-  
+
   /* -------------------------
        TAP / CLICK HANDLER
      ------------------------- */
@@ -53,28 +53,20 @@ const StoriesPlayer = ({
       if (newPaused) {
         video.pause();
       } else {
-        video.play().catch(() => {});
+        video.play().catch(() => { });
       }
     }
   };
 
   /* -------------------------
-       AUTO PAUSE ON HOVER
+       HOVER HANDLER (NO AUTO-PAUSE)
      ------------------------- */
   const handleMouseEnter = () => {
     setIsHovering(true);
-    // Auto-pause on hover for better UX
-    if (feed?.type === 'video' && !isPaused) {
-      setIsPaused(true);
-    }
   };
 
   const handleMouseLeave = () => {
     setIsHovering(false);
-    // Resume play when leaving hover (only for videos)
-    if (feed?.type === 'video' && isPaused) {
-      setIsPaused(false);
-    }
   };
 
   return (
@@ -106,7 +98,7 @@ const StoriesPlayer = ({
             style={{ width: `${progress}%` }}
           />
         </div>
-        
+
         {/* Progress indicator for videos */}
         {feed?.type === 'video' && (
           <div className="absolute -bottom-4 right-0 text-xs text-gray-400">
@@ -123,7 +115,7 @@ const StoriesPlayer = ({
             )}
           </div>
         )}
-        
+
         {/* Progress indicator for images */}
         {feed?.type === 'image' && (
           <div className="absolute -bottom-4 right-0 text-xs text-gray-400">
@@ -173,7 +165,7 @@ const StoriesPlayer = ({
 
       {/* Play/Pause Overlay */}
       {isPaused && (
-        <div 
+        <div
           className="absolute inset-0 flex items-center justify-center z-30 bg-black/30 cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
@@ -196,7 +188,7 @@ const StoriesPlayer = ({
             onTimeUpdate={handleVideoTimeUpdate}
             onLoadedMetadata={() => {
               if (!isPaused) {
-                videoRef.current?.play()?.catch(() => {});
+                videoRef.current?.play()?.catch(() => { });
               }
             }}
             onEnded={() => navigateFeed("next")}

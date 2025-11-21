@@ -15,33 +15,28 @@ const PostHeader = ({
   dec,
   token,
   onHidePost,
+  onHideFromUI,
   onNotInterested,
   isFollowing: initialFollowState,
   onFollow,
   onUnfollow,
-   // <-- Add this prop if needed
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialFollowState);
-  const [isSaved, setIsSaved] = useState(toggleSaved); // 🔥 NEW: save state
-
-  const currentUser = localStorage.getItem("userId");
+  const [isSaved, setIsSaved] = useState(toggleSaved);
 
   const descRef = useRef(null);
 
-  // Update following state if prop changes
-  useEffect(() => {
-    setIsFollowing(initialFollowState);
-  }, [initialFollowState]);
+  const currentUser = localStorage.getItem("userId");
+  const isOwner = currentUser === userId;  // ✔ user is the owner
 
-  // Update saved state if prop changes
-  useEffect(() => {
-    setIsSaved(isSaved);
-  }, [isSaved]);
-
-  // =============== FOLLOW / UNFOLLOW ==================
+  /* ------------------------------------------------------------
+      FOLLOW/UNFOLLOW
+  ------------------------------------------------------------ */
   const handleToggleFollow = async () => {
+    if (isOwner) return; // prevent own follow
+
     const optimistic = !isFollowing;
     setIsFollowing(optimistic);
 
@@ -52,10 +47,14 @@ const PostHeader = ({
     }
   };
 
-  // =============== SAVE / UNSAVE FEED =================
+  /* ------------------------------------------------------------
+      SAVE/UNSAVE — NOT ALLOWED FOR OWN POST
+  ------------------------------------------------------------ */
   const handleToggleSave = async () => {
+    if (isOwner) return;
+
     const optimistic = !isSaved;
-    setIsSaved(optimistic); // instant UI
+    setIsSaved(optimistic);
 
     try {
       await api.post(
@@ -64,16 +63,16 @@ const PostHeader = ({
         { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (err) {
-      console.error("Save failed:", err);
-      setIsSaved(!optimistic); // rollback
+      setIsSaved(!optimistic);
     }
   };
 
-  // Handle description overflow detection
+  /* ------------------------------------------------------------
+      DESCRIPTION COLLAPSE LOGIC
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (descRef.current) {
-      const lineHeight = 20;
-      const maxHeight = lineHeight * 4;
+      const maxHeight = 20 * 4;
       if (descRef.current.scrollHeight > maxHeight) {
         setIsOverflowing(true);
       }
@@ -83,10 +82,10 @@ const PostHeader = ({
   return (
     <div className="flex flex-col p-4">
 
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-
-        {/* Avatar & Name */}
+        
+        {/* Avatar + Name */}
         <div
           onClick={() => navigate(`/user/profile/${userId}`)}
           className="flex items-center gap-3 cursor-pointer"
@@ -96,7 +95,6 @@ const PostHeader = ({
             alt="avatar"
             className="w-11 h-11 rounded-full object-cover"
           />
-
           <div>
             <p className="font-semibold text-gray-900 dark:text-white">
               {userName}
@@ -108,21 +106,23 @@ const PostHeader = ({
         {/* Right Buttons */}
         <div className="flex items-center gap-3">
 
-          {/* SAVE BUTTON (bookmark) */}
-          <button
-            onClick={handleToggleSave}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-            title={isSaved ? "Unsave" : "Save"}
-          >
-            {isSaved ? (
-              <BookmarkCheck className="w-5 h-5 text-blue-600" />
-            ) : (
-              <Bookmark className="w-5 h-5 text-gray-700" />
-            )}
-          </button>
+          {/* ✔ SAVE BUTTON hidden for own post */}
+          {!isOwner && (
+            <button
+              onClick={handleToggleSave}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              title={isSaved ? "Unsave" : "Save"}
+            >
+              {isSaved ? (
+                <BookmarkCheck className="w-5 h-5 text-blue-600" />
+              ) : (
+                <Bookmark className="w-5 h-5 text-gray-700" />
+              )}
+            </button>
+          )}
 
-          {/* FOLLOW BUTTON */}
-          {userId !== currentUser && (
+          {/* ✔ FOLLOW BUTTON hidden for own post */}
+          {!isOwner && (
             <button
               onClick={handleToggleFollow}
               className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
@@ -135,14 +135,17 @@ const PostHeader = ({
             </button>
           )}
 
-          {/* Post options (hide, not interested, report, etc) */}
-          <PostOptionsMenu
-            feedId={feedId}
-            authUserId={tempUser._id}
-            token={token}
-            onHidePost={onHidePost}
-            onNotInterested={onNotInterested}
-          />
+          {/* ❌ OPTIONS MENU removed for owner */}
+          {!isOwner && (
+            <PostOptionsMenu
+              feedId={feedId}
+              authUserId={tempUser._id}
+              token={token}
+              onHidePost={onHidePost}
+              onHideFromUI={onHideFromUI}
+              onNotInterested={onNotInterested}
+            />
+          )}
         </div>
       </div>
 

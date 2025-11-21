@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import { UserCheck, UserPlus, X, ShieldBan, Calendar, User, Mail } from "lucide-react";
+import { UserCheck, UserPlus, X, ShieldBan, Calendar, User, Mail, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
  
 export default function FriendsSection({ onFollowDataUpdate, id }) {
@@ -108,6 +108,12 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
       console.error("Remove follower error:", err.response?.data || err.message);
     }
   };
+
+  const handleMessage = (userId) => {
+    // Navigate to chat with the user
+    const navigate = useNavigate();
+    navigate(`/chat/${userId}`);
+  };
  
   const subTabs = [
     {
@@ -168,12 +174,14 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
             followers={followers}
             onRemove={handleRemove}
             onBlock={handleBlock}
+            onMessage={handleMessage}
             id={id} // Pass id to hide buttons
           />
         ) : (
           <FollowingsTab
             followings={followings}
             onUnfollow={handleUnfollow}
+            onMessage={handleMessage}
             id={id} // Pass id to hide buttons
           />
         )}
@@ -183,7 +191,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
 }
  
 /* ---------------- Followers Tab ---------------- */
-function FollowersTab({ followers, onRemove, onBlock, id }) {
+function FollowersTab({ followers, onRemove, onBlock, onMessage, id }) {
   if (!followers.length) {
     return (
       <div className="text-center py-8 sm:py-12">
@@ -209,6 +217,7 @@ function FollowersTab({ followers, onRemove, onBlock, id }) {
             follower={follower}
             onRemove={onRemove}
             onBlock={onBlock}
+            onMessage={onMessage}
             id={id} // Pass id to hide buttons
           />
         ))}
@@ -218,7 +227,7 @@ function FollowersTab({ followers, onRemove, onBlock, id }) {
 }
  
 /* ---------------- Followings Tab ---------------- */
-function FollowingsTab({ followings, onUnfollow, id }) {
+function FollowingsTab({ followings, onUnfollow, onMessage, id }) {
   if (!followings.length) {
     return (
       <div className="text-center py-8 sm:py-12">
@@ -243,6 +252,7 @@ function FollowingsTab({ followings, onUnfollow, id }) {
             key={following.userId}
             following={following}
             onUnfollow={onUnfollow}
+            onMessage={onMessage}
             id={id} // Pass id to hide buttons
           />
         ))}
@@ -252,8 +262,13 @@ function FollowingsTab({ followings, onUnfollow, id }) {
 }
  
 /* ---------------- Follower Card Component ---------------- */
-function FollowerCard({ follower, onRemove, onBlock, id }) {
+function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
   const navigate = useNavigate();
+
+  const handleMessageClick = (e) => {
+    e.stopPropagation();
+    navigate(`/chat/${follower.userId}`);
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
@@ -277,15 +292,24 @@ function FollowerCard({ follower, onRemove, onBlock, id }) {
         {/* ❌ Hide action buttons if id exists (viewing another user's profile) */}
         {!id && (
           <div className="flex gap-2 w-full mt-2">
-           
+            {/* Message Button */}
+            <button
+              onClick={handleMessageClick}
+              className="flex items-center justify-center gap-1 flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-3 h-3" />
+              Message
+            </button>
 
+            {/* Remove Button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove(follower.userId);
               }}
-              className="flex-1 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs rounded-lg transition-colors"
+              className="flex items-center justify-center gap-1 flex-1 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs rounded-lg transition-colors"
             >
+              <X className="w-3 h-3" />
               Remove
             </button>
           </div>
@@ -296,9 +320,14 @@ function FollowerCard({ follower, onRemove, onBlock, id }) {
 }
  
 /* ---------------- Following Card Component ---------------- */
-function FollowingCard({ following, onUnfollow, id }) {
+function FollowingCard({ following, onUnfollow, onMessage, id }) {
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const navigate = useNavigate();
+
+  const handleMessageClick = (e) => {
+    e.stopPropagation();
+    navigate(`/chat/${following.userId}`);
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
@@ -321,15 +350,26 @@ function FollowingCard({ following, onUnfollow, id }) {
 
         {/* ❌ Hide all unfollow buttons if id exists (viewing another user's profile) */}
         {!id && (
-          <>
+          <div className="flex gap-2 w-full mt-2">
+            {/* Message Button - Always visible for your own following */}
+            <button
+              onClick={handleMessageClick}
+              className="flex items-center justify-center gap-1 flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-3 h-3" />
+              Message
+            </button>
+
+            {/* Unfollow Button */}
             {!showUnfollowConfirm ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowUnfollowConfirm(true);
                 }}
-                className="w-full py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs rounded-lg transition-colors"
+                className="flex items-center justify-center gap-1 flex-1 py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs rounded-lg transition-colors"
               >
+                <X className="w-3 h-3" />
                 Unfollow
               </button>
             ) : (
@@ -355,7 +395,7 @@ function FollowingCard({ following, onUnfollow, id }) {
                 </button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
