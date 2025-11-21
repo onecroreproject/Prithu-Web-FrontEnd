@@ -124,13 +124,7 @@ const PostOptionsMenu = ({
       {/* MENU */}
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         
-        {/* Save */}
-        <MenuItem onClick={handleSaveToggle}>
-          <ListItemIcon>
-            {isSaved ? <Bookmark /> : <BookmarkBorder />}
-          </ListItemIcon>
-          <ListItemText>{isSaved ? "Unsave" : "Save"}</ListItemText>
-        </MenuItem>
+      
 
         {/* Not Interested */}
         <MenuItem onClick={handleNotInterested}>

@@ -11,6 +11,8 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
+import { FiMessageCircle } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import CommentItem from "./CommentItem";
 import api from "../../api/axios";
 
@@ -26,7 +28,8 @@ const PostCommentsModal = ({
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [toastMsg, setToastMsg] = useState("");
-
+  const [commentLoading, setCommentLoading] = useState(false);
+console.log(post)
   const inputRef = useRef(null);
   const currentFeedId = feedId || post?._id;
 
@@ -35,6 +38,7 @@ const PostCommentsModal = ({
     if (!currentFeedId) return;
 
     try {
+      setCommentLoading(true);
       const res = await api.post("/api/get/comments/for/feed", {
         feedId: currentFeedId,
       });
@@ -44,6 +48,9 @@ const PostCommentsModal = ({
       }
     } catch (err) {
       console.error("Error fetching comments:", err);
+      setToastMsg("Error loading comments");
+    } finally {
+      setCommentLoading(false);
     }
   };
 
@@ -56,34 +63,25 @@ const PostCommentsModal = ({
 
   /* ---------------------------- Submit Comment ---------------------------- */
   const handlePostComment = async () => {
-  if (!newComment.trim()) return;
+    if (!newComment.trim()) return;
 
-  try {
-    await api.post("/api/user/feed/comment", {
-      feedId: currentFeedId,
-      commentText: newComment,
-      userId: authUser._id,
-      parentCommentId: null,
-    });
+    try {
+      await api.post("/api/user/feed/comment", {
+        feedId: currentFeedId,
+        commentText: newComment,
+      });
 
-    // Immediately reload comments so new comment has:
-    // - commentId
-    // - isLiked
-    // - likeCount
-    // - replyCount
-    // - timeAgo
-    await fetchComments();          // 🔥 FIX #1
+      // Reload comments to get fresh data with proper IDs and counts
+      await fetchComments();
+      setCommentCount(prev => prev + 1);
+      setNewComment("");
+      setToastMsg("Comment posted");
 
-    setCommentCount(prev => prev + 1);
-    setNewComment("");
-    setToastMsg("Comment posted");
-
-  } catch (err) {
-    console.error("Error posting comment:", err);
-    setToastMsg(err.response?.data?.message || "Failed to post");
-  }
-};
-
+    } catch (err) {
+      console.error("Error posting comment:", err);
+      setToastMsg(err.response?.data?.message || "Failed to post");
+    }
+  };
 
   return (
     <Dialog
@@ -129,6 +127,7 @@ const PostCommentsModal = ({
             justifyContent: "center",
             alignItems: "center",
             overflow: "hidden",
+            bgcolor: 'black'
           }}
         >
           {post?.contentUrl &&
@@ -170,28 +169,66 @@ const PostCommentsModal = ({
             borderLeft: { md: "1px solid #eee" },
           }}
         >
+          {/* Header */}
+          <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Avatar
+                src={post?.profileAvatar}
+                sx={{ width: 40, height: 40 }}
+              />
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {post?.userName || "Unknown User"}
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {post?.timeAgo || "Unknown place"}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
           {/* Comments List */}
           <Box sx={{ flex: 1, overflowY: "auto", px: 2, py: 1 }}>
-            {comments.length === 0 && (
-              <Typography
-                variant="body2"
-                textAlign="center"
-                color="textSecondary"
-                mt={4}
-              >
-                No comments yet — be the first!
-              </Typography>
+            {commentLoading ? (
+              // Loading skeleton
+              Array.from({ length: 3 }).map((_, i) => (
+                <Stack key={i} direction="row" spacing={1} sx={{ mb: 2 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'grey.200' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ width: '60%', height: 16, bgcolor: 'grey.200', mb: 1, borderRadius: 1 }} />
+                    <Box sx={{ width: '80%', height: 14, bgcolor: 'grey.200', borderRadius: 1 }} />
+                  </Box>
+                </Stack>
+              ))
+            ) : comments.length === 0 ? (
+              <Box sx={{ textAlign: "center", py: 4, color: 'text.secondary' }}>
+                <FiMessageCircle style={{ fontSize: 32, opacity: 0.4, margin: '0 auto 8px' }} />
+                <Typography variant="body2" fontWeight="medium">
+                  No comments yet
+                </Typography>
+                <Typography variant="caption">
+                  Be the first to comment
+                </Typography>
+              </Box>
+            ) : (
+              <AnimatePresence>
+                {comments.map((comment) => (
+                  <motion.div
+                    key={comment.commentId || comment._id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <CommentItem
+                      comment={comment}
+                      authUser={authUser}
+                      feedId={currentFeedId}
+                      refreshComments={fetchComments}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
-
-            {comments.map((comment) => (
-              <CommentItem
-                key={comment.commentId}
-                comment={comment}
-                authUser={authUser}
-                feedId={currentFeedId}
-                refreshComments={fetchComments}
-              />
-            ))}
           </Box>
 
           {/* Add Comment */}

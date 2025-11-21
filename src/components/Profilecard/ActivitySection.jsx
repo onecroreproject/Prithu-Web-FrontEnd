@@ -1,40 +1,24 @@
 // src/components/ActivitySection.jsx
-import React, { useState } from "react";
-import PostComposer from "./PostComposer";
-import ActivityFeed from "./ActivityFeed";
+import React, { useState, useEffect } from "react";
+import api from "../../api/axios";
 import UserUploads from "./ActivitySectionComponents/userPost";
+import { Heart, Calendar, Play, Image, Loader } from "lucide-react";
 
-export default function ActivitySection({ userAvatar, userName, activities }) {
+export default function ActivitySection({ id }) {
   const [activeSubTab, setActiveSubTab] = useState("personal");
 
   const subTabs = [
     { id: "personal", label: "Post" },
-    { id: "mentions", label: "Mentions" },
     { id: "favourites", label: "Favourites" },
-    { id: "friends", label: "Friends" },
-    { id: "groups", label: "Groups" },
   ];
 
   const renderContent = () => {
     switch (activeSubTab) {
       case "personal":
-        return (
-          <>
-            <UserUploads/>
-          </>
-        );
-
-      case "mentions":
-        return <MentionsTab />;
+        return <UserUploads id={id} />;
 
       case "favourites":
-        return <FavouritesTab />;
-
-      case "friends":
-        return <FriendsActivityTab />;
-
-      case "-groups":
-        return <GroupsActivityTab />;
+        return <FavouritesTab id={id} />;
 
       default:
         return null;
@@ -42,112 +26,253 @@ export default function ActivitySection({ userAvatar, userName, activities }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
       {/* Sub-Tab Navigation */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {subTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveSubTab(tab.id)}
-            className={`
-              px-4 py-3 text-sm font-medium capitalize transition-all duration-200
-              ${activeSubTab === tab.id
-                ? "border-b-2 border-purple-600 text-purple-600"
-                : "text-gray-600 hover:text-gray-900"
-              }
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
+        <div className="flex min-w-full px-2 sm:px-4">
+          {subTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id)}
+              className={`flex-1 sm:flex-none px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium capitalize transition-all duration-200 whitespace-nowrap
+                ${activeSubTab === tab.id
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-600 hover:text-blue-600"}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Dynamic Content */}
-      <div className="p-6">{renderContent()}</div>
+      <div className="p-4 sm:p-6">{renderContent()}</div>
     </div>
   );
 }
 
-/* ────── Sub-Tab Components ────── */
+/* -------------------------------------------------- */
+/* 🌟 2. Favourites Tab (Loads saved feeds)           */
+/* -------------------------------------------------- */
 
-/* 1. Mentions */
-function MentionsTab() {
-  return (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-        <span className="text-2xl text-gray-400">@</span>
+function FavouritesTab({id}) {
+  const [savedFeeds, setSavedFeeds] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ❌ Other user → Do not show favorites
+  if (id) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
+            <Heart className="w-8 h-8 text-purple-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+            Private Favourites
+          </h3>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Favourites are personal and only visible to the account owner. 
+            This user's saved content is kept private.
+          </p>
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">No mentions yet</h3>
-      <p className="text-sm text-gray-600">When someone mentions you, it’ll show here.</p>
-    </div>
-  );
-}
+    );
+  }
 
-/* 2. Favourites */
-function FavouritesTab() {
-  return (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
-        <svg className="w-8 h-8 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.953a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1  |
+  // ✅ Fetch saved feeds only for own account
+  useEffect(() => {
+    const fetchSavedFeeds = async () => {
+      try {
+        const res = await api.get("/api/user/get/saved/feeds");
+        setSavedFeeds(res.data.savedFeeds || []);
+      } catch (err) {
+        console.error("Error fetching saved feeds:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
- 1 0 00-.364 1.118l1.287 3.953c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.54-1.118l1.287-3.953a1 1 0 00-.364-1.118L2.098 9.38c-.784-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.953z" />
-        </svg>
+    fetchSavedFeeds();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+            <div className="w-12 h-12 bg-blue-50 rounded-full absolute -inset-2 animate-ping opacity-20"></div>
+          </div>
+          <p className="text-gray-500 text-sm mt-4 font-medium">Loading your favourites...</p>
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">No favorites yet</h3>
-      <p className="text-sm text-gray-600">Tap the star on any post to save it here.</p>
-    </div>
-  );
-}
+    );
+  }
 
-/* 3. Friends Activity */
-function FriendsActivityTab() {
-  const friendsActivity = [
-    { name: "John Doe", action: "liked your photo", time: "2 hours ago", avatar: "https://i.pravatar.cc/40?img=1" },
-    { name: "Sarah Lee", action: "commented on your post", time: "5 hours ago", avatar: "https://i.pravatar.cc/40?img=2" },
-    { name: "Mike Chen", action: "started following you", time: "1 day ago", avatar: "https://i.pravatar.cc/40?img=3" },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Friends Activity</h3>
-      {friendsActivity.map((item, i) => (
-        <div key={i} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition">
-          <img src={item.avatar} alt={item.name} className="w-10 h-10 rounded-full object-cover" />
-          <div className="flex-1">
-            <p className="text-sm">
-              <span className="font-medium text-gray-900">{item.name}</span>{' '}
-              <span className="text-gray-600">{item.action}</span>
+  if (savedFeeds.length === 0) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center max-w-sm mx-auto px-4">
+          <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl flex items-center justify-center shadow-sm">
+            <div className="relative">
+              <Heart className="w-10 h-10 text-yellow-500" />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            No favourites yet
+          </h3>
+          <p className="text-gray-500 text-sm leading-relaxed mb-6">
+            When you find posts you love, tap the heart icon to save them here for easy access later.
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 text-left">
+            <p className="text-xs text-gray-600 flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Look for the heart icon on posts
             </p>
-            <p className="text-xs text-gray-500">{item.time}</p>
+            <p className="text-xs text-gray-600 flex items-center gap-2 mt-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Tap to save to your favourites
+            </p>
           </div>
         </div>
-      ))}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
-/* 4. Groups Activity */
-function GroupsActivityTab() {
-  const groupsActivity = [
-    { group: "Cycling Club", post: "Weekend ride to the hills – join us!", time: "1 day ago", members: 128 },
-    { group: "Book Lovers", post: "Discussion: 1984 by George Orwell", time: "2 days ago", members: 89 },
-    { group: "Tech Talks", post: "React 19 is coming – what’s new?", time: "3 days ago", members: 312 },
-  ];
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Groups Activity</h3>
-      {groupsActivity.map((item, i) => (
-        <div key={i} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex justify-between items-start mb-2">
-            <h4 className="font-medium text-gray-900">{item.group}</h4>
-            <span className="text-xs text-gray-500">{item.time}</span>
+    <div className="space-y-6">
+      {/* Header Stats */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Your Favourites</h2>
+            <p className="text-gray-600 text-sm mt-1">
+              {savedFeeds.length} saved item{savedFeeds.length !== 1 ? 's' : ''}
+            </p>
           </div>
-          <p className="text-sm text-gray-700 mb-1">{item.post}</p>
-          <p className="text-xs text-gray-500">{item.members} members active</p>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-4 text-sm">
+              <div className="text-center">
+                <div className="font-bold text-gray-800">{savedFeeds.length}</div>
+                <div className="text-gray-500 text-xs">Total</div>
+              </div>
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="text-center">
+                <div className="font-bold text-gray-800">
+                  {savedFeeds.filter(feed => feed.type === 'image').length}
+                </div>
+                <div className="text-gray-500 text-xs">Photos</div>
+              </div>
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="text-center">
+                <div className="font-bold text-gray-800">
+                  {savedFeeds.filter(feed => feed.type === 'video').length}
+                </div>
+                <div className="text-gray-500 text-xs">Videos</div>
+              </div>
+            </div>
+          </div>
         </div>
-      ))}
+      </div>
+
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {savedFeeds.map((feed) => (
+          <div
+            key={feed._id}
+            className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200"
+          >
+            {/* Media Container */}
+            <div className="relative aspect-square bg-gray-100 overflow-hidden">
+              {feed.type === "image" ? (
+                <img
+                  src={feed.contentUrl}
+                  alt="Saved content"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="relative w-full h-full">
+                  <video
+                    src={feed.contentUrl}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                      <Play className="w-5 h-5 text-gray-800 ml-1" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Media Type Badge */}
+              <div className="absolute top-3 left-3">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  feed.type === 'image' 
+                    ? 'bg-blue-500/90 text-white' 
+                    : 'bg-purple-500/90 text-white'
+                }`}>
+                  {feed.type === 'image' ? (
+                    <Image className="w-3 h-3" />
+                  ) : (
+                    <Play className="w-3 h-3" />
+                  )}
+                  {feed.type}
+                </div>
+              </div>
+
+              {/* Overlay on Hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-end">
+                <div className="w-full p-4 transform translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <div className="flex items-center justify-between text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Heart className="w-4 h-4 fill-current" />
+                        <span>{feed.likeCount || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(feed.savedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Info */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Saved {formatDate(feed.savedAt)}
+                </span>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+                  <span>{feed.likeCount || 0}</span>
+                </div>
+              </div>
+              
+              {feed.caption && (
+                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                  {feed.caption}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

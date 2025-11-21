@@ -147,29 +147,42 @@ const handleUnfollow = useCallback(async () => {
 
 const handleDownload = useCallback(async () => {
   try {
+    // Step 1: Get JSON with downloadLink
     const res = await api.post("/api/user/feed/download", { feedId });
     const link = res.data?.downloadLink;
 
     if (link) {
+      // Step 2: Fetch the media file as a blob
+      const mediaResponse = await fetch(link, { mode: 'cors' }); // Or include credentials if required
+      if (!mediaResponse.ok) throw new Error("Media download failed");
+
+      const blob = await mediaResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Step 3: Create a link, trigger download
       const a = document.createElement("a");
-      a.href = link;
-      a.target = "_blank";               // ← Important
-      a.rel = "noopener noreferrer";     // ← Security
-      a.download = `post-${feedId}`;     // ← Filename
+      a.href = url;
+
+      // Optional: extract extension from the link
+      const ext = link.split('.').pop().split(/\#|\?/)[0];
+      a.download = `post-${feedId}.${ext}`; // preserves file type
+
       document.body.appendChild(a);
       a.click();
       a.remove();
+      window.URL.revokeObjectURL(url);
 
       toast.success("Downloaded!");
       return;
     }
 
-    toast.error("Could not download");
-
+    toast.error("Could not download the file");
   } catch {
     toast.error("Download failed");
   }
 }, [feedId]);
+
+
 
 
 const handleShare = useCallback(async () => {
@@ -230,7 +243,7 @@ const handleShare = useCallback(async () => {
   if (loading) {
     return <div className="w-full h-80 bg-gray-200 animate-pulse rounded-2xl mx-auto" />;
   }
-
+console.log(postData)
   return (
     <div className={FEED_CARD_STYLE}>
       <PostHeader
@@ -241,6 +254,7 @@ const handleShare = useCallback(async () => {
         navigate={navigate}
         feedId={feedId}
         tempUser={tempUser}
+        toggleSaved={postData.isSaved}
         token={token}
         dec={postData.description}
         onHidePost={onHidePost}

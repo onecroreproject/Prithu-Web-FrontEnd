@@ -40,7 +40,7 @@ const StoriesModal = ({
   likeFeedAction,
   toggleSaveFeed,
   shareFeedAction,
-}) => {console.log(postReply)
+}) => {
   return (
     <motion.div
       className="hidden md:flex relative h-[90vh] max-h-[700px] w-[850px] bg-white rounded-lg overflow-hidden mx-auto"

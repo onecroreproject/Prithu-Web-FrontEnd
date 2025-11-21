@@ -60,6 +60,7 @@ export default function Header() {
   const mobileMenuRef = useRef(null);
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
+  const notificationUpdateInterval = useRef(null);
  
   // Updated navItems - Removed duplicate "Portfolio" from main navigation
   const navItems = [
@@ -93,19 +94,50 @@ export default function Header() {
     [fetchNotificationCount]
   );
  
+  // Real-time notification updates with multiple strategies
   useEffect(() => {
     const handleNewNotif = e => {
       const notif = e.detail;
-      toast.success(`🔔 ${notif.title || "New notification!"}`);
+      console.log("🔔 New notification received:", notif);
+      
+      // Show toast notification
+      toast.success(`🔔 ${notif.title || "New notification!"}`, {
+        duration: 4000,
+        position: "top-right",
+      });
+      
+      // Increment count immediately for real-time feel
       setNotifCount(prev => prev + 1);
+      
+      // Refresh the full count after a short delay to ensure accuracy
+      setTimeout(() => {
+        debouncedNotifFetch();
+      }, 1000);
     };
-    const handleNotifRead = () => debouncedNotifFetch();
+    
+    const handleNotifRead = () => {
+      console.log("📨 Notifications marked as read");
+      debouncedNotifFetch();
+    };
+    
+    // Listen for socket events
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
+    
+    // Initial fetch
     fetchNotificationCount();
+    
+    // Set up periodic refresh for notifications (every 30 seconds)
+    notificationUpdateInterval.current = setInterval(() => {
+      fetchNotificationCount();
+    }, 30000);
+    
     return () => {
       document.removeEventListener("socket:newNotification", handleNewNotif);
       document.removeEventListener("socket:notificationRead", handleNotifRead);
+      if (notificationUpdateInterval.current) {
+        clearInterval(notificationUpdateInterval.current);
+      }
     };
   }, [debouncedNotifFetch, fetchNotificationCount]);
  
@@ -154,6 +186,10 @@ export default function Header() {
     setNotifOpen((p) => !p);
     setDropdownOpen(false);
     setMobileMenuOpen(false);
+    // Refresh count when opening notification dropdown
+    if (!notifOpen) {
+      fetchNotificationCount();
+    }
   };
  
   // -- Search helpers --
@@ -285,8 +321,6 @@ export default function Header() {
       navigate(`/category/${payload._id}`);
     } else if (type === "jobs") {
       navigate(`/job/view/${payload._id}`);
-    } else if (type === "portfolio") {
-      navigate(`/portfolio/${payload.userName}`);
     } else if (type === "hashtag") {
       navigate(`/hashtag/${encodeURIComponent(payload)}`);
     } else {
@@ -745,8 +779,8 @@ const HeaderIcon = ({ Icon, onClick, badge, active }) => (
       }`}
     />
     {badge > 0 && (
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-        {badge}
+      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+        {badge > 99 ? '99+' : badge}
       </span>
     )}
   </button>

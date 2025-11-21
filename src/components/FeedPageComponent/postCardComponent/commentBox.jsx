@@ -1,11 +1,14 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
+import { FiMessageCircle } from "react-icons/fi";
 
 const CommentBox = ({ comments, currentIndex, onClick }) => {
-  if (!comments.length) return null;
+  if (!comments || comments.length === 0) return null;
+  
   const comment = comments[currentIndex];
-  return (<>
+  
+  return (
     <Box
       sx={{
         mt: 1.5,
@@ -18,11 +21,23 @@ const CommentBox = ({ comments, currentIndex, onClick }) => {
         border: "1px solid rgba(255, 255, 255, 0.25)",
         overflow: "hidden",
         transition: "all 0.4s ease",
-        "&:hover": { background: "rgba(255, 255, 255, 0.55)" },
+        "&:hover": { 
+          background: "rgba(255, 255, 255, 0.55)",
+          transform: "translateY(-1px)" 
+        },
       }}
       onClick={onClick}
     >
-      <h1 className="mb-2">Comments</h1>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <FiMessageCircle size={16} />
+        <Typography variant="subtitle2" fontWeight="bold">
+          Comments
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          ({comments.length})
+        </Typography>
+      </Box>
+      
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -39,14 +54,15 @@ const CommentBox = ({ comments, currentIndex, onClick }) => {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              lineHeight: 1.4,
             }}
           >
-            <b>{comment?.username || "User"}:</b> {comment?.commentText || ""}
+            <b>{comment?.username || comment?.userName || "User"}:</b> {comment?.commentText || ""}
           </Typography>
         </motion.div>
       </AnimatePresence>
     </Box>
-  </>);
+  );
 };
 
 export default CommentBox;

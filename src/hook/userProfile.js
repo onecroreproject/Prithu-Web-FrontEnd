@@ -47,13 +47,13 @@ export const useTogglePublish = (token) => {
 
 
 // 🔹 Fetch General User Profile (Avatar, Cover, Display Info)
-export const useUserProfile = (token) => {
+export const useUserProfile = (token, userId) => {
   return useQuery({
-    queryKey: ["userProfile"],
-    queryFn: () => getUserProfile(token),
-    enabled: !!token,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    queryKey: ["userProfile", userId || "self"],
+    queryFn: () => getUserProfile(token, userId),
+    enabled: !!token || !!userId,   // allow fetching by id even if no token
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: true,
     onError: (err) => {
@@ -62,6 +62,7 @@ export const useUserProfile = (token) => {
     },
   });
 };
+
 
 
 // 🔹 All profile mutations (Education, Experience, Skill, Certification)
