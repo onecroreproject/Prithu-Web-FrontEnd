@@ -64,9 +64,9 @@ export default function ChangeProfilePhoto({ user, uploadProfileDetail }) {
     try {
       setLoading(true);
       await uploadProfileDetail(form);
-      toast.success("Profile photo updated successfully!");
+      
     } catch (err) {
-      toast.error("Upload failed. Please try again.");
+      
       console.error(err);
     } finally {
       setLoading(false);

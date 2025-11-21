@@ -53,7 +53,7 @@ function Postcard({
   const [isSaved, setIsSaved] = useState(postData.isSaved || false);
   const [comments, setComments] = useState([]);
   const [commentCount, setCommentCount] = useState(postData.commentsCount || 0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Start unmuted - sound plays by default
   const [isPlaying, setIsPlaying] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikes);
   const [isFollowing, setIsFollowing] = useState(postData?.isFollowing || false);
@@ -314,3 +314,4 @@ function Postcard({
 }
 
 export default React.memo(Postcard);
+

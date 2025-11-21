@@ -47,7 +47,7 @@ const StoriesPlayer = ({
   const handlePlayPause = () => {
     const newPaused = !isPaused;
     setIsPaused(newPaused);
-
+console.log(feed)
     if (videoRef?.current && feed?.type === 'video') {
       const video = videoRef.current;
       if (newPaused) {

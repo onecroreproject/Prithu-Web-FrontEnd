@@ -80,7 +80,7 @@ export const useStories = () => {
   const handleVideoTimeUpdate = () => {
     if (videoRef.current && !isPaused) {
       const video = videoRef.current;
-      if (video.duration && video.currentTime) {
+      if (!isPaused && video.duration && video.currentTime) { // Only update when NOT paused
         const newProgress = (video.currentTime / video.duration) * 100;
         setProgress(newProgress);
 
@@ -99,7 +99,7 @@ export const useStories = () => {
       if (!currentFeed) return;
 
       const isVideo = currentFeed.type === "video";
-      
+
       // Clear any existing intervals
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -115,7 +115,7 @@ export const useStories = () => {
         const video = videoRef.current;
 
         const updateVideoProgress = () => {
-          if (video.duration && video.currentTime) {
+          if (!isPaused && video.duration && video.currentTime) { // Only update when NOT paused
             const newProgress = (video.currentTime / video.duration) * 100;
             setProgress(newProgress);
 
@@ -144,12 +144,12 @@ export const useStories = () => {
         const duration = 5000; // 5 seconds as requested
         const intervalTime = 50; // Update every 50ms for smooth progress
         const increment = (intervalTime / duration) * 100;
-        
+
         let currentProgress = 0;
-        
+
         imageIntervalRef.current = setInterval(() => {
           if (isPaused) return; // Don't update if paused
-          
+
           currentProgress += increment;
           setProgress(Math.min(currentProgress, 100));
 
@@ -182,11 +182,11 @@ export const useStories = () => {
       const currentFeed = feeds[selectedFeedIndex];
       if (currentFeed?.type === 'video' && videoRef.current) {
         const video = videoRef.current;
-        
+
         if (isPaused) {
           video.pause();
         } else {
-          video.play().catch(() => {}); // Ignore autoplay errors
+          video.play().catch(() => { }); // Ignore autoplay errors
         }
       }
     }
@@ -196,7 +196,7 @@ export const useStories = () => {
     setSelectedFeedIndex(null);
     setShowComments(false);
     setIsPaused(false);
-    
+
     // Clear all intervals
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
@@ -258,10 +258,10 @@ export const useStories = () => {
         [feedId]: prev[feedId].map((c) =>
           c.commentId === commentId
             ? {
-                ...c,
-                isLiked: data.liked,
-                likeCount: data.likeCount,
-              }
+              ...c,
+              isLiked: data.liked,
+              likeCount: data.likeCount,
+            }
             : c
         ),
       }));
@@ -278,7 +278,7 @@ export const useStories = () => {
       setReplyLoading((prev) => ({ ...prev, [commentId]: true }));
 
       const res = await api.post('/api/get/nested/replies', { parentReplyId });
-console.log(res.data)
+      console.log(res.data)
       setReplies((prev) => ({
         ...prev,
         [commentId]: res.data?.replies || [],
@@ -295,11 +295,11 @@ console.log(res.data)
     console.log(parentCommentId)
     const replyText = replyInputs[parentCommentId]?.trim();
     if (!replyText) return;
-    
+
     try {
       const res = await api.post('/api/user/feed/reply/comment', {
-        feedId:feedId.feedId,
-        parentCommentId:feedId.parentCommentId,
+        feedId: feedId.feedId,
+        parentCommentId: feedId.parentCommentId,
         commentText: replyText,
       });
 
@@ -315,7 +315,7 @@ console.log(res.data)
         ...prev,
         [parentCommentId]: "",
       }));
-      
+
       // Fetch updated replies to ensure consistency
       await fetchReplies(parentCommentId);
     } catch (err) {
@@ -334,10 +334,10 @@ console.log(res.data)
         [commentId]: prev[commentId].map((r) =>
           r.replyId === replyId
             ? {
-                ...r,
-                isLiked: data.liked,
-                likeCount: data.likeCount,
-              }
+              ...r,
+              isLiked: data.liked,
+              likeCount: data.likeCount,
+            }
             : r
         ),
       }));
@@ -357,12 +357,12 @@ console.log(res.data)
         prev.map((f, i) =>
           i === index
             ? {
-                ...f,
-                isLiked: data.message === "Liked successfully",
-                likesCount: data.message === "Liked successfully"
-                  ? f.likesCount + 1
-                  : f.likesCount - 1,
-              }
+              ...f,
+              isLiked: data.message === "Liked successfully",
+              likesCount: data.message === "Liked successfully"
+                ? f.likesCount + 1
+                : f.likesCount - 1,
+            }
             : f
         )
       );
@@ -401,20 +401,20 @@ console.log(res.data)
   const navigateFeed = (direction) => {
     setSelectedFeedIndex((prev) => {
       if (prev === null) return prev;
-      
+
       const newIndex = direction === 'next'
         ? (prev === feeds.length - 1 ? 0 : prev + 1)
         : (prev === 0 ? feeds.length - 1 : prev - 1);
-     
+
       if (feeds[newIndex]) {
         fetchComments(feeds[newIndex]._id);
       }
-      
+
       // Reset pause state when navigating
       setIsPaused(false);
       return newIndex;
     });
-    
+
     setProgress(0);
     setShowComments(false);
   };
@@ -440,12 +440,12 @@ console.log(res.data)
     showArrows,
     showLeftArrow,
     showRightArrow,
-   
+
     // Refs
     videoRef,
     progressIntervalRef,
     scrollContainerRef,
-   
+
     // Setters
     setSelectedFeedIndex,
     setNewComment,
@@ -459,7 +459,7 @@ console.log(res.data)
     setShowRightArrow,
     setProgress,
     setIsPaused,
-   
+
     // Functions
     fetchComments,
     handleAddComment,

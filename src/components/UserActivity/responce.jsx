@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,10 +12,12 @@ import {
     BookmarkIcon,
     BellIcon,
     UserIcon,
+    EyeIcon
 } from '@heroicons/react/24/outline';
 
 const Response = () => {
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('all');
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,12 +34,12 @@ const Response = () => {
 
     // Notification type configuration
     const notificationConfig = {
-        like: { icon: HeartIcon, color: 'red' },
-        comment: { icon: ChatBubbleLeftIcon, color: 'blue' },
-        share: { icon: ArrowRightIcon, color: 'green' },
-        save: { icon: BookmarkIcon, color: 'yellow' },
-        follow: { icon: UserIcon, color: 'purple' },
-        default: { icon: BellIcon, color: 'gray' }
+        like: { icon: HeartIcon, color: 'red', label: 'Like' },
+        comment: { icon: ChatBubbleLeftIcon, color: 'blue', label: 'Comment' },
+        share: { icon: ArrowRightIcon, color: 'green', label: 'Share' },
+        save: { icon: BookmarkIcon, color: 'yellow', label: 'Save' },
+        follow: { icon: UserIcon, color: 'purple', label: 'Follow' },
+        default: { icon: BellIcon, color: 'gray', label: 'Notification' }
     };
 
     // Calculate counts once
@@ -48,9 +51,10 @@ const Response = () => {
         sections.forEach(section => {
             if (section.id !== 'all') {
                 const type = section.id.slice(0, -1); // Remove 's' from likes, comments, etc.
-                counts[section.id] = notifications.filter(notification =>
-                    notification.type?.toLowerCase().includes(type)
-                ).length;
+                counts[section.id] = notifications.filter(notification => {
+                    const notificationType = notification.type?.toLowerCase();
+                    return notificationType?.includes(type);
+                }).length;
             }
         });
 
@@ -67,13 +71,17 @@ const Response = () => {
                 const response = await api.get('/api/get/user/all/notification', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
+                
+                console.log('Notifications API Response:', response.data);
+
                 if (response.data.success) {
                     setNotifications(response.data.notifications || []);
                 } else {
-                    setError('Failed to fetch');
+                    setError('Failed to fetch notifications');
                 }
             } catch (err) {
-                setError(err.response?.data?.error || 'Failed to load');
+                console.error('Error fetching notifications:', err);
+                setError(err.response?.data?.error || 'Failed to load notifications');
             } finally {
                 setLoading(false);
             }
@@ -87,20 +95,51 @@ const Response = () => {
         if (activeSection === 'all') return true;
 
         const type = activeSection.slice(0, -1); // Remove 's'
-        return notification.type?.toLowerCase().includes(type);
+        const notificationType = notification.type?.toLowerCase();
+        return notificationType?.includes(type);
     });
 
     // Mark as read
-    const markAsRead = (notificationId) => {
+    const markAsRead = async (notificationId) => {
         setNotifications(prev =>
             prev.map(n => n._id === notificationId ? { ...n, isRead: true } : n)
         );
+        
+        // TODO: Call API to mark as read if you have an endpoint
+        // await api.patch(`/api/notification/${notificationId}/read`, {}, {
+        //   headers: { Authorization: `Bearer ${token}` }
+        // });
     };
 
     // Mark all as read
     const markAllAsRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        
+        // TODO: Call API to mark all as read if you have an endpoint
+        // await api.patch('/api/notification/mark-all-read', {}, {
+        //   headers: { Authorization: `Bearer ${token}` }
+        // });
     };
+
+    // Handle notification click - navigate to feed
+   // inside Response component
+const handleNotificationClick = (notification) => {
+  if (!notification.isRead) markAsRead(notification._id);
+
+  const feedId = notification.feedInfo?._id;
+  // preferred: navigate to "/" (home) with router state
+  if (feedId) {
+    navigate("/", {
+      state: { highlightFeed: feedId, scrollToFeed: true }
+    });
+
+    // also dispatch a window event — Feed can listen to this as fallback
+    window.dispatchEvent(new CustomEvent("highlightFeed", { detail: { feedId } }));
+  } else {
+    navigate("/");
+  }
+};
+
 
     // Format date - lightweight version
     const formatDate = (dateString) => {
@@ -109,12 +148,15 @@ const Response = () => {
         const hours = Math.floor(mins / 60);
         const days = Math.floor(hours / 24);
 
-        if (mins < 1) return 'Now';
-        if (mins < 60) return `${mins}m`;
-        if (hours < 24) return `${hours}h`;
-        if (days < 7) return `${days}d`;
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days < 7) return `${days}d ago`;
 
-        return new Date(dateString).toLocaleDateString();
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
     };
 
     // Get notification config
@@ -126,10 +168,20 @@ const Response = () => {
         return notificationConfig.default;
     };
 
+    // Get notification preview text
+    const getNotificationPreview = (notification) => {
+        if (notification.message) {
+            return notification.message.length > 100 
+                ? notification.message.substring(0, 100) + '...'
+                : notification.message;
+        }
+        return 'View notification';
+    };
+
     // Loading skeleton
     if (loading) {
         return (
-            <div className="flex min-h-[500px] bg-white rounded-lg ">
+            <div className="flex min-h-[500px] bg-white rounded-lg">
                 {/* Sidebar Skeleton */}
                 <div className="w-64 bg-gray-50 border-r p-6">
                     <div className="h-6 bg-gray-200 rounded w-20 mb-6"></div>
@@ -177,11 +229,16 @@ const Response = () => {
     }
 
     return (
-        <div className="flex min-h-[500px] bg-white rounded-lg ">
+        <div className="flex min-h-[500px] bg-white rounded-lg border border-gray-200">
             {/* Sidebar */}
-            <div className="w-64 bg-gray-50  p-6">
+            <div className="w-64 bg-gray-50 border-r p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Responses</h3>
+                    {unreadCount > 0 && (
+                        <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full">
+                            {unreadCount}
+                        </span>
+                    )}
                 </div>
 
                 <div className="space-y-1">
@@ -194,10 +251,11 @@ const Response = () => {
                                 key={section.id}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${activeSection === section.id
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                                    activeSection === section.id
                                         ? 'bg-blue-500 text-white shadow-sm'
                                         : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                                    }`}
+                                }`}
                                 onClick={() => setActiveSection(section.id)}
                             >
                                 <div className="flex items-center gap-2">
@@ -205,10 +263,11 @@ const Response = () => {
                                     <span className="font-medium">{section.label}</span>
                                 </div>
                                 {count > 0 && (
-                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeSection === section.id
-                                            ? 'bg-white text-blue-600'
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                        activeSection === section.id 
+                                            ? 'bg-white text-blue-600' 
                                             : 'bg-gray-200 text-gray-700'
-                                        }`}>
+                                    }`}>
                                         {count}
                                     </span>
                                 )}
@@ -216,6 +275,17 @@ const Response = () => {
                         );
                     })}
                 </div>
+
+                {unreadCount > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <button
+                            onClick={markAllAsRead}
+                            className="w-full text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                            Mark all as read
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Content Area */}
@@ -239,7 +309,12 @@ const Response = () => {
                             <BellIcon className="w-8 h-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">No responses</h3>
-                        <p className="text-gray-500">You're all caught up!</p>
+                        <p className="text-gray-500">
+                            {activeSection === 'all' 
+                                ? "You're all caught up! No new notifications."
+                                : `No ${activeSection} notifications found.`
+                            }
+                        </p>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -260,35 +335,48 @@ const Response = () => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         whileHover={{ y: -2 }}
-                                        className={`flex gap-3 p-4 rounded-lg border cursor-pointer transition-all ${notification.isRead
-                                                ? 'bg-white border-gray-200'
+                                        className={`flex gap-4 p-4 rounded-lg border cursor-pointer transition-all ${
+                                            notification.isRead 
+                                                ? 'bg-white border-gray-200' 
                                                 : 'bg-blue-50 border-blue-200'
-                                            }`}
-                                        onClick={() => !notification.isRead && markAsRead(notification._id)}
+                                        }`}
+                                        onClick={() => handleNotificationClick(notification)}
                                     >
-                                        {/* Icon */}
-                                        <div className={`p-2 rounded-full bg-${color}-50 border border-${color}-200`}>
-                                            <Icon className={`w-4 h-4 text-${color}-500`} />
-                                        </div>
+                                        {/* Notification Image */}
+                                        {notification.image && (
+                                            <div className="flex-shrink-0">
+                                                <img
+                                                    src={notification.image}
+                                                    alt="Notification"
+                                                    className="w-12 h-12 rounded-lg object-cover"
+                                                />
+                                            </div>
+                                        )}
 
                                         {/* Content */}
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between mb-1">
+                                            <div className="flex items-start justify-between mb-2">
                                                 <div className="flex-1">
-                                                    <p className="text-gray-900 font-medium text-sm">
-                                                        {notification.title}
-                                                    </p>
-                                                    <p className="text-gray-600 text-sm mt-1">
-                                                        {notification.message}
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className={`p-1.5 rounded-full bg-${color}-100`}>
+                                                            <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
+                                                        </div>
+                                                        <p className="text-gray-900 font-medium text-sm">
+                                                            {notification.title}
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <p className="text-gray-600 text-sm">
+                                                        {getNotificationPreview(notification)}
                                                     </p>
 
-                                                    {/* Sender */}
+                                                    {/* Sender Info */}
                                                     {notification.sender && (
                                                         <div className="flex items-center gap-2 mt-2">
                                                             {notification.sender.profileAvatar ? (
                                                                 <img
                                                                     src={notification.sender.profileAvatar}
-                                                                    alt=""
+                                                                    alt={notification.sender.userName}
                                                                     className="w-5 h-5 rounded-full"
                                                                 />
                                                             ) : (
@@ -301,10 +389,18 @@ const Response = () => {
                                                             </span>
                                                         </div>
                                                     )}
-                                                </div>
 
+                                                    {/* Feed Preview */}
+                                                    {notification.feedInfo && (
+                                                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                                                            <EyeIcon className="w-3 h-3" />
+                                                            <span>Click to view post</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
                                                 {/* Time & Status */}
-                                                <div className="flex flex-col items-end gap-1 ml-2">
+                                                <div className="flex flex-col items-end gap-1 ml-2 flex-shrink-0">
                                                     <span className="text-xs text-gray-400 whitespace-nowrap">
                                                         {formatDate(notification.createdAt)}
                                                     </span>
@@ -313,13 +409,6 @@ const Response = () => {
                                                     )}
                                                 </div>
                                             </div>
-
-                                            {/* Feed info */}
-                                            {notification.feedInfo && (
-                                                <div className="mt-2 px-2 py-1 bg-gray-50 rounded border border-gray-200 text-xs text-gray-600">
-                                                    {notification.feedInfo.title || 'Post'}
-                                                </div>
-                                            )}
                                         </div>
                                     </motion.div>
                                 );
