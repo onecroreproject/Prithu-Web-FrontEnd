@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { FiChevronDown, FiChevronUp, FiHeart, FiSend } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
+import EmojiPicker from "../EmojiPicker";
 
 /**
  * ReplyItem component - renders a single reply and supports nested replies (unlimited).
@@ -132,7 +133,7 @@ const ReplyItem = ({
           )}
 
           <button onClick={toggleNested} className="flex items-center gap-1 hover:text-blue-600">
-            {showNested ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />} 
+            {showNested ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />}
             <span>{reply.nestedCount ? `Replies (${reply.nestedCount})` : "Replies"}</span>
           </button>
         </div>
@@ -140,14 +141,20 @@ const ReplyItem = ({
         <AnimatePresence>
           {showReplyBox && depth < maxDepth && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-1">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 relative">
                 <input
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder={`Reply to ${reply.username}...`}
-                  className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm"
+                  className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm pr-8"
                   onKeyDown={(e) => e.key === "Enter" && handlePostNestedReply()}
                 />
+                <div className="absolute right-10">
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) => setReplyText(replyText + emoji)}
+                    buttonClassName="p-0.5 text-gray-400 hover:text-blue-600 rounded"
+                  />
+                </div>
                 <button onClick={handlePostNestedReply} disabled={!replyText.trim()} className="p-1 bg-blue-600 text-white rounded disabled:opacity-40">
                   <FiSend size={12} />
                 </button>
@@ -317,14 +324,20 @@ const CommentItem = ({ comment, feedId, authUser, refreshParentComments, maxDept
           <AnimatePresence>
             {showReplyBox && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.12 }} className="mt-1">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 relative">
                   <input
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write a reply..."
-                    className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-sm pr-8 focus:outline-none focus:ring-1 focus:ring-blue-400"
                     onKeyDown={(e) => e.key === "Enter" && handlePostReply()}
                   />
+                  <div className="absolute right-10">
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) => setReplyText(replyText + emoji)}
+                      buttonClassName="p-0.5 text-gray-400 hover:text-blue-600 rounded"
+                    />
+                  </div>
                   <button onClick={handlePostReply} disabled={!replyText.trim()} className="p-1 bg-blue-600 text-white rounded disabled:opacity-50">
                     <FiSend size={12} />
                   </button>

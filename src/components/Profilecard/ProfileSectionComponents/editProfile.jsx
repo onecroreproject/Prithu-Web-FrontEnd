@@ -8,17 +8,21 @@ import { useAuth } from "../../../context/AuthContext";
 import api from "../../../api/axios";
 import debounce from "lodash.debounce";
 import { motion, AnimatePresence } from "framer-motion";
-import { Edit3, Save, X, User, Mail, Phone, MapPin, Calendar, Globe, Lock, Bell, Link2, ChevronDown } from "lucide-react";
+import { Edit3, Save, X, User, Mail, Phone, MapPin, Calendar, Globe, Lock, Bell, Link2, ChevronDown, Eye, EyeOff, Users } from "lucide-react";
 
-export default function EditProfile({ id }) {
+export default function EditProfile({ id, visibility }) {
   const { token } = useAuth();
   const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token, id);
-
+  const currentUser=localStorage.getItem("userId");
   const [isEditing, setIsEditing] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMaritalDate, setShowMaritalDate] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatusLoading, setFollowStatusLoading] = useState(false);
 
+  console.log(visibility);
+  console.log(user);
   const [formData, setFormData] = useState({
     userName: "",
     name: "",
@@ -52,6 +56,40 @@ export default function EditProfile({ id }) {
   });
 
   const initialDataRef = useRef(JSON.stringify(formData));
+
+  // 🧩 Check if current user is following the profile user
+// 🧩 Check if current user is following the profile user
+useEffect(() => {
+  const checkFollowStatus = async () => {
+    // currentUser from localStorage is a string id
+    if (!id || !currentUser || id === String(currentUser)) return;
+
+    try {
+      setFollowStatusLoading(true);
+
+      const response = await api.post(
+        "/api/check/follow/status",
+        {
+          creatorId: id,                 // profile owner
+          followerId: String(currentUser) // logged-in user (string)
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setIsFollowing(Boolean(response.data?.isFollowing));
+    } catch (err) {
+      console.error("Error checking follow status:", err);
+    } finally {
+      setFollowStatusLoading(false);
+    }
+  };
+
+  checkFollowStatus();
+}, [id, currentUser, token]);
+
+
 
   // 🧩 Prefill user data
   useEffect(() => {
@@ -191,10 +229,18 @@ export default function EditProfile({ id }) {
     );
   }
 
-  // 🔥 If id exists (viewing another user's profile), show view-only mode
-  if (id) {
-    return <ProfileDetailsView user={user} />;
-  }
+  // 🔥 If id exists (viewing another user's profile), show view-only mode with visibility checks
+ if (id) {
+  return (
+    <ProfileDetailsView
+      user={user}
+      visibility={visibility}
+      currentUserId={String(currentUser)} // localStorage id (string)
+      isFollowing={isFollowing}
+    />
+  );
+}
+
 
   return (
     <motion.div
@@ -353,7 +399,7 @@ export default function EditProfile({ id }) {
         {/* Dates Section */}
         <Section title="Important Dates" icon={Calendar}>
           <div className="space-y-4">
-            <ModernDatePicker
+            <DateInputField
               label="Date of Birth"
               value={formData.dateOfBirth}
               onChange={(date) => handleChange("dateOfBirth", date)}
@@ -370,14 +416,14 @@ export default function EditProfile({ id }) {
               />
 
               <AnimatePresence>
-                {showMaritalDate && isEditing && (
+                {showMaritalDate && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <ModernDatePicker
+                    <DateInputField
                       label="Marriage Date"
                       value={formData.maritalDate}
                       onChange={(date) => handleChange("maritalDate", date)}
@@ -433,7 +479,7 @@ export default function EditProfile({ id }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SelectField
               label="Privacy"
-              options={["public", "private", "friends"]}
+              options={["public", "private", "followers"]}
               value={formData.privacy}
               onChange={(v) => handleChange("privacy", v)}
               disabled={!isEditing}
@@ -475,29 +521,95 @@ export default function EditProfile({ id }) {
   );
 }
 
-/* 🔥 Profile Details View Component (Facebook-style Read-only) */
-function ProfileDetailsView({ user }) {
+/* 🔥 Profile Details View Component with Visibility Checks */
+/* 🔥 Profile Details View Component with Visibility Checks */
+function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing }) {
   if (!user) return null;
+
+  // helper: compare current user id with profile owner id (profile may have userId or _id)
+  const isViewingOwnProfile = () => {
+    const profileOwnerId = user.userId ? String(user.userId) : String(user._id || "");
+    return Boolean(currentUserId) && String(currentUserId) === profileOwnerId;
+  };
+
+  // 🛡️ Visibility Check Functions
+  const isFieldVisible = (fieldName, fieldVisibility) => {
+    // If viewing own profile, show everything
+    if (isViewingOwnProfile()) return true;
+
+    // If visibility config missing, default to public
+    const rule = fieldVisibility ?? "public";
+
+    switch (rule) {
+      case "public":
+        return true;
+      case "private":
+        return false;
+      case "followers":
+        return Boolean(isFollowing);
+      default:
+        return true; // safe default
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
-  const hasBasicInfo = user.name || user.userName || user.bio || user.profileSummary;
-  const hasContactInfo = user.phoneNumber || user.whatsAppNumber;
-  const hasLocationInfo = user.address || user.city || user.country;
-  const hasDateInfo = user.dateOfBirth || user.maritalStatus;
-  const hasSocialLinks = user.socialLinks && Object.values(user.socialLinks).some(val => val);
+  // Check which sections have visible content (use visibility rules)
+  const hasBasicInfo =
+    (isFieldVisible("name", visibility?.name) && (user.name || user.lastName)) ||
+    (isFieldVisible("userName", visibility?.userName) && user.userName) ||
+    (isFieldVisible("bio", visibility?.bio) && user.bio) ||
+    (isFieldVisible("profileSummary", visibility?.profileSummary) && user.profileSummary);
 
-  // Filter out empty social links
-  const socialLinks = user.socialLinks ? Object.entries(user.socialLinks)
-    .filter(([_, value]) => value)
-    .map(([platform, value]) => ({ platform, value })) : [];
+  const hasContactInfo =
+    (isFieldVisible("phoneNumber", visibility?.phoneNumber) && user.phoneNumber) ||
+    (isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) && user.whatsAppNumber);
+
+  const hasLocationInfo =
+    (isFieldVisible("address", visibility?.address) && user.address) ||
+    (isFieldVisible("city", visibility?.city) && user.city) ||
+    (isFieldVisible("country", visibility?.country) && user.country);
+
+  const hasDateInfo =
+    (isFieldVisible("dateOfBirth", visibility?.dateOfBirth) && user.dateOfBirth) ||
+    (isFieldVisible("maritalStatus", visibility?.maritalStatus) && user.maritalStatus) ||
+    (isFieldVisible("maritalDate", visibility?.maritalDate) && user.maritalDate);
+
+  // Filter social links based on visibility rules inside visibility.socialLinks
+  const visibleSocialLinks = user.socialLinks
+    ? Object.entries(user.socialLinks)
+        .filter(([platform, value]) => {
+          // only show if value exists AND visibility setting for that platform allows it
+          const platformVisibility = visibility?.socialLinks?.[platform] ?? "public";
+          return value && isFieldVisible(platform, platformVisibility);
+        })
+        .map(([platform, value]) => ({ platform, value }))
+    : [];
+
+  const hasSocialLinks = visibleSocialLinks.length > 0;
+
+  // 🔒 Privacy Notice Component
+  const PrivacyNotice = ({ fieldName }) => (
+    <div className="flex items-center gap-2 text-gray-400 text-sm">
+      <Lock className="w-4 h-4" />
+      <span>This information is set to private</span>
+    </div>
+  );
+
+  // 👥 Followers Only Notice
+  const FollowersOnlyNotice = () => (
+    <div className="flex items-center gap-2 text-gray-400 text-sm">
+      <Users className="w-4 h-4" />
+      <span>Follow to view this information</span>
+    </div>
+  );
 
   return (
     <motion.div
@@ -511,7 +623,7 @@ function ProfileDetailsView({ user }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">About</h3>
           <div className="space-y-4">
-            {user.name && (
+            {isFieldVisible("name", visibility?.name) && (user.name || user.lastName) && (
               <div className="flex items-start">
                 <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
@@ -520,8 +632,8 @@ function ProfileDetailsView({ user }) {
                 </div>
               </div>
             )}
-            
-            {user.userName && (
+
+            {isFieldVisible("userName", visibility?.userName) && user.userName && (
               <div className="flex items-start">
                 <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
@@ -531,25 +643,33 @@ function ProfileDetailsView({ user }) {
               </div>
             )}
 
-            {user.bio && (
-              <div className="flex items-start">
-                <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Bio</p>
-                  <p className="text-gray-900 whitespace-pre-wrap">{user.bio}</p>
+            {user.bio ? (
+              isFieldVisible("bio", visibility?.bio) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Bio</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.bio}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="bio" />
+              )
+            ) : null}
 
-            {user.profileSummary && (
-              <div className="flex items-start">
-                <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Profile Summary</p>
-                  <p className="text-gray-900 whitespace-pre-wrap">{user.profileSummary}</p>
+            {user.profileSummary ? (
+              isFieldVisible("profileSummary", visibility?.profileSummary) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Profile Summary</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.profileSummary}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="profileSummary" />
+              )
+            ) : null}
           </div>
         </div>
       )}
@@ -559,25 +679,33 @@ function ProfileDetailsView({ user }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h3>
           <div className="space-y-4">
-            {user.phoneNumber && (
-              <div className="flex items-start">
-                <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Phone</p>
-                  <p className="text-gray-900 font-medium">{user.phoneNumber}</p>
+            {user.phoneNumber ? (
+              isFieldVisible("phoneNumber", visibility?.phoneNumber) ? (
+                <div className="flex items-start">
+                  <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="text-gray-900 font-medium">{user.phoneNumber}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {user.whatsAppNumber && (
-              <div className="flex items-start">
-                <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">WhatsApp</p>
-                  <p className="text-gray-900 font-medium">{user.whatsAppNumber}</p>
+              ) : (
+                <PrivacyNotice fieldName="phoneNumber" />
+              )
+            ) : null}
+
+            {user.whatsAppNumber ? (
+              isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) ? (
+                <div className="flex items-start">
+                  <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">WhatsApp</p>
+                    <p className="text-gray-900 font-medium">{user.whatsAppNumber}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="whatsAppNumber" />
+              )
+            ) : null}
           </div>
         </div>
       )}
@@ -587,35 +715,47 @@ function ProfileDetailsView({ user }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Location</h3>
           <div className="space-y-4">
-            {user.address && (
-              <div className="flex items-start">
-                <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Address</p>
-                  <p className="text-gray-900 whitespace-pre-wrap">{user.address}</p>
+            {user.address ? (
+              isFieldVisible("address", visibility?.address) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Address</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.address}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {user.city && (
-              <div className="flex items-start">
-                <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">City</p>
-                  <p className="text-gray-900">{user.city}</p>
-                </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="address" />
+              )
+            ) : null}
 
-            {user.country && (
-              <div className="flex items-start">
-                <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Country</p>
-                  <p className="text-gray-900">{user.country}</p>
+            {user.city ? (
+              isFieldVisible("city", visibility?.city) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">City</p>
+                    <p className="text-gray-900">{user.city}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="city" />
+              )
+            ) : null}
+
+            {user.country ? (
+              isFieldVisible("country", visibility?.country) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Country</p>
+                    <p className="text-gray-900">{user.country}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="country" />
+              )
+            ) : null}
           </div>
         </div>
       )}
@@ -625,35 +765,47 @@ function ProfileDetailsView({ user }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Life Events</h3>
           <div className="space-y-4">
-            {user.dateOfBirth && (
-              <div className="flex items-start">
-                <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Date of Birth</p>
-                  <p className="text-gray-900">{formatDate(user.dateOfBirth)}</p>
+            {user.dateOfBirth ? (
+              isFieldVisible("dateOfBirth", visibility?.dateOfBirth) ? (
+                <div className="flex items-start">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Date of Birth</p>
+                    <p className="text-gray-900">{formatDate(user.dateOfBirth)}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {user.maritalStatus && (
-              <div className="flex items-start">
-                <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Marital Status</p>
-                  <p className="text-gray-900">{user.maritalStatus}</p>
-                </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="dateOfBirth" />
+              )
+            ) : null}
 
-            {user.maritalDate && (
-              <div className="flex items-start">
-                <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-600">Marriage Date</p>
-                  <p className="text-gray-900">{formatDate(user.maritalDate)}</p>
+            {user.maritalStatus ? (
+              isFieldVisible("maritalStatus", visibility?.maritalStatus) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Marital Status</p>
+                    <p className="text-gray-900">{user.maritalStatus}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <PrivacyNotice fieldName="maritalStatus" />
+              )
+            ) : null}
+
+            {user.maritalDate ? (
+              isFieldVisible("maritalDate", visibility?.maritalDate) ? (
+                <div className="flex items-start">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Marriage Date</p>
+                    <p className="text-gray-900">{formatDate(user.maritalDate)}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="maritalDate" />
+              )
+            ) : null}
           </div>
         </div>
       )}
@@ -663,14 +815,14 @@ function ProfileDetailsView({ user }) {
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Social Media</h3>
           <div className="space-y-3">
-            {socialLinks.map(({ platform, value }) => (
+            {visibleSocialLinks.map(({ platform, value }) => (
               <div key={platform} className="flex items-start">
                 <Link2 className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-gray-600 capitalize">{platform}</p>
-                  <a 
-                    href={value} 
-                    target="_blank" 
+                  <a
+                    href={value}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 break-all"
                   >
@@ -694,6 +846,7 @@ function ProfileDetailsView({ user }) {
     </motion.div>
   );
 }
+
 
 /* ✅ Reusable Section Component */
 function Section({ title, icon: Icon, children }) {
@@ -731,6 +884,47 @@ function InputField({ label, value, onChange, disabled, icon: Icon, type = "text
           className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
             Icon ? "pl-10" : ""
           } ${
+            disabled
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ✅ Simple Date Input Field Component */
+function DateInputField({ label, value, onChange, disabled }) {
+  const formatDateForInput = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string') {
+      return date.split('T')[0];
+    }
+    if (date instanceof Date) {
+      return date.toISOString().split('T')[0];
+    }
+    return '';
+  };
+
+  const handleDateChange = (e) => {
+    const newDate = e.target.value ? new Date(e.target.value) : null;
+    onChange(newDate);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          <Calendar className="w-4 h-4 text-gray-400" />
+        </div>
+        <input
+          type="date"
+          value={formatDateForInput(value)}
+          onChange={handleDateChange}
+          disabled={disabled}
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 pl-10 ${
             disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
               : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -798,23 +992,4 @@ function SelectField({ label, options, value, onChange, disabled }) {
   );
 }
 
-/* ✅ Modern Date Picker Component (for edit mode) */
-function ModernDatePicker({ label, value, onChange, disabled }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(value);
-  const [currentMonth, setCurrentMonth] = useState(value ? new Date(value) : new Date());
-  const [view, setView] = useState("calendar");
-  const datePickerRef = useRef(null);
-
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  // ... (rest of the ModernDatePicker component remains the same)
-  // [Previous ModernDatePicker implementation here]
-}
-
-export { ModernDatePicker };
+export { DateInputField };

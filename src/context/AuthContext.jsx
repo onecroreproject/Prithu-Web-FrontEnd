@@ -1,6 +1,6 @@
 // ✅ src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect, useContext,useCallback } from "react";
-import { useNavigate,useSearchParams } from "react-router-dom";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { getDeviceDetails } from "../utils/getDeviceDetails";
@@ -61,17 +61,8 @@ export const AuthProvider = ({ children }) => {
       })
     );
 
-    // 🔔 Global Notifications
-    newSocket.on("newNotification", (notification) => {
-      const event = new CustomEvent("socket:newNotification", { detail: notification });
-      document.dispatchEvent(event);
-      toast.success(`🔔 ${notification.title || "New notification received!"}`);
-    });
-
-    newSocket.on("notificationRead", (data) => {
-      const event = new CustomEvent("socket:notificationRead", { detail: data });
-      document.dispatchEvent(event);
-    });
+    // ✅ Note: newNotification and notificationRead events are handled in socket.js
+    // and dispatched as CustomEvents for components to listen to
 
     return () => {
       newSocket.emit("userOffline", { userId: user?._id });
@@ -83,125 +74,125 @@ export const AuthProvider = ({ children }) => {
 
   // ---------------------- 🧩 Auth Actions ----------------------
 
-const register = async ({
-  username,
-  email,
-  password,
-  referralCode,
-  phone,
-  whatsapp,
-  accountType,
-}) => {
-  setLoading(true);
-  try {
-    await api.post("/api/auth/user/register", {
-      username,
-      email,
-      password,
-      referralCode,
-      phone,
-      whatsapp,
-      accountType,
-    });
+  const register = async ({
+    username,
+    email,
+    password,
+    referralCode,
+    phone,
+    whatsapp,
+    accountType,
+  }) => {
+    setLoading(true);
+    try {
+      await api.post("/api/auth/user/register", {
+        username,
+        email,
+        password,
+        referralCode,
+        phone,
+        whatsapp,
+        accountType,
+      });
 
-    toast.success("🎉 Account created successfully!");
+      toast.success("🎉 Account created successfully!");
 
-    // Read redirect param (from shared link)
-    const params = new URLSearchParams(window.location.search);
-    const redirectPath = params.get("redirect");
+      // Read redirect param (from shared link)
+      const params = new URLSearchParams(window.location.search);
+      const redirectPath = params.get("redirect");
 
-    if (redirectPath) {
-      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
-    } else {
-      navigate("/login");
+      if (redirectPath) {
+        navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+      } else {
+        navigate("/login");
+      }
+
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Registration failed ❌");
+      return false;
+    } finally {
+      setLoading(false);
     }
-
-    return true;
-  } catch (err) {
-    toast.error(err.response?.data?.message || "Registration failed ❌");
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
-/**
- * 🔐 Login with redirect support (and device-aware session)
- */
-const login = async ({ identifier, password }) => {
-  setLoading(true);
-  try {
-    let storedDeviceId = localStorage.getItem("deviceId");
-    let deviceType, os, browser;
+  /**
+   * 🔐 Login with redirect support (and device-aware session)
+   */
+  const login = async ({ identifier, password }) => {
+    setLoading(true);
+    try {
+      let storedDeviceId = localStorage.getItem("deviceId");
+      let deviceType, os, browser;
 
-    if (!storedDeviceId) {
-      const deviceDetails = getDeviceDetails();
-      storedDeviceId = deviceDetails.deviceId;
-      deviceType = deviceDetails.deviceType;
-      os = deviceDetails.os;
-      browser = deviceDetails.browser;
+      if (!storedDeviceId) {
+        const deviceDetails = getDeviceDetails();
+        storedDeviceId = deviceDetails.deviceId;
+        deviceType = deviceDetails.deviceType;
+        os = deviceDetails.os;
+        browser = deviceDetails.browser;
+        localStorage.setItem("deviceId", storedDeviceId);
+      } else {
+        const deviceDetails = getDeviceDetails();
+        deviceType = deviceDetails.deviceType;
+        os = deviceDetails.os;
+        browser = deviceDetails.browser;
+      }
+
+      const existingSessionId = localStorage.getItem("sessionId");
+
+      const loginPayload = {
+        identifier,
+        password,
+        deviceId: storedDeviceId,
+        deviceType,
+        os,
+        browser,
+        sessionId: existingSessionId || null,
+      };
+
+      const { data } = await api.post("/api/auth/user/login", loginPayload);
+      const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
+
+      if (!accessToken) throw new Error("Invalid login response");
+
+      // Save tokens
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("sessionId", newSessionId);
       localStorage.setItem("deviceId", storedDeviceId);
-    } else {
-      const deviceDetails = getDeviceDetails();
-      deviceType = deviceDetails.deviceType;
-      os = deviceDetails.os;
-      browser = deviceDetails.browser;
+      localStorage.setItem("userId", userId);
+
+      setToken(accessToken);
+      setRefreshToken(refreshToken);
+      setSessionId(newSessionId);
+
+      await fetchUserProfile(accessToken);
+
+      window.history.replaceState({}, "", "/login");
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectPath = params.get("redirect");
+
+      if (redirectPath) {
+        navigate(decodeURIComponent(redirectPath), { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+
+      return true;
+
+    } catch (err) {
+      console.error("Login Error:", err);
+
+      // ⭐ RE-THROW BACKEND ERROR SO UI CAN SHOW IT
+      throw err;
+
+    } finally {
+      setLoading(false);
     }
-
-    const existingSessionId = localStorage.getItem("sessionId");
-
-    const loginPayload = {
-      identifier,
-      password,
-      deviceId: storedDeviceId,
-      deviceType,
-      os,
-      browser,
-      sessionId: existingSessionId || null,
-    };
-
-    const { data } = await api.post("/api/auth/user/login", loginPayload);
-    const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
-
-    if (!accessToken) throw new Error("Invalid login response");
-
-    // Save tokens
-    localStorage.setItem("token", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("sessionId", newSessionId);
-    localStorage.setItem("deviceId", storedDeviceId);
-    localStorage.setItem("userId", userId);
-
-    setToken(accessToken);
-    setRefreshToken(refreshToken);
-    setSessionId(newSessionId);
-
-    await fetchUserProfile(accessToken);
-
-    window.history.replaceState({}, "", "/login");
-
-    const params = new URLSearchParams(window.location.search);
-    const redirectPath = params.get("redirect");
-
-    if (redirectPath) {
-      navigate(decodeURIComponent(redirectPath), { replace: true });
-    } else {
-      navigate("/", { replace: true });
-    }
-
-    return true;
-
-  } catch (err) {
-    console.error("Login Error:", err);
-
-    // ⭐ RE-THROW BACKEND ERROR SO UI CAN SHOW IT
-    throw err;
-
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
 
@@ -209,16 +200,16 @@ const login = async ({ identifier, password }) => {
   /**
    * 👤 Fetch user profile
    */
- const fetchUserProfile = useCallback(async (customToken) => {
-  try {
-    const res = await api.get("/api/get/profile/detail", {
-      headers: { Authorization: `Bearer ${customToken || token}` },
-    });
-    setUser(res.data.profile);
-  } catch (err) {
-    console.warn("❌ Failed to fetch profile:", err.message);
-  }
-}, [token]);
+  const fetchUserProfile = useCallback(async (customToken) => {
+    try {
+      const res = await api.get("/api/get/profile/detail", {
+        headers: { Authorization: `Bearer ${customToken || token}` },
+      });
+      setUser(res.data.profile);
+    } catch (err) {
+      console.warn("❌ Failed to fetch profile:", err.message);
+    }
+  }, [token]);
 
 
   /**
@@ -284,41 +275,41 @@ const login = async ({ identifier, password }) => {
    * 🚪 Logout
    */
   const logout = async () => {
-  try {
-    await api.post(
-      "/api/auth/user/logout",
-      { deviceId: localStorage.getItem("deviceId") },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  } catch (err) {
-    console.error("Logout error:", err.message);
-  } finally {
-    if (socket) socket.emit("userOffline", { userId: user?._id });
-    disconnectSocket();
+    try {
+      await api.post(
+        "/api/auth/user/logout",
+        { deviceId: localStorage.getItem("deviceId") },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error("Logout error:", err.message);
+    } finally {
+      if (socket) socket.emit("userOffline", { userId: user?._id });
+      disconnectSocket();
 
-    // ✅ Preserve deviceId (and optionally other data)
-    const preservedDeviceId = localStorage.getItem("deviceId");
+      // ✅ Preserve deviceId (and optionally other data)
+      const preservedDeviceId = localStorage.getItem("deviceId");
 
-    // Clear all other data
-    localStorage.clear();
+      // Clear all other data
+      localStorage.clear();
 
-    // Restore preserved values
-    if (preservedDeviceId) {
-      localStorage.setItem("deviceId", preservedDeviceId);
+      // Restore preserved values
+      if (preservedDeviceId) {
+        localStorage.setItem("deviceId", preservedDeviceId);
+      }
+
+      // 🔄 Reset states
+      setToken(null);
+      setUser(null);
+      setRefreshToken(null);
+      setSessionId(null);
+      setSocketConnected(false);
+      setSocket(null);
+
+      toast.success("👋 Logged out successfully");
+      navigate("/login");
     }
-
-    // 🔄 Reset states
-    setToken(null);
-    setUser(null);
-    setRefreshToken(null);
-    setSessionId(null);
-    setSocketConnected(false);
-    setSocket(null);
-
-    toast.success("👋 Logged out successfully");
-    navigate("/login");
-  }
-};
+  };
 
 
   // ---------------------- 🌍 Context Value ----------------------

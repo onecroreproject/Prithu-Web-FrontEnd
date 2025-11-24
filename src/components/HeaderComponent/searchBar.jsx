@@ -24,7 +24,22 @@ export default function SearchBar({
   searchRef
 }) {
 
-  const navigate = useNavigate();    // ✅ REAL navigate function
+  const navigate = useNavigate();
+
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      // Navigate to search results page with query
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}&tab=${activeTab}`);
+      setShowSearchDropdown(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
+    handleKeyDown(e);
+  };
 
   return (
     <div className="hidden sm:flex flex-1 justify-center px-4" ref={searchRef}>
@@ -45,7 +60,7 @@ export default function SearchBar({
             loadHistory();
             setShowSearchDropdown(true);
           }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleKeyPress}
           className="w-full rounded-full pl-10 pr-4 py-2 border border-gray-200 focus:ring-2 focus:ring-green-400 bg-gray-50 outline-none"
         />
 
@@ -160,7 +175,7 @@ export default function SearchBar({
                         {scoredResults.people.length > 0 && (
                           <section>
                             <p className="text-xs text-gray-500 font-semibold mb-2">
-                              People
+                              eople
                             </p>
                             {scoredResults.people.slice(0, 6).map((p) => (
                               <div
@@ -197,7 +212,7 @@ export default function SearchBar({
                                       detail: { categoryId: c._id }
                                     })
                                   );
-                                  navigate("/");  // Visit feed
+                                  navigate("/");
                                 }}
                                 className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer"
                               >
@@ -253,7 +268,17 @@ export default function SearchBar({
                       </div>
                     )}
 
-                    {/* other tabs omitted for brevity — they stay same */}
+                    {/* Show "View all results" button */}
+                    {searchQuery && (
+                      <div className="pt-2 border-t">
+                        <button
+                          onClick={handleSearchSubmit}
+                          className="w-full text-center py-2 text-green-600 font-medium hover:bg-green-50 rounded-lg"
+                        >
+                          View all results for "{searchQuery}"
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

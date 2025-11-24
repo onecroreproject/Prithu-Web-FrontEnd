@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase,Activity
+  Calendar, Briefcase, Activity
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -20,29 +20,32 @@ import CreatePostModal from "../components/CreatePostModal";
 import UpcomingEvents from "../components/UpcomingEvents";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
- 
+import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
+
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
- 
+
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
 const MAX_HISTORY = 12;
 const TRENDING_CACHE_KEY = "prithu_trending_cache_v1";
 const TRENDING_CACHE_TTL = 60 * 60 * 1000;
- 
+
 export default function Header() {
   const { user, token, logout, fetchUserProfile } = useAuth();
   const navigate = useNavigate();
- 
-  const [notifCount, setNotifCount] = useState(0);
+
+  // Notification count from React Query hook (replaces manual polling)
+  const notifCount = useUnreadNotificationCount(token);
+  const refreshNotifications = useRefreshNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isEventsOpen, setIsEventsOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
- 
+
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({
@@ -54,14 +57,13 @@ export default function Header() {
   const [history, setHistory] = useState([]);
   const [trending, setTrending] = useState([]);
   const trendingFetchedAt = useRef(0);
- 
+
   // refs
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
-  const notificationUpdateInterval = useRef(null);
- 
+
   // Updated navItems - Removed duplicate "Portfolio" from main navigation
   const navItems = [
     { to: "/", label: "Home", Icon: Home },
@@ -71,77 +73,43 @@ export default function Header() {
     { to: "/referral", label: "Referral", Icon: Gift },
     { to: "/activity", label: "My Activity", Icon: Activity }
   ];
- 
+
   useEffect(() => {
     if (token) fetchUserProfile();
   }, [token]);
- 
-  // -- Notifications --
-  const fetchNotificationCount = useCallback(async () => {
-    if (!token) return;
-    try {
-      const { data } = await api.get("/api/get/user/all/notification", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const unreadCount = (data?.notifications || []).filter(n => !n.isRead).length;
-      setNotifCount(unreadCount);
-    } catch (err) {
-      console.error("❌ Notification fetch failed:", err);
-    }
-  }, [token]);
- 
-  const debouncedNotifFetch = useMemo(
-    () => debounce(fetchNotificationCount, 500),
-    [fetchNotificationCount]
-  );
- 
-  // Real-time notification updates with multiple strategies
+
+  // -- Real-time notification updates via WebSocket --
+  // React Query hook handles fetching/caching, WebSocket handles real-time updates
   useEffect(() => {
     const handleNewNotif = e => {
       const notif = e.detail;
       console.log("🔔 New notification received:", notif);
-      
+
       // Show toast notification
       toast.success(`🔔 ${notif.title || "New notification!"}`, {
         duration: 4000,
         position: "top-right",
       });
-      
-      // Increment count immediately for real-time feel
-      setNotifCount(prev => prev + 1);
-      
-      // Refresh the full count after a short delay to ensure accuracy
-      setTimeout(() => {
-        debouncedNotifFetch();
-      }, 1000);
+
+      // Refresh notifications from React Query cache
+      refreshNotifications();
     };
-    
+
     const handleNotifRead = () => {
       console.log("📨 Notifications marked as read");
-      debouncedNotifFetch();
+      refreshNotifications();
     };
-    
+
     // Listen for socket events
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
-    
-    // Initial fetch
-    fetchNotificationCount();
-    
-    // Set up periodic refresh for notifications (every 30 seconds)
-    notificationUpdateInterval.current = setInterval(() => {
-      fetchNotificationCount();
-    }, 30000);
-    
+
     return () => {
       document.removeEventListener("socket:newNotification", handleNewNotif);
       document.removeEventListener("socket:notificationRead", handleNotifRead);
-      if (notificationUpdateInterval.current) {
-        clearInterval(notificationUpdateInterval.current);
-      }
     };
-  }, [debouncedNotifFetch, fetchNotificationCount]);
- 
+  }, [refreshNotifications]);
+
   // -- Outside clicks --
   useEffect(() => {
     const handleOutsideClick = e => {
@@ -153,36 +121,36 @@ export default function Header() {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
- 
+
   // -- Reels --
   const handleReelClick = () => {
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
     window.dispatchEvent(new CustomEvent("toggleReels", { detail: { isActive: nextState } }));
   };
- 
+
   // -- Events --
   const handleEventsClick = () => {
     setIsEventsOpen(true);
     closeAll();
   };
- 
+
   // -- Jobs --
   const handleJobsClick = () => {
     toast("💼 Jobs feature coming soon!", { icon: "⏳" });
   };
- 
+
   // -- Portfolio --
   const handlePortfolioClick = () => {
     navigate(`/portfolio/${user?.userName || ""}`);
   };
- 
+
   const closeAll = () => {
     setDropdownOpen(false);
     setNotifOpen(false);
     setMobileMenuOpen(false);
   };
- 
+
   const handleBellClick = () => {
     setNotifOpen((p) => !p);
     setDropdownOpen(false);
@@ -192,7 +160,7 @@ export default function Header() {
       fetchNotificationCount();
     }
   };
- 
+
   // -- Search helpers --
   const saveToHistory = text => {
     if (!text || !text.trim()) return;
@@ -204,12 +172,12 @@ export default function Header() {
     localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(trimmed));
     setHistory(trimmed);
   };
- 
+
   const clearHistory = () => {
     localStorage.removeItem(SEARCH_HISTORY_KEY);
     setHistory([]);
   };
- 
+
   const loadHistory = () => {
     try {
       const cur = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
@@ -218,7 +186,7 @@ export default function Header() {
       setHistory([]);
     }
   };
- 
+
   const scoreAndFilter = useCallback((query, items = [], keys = ["name"]) => {
     if (!query) return items;
     const q = query.toLowerCase();
@@ -235,7 +203,7 @@ export default function Header() {
       .sort((a, b) => b.score - a.score)
       .map(s => s.item);
   }, []);
- 
+
   const fetchTrending = async () => {
     try {
       const cacheRaw = localStorage.getItem(TRENDING_CACHE_KEY);
@@ -260,12 +228,12 @@ export default function Header() {
       console.error("❌ failed to fetch trending hashtags", err);
     }
   };
- 
+
   useEffect(() => {
     loadHistory();
     fetchTrending();
   }, []);
- 
+
   const performSearch = useCallback(async q => {
     const qs = (q || "").trim();
     if (!qs) {
@@ -289,12 +257,12 @@ export default function Header() {
       console.error("❌ Global Search Failed:", err);
     }
   }, []);
- 
+
   const debouncedSearch = useMemo(
     () => debounce(performSearch, 300),
     [performSearch]
   );
- 
+
   const scoredResults = useMemo(() => {
     const q = (searchQuery || "").trim();
     return {
@@ -303,19 +271,19 @@ export default function Header() {
       jobs: scoreAndFilter(q, searchResults.jobs || [], ["title", "companyName"])
     };
   }, [searchResults, searchQuery, scoreAndFilter]);
- 
+
   const handleSelectResult = (type, payload) => {
     const text =
       type === "people"
         ? payload.userName || payload.name || ""
         : type === "categories"
-        ? payload.name || ""
-        : type === "jobs"
-        ? payload.title || ""
-        : payload;
- 
+          ? payload.name || ""
+          : type === "jobs"
+            ? payload.title || ""
+            : payload;
+
     saveToHistory(text);
- 
+
     if (type === "people") {
       navigate(`/user/profile/${payload.userName}`);
     } else if (type === "categories") {
@@ -327,18 +295,18 @@ export default function Header() {
     } else {
       navigate(`/search?q=${encodeURIComponent(text)}`);
     }
- 
+
     setShowSearchDropdown(false);
     setMobileSearchOpen(false);
     setSearchQuery("");
   };
- 
+
   const handleHistoryClick = text => {
     setSearchQuery(text);
     debouncedSearch(text);
     setShowSearchDropdown(true);
   };
- 
+
   const handleTrendingClick = tag => {
     setSearchQuery(`#${tag.tag || tag}`);
     performSearch(tag.tag || tag);
@@ -347,7 +315,7 @@ export default function Header() {
     setShowSearchDropdown(false);
     setMobileSearchOpen(false);
   };
- 
+
   const handleKeyDown = e => {
     if (e.key === "Enter") {
       const tab = activeTab;
@@ -370,7 +338,7 @@ export default function Header() {
       setSearchQuery("");
     }
   };
- 
+
   return (
     <Fragment>
       {/* HEADER */}
@@ -383,25 +351,25 @@ export default function Header() {
         {/* Left Section: Logo + Heading */}
         <div className="flex items-center gap-4">
           {/* Logo */}
-  <div
- onClick={() => {
-  if (window.location.pathname === "/") {
-    localStorage.setItem("scrollToFeed", "true");
-    window.location.reload();
-  } else {
-    navigate("/");
-  }
-}}
+          <div
+            onClick={() => {
+              if (window.location.pathname === "/") {
+                localStorage.setItem("scrollToFeed", "true");
+                window.location.reload();
+              } else {
+                navigate("/");
+              }
+            }}
 
-  className="flex items-center gap-2 cursor-pointer"
->
-  <img src={PrithuLogo} alt="Prithu Logo" className="w-8 h-8 md:w-10 md:h-10" />
-  <h1 className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent">
-    PRITHU
-  </h1>
-</div>
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <img src={PrithuLogo} alt="Prithu Logo" className="w-8 h-8 md:w-10 md:h-10" />
+            <h1 className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent">
+              PRITHU
+            </h1>
+          </div>
 
- 
+
           {/* Desktop Search Bar - Hidden on mobile */}
           <div className="hidden lg:flex flex-1 max-w-2xl mx-24">
             <SearchBar
@@ -424,7 +392,7 @@ export default function Header() {
               searchRef={searchRef}
             />
           </div>
- 
+
           {/* Desktop: Events, Jobs, Portfolio - Hidden on mobile */}
           <div className="hidden lg:flex items-center gap-2 ml-48">
             <HeaderIconWithLabel
@@ -444,29 +412,29 @@ export default function Header() {
             />
           </div>
         </div>
- 
+
         {/* Right Section */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile search button - Hidden on mobile since we're simplifying */}
           <button onClick={() => setMobileSearchOpen(true)} className="hidden p-2 rounded-md hover:bg-gray-100 lg:hidden">
             <Search className="w-5 h-5 text-blue-600" />
           </button>
- 
+
           {/* Desktop Actions - Hidden on mobile */}
           <div className="hidden lg:flex items-center gap-3">
             <HeaderIcon Icon={Plus} onClick={() => setIsCreatePostOpen(true)} />
             <HeaderIcon Icon={Video} onClick={handleReelClick} active={isReelsActive} />
-           
+
             {/* Notification */}
             <div ref={notificationRef} className="relative">
               <HeaderIcon Icon={BellRing} badge={notifCount} onClick={handleBellClick} />
               <NotificationDropdown
                 isOpen={notifOpen}
                 onClose={() => setNotifOpen(false)}
-                onUpdateCount={fetchNotificationCount}
+                onUpdateCount={refreshNotifications}
               />
             </div>
- 
+
             {/* Profile Dropdown */}
             <div ref={dropdownRef} className="relative">
               <motion.button
@@ -476,7 +444,7 @@ export default function Header() {
               >
                 <ProfileAvatar user={user} />
               </motion.button>
- 
+
               <AnimatePresence>
                 {dropdownOpen && (
                   <motion.div
@@ -500,7 +468,7 @@ export default function Header() {
                         </div>
                       </div>
                     </div>
- 
+
                     {/* Navigation Links - Updated without duplicate Portfolio */}
                     <div className="p-2 space-y-1">
                       {navItems.map(({ to, label, Icon }) => (
@@ -509,10 +477,9 @@ export default function Header() {
                           to={to}
                           onClick={closeAll}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition ${
-                              isActive
-                                ? "bg-blue-100 text-blue-700 font-medium"
-                                : "text-gray-700 hover:bg-blue-50"
+                            `flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition ${isActive
+                              ? "bg-blue-100 text-blue-700 font-medium"
+                              : "text-gray-700 hover:bg-blue-50"
                             }`
                           }
                         >
@@ -521,7 +488,7 @@ export default function Header() {
                         </NavLink>
                       ))}
                     </div>
- 
+
                     {/* Logout */}
                     <div className="p-2 border-t border-gray-100">
                       <button
@@ -537,7 +504,7 @@ export default function Header() {
               </AnimatePresence>
             </div>
           </div>
- 
+
           {/* Mobile Actions - Only Notification and Hamburger */}
           <div className="flex lg:hidden items-center gap-2">
             {/* Notification */}
@@ -546,10 +513,10 @@ export default function Header() {
               <NotificationDropdown
                 isOpen={notifOpen}
                 onClose={() => setNotifOpen(false)}
-                onUpdateCount={fetchNotificationCount}
+                onUpdateCount={refreshNotifications}
               />
             </div>
- 
+
             {/* Hamburger */}
             <button
               onClick={() => setMobileMenuOpen((p) => !p)}
@@ -560,7 +527,7 @@ export default function Header() {
           </div>
         </div>
       </motion.header>
- 
+
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -588,7 +555,7 @@ export default function Header() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-      {/* Mobile Menu Content */}
+            {/* Mobile Menu Content */}
             <div className="p-4 space-y-2 h-[calc(100vh-80px)] overflow-y-auto">
               {/* Mobile Search */}
               <div className="pb-4 border-b border-gray-200">
@@ -603,7 +570,7 @@ export default function Header() {
                   <span className="font-medium">Search</span>
                 </button>
               </div>
- 
+
               {/* Mobile Actions */}
               <div className="flex gap-2 pb-4 border-b border-gray-200">
                 <button
@@ -621,17 +588,16 @@ export default function Header() {
                     handleReelClick();
                     setMobileMenuOpen(false);
                   }}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium ${
-                    isReelsActive
-                      ? "bg-blue-100 text-blue-700 border border-blue-300"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium ${isReelsActive
+                    ? "bg-blue-100 text-blue-700 border border-blue-300"
+                    : "bg-gray-100 text-gray-700"
+                    }`}
                 >
                   <Video className="w-5 h-5" />
                   Reels
                 </button>
               </div>
- 
+
               {/* Quick Actions - Events, Jobs, Portfolio */}
               <div className="pb-4 border-b border-gray-200">
                 <div className="space-y-2">
@@ -667,7 +633,7 @@ export default function Header() {
                   </button>
                 </div>
               </div>
- 
+
               {/* Navigation Items - Updated without duplicate Portfolio */}
               <div className="space-y-1">
                 {navItems.map(({ to, label, Icon }) => (
@@ -676,10 +642,9 @@ export default function Header() {
                     to={to}
                     onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                        isActive
-                          ? "bg-blue-100 text-blue-700 font-medium"
-                          : "text-gray-700 hover:bg-blue-50"
+                      `flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-blue-50"
                       }`
                     }
                   >
@@ -688,7 +653,7 @@ export default function Header() {
                   </NavLink>
                 ))}
               </div>
- 
+
               {/* Logout */}
               <button
                 onClick={() => {
@@ -704,7 +669,7 @@ export default function Header() {
           </motion.div>
         )}
       </AnimatePresence>
- 
+
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -712,7 +677,7 @@ export default function Header() {
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
- 
+
       {/* MOBILE SEARCH */}
       <MobileSearchBar
         mobileSearchOpen={mobileSearchOpen}
@@ -731,13 +696,13 @@ export default function Header() {
         scoredResults={scoredResults}
         handleSelectResult={handleSelectResult}
       />
- 
+
       {/* Create Post Modal */}
       <CreatePostModal
         open={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
       />
- 
+
       {/* Events Modal */}
       <EventsModal
         open={isEventsOpen}
@@ -746,38 +711,48 @@ export default function Header() {
     </Fragment>
   );
 }
- 
+
 /* ✅ Events Modal Component */
 const EventsModal = ({ open, onClose }) => {
   if (!open) return null;
- 
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose} // clicking outside closes modal
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
+        className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* ❌ Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-black p-1 rounded-full hover:bg-gray-100 transition"
+        >
+          <X size={20} />
+        </button>
+
         <UpcomingEvents onClose={onClose} />
       </motion.div>
     </div>
   );
 };
- 
+
+
 /* ✅ HeaderIcon component */
 const HeaderIcon = ({ Icon, onClick, badge, active }) => (
   <button
     onClick={onClick}
-    className={`relative p-2 rounded-full transition-all duration-300 ${
-      active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
-    }`}
+    className={`relative p-2 rounded-full transition-all duration-300 ${active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
+      }`}
   >
     <Icon
-      className={`w-5 h-5 transition-all ${
-        active ? "text-blue-700 scale-110" : "text-blue-600"
-      }`}
+      className={`w-5 h-5 transition-all ${active ? "text-blue-700 scale-110" : "text-blue-600"
+        }`}
     />
     {badge > 0 && (
       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
@@ -786,24 +761,22 @@ const HeaderIcon = ({ Icon, onClick, badge, active }) => (
     )}
   </button>
 );
- 
+
 /* ✅ HeaderIcon with Label for Desktop - Text on right side */
 const HeaderIconWithLabel = ({ Icon, label, onClick, active }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-      active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
-    }`}
+    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
+      }`}
   >
     <Icon
-      className={`w-5 h-5 transition-all ${
-        active ? "text-blue-700 scale-110" : "text-blue-600"
-      }`}
+      className={`w-5 h-5 transition-all ${active ? "text-blue-700 scale-110" : "text-blue-600"
+        }`}
     />
     <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{label}</span>
   </button>
 );
- 
+
 /* ✅ Avatar component */
 const ProfileAvatar = ({ user, size = "md" }) => {
   const fallback = user?.displayName?.[0]?.toUpperCase() || "U";
@@ -812,7 +785,7 @@ const ProfileAvatar = ({ user, size = "md" }) => {
     md: "w-9 h-9 text-sm",
     lg: "w-12 h-12 text-base"
   };
- 
+
   return user?.profileAvatar ? (
     <img
       src={user.profileAvatar}
@@ -825,6 +798,5 @@ const ProfileAvatar = ({ user, size = "md" }) => {
     </div>
   );
 };
-  
-      
- 
+
+

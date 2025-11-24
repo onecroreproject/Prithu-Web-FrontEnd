@@ -2,9 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from ".././../../api/axios";
 import Postcard from "../../FeedPageComponent/Postcard";
+import {useNavigate} from "react-router-dom"
 
 const UserPosts = ({ authUser, token, id }) => {
-  const [activeTab, setActiveTab] = useState("image");
+  const [activeTab, setActiveTab] = useState("all"); // Changed default to "all"
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fullscreenVideo, setFullscreenVideo] = useState(null);
@@ -13,6 +14,7 @@ const UserPosts = ({ authUser, token, id }) => {
   const [deletingPost, setDeletingPost] = useState(null); // Track which post is being deleted
   const videoRef = useRef(null);
   const menuRef = useRef(null);
+  const navigate =useNavigate()
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -60,12 +62,22 @@ const UserPosts = ({ authUser, token, id }) => {
   const imagePosts = posts.filter((p) => p.type === "image");
   const videoPosts = posts.filter((p) => p.type === "video");
   
-  // Determine which posts to show based on view mode
+  // Determine which posts to show based on active tab and view mode
   const getCurrentPosts = () => {
     if (viewMode === "allPhotos") {
       return imagePosts;
     }
-    return activeTab === "image" ? imagePosts : videoPosts;
+    
+    switch (activeTab) {
+      case "all":
+        return posts; // Show all posts
+      case "image":
+        return imagePosts;
+      case "video":
+        return videoPosts;
+      default:
+        return posts;
+    }
   };
 
   const currentPosts = getCurrentPosts();
@@ -199,6 +211,24 @@ const UserPosts = ({ authUser, token, id }) => {
     );
   };
 
+  // Get tab display name
+  const getTabDisplayName = () => {
+    if (viewMode === "allPhotos") {
+      return "All Photos";
+    }
+    
+    switch (activeTab) {
+      case "all":
+        return "All Posts";
+      case "image":
+        return "Photos";
+      case "video":
+        return "Videos";
+      default:
+        return "Posts";
+    }
+  };
+
   // Render header based on view mode
   const renderHeader = () => {
     if (viewMode === "allPhotos") {
@@ -212,7 +242,7 @@ const UserPosts = ({ authUser, token, id }) => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Back to Photos</span>
+              <span>Back to Posts</span>
             </button>
             <h1 className="text-2xl font-bold text-gray-800">
               All Photos ({imagePosts.length})
@@ -225,16 +255,9 @@ const UserPosts = ({ authUser, token, id }) => {
     return (
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
-          {activeTab === "image" ? "Photos" : "Videos"}
+          {getTabDisplayName()}
         </h1>
-        {activeTab === "image" && imagePosts.length > 0 && (
-          <button 
-            onClick={handleSeeAllPhotos}
-            className="text-blue-500 text-sm font-medium hover:text-blue-600 transition-colors"
-          >
-            See all photos
-          </button>
-        )}
+
       </div>
     );
   };
@@ -246,6 +269,16 @@ const UserPosts = ({ authUser, token, id }) => {
     return (
       <div className="flex border-b border-gray-200 mb-6">
         <button
+          onClick={() => setActiveTab("all")}
+          className={`py-3 px-6 text-sm font-medium transition-all ${
+            activeTab === "all"
+              ? "border-b-2 border-blue-500 text-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          All ({posts.length})
+        </button>
+        <button
           onClick={() => setActiveTab("image")}
           className={`py-3 px-6 text-sm font-medium transition-all ${
             activeTab === "image"
@@ -253,7 +286,7 @@ const UserPosts = ({ authUser, token, id }) => {
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          Photos
+          Photos ({imagePosts.length})
         </button>
         <button
           onClick={() => setActiveTab("video")}
@@ -263,13 +296,13 @@ const UserPosts = ({ authUser, token, id }) => {
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          Videos
+          Videos ({videoPosts.length})
         </button>
       </div>
     );
   };
 
-  // Render content based on view mode
+  // Render content based on view mode and active tab
   const renderContent = () => {
     if (loading) {
       return <p className="text-gray-500 text-center py-8">Loading posts...</p>;
@@ -279,12 +312,14 @@ const UserPosts = ({ authUser, token, id }) => {
       return (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">
-            No {viewMode === "allPhotos" ? "photos" : activeTab === "image" ? "photos" : "videos"} found.
+            No {viewMode === "allPhotos" ? "photos" : getTabDisplayName().toLowerCase()} found.
           </p>
           <p className="text-gray-400 text-sm mt-2">
             {viewMode === "allPhotos" || activeTab === "image"
               ? "Upload your first photo to get started"
-              : "Upload your first video to get started"}
+              : activeTab === "video"
+              ? "Upload your first video to get started"
+              : "Upload your first post to get started"}
           </p>
         </div>
       );
@@ -322,7 +357,7 @@ const UserPosts = ({ authUser, token, id }) => {
       );
     }
 
-    // Grid view for photos/videos
+    // Grid view for all posts/photos/videos
     return (
       <AnimatePresence mode="wait">
         <motion.div
@@ -343,42 +378,42 @@ const UserPosts = ({ authUser, token, id }) => {
                   {/* Three dots menu */}
                   {renderMenuButton(post)}
 
-                  {post.type === "image" ? (
-                    <div className="aspect-[4/3]">
-                      <img
-                        src={post.contentUrl}
-                        alt="User post"
-                        className="w-full h-full object-cover cursor-pointer"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="relative h-[250px] cursor-pointer"
-                      onClick={() => handleVideoClick(post)}
-                    >
-                      <video
-                        src={post.contentUrl}
-                        className="w-full h-full object-cover"
-                        poster={post.thumbnail}
-                      />
-                      {/* Video duration overlay */}
-                      <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                        {post.duration || "00:00"}
-                      </div>
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-black bg-opacity-40 rounded-full p-3">
-                          <svg
-                            className="w-8 h-8 text-white"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+{post.type === "image" ? (
+  <div className="aspect-[4/3]">
+    <img
+      src={post.contentUrl}
+      alt="User post"
+      className="w-full h-full object-cover cursor-pointer"
+      onClick={() => navigate(`/retrivefeed/${post._id}?creator=true`)}
+    />
+  </div>
+) : (
+  <div
+    className="relative h-[250px] cursor-pointer"
+    onClick={() => navigate(`/retrivefeed/${post._id}?creator=true`)}
+  >
+    <video
+      src={post.contentUrl}
+      className="w-full h-full object-cover"
+      poster={post.thumbnail}
+    />
+    <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+      {post.duration || "00:00"}
+    </div>
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="bg-black bg-opacity-40 rounded-full p-3">
+        <svg
+          className="w-8 h-8 text-white"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
+    </div>
+  </div>
+)}
+
 
                   {/* Engagement metrics */}
                   <div className="absolute bottom-2 left-2 flex items-center space-x-2">
@@ -393,6 +428,7 @@ const UserPosts = ({ authUser, token, id }) => {
                       </div>
                     )}
                   </div>
+
 
                   {/* Caption preview (only show if exists) */}
                   {post.caption && (

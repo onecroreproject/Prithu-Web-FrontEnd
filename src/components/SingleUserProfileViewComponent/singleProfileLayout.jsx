@@ -23,6 +23,8 @@ const SingleUserProfilelayout = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [visibility, setVisibility] = useState(null);
+
   const [error, setError] = useState("");
   const [profileStats, setProfileStats] = useState({
     followersCount: 0,
@@ -61,9 +63,27 @@ const SingleUserProfilelayout = () => {
     }
   };
 
+  const fetchVisibilitySettings = async () => {
+  try {
+    const res = await api.post(`/api/individual/user/visibility/settings`, {
+      userId: id,   // 🔥 IMPORTANT: send ID in body
+    });
+  console.log(res.data)
+    setVisibility(res.data.visibility);
+  } catch (err) {
+    console.error("Error fetching visibility settings:", err);
+  }
+};
+
   useEffect(() => {
     if (id) fetchProfileOverview();
+    if (id) fetchVisibilitySettings();
   }, [id]);
+
+
+  // 🔥 Fetch profile visibility settings for target user ID
+
+
 
   const handleFollowDataUpdate = (newCounts) => {
     setProfileStats((prev) => ({
@@ -97,7 +117,7 @@ const SingleUserProfilelayout = () => {
           />
         );
       case "profile":
-        return <ProfileSection userData={userData} id={id}/>;
+        return <ProfileSection userData={userData} visibility={visibility} id={id}/>;
       case "friends":
         return <FriendsSection onFollowDataUpdate={handleFollowDataUpdate} id={id} />;
       case "groups":

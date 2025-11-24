@@ -11,7 +11,7 @@ const UserActivity = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Activity</h1>
-          <div className="inline-flex space-x-1 bg-white rounded-lg p-1 shadow-sm border">
+          <div className="inline-flex space-x-1 bg-white rounded-lg p-1 shadow-sm ">
             <button
               className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
                 activeTab === 'myActivity'

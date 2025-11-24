@@ -23,7 +23,7 @@ import EditSkill from "./editSkillProfile";
 import EditCertification from "./editCertificationProfile";
 
 // 🔹 Section card re-usable UI
-function SectionCard({ section, expandedSection, handleSectionToggle }) {
+function SectionCard({ section, expandedSection, handleSectionToggle, visibility}) {
   return (
     <motion.div
       key={section.key}
@@ -80,7 +80,7 @@ function SectionCard({ section, expandedSection, handleSectionToggle }) {
   );
 }
 
-export default function ProfilePage({ id }) {
+export default function ProfilePage({ id ,visibility}) {
   const [expandedSection, setExpandedSection] = useState("profile");
   const { token } = useAuth();
 
@@ -132,7 +132,7 @@ export default function ProfilePage({ id }) {
     key: "profile",
     title: "Profile Information",
     icon: <User2 className="w-5 h-5 text-blue-600" />,
-    component: <EditProfile id={id} />,
+    component: <EditProfile id={id} visibility={visibility}/>,
   };
 
   // 🔹 Other editable sections — visible only when NO id

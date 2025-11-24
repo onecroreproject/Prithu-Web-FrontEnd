@@ -29,14 +29,15 @@ import PublicResume from "./pages/publiceResume.jsx";
 import JobList from "./components/Jobs/jobCardPop-Up.jsx";
 import PortfolioLayout from "./components/User_PrortFolio/portFolioLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
-import PostDetails from "./components/FeedPageComponent/postView.jsx"; // ✅ (you likely need to import this)
+import PostDetails from "./components/FeedPageComponent/postView.jsx";
 import SingleUserProfilelayout from "./components/SingleUserProfileViewComponent/singleProfileLayout.jsx";
-import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx";
-import JobDetailsPopup from "./components/Jobs/jobCardPop-Up.jsx";
+import ReferralUnderConstruction from "./pages/SubscriptionPage.jsx"; // TODO: Create dedicated ReferralPage.jsx
 import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
-import { Feed } from "@mui/icons-material";
 import RegisterForm from "./components/LoginPageComponents/forms/registerForm.jsx";
 import UserActivity from './components/UserActivity/userActivity.jsx';
+import Feed from './pages/Feed.jsx';
+import SearchResultsScreen from "./components/SearchComponent/mainLayout.jsx";
+
 
 // ✅ Create a single QueryClient instance
 const queryClient = new QueryClient();
@@ -58,7 +59,7 @@ function AppRoutes() {
       {/* Public route */}
       <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
 
-      {/* Protected routes */}
+      {/* Protected routes using Layout */}
       <Route
         path="/"
         element={
@@ -67,14 +68,19 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<div />} />
+        {/* HOME */}
+        <Route index element={<Feed />} />
+
+        {/* ➤ Notification → Feed (INSIDE Layout now) */}
+        <Route path="retrivefeed/:notifyfeedid" element={<Feed />} />
+
+        {/* Other Layout children */}
         <Route path="profile" element={<Profilelayout />} />
-        <Route path="search" element={<SearchPage />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="invite" element={<InviteFriends />} />
-        <Route path="/activity" element={<UserActivity />} />
+        <Route path="activity" element={<UserActivity />} />
 
-        {/* Settings with nested routes */}
+        {/* Settings nested routes */}
         <Route path="settings/*" element={<SettingsPage />}>
           <Route
             index
@@ -103,19 +109,20 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      {/* Public routes */}
+      {/* Public routes (outside layout) */}
       <Route path="/logout" element={<Navigate to="/login" replace />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/r/:username" element={<PublicResume />} />
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
-      <Route path="/user/profile/:id" element={<SingleUserProfilelayout/>} />
-      <Route path="/referral" element={<ReferralUnderConstruction/>} />
-      <Route path="/job/view/:id" element={<SearchJobDetailsPopup/>}/>
-      <Route path="/feed" element={<Feed/>}/>
-      <Route path="/create/account" element={<RegisterForm/>}/>
+      <Route path="/user/profile/:id" element={<SingleUserProfilelayout />} />
+      <Route path="/referral" element={<ReferralUnderConstruction />} />
+      <Route path="/job/view/:id" element={<SearchJobDetailsPopup />} />
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/create/account" element={<RegisterForm />} />
+      <Route path="/search" element={<SearchResultsScreen/>}/>
 
-      {/* ✅ Shared Post Redirect Route */}
+      {/* Shared post */}
       <Route
         path="/post/:feedId"
         element={
@@ -130,6 +137,7 @@ function AppRoutes() {
     </Routes>
   );
 }
+
 
 export default function App() {
   return (

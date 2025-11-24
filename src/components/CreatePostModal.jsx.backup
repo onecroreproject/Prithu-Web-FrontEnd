@@ -186,157 +186,139 @@ export default function CreatePostModal({ open, onClose }) {
             + Create New Post
           </div>
 
+          {/* Mobile Tab Selector - Only on mobile */}
+          {/* <div className="lg:hidden mb-4 px-6">
+            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+              {[
+                { id: "media", label: "Media" },
+                { id: "gif", label: "GIF" },
+                { id: "location", label: "Location" },
+                { id: "tag", label: "Tag Friends" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedBtn(tab.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedBtn === tab.id
+                      ? "bg-blue-500 text-white shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div> */}
+
           <div className="flex gap-5 px-6 pb-6">
             {/* Left Sidebar - Hidden on mobile, shown on desktop */}
             <div className="hidden lg:block">
               <LeftSidebarButtons
-                selectedBtn={selectedBtn}
-                onSelect={setSelectedBtn}
-              />
-            </div>
-
-            <div className="flex-1 flex flex-col">
-              {/* text with emoji picker */}
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  className="w-full border rounded-md px-3 py-2 text-base min-h-[70px] focus:outline-none pr-12"
-                  placeholder="What's on your mind?"
-                  value={postText}
-                  onChange={(e) => setPostText(e.target.value)}
-                  rows={3}
-                />
-                <div className="absolute bottom-2 right-2">
-                  <EmojiPicker
-                    onEmojiSelect={(emoji) => {
-                      const textarea = textareaRef.current;
-                      if (!textarea) return;
-
-                      const cursorPos = textarea.selectionStart;
-                      const textBefore = postText.substring(0, cursorPos);
-                      const textAfter = postText.substring(cursorPos);
-                      setPostText(textBefore + emoji + textAfter);
-
-                      setTimeout(() => {
-                        textarea.selectionStart = textarea.selectionEnd = cursorPos + emoji.length;
-                        textarea.focus();
-                      }, 0);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Media Section */}
-              <AnimatePresence>
-                {selectedBtn === "media" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    {/* Dropdowns */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                      <select
-                        value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">Select Category</option>
-                        {categories.map((cat) => (
-                          <option key={cat.categoryId} value={cat.categoryId}>
-                            {cat.categoryName}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Schedule Toggle */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-700 text-sm">Schedule</span>
-                        <div
-                          onClick={() => setIsScheduled(!isScheduled)}
-                          className={`w-12 h-6 flex items-center rounded-full cursor-pointer p-1 transition-all ${isScheduled ? "bg-blue-500" : "bg-gray-300"
-                            }`}
-                        >
-                          <motion.div
-                            className="bg-white w-4 h-4 rounded-full shadow-md"
-                            layout
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Schedule Picker */}
-                    <AnimatePresence>
-                      {isScheduled && (
-                        <motion.div
-                          className="flex flex-col mt-3"
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <label className="text-sm text-gray-600 mb-1">
-                            Select Schedule Date & Time
-                          </label>
-                          <input
-                            type="datetime-local"
-                            className="border border-gray-300 rounded px-2 py-1 text-sm"
-                            value={scheduleDate}
-                            onChange={(e) => setScheduleDate(e.target.value)}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Media Uploader */}
-                    <MediaUploader
-                      files={files}
-                      fileRef={fileRef}
-                      onFilesChange={handleFileChange}
-                      onDropFiles={handleDrop}
-                      onRemoveFile={handleRemoveFile}
-                      type={type}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Other Tabs */}
-              {selectedBtn === "gif" && (
-                <GifSelector
-                  selectedGif={selectedGif}
-                  setSelectedGif={setSelectedGif}
-                />
-              )}
-
-              {selectedBtn === "location" && (
-                <LocationInput
-                  location={location}
-                  setLocation={setLocation}
-                />
-              )}
-
-              {selectedBtn === "tag" && (
-                <TagFriends
-                  taggedFriends={taggedFriends}
-                  setTaggedFriends={setTaggedFriends}
-                />
-              )}
-
-              {/* Publish Button */}
-              <button
-                className="w-full bg-[#26Aeee] hover:bg-blue-600 text-white font-medium text-lg rounded-md py-2.5 mt-5 transition-all"
-                onClick={publish}
-                disabled={loading}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
               >
-                {loading ? "Publishing..." : "Publish"}
-              </button>
-            </div>
+                {/* Dropdowns */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.categoryId} value={cat.categoryId}>
+                        {cat.categoryName}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Schedule Toggle */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 text-sm">Schedule</span>
+                    <div
+                      onClick={() => setIsScheduled(!isScheduled)}
+                      className={`w-12 h-6 flex items-center rounded-full cursor-pointer p-1 transition-all ${isScheduled ? "bg-blue-500" : "bg-gray-300"
+                        }`}
+                    >
+                      <motion.div
+                        className="bg-white w-4 h-4 rounded-full shadow-md"
+                        layout
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule Picker */}
+                <AnimatePresence>
+                  {isScheduled && (
+                    <motion.div
+                      className="flex flex-col mt-3"
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <label className="text-sm text-gray-600 mb-1">
+                        Select Schedule Date & Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Media Uploader */}
+                <MediaUploader
+                  files={files}
+                  fileRef={fileRef}
+                  onFilesChange={handleFileChange}
+                  onDropFiles={handleDrop}
+                  onRemoveFile={handleRemoveFile}
+                  type={type}
+                />
+              </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Other Tabs */}
+            {selectedBtn === "gif" && (
+              <GifSelector
+                selectedGif={selectedGif}
+                setSelectedGif={setSelectedGif}
+              />
+            )}
+
+            {selectedBtn === "location" && (
+              <LocationInput
+                location={location}
+                setLocation={setLocation}
+              />
+            )}
+
+            {selectedBtn === "tag" && (
+              <TagFriends
+                taggedFriends={taggedFriends}
+                setTaggedFriends={setTaggedFriends}
+              />
+            )}
+
+            {/* Publish Button */}
+            <button
+              className="w-full bg-[#26Aeee] hover:bg-blue-600 text-white font-medium text-lg rounded-md py-2.5 mt-5 transition-all"
+              onClick={publish}
+              disabled={loading}
+            >
+              {loading ? "Publishing..." : "Publish"}
+            </button>
           </div>
-        </motion.div>
+        </div>
       </motion.div>
+    </motion.div >
     </>
   );
 }
-

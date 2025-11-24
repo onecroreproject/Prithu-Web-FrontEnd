@@ -15,32 +15,32 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
- 
+
 export default function EditExperience() {
   const { token } = useAuth();
   const { data: profile, isLoading, refetch } = useUserCurriculamProfile(token);
   const { addExperience, updateExperience, deleteExperience } = useProfileMutations(token);
- 
+
   const [experiences, setExperiences] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const hasUnsavedChanges = useRef(false);
- 
+
   // 🟢 Load user experiences
   useEffect(() => {
     if (profile?.data?.experience) {
       setExperiences(profile.data.experience);
     }
   }, [profile]);
- 
+
   if (isLoading) return (
     <div className="flex justify-center items-center py-8">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
   );
- 
+
   // ➕ Add new experience
   const handleAddNew = () => {
     if (isAdding) return;
@@ -48,7 +48,7 @@ export default function EditExperience() {
     setEditingIndex(experiences.length);
     setExperiences([...experiences, { ...getEmptyExperience(), _isNew: true }]);
   };
- 
+
   // ✏️ Handle field changes
   const handleChange = (index, field, value) => {
     const updated = [...experiences];
@@ -56,7 +56,28 @@ export default function EditExperience() {
     setExperiences(updated);
     hasUnsavedChanges.current = true;
   };
- 
+
+  // ✏️ Handle comma-separated array fields
+  const handleArrayFieldChange = (index, field, value) => {
+    const updated = [...experiences];
+    
+    // Store the raw string value for display
+    updated[index][`${field}Raw`] = value;
+    
+    // Only split into array when saving
+    if (value.trim() === "") {
+      updated[index][field] = [];
+    } else {
+      // Split by comma and clean up the values
+      updated[index][field] = value.split(',')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+    }
+    
+    setExperiences(updated);
+    hasUnsavedChanges.current = true;
+  };
+
   // 💾 Save new experience
   const handleSave = (index) => {
     const newExp = experiences[index];
@@ -64,9 +85,16 @@ export default function EditExperience() {
       toast.error("Job Title, Company, and Start Date are required.");
       return;
     }
- 
+
+    // Prepare data for API - remove raw fields
+    const experienceData = { ...newExp };
+    delete experienceData._isNew;
+    delete experienceData.responsibilitiesRaw;
+    delete experienceData.technologiesUsedRaw;
+    delete experienceData.achievementsRaw;
+
     addExperience.mutate(
-      { experienceData: newExp },
+      { experienceData },
       {
         onSuccess: () => {
           toast.success("Experience added successfully!");
@@ -79,12 +107,18 @@ export default function EditExperience() {
       }
     );
   };
- 
+
   // 🔁 Update existing experience
   const handleUpdate = (index) => {
-    const updatedEntry = experiences[index];
+    const updatedEntry = { ...experiences[index] };
     const userId = profile?.data?.userId?._id;
- 
+
+    // Remove raw fields before sending to API
+    delete updatedEntry._isNew;
+    delete updatedEntry.responsibilitiesRaw;
+    delete updatedEntry.technologiesUsedRaw;
+    delete updatedEntry.achievementsRaw;
+
     updateExperience.mutate(
       {
         userId,
@@ -102,13 +136,13 @@ export default function EditExperience() {
       }
     );
   };
- 
+
   // 🗑 Delete Experience
   const handleDelete = (exp) => {
     setShowDeletePopup(true);
     setDeleteTarget(exp);
   };
- 
+
   const confirmDelete = () => {
     if (!deleteTarget?._id) {
       setExperiences(experiences.filter((e) => e !== deleteTarget));
@@ -116,7 +150,7 @@ export default function EditExperience() {
       toast.success("Removed unsaved experience.");
       return;
     }
- 
+
     const userId = profile?.data?.userId?._id;
     deleteExperience.mutate(
       { userId, experienceId: deleteTarget._id },
@@ -134,7 +168,7 @@ export default function EditExperience() {
       }
     );
   };
- 
+
   const handleCancel = () => {
     if (experiences[editingIndex]?._isNew) {
       const updated = [...experiences];
@@ -144,7 +178,16 @@ export default function EditExperience() {
     setEditingIndex(null);
     setIsAdding(false);
   };
- 
+
+  // Helper to get display value for array fields
+  const getArrayFieldValue = (exp, field) => {
+    return exp[`${field}Raw`] !== undefined 
+      ? exp[`${field}Raw`] 
+      : Array.isArray(exp[field]) 
+        ? exp[field].join(', ') 
+        : '';
+  };
+
   return (
     <div className="bg-white p-4 sm:p-5 rounded-lg border border-gray-200 shadow-sm mt-4 sm:mt-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -160,7 +203,7 @@ export default function EditExperience() {
           Add Experience
         </button>
       </div>
- 
+
       <div className="space-y-4">
         {experiences.map((exp, index) => (
           <motion.div
@@ -188,22 +231,38 @@ export default function EditExperience() {
                 <Input label="End Date" type="date" value={exp.endDate} onChange={(v) => handleChange(index, "endDate", v)} disabled={exp.currentlyWorking} />
                 <Checkbox label="Currently Working Here" checked={exp.currentlyWorking} onChange={(v) => handleChange(index, "currentlyWorking", v)} />
                 <TextArea label="Description" value={exp.description} onChange={(v) => handleChange(index, "description", v)} />
- 
-                <Input label="Responsibilities (comma separated)" value={exp.responsibilities.join(", ")} onChange={(v) => handleChange(index, "responsibilities", v.split(","))} />
-                <Input label="Technologies Used (comma separated)" value={exp.technologiesUsed.join(", ")} onChange={(v) => handleChange(index, "technologiesUsed", v.split(","))} />
-                <Input label="Achievements (comma separated)" value={exp.achievements.join(", ")} onChange={(v) => handleChange(index, "achievements", v.split(","))} />
- 
+
+                {/* Comma-separated inputs */}
+                <ArrayInput 
+                  label="Responsibilities (comma separated)" 
+                  value={getArrayFieldValue(exp, 'responsibilities')} 
+                  onChange={(v) => handleArrayFieldChange(index, "responsibilities", v)} 
+                  placeholder="e.g., Team management, Project planning, Code review"
+                />
+                <ArrayInput 
+                  label="Technologies Used (comma separated)" 
+                  value={getArrayFieldValue(exp, 'technologiesUsed')} 
+                  onChange={(v) => handleArrayFieldChange(index, "technologiesUsed", v)} 
+                  placeholder="e.g., React, Node.js, MongoDB, AWS"
+                />
+                <ArrayInput 
+                  label="Achievements (comma separated)" 
+                  value={getArrayFieldValue(exp, 'achievements')} 
+                  onChange={(v) => handleArrayFieldChange(index, "achievements", v)} 
+                  placeholder="e.g., Improved performance by 40%, Led team of 5, Won innovation award"
+                />
+
                 {/* Reference Contact */}
                 <div className="col-span-1 sm:col-span-2">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Reference Contact</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input label="Name" value={exp.referenceContact.name} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, name: v })} />
-                    <Input label="Designation" value={exp.referenceContact.designation} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, designation: v })} />
-                    <Input label="Email" type="email" value={exp.referenceContact.email} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, email: v })} />
-                    <Input label="Phone" type="tel" value={exp.referenceContact.phone} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, phone: v })} />
+                    <Input label="Name" value={exp.referenceContact?.name || ""} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, name: v })} />
+                    <Input label="Designation" value={exp.referenceContact?.designation || ""} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, designation: v })} />
+                    <Input label="Email" type="email" value={exp.referenceContact?.email || ""} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, email: v })} />
+                    <Input label="Phone" type="tel" value={exp.referenceContact?.phone || ""} onChange={(v) => handleChange(index, "referenceContact", { ...exp.referenceContact, phone: v })} />
                   </div>
                 </div>
- 
+
                 <div className="flex flex-col sm:flex-row gap-3 col-span-1 sm:col-span-2 mt-3">
                   <button type="submit" className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto">
                     <Save className="w-4 h-4" /> Save Changes
@@ -224,8 +283,28 @@ export default function EditExperience() {
                     {new Date(exp.startDate).toLocaleDateString()} - {exp.currentlyWorking ? "Present" : exp.endDate ? new Date(exp.endDate).toLocaleDateString() : "N/A"}
                   </p>
                   {exp.description && <p className="text-xs text-gray-500 mt-2">{exp.description}</p>}
+                  
+                  {/* Display array fields */}
+                  {exp.responsibilities && exp.responsibilities.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-gray-700">Responsibilities:</p>
+                      <p className="text-xs text-gray-500">{exp.responsibilities.join(', ')}</p>
+                    </div>
+                  )}
+                  {exp.technologiesUsed && exp.technologiesUsed.length > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs font-medium text-gray-700">Technologies:</p>
+                      <p className="text-xs text-gray-500">{exp.technologiesUsed.join(', ')}</p>
+                    </div>
+                  )}
+                  {exp.achievements && exp.achievements.length > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs font-medium text-gray-700">Achievements:</p>
+                      <p className="text-xs text-gray-500">{exp.achievements.join(', ')}</p>
+                    </div>
+                  )}
                 </div>
- 
+
                 <div className="flex gap-3 self-end sm:self-auto">
                   <button
                     onClick={() => setEditingIndex(index)}
@@ -247,7 +326,7 @@ export default function EditExperience() {
           </motion.div>
         ))}
       </div>
- 
+
       <AnimatePresence>
         {showDeletePopup && (
           <Popup
@@ -263,7 +342,7 @@ export default function EditExperience() {
     </div>
   );
 }
- 
+
 /* ✅ Popup Component */
 function Popup({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
   return (
@@ -283,7 +362,24 @@ function Popup({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel 
     </motion.div>
   );
 }
- 
+
+/* ✅ Special Array Input Component for comma-separated values */
+function ArrayInput({ label, value, onChange, placeholder }) {
+  return (
+    <div className="col-span-1 sm:col-span-2">
+      <label className="block text-sm text-gray-700 mb-1">{label}</label>
+      <input
+        type="text"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full border border-gray-300 rounded-lg p-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+      <p className="text-xs text-gray-500 mt-1">Separate items with commas. Example: "React, JavaScript, Node.js"</p>
+    </div>
+  );
+}
+
 /* ✅ Helper for default form */
 function getEmptyExperience() {
   return {
@@ -301,9 +397,13 @@ function getEmptyExperience() {
     technologiesUsed: [],
     achievements: [],
     referenceContact: { name: "", designation: "", email: "", phone: "" },
+    // Raw fields for better input handling
+    responsibilitiesRaw: "",
+    technologiesUsedRaw: "",
+    achievementsRaw: "",
   };
 }
- 
+
 /* ✅ Reusable Inputs */
 function Input({ label, value, onChange, type = "text", disabled }) {
   return (
@@ -319,7 +419,7 @@ function Input({ label, value, onChange, type = "text", disabled }) {
     </div>
   );
 }
- 
+
 function TextArea({ label, value, onChange }) {
   return (
     <div className="col-span-1 sm:col-span-2">
@@ -333,7 +433,7 @@ function TextArea({ label, value, onChange }) {
     </div>
   );
 }
- 
+
 function Select({ label, value, onChange, options = [] }) {
   return (
     <div>
@@ -350,7 +450,7 @@ function Select({ label, value, onChange, options = [] }) {
     </div>
   );
 }
- 
+
 function Checkbox({ label, checked, onChange }) {
   return (
     <div className="col-span-1 sm:col-span-2 flex items-center gap-2 mt-2">
@@ -364,4 +464,3 @@ function Checkbox({ label, checked, onChange }) {
     </div>
   );
 }
- 

@@ -99,15 +99,15 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
 
   {/* Body */}
   <div className="p-6">
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full mx-auto">
       <div className="space-y-6">
 
-        {/* Preview Section */}
+        {/* Preview Section - Full Width */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Preview</h3>
 
           <div
-            className={`relative h-48 md:h-56 lg:h-64 bg-gray-100 rounded-xl border-2 border-dashed overflow-hidden transition-all duration-300 ${
+            className={`relative w-full h-48 md:h-56 lg:h-64 xl:h-72 bg-gray-100 rounded-xl border-2 border-dashed overflow-hidden transition-all duration-300 ${
               dragOver
                 ? "border-blue-400 bg-blue-50"
                 : preview
@@ -150,46 +150,69 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
           )}
         </div>
 
-        {/* Upload Section */}
-        <div className="grid md:grid-cols-2 gap-8">
+        {/* Upload Section - Increased Width */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
 
-          {/* Requirements */}
-          <div className="space-y-4">
+          {/* Requirements - Increased Width */}
+          <div className="space-y-4 lg:pr-8">
             <h3 className="text-lg font-semibold text-gray-900">Requirements</h3>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 text-sm mb-3">Cover Image Guidelines</h4>
-              <ul className="text-sm text-blue-800 space-y-2">
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></div>
-                  <span>Recommended size: <strong>1200×400 pixels</strong></span>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h4 className="font-semibold text-blue-900 text-lg mb-4">Cover Image Guidelines</h4>
+              <ul className="text-base text-blue-800 space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>Recommended size: <strong className="text-blue-900">1200×400 pixels</strong></span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></div>
-                  <span>Supported formats: JPG, PNG, WebP</span>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>Supported formats: JPG, PNG, WebP, GIF</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></div>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
                   <span>Maximum file size: 10MB</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></div>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
                   <span>Landscape orientation works best</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>High-resolution images recommended for best quality</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Tips Section */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h4 className="font-semibold text-green-900 text-lg mb-4">Pro Tips</h4>
+              <ul className="text-base text-green-800 space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>Use images with minimal text for better responsiveness</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>Consider your profile picture placement when choosing a cover</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <span>Lighter images work better with dark text and vice versa</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Upload Actions */}
-          <div className="space-y-4">
+          {/* Upload Actions - Increased Width */}
+          <div className="space-y-4 lg:pl-8">
             <h3 className="text-lg font-semibold text-gray-900">Upload Cover</h3>
 
-            <div className="space-y-3">
-              {/* Drag & Drop Area */}
+            <div className="space-y-4">
+              {/* Enhanced Drag & Drop Area */}
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer ${
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${
                   dragOver
-                    ? "border-blue-400 bg-blue-50"
+                    ? "border-blue-400 bg-blue-50 scale-[1.02]"
                     : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
                 }`}
                 onDragOver={handleDragOver}
@@ -197,11 +220,14 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
                 onDrop={handleDrop}
                 onClick={() => document.getElementById("cover-file-input").click()}
               >
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-gray-600 mb-1">
-                  <span className="text-blue-600 font-medium">Click to upload</span> or drag and drop
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Upload className="w-8 h-8 text-blue-600" />
+                </div>
+                <p className="text-lg text-gray-700 mb-2">
+                  <span className="text-blue-600 font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
+                <p className="text-sm text-gray-500">PNG, JPG, WebP, GIF up to 10MB</p>
+                <p className="text-xs text-gray-400 mt-2">Recommended: 1200×400 pixels</p>
               </div>
 
               {/* Hidden Input */}
@@ -214,33 +240,54 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
                 disabled={loading}
               />
 
-              {/* Upload Button */}
+              {/* Enhanced Upload Button */}
               <button
                 onClick={() => document.getElementById("cover-file-input").click()}
                 disabled={loading}
-                className={`w-full flex items-center justify-center gap-2 py-3 px-4 font-medium rounded-lg transition-all duration-200 ${
+                className={`w-full flex items-center justify-center gap-3 py-4 px-6 font-semibold rounded-xl transition-all duration-200 ${
                   loading
                     ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 }`}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading...
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Uploading Cover Image...
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4" />
+                    <Upload className="w-5 h-5" />
                     Choose Cover Image
                   </>
                 )}
               </button>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPreview("")}
+                  disabled={!preview || loading}
+                  className="py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Clear Preview
+                </button>
+                <button
+                  onClick={() => document.getElementById("cover-file-input").click()}
+                  disabled={loading}
+                  className="py-3 px-4 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  Choose Different
+                </button>
+              </div>
             </div>
 
-            <p className="text-xs text-gray-500 text-center">
-              Your cover image will be visible to all visitors of your profile
-            </p>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 text-center">
+                <strong>Note:</strong> Your cover image will be visible to all visitors of your profile. 
+                Make sure it represents you well!
+              </p>
+            </div>
           </div>
         </div>
 
@@ -248,7 +295,5 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
     </div>
   </div>
 </motion.div>
-
   );
 }
- 

@@ -29,7 +29,8 @@ const Response = () => {
         { id: 'likes', label: 'Likes', icon: HeartIcon },
         { id: 'comments', label: 'Comments', icon: ChatBubbleLeftIcon },
         { id: 'shares', label: 'Shares', icon: ArrowRightIcon },
-        { id: 'saves', label: 'Saves', icon: BookmarkIcon }
+        { id: 'saves', label: 'Saves', icon: BookmarkIcon },
+        { id: 'follows', label: 'Follows', icon: UserIcon } // Added follows section
     ];
 
     // Notification type configuration
@@ -121,25 +122,29 @@ const Response = () => {
         // });
     };
 
-    // Handle notification click - navigate to feed
-   // inside Response component
-const handleNotificationClick = (notification) => {
-  if (!notification.isRead) markAsRead(notification._id);
+    // Handle notification click - navigate to appropriate page
+    const handleNotificationClick = (notification) => {
+        if (!notification.isRead) markAsRead(notification._id);
+console.log(notification)
+        // Handle follow notifications
+        if (notification.type?.toLowerCase().includes('follow')) {
+            const followerId = notification.sender?.id;
+            console.log(followerId)
+            if (followerId) {
+                navigate(`/user/profile/${followerId}`);
+                return;
+            }
+        }
 
-  const feedId = notification.feedInfo?._id;
-  // preferred: navigate to "/" (home) with router state
-  if (feedId) {
-    navigate("/", {
-      state: { highlightFeed: feedId, scrollToFeed: true }
-    });
+        // Handle feed/post notifications
+        const feedId = notification.feedInfo?._id;
+        if (feedId) {
+            navigate(`/retrivefeed/${feedId}`);
+            return;
+        }
 
-    // also dispatch a window event — Feed can listen to this as fallback
-    window.dispatchEvent(new CustomEvent("highlightFeed", { detail: { feedId } }));
-  } else {
-    navigate("/");
-  }
-};
-
+       
+    };
 
     // Format date - lightweight version
     const formatDate = (dateString) => {
@@ -183,9 +188,9 @@ const handleNotificationClick = (notification) => {
         return (
             <div className="flex min-h-[500px] bg-white rounded-lg">
                 {/* Sidebar Skeleton */}
-                <div className="w-64 bg-gray-50 border-r p-6">
+                <div className="w-64 bg-gray-50 p-6">
                     <div className="h-6 bg-gray-200 rounded w-20 mb-6"></div>
-                    {[1, 2, 3, 4, 5].map(i => (
+                    {[1, 2, 3, 4, 5, 6].map(i => (
                         <div key={i} className="h-12 bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
                     ))}
                 </div>
@@ -231,14 +236,10 @@ const handleNotificationClick = (notification) => {
     return (
         <div className="flex min-h-[500px] bg-white rounded-lg border border-gray-200">
             {/* Sidebar */}
-            <div className="w-64 bg-gray-50 border-r p-6">
+            <div className="w-64 bg-gray-50  p-6">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Responses</h3>
-                    {unreadCount > 0 && (
-                        <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full">
-                            {unreadCount}
-                        </span>
-                    )}
+                    
                 </div>
 
                 <div className="space-y-1">
@@ -390,13 +391,20 @@ const handleNotificationClick = (notification) => {
                                                         </div>
                                                     )}
 
-                                                    {/* Feed Preview */}
-                                                    {notification.feedInfo && (
-                                                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                                                            <EyeIcon className="w-3 h-3" />
-                                                            <span>Click to view post</span>
-                                                        </div>
-                                                    )}
+                                                    {/* Action Hint */}
+                                                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                                                        {notification.type?.toLowerCase().includes('follow') ? (
+                                                            <>
+                                                                <UserIcon className="w-3 h-3" />
+                                                                <span>Click to view profile</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <EyeIcon className="w-3 h-3" />
+                                                                <span>Click to view post</span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 
                                                 {/* Time & Status */}

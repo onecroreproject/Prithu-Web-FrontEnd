@@ -29,7 +29,7 @@ const PostCommentsModal = ({
   const [newComment, setNewComment] = useState("");
   const [toastMsg, setToastMsg] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
-console.log(post)
+
   const inputRef = useRef(null);
   const currentFeedId = feedId || post?._id;
 

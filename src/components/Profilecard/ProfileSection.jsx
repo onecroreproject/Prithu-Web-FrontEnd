@@ -17,7 +17,7 @@ import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
 import ProfileSettings from "./ProfileSectionComponents/profileSettings";
 import { useAuth } from "../../context/AuthContext";
 
-export default function PostSection({ id }) {
+export default function PostSection({ id,visibility }) {
   const [activeOption, setActiveOption] = useState("profilePage");
   const { token } = useAuth();
 
@@ -87,7 +87,7 @@ export default function PostSection({ id }) {
   const renderContent = () => {
     switch (activeOption) {
       case "profilePage":
-        return <ProfilePage id={id} />;
+        return <ProfilePage id={id} visibility={visibility} />;
 
       case "profile-photo":
         return (

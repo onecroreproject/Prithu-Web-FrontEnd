@@ -14,6 +14,8 @@ import PostActions from "./postCardComponent/postsActions";
 import PostCommentsModal from "./PostCommentsModal";
 import { FEED_CARD_STYLE } from "../../constance/feedLayout";
 import { toast } from "react-hot-toast";
+import { useLikePost, useSavePost, useSharePost, useFollowUser,useUnfollowUser } from "../../hooks/usePostActions";
+import { useComments } from "../../hooks/useComments";
 
 /**
  * Optimized Postcard:
@@ -60,15 +62,20 @@ function Postcard({
   const [loading, setLoading] = useState(true);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
 
-  // fetchComments on demand only
-  const fetchComments = useCallback(async () => {
-    try {
-      const res = await api.post(`/api/get/comments/for/feed`, { feedId });
-      setComments(res.data.comments?.slice(0, 10) || []);
-    } catch (err) {
-      console.error("Comments error:", err);
+  // React Query hooks for post actions
+  const { data: commentsData } = useComments(feedId, showCommentsModal);
+  const likeMutation = useLikePost();
+  const saveMutation = useSavePost();
+  const shareMutation = useSharePost();
+  const followMutation = useFollowUser();
+  const unfollowMutation = useUnfollowUser();
+
+  // Update comments when data changes
+  useEffect(() => {
+    if (commentsData) {
+      setComments(commentsData.slice(0, 10));
     }
-  }, [feedId]);
+  }, [commentsData]);
 
   // Simulated initial shimmer — kept small
   useEffect(() => {
@@ -95,60 +102,82 @@ function Postcard({
     setIsMuted((p) => !p);
   }, [isMuted]);
 
-  const handleFollow = useCallback(async () => {
-    try {
-      setIsFollowing(true); // optimistic update
-      await api.post("/api/user/follow/creator", {
-        userId,                 // creator to follow
-        currentUserId: tempUser._id,
-      });
+ const handleFollow = useCallback(() => {
+  setIsFollowing(true);
 
-      toast.success("Following");
-    } catch (err) {
-      setIsFollowing(false); // revert on fail
-      toast.error(err?.response?.data?.message || "Follow failed");
+  followMutation.mutate(
+    { targetUserId: userId, currentUserId: tempUser._id },
+    {
+      onError: (err) => {
+        setIsFollowing(false);
+        toast.error(err?.response?.data?.message || "Follow failed");
+      }
     }
-  }, [userId, tempUser._id]);
+  );
+}, [userId, followMutation]);
+
 
   // --- UNFOLLOW USER ---
-  const handleUnfollow = useCallback(async () => {
-    try {
-      setIsFollowing(false); // optimistic
-      await api.post("/api/user/unfollow/creator", {
-        userId,
-        currentUserId: tempUser._id,
-      });
+const handleUnfollow = useCallback(() => {
+  setIsFollowing(false);
 
-      toast.success("Unfollowed");
-    } catch (err) {
-      setIsFollowing(true);
-      toast.error(err?.response?.data?.message || "Unfollow failed");
+  unfollowMutation.mutate(
+    { targetUserId: userId, currentUserId: tempUser._id },
+    {
+      onError: (err) => {
+        setIsFollowing(true);
+        toast.error(err?.response?.data?.message || "Unfollow failed");
+      }
     }
-  }, [userId, tempUser._id]);
+  );
+}, [userId, unfollowMutation]);
 
-  // like action (optimistic)
-  const handleLikeFeed = useCallback(async () => {
-    const updated = !isLiked;
-    setIsLiked(updated);
-    setLikesCount((p) => (updated ? p + 1 : Math.max(p - 1, 0)));
-    try {
-      await api.post("/api/user/feed/like", { feedId, userId: tempUser._id });
-    } catch {
-      setIsLiked(!updated);
-      toast.error("Failed to update like");
+
+  // like action (using React Query mutation)
+const stableFeedId = useRef(feedId);
+useEffect(() => {
+  stableFeedId.current = feedId;
+}, [feedId]);
+
+const handleLikeFeed = useCallback(() => {
+  const updated = !isLiked;
+
+  setIsLiked(updated);
+  setLikesCount((p) => (updated ? p + 1 : Math.max(p - 1, 0)));
+
+  likeMutation.mutate(
+    {
+      feedId: stableFeedId.current,
+      userId: tempUser._id,
+      action: updated ? "like" : "unlike",
+    },
+    {
+      onError: () => {
+        setIsLiked(!updated);
+        setLikesCount((p) => (updated ? Math.max(p - 1, 0) : p + 1));
+        toast.error("Failed to update like");
+      },
     }
-  }, [isLiked, feedId, tempUser._id]);
+  );
+}, [isLiked, likeMutation]);
+
 
   const handleSave = useCallback(async () => {
-    try {
-      const res = await api.post("/api/user/feed/save", { feedId });
-      const saved = res.data.savedFeeds?.some((f) => f.feedId === feedId);
-      setIsSaved(saved);
-      toast.success(saved ? "Saved!" : "Removed!");
-    } catch {
-      toast.error("Save failed");
-    }
-  }, [feedId]);
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState);
+
+    saveMutation.mutate({ feedId }, {
+      onSuccess: (data) => {
+        const saved = data?.savedFeeds?.some((f) => f.feedId === feedId) ?? newSavedState;
+        setIsSaved(saved);
+        toast.success(saved ? "Saved!" : "Removed!");
+      },
+      onError: () => {
+        setIsSaved(!newSavedState);
+        toast.error("Save failed");
+      }
+    });
+  }, [isSaved, feedId, saveMutation]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -191,45 +220,41 @@ function Postcard({
 
 
   const handleShare = useCallback(async () => {
-    try {
-      const shareChannel = navigator.share ? "native_share" : "copy_link";
-      const shareTarget = null;
+    const shareChannel = navigator.share ? "native_share" : "copy_link";
+    const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
 
-      // Call backend (log share + save in DB)
-      await api.post("/api/user/feed/share", {
-        feedId,
-        userId: tempUser._id,
-        shareChannel,
-        shareTarget,
-      });
+    // Log share in backend using React Query mutation
+    shareMutation.mutate({
+      feedId,
+      userId: tempUser._id,
+      shareChannel,
+      shareTarget: null,
+    });
 
-      // Universal share URL
-      const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
-
-      // Native mobile/desktop share
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "Check this post",
-            text: "Look at this post!",
-            url: shareUrl,
-          });
-
-          toast.success("Shared successfully");
-          return;
-        } catch (error) {
-          console.warn("Native share cancelled → fallback");
-        }
+    // Native mobile/desktop share
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Check this post",
+          text: "Look at this post!",
+          url: shareUrl,
+        });
+        toast.success("Shared successfully");
+        return;
+      } catch (error) {
+        console.warn("Native share cancelled → fallback");
       }
+    }
 
-      // Fallback: copy link
+    // Fallback: copy link
+    try {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Share link copied to clipboard!");
     } catch (err) {
       console.error("Share error:", err);
-      toast.error(err?.response?.data?.message || "Share failed");
+      toast.error("Share failed");
     }
-  }, [feedId, tempUser._id]);
+  }, [feedId, tempUser._id, shareMutation]);
 
 
 
@@ -248,7 +273,7 @@ function Postcard({
   if (loading) {
     return <div className="w-full h-80 bg-gray-200 animate-pulse rounded-2xl mx-auto" />;
   }
-  console.log(postData)
+ 
   return (
     <div className={FEED_CARD_STYLE}>
       <PostHeader
@@ -293,10 +318,7 @@ function Postcard({
         caption={caption}
         userName={userName}
         commentCount={commentCount}
-        onCommentsClick={() => {
-          fetchComments();
-          setShowCommentsModal(true);
-        }}
+        onCommentsClick={() => setShowCommentsModal(true)}
       />
 
       <PostCommentsModal

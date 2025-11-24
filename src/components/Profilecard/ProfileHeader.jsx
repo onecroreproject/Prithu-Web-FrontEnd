@@ -1,3 +1,4 @@
+
 // src/components/ProfileHeaderComponent/ProfileHeader.jsx
 import React, { useState, useRef, useEffect } from "react";
 import Cropper from "react-easy-crop";
@@ -23,7 +24,7 @@ export default function ProfileHeader({ id }) {
   const { token } = useAuth();
 
   const { data: user, isLoading, refetch } = useUserProfile(token, id);
-
+  const currentUser = localStorage.getItem("userId");
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
 
@@ -46,8 +47,52 @@ export default function ProfileHeader({ id }) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  // Local copies for instant UI updates (optimistic)
+  const [followersCount, setFollowersCount] = useState(0);
+  const [visibility, setVisibility] = useState("public"); // fallback - replace with your actual key if different
+
   // -----------------------------
-  // FETCH FOLLOW STATUS
+  // REFETCH ON EXTERNAL EVENTS
+  // -----------------------------
+  useEffect(() => {
+    const refreshProfile = () => {
+      refetch(); // 🔥 Re-fetch profile from backend (followers count, visibility etc.)
+    };
+
+    window.addEventListener("userFollowStatusChanged", refreshProfile);
+
+    return () => {
+      window.removeEventListener("userFollowStatusChanged", refreshProfile);
+    };
+  }, [refetch]);
+
+  // -----------------------------
+  // SYNC USER -> LOCAL STATE
+  // -----------------------------
+  useEffect(() => {
+    if (!user) return;
+
+    setBannerUrl(user.coverPhoto || defaultBanner);
+    setProfileUrl(user.profileAvatar || defaultAvatar);
+
+    // normalize follower count field - adapt if your API uses a different key
+    const serverFollowersCount =
+      user.followersCount ?? (user.followers ? user.followers.length : 0);
+    setFollowersCount(serverFollowersCount);
+
+    // normalize visibility field - change key if your API differs
+    const serverVisibility = user.visibility ?? user.visibilityStatus ?? "public";
+    setVisibility(serverVisibility);
+
+    // If this page is someone else's profile, set following status from server (keeps in sync)
+    if (id) {
+      // If the hook already exposes whether current user follows, prefer that.
+      // Fallback: keep existing checkFollowStatus hook below that calls /api/user/following
+    }
+  }, [user, id]);
+
+  // -----------------------------
+  // FETCH FOLLOW STATUS (initial)
   // -----------------------------
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -71,10 +116,15 @@ export default function ProfileHeader({ id }) {
   }, [id, token]);
 
   // -----------------------------
-  // FOLLOW USER
+  // FOLLOW USER (optimistic + reconcile)
   // -----------------------------
   const handleFollow = async () => {
+    if (followLoading) return;
     setFollowLoading(true);
+
+    // Optimistic UI update
+    setIsFollowing(true);
+    setFollowersCount((c) => c + 1);
 
     try {
       await api.post(
@@ -84,26 +134,42 @@ export default function ProfileHeader({ id }) {
       );
 
       toast.success("Followed successfully!");
-      setIsFollowing(true);
 
-      // 🔥 Broadcast follow event to update feed posts
+      // Broadcast follow event with richer payload so other parts can update instantly
       window.dispatchEvent(
         new CustomEvent("userFollowStatusChanged", {
-          detail: { userId: id, isFollowing: true },
+          detail: {
+            userId: id,
+            isFollowing: true,
+            followersCount: followersCount + 1, // best-effort value (optimistic)
+            visibility, // current visibility — other listeners can decide what to do
+          },
         })
       );
+
+      // Re-fetch server truth (to update visibility/follower-count accurately)
+      await refetch();
     } catch (err) {
+      // rollback optimistic update if server fails
+      setIsFollowing(false);
+      setFollowersCount((c) => Math.max(0, c - 1));
       toast.error(err.response?.data?.message || "Failed to follow");
+      console.error(err);
     } finally {
       setFollowLoading(false);
     }
   };
 
   // -----------------------------
-  // UNFOLLOW USER
+  // UNFOLLOW USER (optimistic + reconcile)
   // -----------------------------
   const handleUnfollow = async () => {
+    if (followLoading) return;
     setFollowLoading(true);
+
+    // Optimistic UI update
+    setIsFollowing(false);
+    setFollowersCount((c) => Math.max(0, c - 1));
 
     try {
       await api.post(
@@ -113,31 +179,32 @@ export default function ProfileHeader({ id }) {
       );
 
       toast.success("Unfollowed successfully!");
-      setIsFollowing(false);
 
-      // 🔥 Broadcast unfollow event to update feed posts
       window.dispatchEvent(
         new CustomEvent("userFollowStatusChanged", {
-          detail: { userId: id, isFollowing: false },
+          detail: {
+            userId: id,
+            isFollowing: false,
+            followersCount: Math.max(0, followersCount - 1),
+            visibility,
+          },
         })
       );
+
+      // Re-fetch server truth
+      await refetch();
     } catch (err) {
+      // rollback optimistic update if server fails
+      setIsFollowing(true);
+      setFollowersCount((c) => c + 1);
       toast.error(err.response?.data?.message || "Failed to unfollow");
+      console.error(err);
     } finally {
       setFollowLoading(false);
     }
   };
 
-  // -----------------------------
-  // POPULATE PROFILE DATA
-  // -----------------------------
-  useEffect(() => {
-    if (user) {
-      setBannerUrl(user.coverPhoto || defaultBanner);
-      setProfileUrl(user.profileAvatar || defaultAvatar);
-    }
-  }, [user]);
-
+  // (rest of your crop & image code unchanged)
   // Get original image dimensions
   const getImageDimensions = (file) => {
     return new Promise((resolve) => {
@@ -149,31 +216,24 @@ export default function ProfileHeader({ id }) {
     });
   };
 
-  // Calculate aspect ratio for cover photo (3:1 ratio)
   const calculateCoverAspect = (width, height) => {
     const targetAspect = 3 / 1; // Cover photo aspect ratio
     const currentAspect = width / height;
-    
+
     if (currentAspect > targetAspect) {
-      // Image is wider than target, crop width
       return targetAspect;
     } else {
-      // Image is taller than target, maintain original aspect but suggest 3:1
       return targetAspect;
     }
   };
 
-  // -----------------------------
-  // BLOCK EDITING FOR OTHER USERS
-  // -----------------------------
   const openCropModal = async (file, type) => {
     if (!isOwnProfile) return;
-    
+
     const imageURL = URL.createObjectURL(file);
     setImageToCrop(imageURL);
     setCropFor(type);
-    
-    // Get original image dimensions for cover photos
+
     if (type === "cover") {
       try {
         const dimensions = await getImageDimensions(file);
@@ -182,7 +242,7 @@ export default function ProfileHeader({ id }) {
         console.error("Error getting image dimensions:", error);
       }
     }
-    
+
     setCropModalOpen(true);
   };
 
@@ -198,9 +258,6 @@ export default function ProfileHeader({ id }) {
     if (file) openCropModal(file, "profile");
   };
 
-  // -----------------------------
-  // SAVE CROPPED IMAGE
-  // -----------------------------
   const handleSaveCrop = async () => {
     try {
       setIsUploading(true);
@@ -209,7 +266,6 @@ export default function ProfileHeader({ id }) {
       if (cropFor === "profile") {
         aspect = 1; // Square for profile
       } else {
-        // For cover, use the calculated aspect ratio based on original image
         aspect = calculateCoverAspect(originalImageSize.width, originalImageSize.height);
       }
 
@@ -239,50 +295,33 @@ export default function ProfileHeader({ id }) {
     }
   };
 
-  // Reset crop state when modal closes
   const handleCloseCropModal = () => {
     setCropModalOpen(false);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
     setOriginalImageSize({ width: 0, height: 0 });
-    
-    // Clean up object URLs
+
     if (imageToCrop) {
       URL.revokeObjectURL(imageToCrop);
     }
   };
 
-  if (isLoading)
-    return <p className="text-gray-500 p-4">Loading profile...</p>;
+  if (isLoading) return <p className="text-gray-500 p-4">Loading profile...</p>;
 
   return (
     <>
-      {/* =============================== */}
-      {/* MAIN PROFILE HEADER */}
-      {/* =============================== */}
-
       <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
-        {/* Banner - Show original image without object-cover */}
-        <motion.div
-          className="relative h-40 sm:h-48 md:h-56 bg-gray-200 overflow-hidden"
-        >
+        <motion.div className="relative h-40 sm:h-48 md:h-56 bg-gray-200 overflow-hidden">
           <img
             src={bannerUrl}
-            className="w-full h-full object-cover"
-            style={{ 
-              objectFit: 'none', // Don't crop or cover
-              objectPosition: 'center',
-              minWidth: '100%',
-              minHeight: '100%'
-            }}
+            className="w-full h-full object-cover object-center"
             alt="Cover"
             onError={(e) => {
               e.target.src = defaultBanner;
             }}
           />
-          
-          {/* Edit cover */}
+
           {isOwnProfile && (
             <motion.button
               onClick={() => bannerInputRef.current.click()}
@@ -303,10 +342,8 @@ export default function ProfileHeader({ id }) {
           />
         </motion.div>
 
-        {/* Profile Picture + Follow Button */}
         <div className="relative flex justify-between items-end px-6 -mt-14">
           <div className="relative w-32 h-32">
-            {/* Profile image - Square crop maintained */}
             <div className="w-32 h-32 rounded-xl border-4 border-white bg-white shadow-lg overflow-hidden">
               <img
                 src={profileUrl}
@@ -318,7 +355,6 @@ export default function ProfileHeader({ id }) {
               />
             </div>
 
-            {/* Edit profile photo */}
             {isOwnProfile && (
               <button
                 onClick={() => profileInputRef.current.click()}
@@ -337,9 +373,11 @@ export default function ProfileHeader({ id }) {
             />
           </div>
 
-          {/* FOLLOW BUTTON */}
-          {!isOwnProfile && (
-            <div className="items-center mb-4">
+          {/* FOLLOW BUTTON + follower count display */}
+          {!isOwnProfile && currentUser !== id && (
+            <div className="items-center mb-4 flex flex-col items-end">
+              
+
               {isFollowing ? (
                 <button
                   onClick={handleUnfollow}
@@ -362,10 +400,6 @@ export default function ProfileHeader({ id }) {
         </div>
       </div>
 
-      {/* =============================== */}
-      {/* CROP MODAL */}
-      {/* =============================== */}
-
       {cropModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-lg w-full max-w-lg mx-4">
@@ -386,13 +420,12 @@ export default function ProfileHeader({ id }) {
                 restrictPosition={true}
                 style={{
                   containerStyle: {
-                    borderRadius: '8px'
-                  }
+                    borderRadius: "8px",
+                  },
                 }}
               />
             </div>
 
-            {/* Zoom Control */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Zoom: {Math.round(zoom * 100)}%

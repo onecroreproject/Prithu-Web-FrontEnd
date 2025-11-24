@@ -1,6 +1,6 @@
 // ✅ src/services/feedService.js
 import api from "../api/axios";
-import defaultAvatar from "../assets/user.png"; 
+import defaultAvatar from "../assets/user.png";
 
 /**
  * ✅ Fetch all user feeds (with pagination)
@@ -23,53 +23,130 @@ export const getAllFeeds = async (page = 1, token) => {
     return data.feeds.map((feed) => {
 
 
-  return {
-    feedId: feed.feedId || feed._id || "",
-    userId: feed.createdByAccount || "",
-    type: feed.type || "image",
-    contentUrl: feed.contentUrl || "",
-    caption: feed.caption || "",
-    description: feed.dec || "",
-    category: feed.category || "",
-    language: feed.language || "",
-    avatarToUse: feed.avatarToUse || "",
-    _id: feed._id || "",
-    userName: feed.userName || "Unknown",
+      return {
+        feedId: feed.feedId || feed._id || "",
+        userId: feed.createdByAccount || "",
+        type: feed.type || "image",
+        contentUrl: feed.contentUrl || "",
+        caption: feed.caption || "",
+        description: feed.dec || "",
+        category: feed.category || "",
+        language: feed.language || "",
+        avatarToUse: feed.avatarToUse || "",
+        _id: feed._id || "",
+        userName: feed.userName || "Unknown",
 
-    // ✅ If no profile image → use default avatar
-    profileAvatar:
-      feed.profileAvatar && feed.profileAvatar.trim() !== ""
-        ? feed.profileAvatar
-        : defaultAvatar,
+        // ✅ If no profile image → use default avatar
+        profileAvatar:
+          feed.profileAvatar && feed.profileAvatar.trim() !== ""
+            ? feed.profileAvatar
+            : defaultAvatar,
 
-    timeAgo: feed.timeAgo || "",
-    likesCount: feed.likesCount || 0,
-    commentsCount: feed.commentsCount || 0,
-    viewsCount: feed.viewsCount || 0,
-    shareCount: feed.shareCount || 0,
-    downloadsCount: feed.downloadsCount || 0,
-    dislikesCount: feed.dislikesCount || 0,
-    isLiked: feed.isLiked || false,
-    isSaved: feed.isSaved || false,
-    isFollowing: feed.isFollowing || false,
-    isDisliked: feed.isDisliked || false,
+        timeAgo: feed.timeAgo || "",
+        likesCount: feed.likesCount || 0,
+        commentsCount: feed.commentsCount || 0,
+        viewsCount: feed.viewsCount || 0,
+        shareCount: feed.shareCount || 0,
+        downloadsCount: feed.downloadsCount || 0,
+        dislikesCount: feed.dislikesCount || 0,
+        isLiked: feed.isLiked || false,
+        isSaved: feed.isSaved || false,
+        isFollowing: feed.isFollowing || false,
+        isDisliked: feed.isDisliked || false,
 
-    themeColor: feed.themeColor || {
-      primary: feed.primary || "#262e39",
-      secondary: feed.secondary || "#6e7782",
-      accent: feed.accent || "#a7373a",
-      gradient:
-        feed.gradient || "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
-      text: feed.text || "#FFFFFF",
-    },
-  };
-});
+        themeColor: feed.themeColor || {
+          primary: feed.primary || "#262e39",
+          secondary: feed.secondary || "#6e7782",
+          accent: feed.accent || "#a7373a",
+          gradient:
+            feed.gradient || "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
+          text: feed.text || "#FFFFFF",
+        },
+      };
+    });
 
   } catch (error) {
     console.error("❌ Error fetching feeds:", error.response?.data || error.message);
     return [];
   }
 };
+
+/**
+ * ✅ Fetch a specific feed by ID
+ * - Used when navigating from notifications to ensure the feed is loaded
+ */
+export const getSingleFeed = async (feedId, token) => {
+  try {
+    const { data } = await api.get(`/api/get/single/feed/${feedId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    return data.feed;
+  } catch (err) {
+    console.error("❌ Single feed fetch error:", err.response?.data || err);
+    return null;
+  }
+};
+
+
+
+export const getFeedsByCreator = async (feedId, token) => {
+  try {
+    const { data } = await api.get(`/api/get/feeds/by/creator/${feedId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!data?.feeds || !Array.isArray(data.feeds)) return [];
+
+    return data.feeds.map((feed) => {
+      return {
+        feedId: feed.feedId || feed._id || "",
+        userId: feed.createdByAccount || "",
+        type: feed.type || "image",
+        contentUrl: feed.contentUrl || "",
+        caption: feed.caption || "",
+        description: feed.dec || "",
+        category: feed.category || "",
+        language: feed.language || "",
+        avatarToUse: feed.avatarToUse || "",
+        _id: feed._id || "",
+        userName: feed.userName || "Unknown",
+
+        profileAvatar:
+          feed.profileAvatar && feed.profileAvatar.trim() !== ""
+            ? feed.profileAvatar
+            : defaultAvatar,
+
+        timeAgo: feed.timeAgo || "",
+        likesCount: feed.likesCount || 0,
+        commentsCount: feed.commentsCount || 0,
+        viewsCount: feed.viewsCount || 0,
+        shareCount: feed.shareCount || 0,
+        downloadsCount: feed.downloadsCount || 0,
+        dislikesCount: feed.dislikesCount || 0,
+        isLiked: feed.isLiked || false,
+        isSaved: feed.isSaved || false,
+        isFollowing: feed.isFollowing || false,
+        isDisliked: feed.isDisliked || false,
+
+        themeColor: feed.themeColor || {
+          primary: feed.primary || "#262e39",
+          secondary: feed.secondary || "#6e7782",
+          accent: feed.accent || "#a7373a",
+          gradient:
+            feed.gradient ||
+            "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
+          text: feed.text || "#FFFFFF",
+        },
+      };
+    });
+  } catch (err) {
+    console.error("❌ Error fetching creator feeds:", err.response?.data || err);
+    return [];
+  }
+};
+
+
 
 /**
  * ✅ Fetch top-ranked jobs

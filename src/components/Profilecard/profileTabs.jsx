@@ -136,7 +136,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                   alt={section.label}
 
-                  className="w-5 h-5 mb-1 object-contain"
+                  className="w-2 h-2 object-contain"
 
                 />
 <span className={`text-xs font-medium text-center leading-tight ${
@@ -192,7 +192,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                   alt={section.label}
 
-                  className="w-5 h-5 object-contain"
+                  className="w-3 h-3 object-contain"
 
                 />
 <span className={`text-sm font-medium whitespace-nowrap ${
@@ -236,7 +236,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                   onClick={() => handleTabClick(section.id)}
 
-                  className={`w-full flex items-center gap-2.5 p-2.5 transition-all duration-200 ${
+                  className={`w-full flex items-center gap-1 p-1 transition-all duration-200 ${
 
                     isActive
 
@@ -252,11 +252,11 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                     alt={section.label}
 
-                    className="w-6 h-6 object-contain"
+                    className="w-5 h-5 object-contain"
 
                   />
 <div className="flex-1 min-w-0 text-left">
-<h4 className={`font-semibold text-sm ${
+<h4 className={`font-semibold text-xl ${
 
                       isActive ? "text-blue-700" : "text-gray-900"
 
@@ -275,8 +275,8 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 </div>
  
       {/* Desktop: ≥ 1280px - Enhanced vertical layout */}
-<div className="hidden xl:block p-3">
-<div className="grid gap-2">
+<div className="hidden xl:block p-1">
+<div className="grid gap-1">
 
           {mainSections.map((section, index) => {
 
@@ -299,7 +299,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                   onClick={() => handleTabClick(section.id)}
 
-                  className={`w-full flex items-center gap-3 p-3 transition-all duration-200 ${
+                  className={`w-full flex items-center gap-1 p-1 transition-all duration-200 ${
 
                     isActive
 
@@ -315,7 +315,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
 
                     alt={section.label}
 
-                    className="w-7 h-7 object-contain"
+                    className="w-3 h-3 object-contain"
 
                   />
 <div className="flex-1 min-w-0 text-left">

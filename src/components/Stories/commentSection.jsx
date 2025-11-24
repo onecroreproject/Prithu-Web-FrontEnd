@@ -8,14 +8,14 @@ const CommentsSection = ({ feed }) => {
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
-  
+
   // Replies state
   const [replies, setReplies] = useState({});
   const [replyInputs, setReplyInputs] = useState({});
   const [replyLoading, setReplyLoading] = useState({});
   const [showReplies, setShowReplies] = useState({});
   const [activeReplyInput, setActiveReplyInput] = useState(null);
-  
+
   // Nested replies state
   const [nestedReplies, setNestedReplies] = useState({});
   const [nestedReplyInputs, setNestedReplyInputs] = useState({});
@@ -26,13 +26,13 @@ const CommentsSection = ({ feed }) => {
   // Fetch comments for the feed
   const fetchComments = async () => {
     if (!feed?._id) return;
-    
+
     try {
       setCommentLoading(true);
       const response = await api.post('/api/get/comments/for/feed', {
         feedId: feed._id
       });
-      
+
       setComments(response.data.comments || []);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -68,15 +68,15 @@ const CommentsSection = ({ feed }) => {
       });
 
       if (response.data.liked !== undefined) {
-        setComments(prev => prev.map(comment => 
+        setComments(prev => prev.map(comment =>
           comment.commentId === commentId || comment._id === commentId
             ? {
-                ...comment,
-                isLiked: response.data.liked,
-                likeCount: response.data.liked 
-                  ? (comment.likeCount || 0) + 1 
-                  : Math.max(0, (comment.likeCount || 1) - 1)
-              }
+              ...comment,
+              isLiked: response.data.liked,
+              likeCount: response.data.liked
+                ? (comment.likeCount || 0) + 1
+                : Math.max(0, (comment.likeCount || 1) - 1)
+            }
             : comment
         ));
       }
@@ -89,14 +89,14 @@ const CommentsSection = ({ feed }) => {
   const fetchReplies = async (commentId) => {
     try {
       setReplyLoading(prev => ({ ...prev, [commentId]: true }));
-      
+
       const response = await api.post('/api/get/replies/for/comment', {
         parentCommentId: commentId
       });
 
-      setReplies(prev => ({ 
-        ...prev, 
-        [commentId]: response.data.replies || [] 
+      setReplies(prev => ({
+        ...prev,
+        [commentId]: response.data.replies || []
       }));
     } catch (error) {
       console.error("Error fetching replies:", error);
@@ -116,7 +116,7 @@ const CommentsSection = ({ feed }) => {
 
       if (response.data.reply) {
         const newReply = response.data.reply;
-        
+
         // Update replies state
         if (parentReplyId) {
           // This is a nested reply
@@ -134,7 +134,7 @@ const CommentsSection = ({ feed }) => {
         }
 
         // Update comment reply count
-        setComments(prev => prev.map(comment => 
+        setComments(prev => prev.map(comment =>
           comment.commentId === parentCommentId || comment._id === parentCommentId
             ? { ...comment, replyCount: (comment.replyCount || 0) + 1 }
             : comment
@@ -159,15 +159,15 @@ const CommentsSection = ({ feed }) => {
         // Update in regular replies
         setReplies(prev => ({
           ...prev,
-          [commentId]: (prev[commentId] || []).map(reply => 
+          [commentId]: (prev[commentId] || []).map(reply =>
             reply.replyId === replyId || reply._id === replyId
               ? {
-                  ...reply,
-                  isLiked: response.data.liked,
-                  likeCount: response.data.liked 
-                    ? (reply.likeCount || 0) + 1 
-                    : Math.max(0, (reply.likeCount || 1) - 1)
-                }
+                ...reply,
+                isLiked: response.data.liked,
+                likeCount: response.data.liked
+                  ? (reply.likeCount || 0) + 1
+                  : Math.max(0, (reply.likeCount || 1) - 1)
+              }
               : reply
           )
         }));
@@ -177,15 +177,15 @@ const CommentsSection = ({ feed }) => {
           if (nestedReplies[key].some(reply => reply.replyId === replyId || reply._id === replyId)) {
             setNestedReplies(prev => ({
               ...prev,
-              [key]: prev[key].map(reply => 
+              [key]: prev[key].map(reply =>
                 reply.replyId === replyId || reply._id === replyId
                   ? {
-                      ...reply,
-                      isLiked: response.data.liked,
-                      likeCount: response.data.liked 
-                        ? (reply.likeCount || 0) + 1 
-                        : Math.max(0, (reply.likeCount || 1) - 1)
-                    }
+                    ...reply,
+                    isLiked: response.data.liked,
+                    likeCount: response.data.liked
+                      ? (reply.likeCount || 0) + 1
+                      : Math.max(0, (reply.likeCount || 1) - 1)
+                  }
                   : reply
               )
             }));
@@ -214,17 +214,17 @@ const CommentsSection = ({ feed }) => {
   // Fetch nested replies
   const fetchNestedReplies = async (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
-    
+
     try {
       setNestedReplyLoading(prev => ({ ...prev, [key]: true }));
-      
+
       const response = await api.post('/api/get/nested/replies', {
-        parentReplyId 
+        parentReplyId
       });
 
-      setNestedReplies(prev => ({ 
-        ...prev, 
-        [key]: response.data.replies || [] 
+      setNestedReplies(prev => ({
+        ...prev,
+        [key]: response.data.replies || []
       }));
     } catch (error) {
       console.error("Error fetching nested replies:", error);
@@ -236,7 +236,7 @@ const CommentsSection = ({ feed }) => {
   // Toggle nested replies section
   const toggleNestedReplySection = async (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
-    
+
     if (showNestedReplies[key]) {
       setShowNestedReplies(prev => ({ ...prev, [key]: false }));
       setActiveNestedReplyInput(null);
@@ -258,19 +258,19 @@ const CommentsSection = ({ feed }) => {
   // Open nested reply input
   const openNestedReplyInput = (commentId, parentReplyId, targetUsername) => {
     setActiveNestedReplyInput(`${commentId}_${parentReplyId}`);
-    setNestedReplyInputs(prev => ({ 
-      ...prev, 
-      [`${commentId}_${parentReplyId}`]: `@${targetUsername} ` 
+    setNestedReplyInputs(prev => ({
+      ...prev,
+      [`${commentId}_${parentReplyId}`]: `@${targetUsername} `
     }));
   };
 
   // Unified function to handle both regular and nested replies
   const handlePostReply = async (feedId, commentId, parentReplyId = null, targetUsername = null) => {
     const isNestedReply = parentReplyId !== null;
-    const text = isNestedReply 
+    const text = isNestedReply
       ? nestedReplyInputs[`${commentId}_${parentReplyId}`]?.trim()
       : replyInputs[commentId]?.trim();
-    
+
     if (!text) return;
 
     try {
@@ -306,16 +306,16 @@ const CommentsSection = ({ feed }) => {
   // Get nested reply count
   const getNestedReplyCount = (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
-    
+
     if (nestedReplies[key]) {
       return nestedReplies[key].length;
     }
-    
+
     const allReplies = replies[commentId] || [];
-    const nestedCount = allReplies.filter(reply => 
+    const nestedCount = allReplies.filter(reply =>
       reply.parentReplyId === parentReplyId
     ).length;
-    
+
     return nestedCount;
   };
 
@@ -323,7 +323,7 @@ const CommentsSection = ({ feed }) => {
   const organizeReplies = (repliesArray) => {
     const firstLevelReplies = [];
     const nestedRepliesMap = {};
-    
+
     repliesArray?.forEach(reply => {
       if (reply.parentReplyId) {
         if (!nestedRepliesMap[reply.parentReplyId]) {
@@ -334,7 +334,7 @@ const CommentsSection = ({ feed }) => {
         firstLevelReplies.push(reply);
       }
     });
-    
+
     return { firstLevelReplies, nestedRepliesMap };
   };
 
@@ -373,9 +373,8 @@ const CommentsSection = ({ feed }) => {
             </div>
             <button
               onClick={() => likeReply(reply.replyId || reply._id, commentId)}
-              className={`text-xs flex items-center space-x-1 flex-shrink-0 ${
-                reply.isLiked ? "text-red-500" : "text-gray-500"
-              }`}
+              className={`text-xs flex items-center space-x-1 flex-shrink-0 ${reply.isLiked ? "text-red-500" : "text-gray-500"
+                }`}
             >
               <span>{reply.isLiked ? "♥" : "♡"}</span>
               <span>{reply.likeCount || 0}</span>
@@ -397,11 +396,11 @@ const CommentsSection = ({ feed }) => {
                   </span>
                 </button>
               )}
-              
+
               <button
                 onClick={() => openNestedReplyInput(
-                  commentId, 
-                  reply.replyId || reply._id, 
+                  commentId,
+                  reply.replyId || reply._id,
                   reply.username || reply.userName
                 )}
                 className="hover:text-blue-600 transition-colors px-2 py-1 rounded hover:bg-blue-50"
@@ -424,25 +423,25 @@ const CommentsSection = ({ feed }) => {
                 <input
                   value={nestedReplyInputs[nestedRepliesKey] || ""}
                   onChange={(e) => handleNestedReplyInput(
-                    commentId, 
-                    reply.replyId || reply._id, 
+                    commentId,
+                    reply.replyId || reply._id,
                     e.target.value
                   )}
                   placeholder={`Reply to ${reply.username || reply.userName}...`}
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                   onKeyPress={(e) => e.key === "Enter" && handlePostReply(
-                    feed._id, 
-                    commentId, 
-                    reply.replyId || reply._id, 
+                    feed._id,
+                    commentId,
+                    reply.replyId || reply._id,
                     reply.username || reply.userName
                   )}
                   autoFocus
                 />
                 <button
                   onClick={() => handlePostReply(
-                    feed._id, 
-                    commentId, 
-                    reply.replyId || reply._id, 
+                    feed._id,
+                    commentId,
+                    reply.replyId || reply._id,
                     reply.username || reply.userName
                   )}
                   disabled={!nestedReplyInputs[nestedRepliesKey]?.trim()}
@@ -468,9 +467,9 @@ const CommentsSection = ({ feed }) => {
                   <div className="text-xs text-gray-500 py-2">Loading replies...</div>
                 ) : nestedReplies[nestedRepliesKey]?.length > 0 ? (
                   nestedReplies[nestedRepliesKey].map((nestedReply) => (
-                    <ReplyItem 
-                      key={nestedReply.replyId || nestedReply._id} 
-                      reply={nestedReply} 
+                    <ReplyItem
+                      key={nestedReply.replyId || nestedReply._id}
+                      reply={nestedReply}
                       commentId={commentId}
                       depth={depth + 1}
                       parentUsername={reply.username || reply.userName}
@@ -496,15 +495,15 @@ const CommentsSection = ({ feed }) => {
       <div className="space-y-3">
         {firstLevelReplies.map((reply) => (
           <div key={reply.replyId || reply._id}>
-            <ReplyItem 
-              reply={reply} 
+            <ReplyItem
+              reply={reply}
               commentId={commentId}
             />
-            
+
             {nestedRepliesMap[reply.replyId || reply._id]?.map((nestedReply) => (
               <div key={nestedReply.replyId || nestedReply._id} className="ml-4">
-                <ReplyItem 
-                  reply={nestedReply} 
+                <ReplyItem
+                  reply={nestedReply}
                   commentId={commentId}
                   depth={1}
                 />
@@ -588,9 +587,8 @@ const CommentsSection = ({ feed }) => {
 
                     <button
                       onClick={() => likeComment(comment.commentId || comment._id, feed._id)}
-                      className={`text-xs flex items-center space-x-1 flex-shrink-0 ${
-                        comment.isLiked ? "text-red-500" : "text-gray-500"
-                      }`}
+                      className={`text-xs flex items-center space-x-1 flex-shrink-0 ${comment.isLiked ? "text-red-500" : "text-gray-500"
+                        }`}
                     >
                       <span>{comment.isLiked ? "♥" : "♡"}</span>
                       <span>{comment.likeCount || 0}</span>
@@ -608,7 +606,7 @@ const CommentsSection = ({ feed }) => {
                         <span>Replies ({comment.replyCount || 0})</span>
                       </button>
                     )}
-                    
+
                     <button
                       onClick={() => {
                         setActiveReplyInput(comment.commentId || comment._id);
@@ -704,11 +702,10 @@ const CommentsSection = ({ feed }) => {
           <button
             onClick={() => handleAddComment(feed._id)}
             disabled={!newComment.trim()}
-            className={`p-1 rounded transition-colors ${
-              !newComment.trim()
+            className={`p-1 rounded transition-colors ${!newComment.trim()
                 ? "text-blue-300 cursor-not-allowed"
                 : "text-blue-600 hover:text-blue-700"
-            }`}
+              }`}
           >
             <FiSend size={16} />
           </button>
