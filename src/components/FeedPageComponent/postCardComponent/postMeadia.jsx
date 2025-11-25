@@ -1,6 +1,5 @@
-// PostMedia with URL-based Dominant Color + Blurred Background + AutoPlay (CORS-SAFE)
+// PostMedia with URL-based Dominant Color + Blurred Background + Native Controls
 import React, { useEffect, useRef, useState } from "react";
-import { VolumeOff, VolumeUp, PlayArrow } from "@mui/icons-material";
 
 export default function PostMedia({
   type = "image",
@@ -11,6 +10,7 @@ export default function PostMedia({
   togglePlayPause,
   toggleMute,
   onDoubleTap,
+  onCommentsClick,
   preloadNext,
 }) {
   const containerRef = useRef(null);
@@ -104,106 +104,61 @@ export default function PostMedia({
   -------------------------------------------------------------- */
   if (type === "image") {
     return (
-      <div
-        ref={containerRef}
-        onClick={handleTap}
-        className="relative w-full flex items-center justify-center overflow-hidden"
-        style={{ height: "min(80vh, 520px)" }}
-      >
-        <ColorBackground />
-        <img
-          src={contentUrl}
-          className="absolute inset-0 w-full h-full object-contain z-10"
-          alt=""
-        />
+      <>
+        <div onClick={onCommentsClick}>
+          <div
+            ref={containerRef}
+            onClick={handleTap}
+            className="relative w-full flex items-center justify-center overflow-hidden"
+            style={{ height: "min(80vh, 520px)" }}
+          >
+            <ColorBackground />
+            <img
+              src={contentUrl}
+              className="absolute inset-0 w-full h-full object-contain z-10"
+              alt=""
+            />
 
-        {showHeart && <HeartAnimation />}
-      </div>
+            {showHeart && <HeartAnimation />}
+          </div>
+        </div>
+      </>
     );
   }
 
   /* --------------------------------------------------------------
-      VIDEO (INSTAGRAM BEHAVIOR)
-      Controls ONLY show when:
-      - Manually paused (NOT autoplay)
+      VIDEO WITH NATIVE CONTROLS
   -------------------------------------------------------------- */
-  /* --------------------------------------------------------------
-      VIDEO (INSTAGRAM BEHAVIOR — ALWAYS SOUND ON)
--------------------------------------------------------------- */
   return (
-    <div
-      ref={containerRef}
-      onClick={handleTap}
-      className="relative w-full flex items-center justify-center overflow-hidden"
-      style={{
-        height: "min(80vh, 520px)",
-      }}
-    >
-      <ColorBackground />
 
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={contentUrl}
-        muted={isMuted}             // 🔥 Controlled by parent (starts unmuted)
-        playsInline
-        preload="metadata"
-        className="absolute inset-0 w-full h-full object-contain z-10"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsAutoPlaying(false); // user interacting → no longer autoplay
-          togglePlayPause();
-        }}
-      />
-
-      {/* MUTE/UNMUTE BUTTON - Bottom Right Corner */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleMute();
-        }}
-        className="absolute bottom-4 right-4 z-20 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-full transition-all duration-200 backdrop-blur-sm"
-        style={{
-          width: 40,
-          height: 40,
-        }}
-        title={isMuted ? "Unmute" : "Mute"}
+    <>
+      <div
+        ref={containerRef}
+        onClick={onCommentsClick}
+        className="relative w-full flex items-center justify-center overflow-hidden"
+        style={{ height: "min(80vh, 520px)" }}
       >
-        {isMuted ? (
-          <VolumeOff sx={{ fontSize: 24 }} />
-        ) : (
-          <VolumeUp sx={{ fontSize: 24 }} />
-        )}
-      </button>
+        <ColorBackground />
 
-      {/* ONLY SHOW PLAY BUTTON WHEN MANUALLY PAUSED */}
-      {!isAutoPlaying && !isPlaying && (
-        <>
-          {/* PLAY BUTTON */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlayPause();
-              setIsAutoPlaying(false);
-            }}
-            className="absolute z-20 flex items-center justify-center bg-black/45 text-white rounded-full"
-            style={{
-              width: 70,
-              height: 70,
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <PlayArrow sx={{ fontSize: 48 }} />
-          </button>
-        </>
-      )}
+        {/* VIDEO WITH NATIVE CONTROLS */}
+        <video
+          ref={videoRef}
+          src={contentUrl}
+          muted={isMuted}
+          playsInline
+          preload="metadata"
+          controls
+          className="absolute inset-0 w-full h-full object-contain z-10"
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            handleTap();
+          }}
+        />
 
-      {showHeart && <HeartAnimation />}
-    </div>
+        {showHeart && <HeartAnimation />}
+      </div>
+    </>
   );
-
 }
 
 /* --------------------------------------------------------------

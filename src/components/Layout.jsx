@@ -10,14 +10,22 @@ import JobFeaturedCompaniesCard from "./Jobs/JobCardComponets/featureCompanies";
 
 export default function Layout() {
   const location = useLocation();
-  const { notifyfeedid } = useParams();
+  const params = useParams();
 
+  // Get tagname from URL: /hashtag/:tagname
+  const tagname = params.tagname || null;
+
+  // For notification route: /retrivefeed/:notifyfeedid
+  const notifyfeedid = params.notifyfeedid || null;
+
+  // full-width pages (no side columns)
   const fullWidthPaths = ["/search", "/profile", "/reels"];
   const isFullWidth = fullWidthPaths.includes(location.pathname);
 
-  // ✅ Treat /retrivefeed/:id same as home
+  // Home page or hashtag page or retrivefeed page
   const isRetrieveFeed = location.pathname.startsWith("/retrivefeed");
-  const isHome = location.pathname === "/" || isRetrieveFeed;
+  const isHashtagPage = location.pathname.startsWith("/hashtag/");
+  const isHome = location.pathname === "/" || isRetrieveFeed || isHashtagPage;
 
   const showColumns = !isFullWidth && isHome;
 
@@ -28,27 +36,27 @@ export default function Layout() {
       <main className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto">
         <div className="flex gap-3 pb-20 lg:pb-0">
 
-          {/* ---------- LEFT COLUMN ---------- */}
+          {/* LEFT COLUMN */}
           {showColumns && (
             <aside className="hidden lg:flex w-[280px] flex-shrink-0 mt-3">
               <LeftColumn />
             </aside>
           )}
 
-          {/* ---------- CENTER FEED ---------- */}
+          {/* CENTER FEED */}
           <section className="flex-1 min-w-0">
-            {isHome ? (
-              notifyfeedid ? (
-                <Feed notifyfeedid={notifyfeedid} />
-              ) : (
-                <Feed />
-              )
+            {isHashtagPage ? (
+              <Feed tagname={tagname} />
+            ) : isRetrieveFeed ? (
+              <Feed notifyfeedid={notifyfeedid} />
+            ) : location.pathname === "/" ? (
+              <Feed />
             ) : (
               <Outlet />
             )}
           </section>
 
-          {/* ---------- RIGHT COLUMN ---------- */}
+          {/* RIGHT COLUMN */}
           {showColumns && (
             <aside className="hidden xl:flex w-[280px] flex-shrink-0 mt-3">
               <div className="flex flex-col gap-4 w-full">
@@ -61,8 +69,6 @@ export default function Layout() {
           )}
         </div>
       </main>
-
-      <div className="lg:hidden"></div>
     </div>
   );
 }

@@ -141,30 +141,7 @@ export default function ProfileStatus() {
           <CircularProgress percent={percent} />
         </div>
  
-        {/* MISSING FIELDS */}
-        <div className="space-y-3">
-          {missingItems.length > 0 ? (
-            missingItems.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between text-sm px-2 py-2 rounded-lg transition-all duration-200 hover:bg-red-50 group border border-gray-100"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="font-medium text-gray-700 truncate group-hover:underline">
-                    {item.label}
-                  </span>
-                </div>
-              
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-green-600 font-medium text-sm">
-                🎉 All fields completed!
-              </p>
-            </div>
-          )}
-        </div>
+        
       </div>
     </div>
   );

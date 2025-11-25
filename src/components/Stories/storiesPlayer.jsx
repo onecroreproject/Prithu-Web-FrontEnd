@@ -1,223 +1,238 @@
-import React from "react";
-import { FiPlay, FiPause, FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  FiChevronUp,
+  FiChevronDown,
+  FiX,
+  FiHeart,
+  FiShare2,
+  FiEye,
+} from "react-icons/fi";
 
 const StoriesPlayer = ({
   feed,
   videoRef,
-  progress,
-  setProgress,
-  isPaused,
-  setIsPaused,
   isHovering,
   setIsHovering,
   navigateFeed,
   setSelectedFeedIndex,
   setShowComments,
-  handleVideoTimeUpdate,
+  likeFeedAction,
+  shareFeedAction,
 }) => {
+  const [isPaused, setIsPaused] = useState(false);
+  const wheelTimeoutRef = useRef(null);
 
-  /* -------------------------
-       TAP / CLICK HANDLER
-     ------------------------- */
-  const handleTap = (e) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const width = rect.width;
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current);
+        wheelTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
-    if (x < width * 0.33) {
-      // LEFT – PREVIOUS
-      navigateFeed("prev");
-      return;
-    }
 
-    if (x > width * 0.66) {
-      // RIGHT – NEXT
-      navigateFeed("next");
-      return;
-    }
+  useEffect(() => {
+  if (isHovering) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "auto";
+  }
 
-    // CENTER – TOGGLE PLAY/PAUSE
-    handlePlayPause();
+  return () => {
+    document.body.style.overflow = "auto";
   };
+}, [isHovering]);
 
-  /* -------------------------
-       PLAY/PAUSE HANDLER
-     ------------------------- */
-  const handlePlayPause = () => {
-    const newPaused = !isPaused;
-    setIsPaused(newPaused);
-console.log(feed)
-    if (videoRef?.current && feed?.type === 'video') {
-      const video = videoRef.current;
-      if (newPaused) {
-        video.pause();
-      } else {
-        video.play().catch(() => { });
+
+  // Sync play/pause state with video element
+  useEffect(() => {
+    const vid = videoRef?.current;
+    if (!vid) return;
+
+    if (isPaused) {
+      if (!vid.paused) vid.pause();
+    } else {
+      if (vid.paused && !vid.ended) {
+        const playPromise = vid.play();
+        if (playPromise?.catch) playPromise.catch(() => {});
       }
     }
+  }, [isPaused, videoRef]);
+
+  /* ------------------------------
+    TAP / CLICK / TOUCH HANDLER
+  ------------------------------- */
+  const handleTap = useCallback(
+    (e) => {
+      e.stopPropagation();
+
+      let clientY = e.clientY;
+      if (!clientY && e.changedTouches?.length) {
+        clientY = e.changedTouches[0].clientY;
+      }
+      if (!clientY) return;
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const y = clientY - rect.top;
+
+      if (y < rect.height * 0.33) return navigateFeed("prev");
+      if (y > rect.height * 0.66) return navigateFeed("next");
+
+      // Center → toggle play/pause
+      setIsPaused((prev) => !prev);
+    },
+    [navigateFeed]
+  );
+
+  /* ------------------------------
+      WHEEL HANDLER (DEBOUNCED)
+  ------------------------------- */
+const handleWheel = (e) => {
+  e.stopPropagation();
+
+  if (wheelTimeoutRef.current) return;
+
+  wheelTimeoutRef.current = setTimeout(() => {
+    wheelTimeoutRef.current = null;
+  }, 500);
+
+  navigateFeed(e.deltaY < 0 ? "prev" : "next");
+};
+
+  /* ------------------------------
+      ACTION HANDLERS
+  ------------------------------- */
+  const handleLike = (e) => {
+    e.stopPropagation();
+    likeFeedAction?.();
   };
 
-  /* -------------------------
-       HOVER HANDLER (NO AUTO-PAUSE)
-     ------------------------- */
-  const handleMouseEnter = () => {
-    setIsHovering(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
+  const handleShare = (e) => {
+    e.stopPropagation();
+    shareFeedAction?.();
   };
 
   return (
     <div
       className="relative w-[450px] h-full bg-black flex flex-col cursor-pointer"
       onClick={handleTap}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onTouchEnd={handleTap}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onWheel={handleWheel}
+      tabIndex={0}
     >
       {/* Close Button */}
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           setSelectedFeedIndex(null);
-          setIsPaused(false);
           setShowComments(false);
         }}
-        className="absolute top-4 right-4 z-30 text-white bg-black/50 p-2 rounded-full hover:bg-black/70 transition-colors"
-        aria-label="Close stories"
+        className="absolute top-4 right-4 z-30 text-white bg-black/50 p-2 rounded-full hover:bg-black/70"
       >
         <FiX size={20} />
       </button>
 
-      {/* Progress Bar */}
-      <div className="absolute top-4 left-4 right-4 z-20">
-        <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-white transition-all duration-75 ease-linear"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {/* Progress indicator for videos */}
-        {feed?.type === 'video' && (
-          <div className="absolute -bottom-4 right-0 text-xs text-gray-400">
-            {isPaused ? (
-              <span className="flex items-center gap-1">
-                <FiPause size={12} />
-                Paused
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <FiPlay size={12} />
-                Playing
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Progress indicator for images */}
-        {feed?.type === 'image' && (
-          <div className="absolute -bottom-4 right-0 text-xs text-gray-400">
-            {isPaused ? (
-              <span className="flex items-center gap-1">
-                <FiPause size={12} />
-                Paused
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <FiPlay size={12} />
-                Auto-play
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Hover Navigation Arrows (desktop only) */}
+      {/* Hover Arrows */}
       {isHovering && (
         <>
-          {/* Previous Arrow */}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               navigateFeed("prev");
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/40 p-3 rounded-full text-white hover:bg-black/60 transition-colors"
-            aria-label="Previous story"
+            className="absolute right-4 top-1/3 -translate-y-1/2 z-20 bg-black/40 p-2 rounded-full text-white hover:bg-black/60"
           >
-            <FiChevronLeft size={24} />
+            <FiChevronUp size={16} />
           </button>
 
-          {/* Next Arrow */}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               navigateFeed("next");
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/40 p-3 rounded-full text-white hover:bg-black/60 transition-colors"
-            aria-label="Next story"
+            className="absolute right-4 top-2/3 -translate-y-1/2 z-20 bg-black/40 p-2 rounded-full text-white hover:bg-black/60"
           >
-            <FiChevronRight size={24} />
+            <FiChevronDown size={16} />
           </button>
         </>
       )}
 
-      {/* Play/Pause Overlay */}
-      {isPaused && (
-        <div
-          className="absolute inset-0 flex items-center justify-center z-30 bg-black/30 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePlayPause();
-          }}
-        >
-          <div className="bg-black/50 p-4 rounded-full">
-            <FiPlay className="text-white" size={42} />
-          </div>
-        </div>
-      )}
-
-      {/* Media Content */}
+      {/* MEDIA VIEW */}
       <div className="flex-1 flex items-center justify-center select-none">
         {feed?.type === "video" ? (
           <video
             ref={videoRef}
             src={feed.contentUrl}
-            className="w-full h-full object-contain"
-            onTimeUpdate={handleVideoTimeUpdate}
-            onLoadedMetadata={() => {
-              if (!isPaused) {
-                videoRef.current?.play()?.catch(() => { });
-              }
-            }}
+            className="max-w-full max-h-full"
             onEnded={() => navigateFeed("next")}
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlayPause();
-            }}
             playsInline
-            muted
-            autoPlay
+            controls
+            autoPlay={!isPaused}
           />
         ) : (
           <img
             src={feed.contentUrl}
-            alt="story"
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full"
             draggable="false"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlayPause();
-            }}
+            alt="story"
           />
         )}
       </div>
 
-      {/* Media Type Indicator */}
+      {/* RIGHT-SIDE ACTIONS */}
+      <div className="absolute right-4 bottom-20 z-20 flex flex-col gap-4">
+        {/* Like */}
+        <button
+          type="button"
+          onClick={handleLike}
+          className="flex flex-col items-center gap-1 text-white hover:scale-110"
+        >
+          <div
+            className={`p-2 rounded-full ${
+              feed?.isLiked ? "bg-red-500" : "bg-black/40"
+            }`}
+          >
+            <FiHeart size={24} />
+          </div>
+          <span className="text-xs">{feed?.likesCount || 0}</span>
+        </button>
+
+        {/* Views */}
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="flex flex-col items-center gap-1 text-white"
+        >
+          <div className="p-2 rounded-full bg-black/40">
+            <FiEye size={24} />
+          </div>
+          <span className="text-xs">{feed?.viewsCount || 0}</span>
+        </button>
+
+        {/* Share */}
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex flex-col items-center gap-1 text-white hover:scale-110"
+        >
+          <div className="p-2 rounded-full bg-black/40 hover:bg-blue-500/80">
+            <FiShare2 size={24} />
+          </div>
+          <span className="text-xs">Share</span>
+        </button>
+      </div>
+
+      {/* MEDIA TYPE BADGE */}
       <div className="absolute bottom-4 left-4 z-20">
         <div className="bg-black/50 px-2 py-1 rounded text-xs text-white">
-          {feed?.type === 'video' ? (
+          {feed?.type === "video" ? (
             <span className="flex items-center gap-1">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
               Video
@@ -231,21 +246,11 @@ console.log(feed)
         </div>
       </div>
 
-      {/* Progress Time Indicator for Videos */}
-      {feed?.type === 'video' && videoRef.current && (
-        <div className="absolute bottom-4 right-4 z-20">
-          <div className="bg-black/50 px-2 py-1 rounded text-xs text-white">
-            {Math.floor(videoRef.current.currentTime || 0)}s / {Math.floor(videoRef.current.duration || 0)}s
-          </div>
-        </div>
-      )}
-
-      {/* Touch/Hover Instructions (only show on hover for mobile-like devices) */}
+      {/* HOVER INFO */}
       {isHovering && (
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20">
+        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20">
           <div className="bg-black/70 px-3 py-1 rounded text-xs text-white text-center">
-            <div>Tap left/right to navigate</div>
-            <div>Tap center to {isPaused ? 'play' : 'pause'}</div>
+            Scroll or use arrows to navigate
           </div>
         </div>
       )}

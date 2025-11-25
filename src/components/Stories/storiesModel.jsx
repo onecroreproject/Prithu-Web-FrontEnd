@@ -7,15 +7,12 @@ const StoriesModal = ({
   feed,
   selectedFeedIndex,
   setSelectedFeedIndex,
-  setIsPaused,
   setShowComments,
   videoRef,
   progress,
-  isPaused,
-  isHovering,
-  setIsHovering,
+  setProgress,
   navigateFeed,
-  handleVideoTimeUpdate,
+  setIsHovering,
 
   // Comments props
   comments,
@@ -49,22 +46,18 @@ const StoriesModal = ({
       exit={{ scale: 0.95 }}
       transition={{ duration: 0.25 }}
       onClick={(e) => e.stopPropagation()}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
     >
       <StoriesPlayer
         feed={feed}
         videoRef={videoRef}
         progress={progress}
-        setProgress={() => {}}
-        isPaused={isPaused}
-        setIsPaused={setIsPaused}
-        isHovering={isHovering}
-        setIsHovering={setIsHovering}
+        setProgress={setProgress}
         navigateFeed={navigateFeed}
+        setIsHovering={setIsHovering}
         setSelectedFeedIndex={setSelectedFeedIndex}
         setShowComments={setShowComments}
-        handleVideoTimeUpdate={handleVideoTimeUpdate}
+        likeFeedAction={likeFeedAction}
+        shareFeedAction={shareFeedAction}
       />
 
       <CommentsSection

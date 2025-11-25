@@ -37,6 +37,10 @@ import RegisterForm from "./components/LoginPageComponents/forms/registerForm.js
 import UserActivity from './components/UserActivity/userActivity.jsx';
 import Feed from './pages/Feed.jsx';
 import SearchResultsScreen from "./components/SearchComponent/mainLayout.jsx";
+import UpcomingEvents from "./components/UpcomingEvents.jsx";
+import Jobsection from "./components/Jobs/Jobsection.jsx";
+import JobsHomePage from "./components/Jobs/HeaderJobs/JobSection.jsx";
+import JobDomainPage from "./components/Jobs/HeaderJobs/JobDomainPage.jsx";
 
 
 // ✅ Create a single QueryClient instance
@@ -69,10 +73,10 @@ function AppRoutes() {
         }
       >
         {/* HOME */}
-        <Route index element={<Feed />} />
+<Route index element={<Feed />} />
+<Route path="retrivefeed/:notifyfeedid" element={<Feed />} />
+<Route path="hashtag/:tagname" element={<Feed />} />   // ⭐ Keep this above "/feed"
 
-        {/* ➤ Notification → Feed (INSIDE Layout now) */}
-        <Route path="retrivefeed/:notifyfeedid" element={<Feed />} />
 
         {/* Other Layout children */}
         <Route path="profile" element={<Profilelayout />} />
@@ -121,6 +125,9 @@ function AppRoutes() {
       <Route path="/feed" element={<Feed />} />
       <Route path="/create/account" element={<RegisterForm />} />
       <Route path="/search" element={<SearchResultsScreen/>}/>
+      <Route path="/event" element={<UpcomingEvents/>}/>
+      <Route path="/jobs/:domain" element={<JobDomainPage/>}/>
+      <Route path="/jobs" element ={<JobsHomePage/>}/>
 
       {/* Shared post */}
       <Route

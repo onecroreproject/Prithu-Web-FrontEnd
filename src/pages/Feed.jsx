@@ -2,15 +2,18 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useParams } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAllFeeds,
   getTopRankedJobs,
   getSingleFeed,
   getFeedsByCreator,
+  getFeedsByHashtag,
 } from "../Service/feedService";
+import PostcardWrapper from "../components/FeedPageComponent/postCardWraper";
 import { useLocation } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
 import Stories from "../components/Stories";
 import Createpost from "../components/postCreatedCard";
 import Postcard from "../components/FeedPageComponent/Postcard";
@@ -87,7 +90,8 @@ const FeedSkeleton = () => (
 
 /* -------------------------------- Feed Component ------------------------------- */
 
-const Feed = ({ authUser, notifyfeedid }) => {
+const Feed = ({ authUser, notifyfeedid ,searchFeedId}) => {
+  const { tagname } = useParams();
   const { token } = useContext(AuthContext);
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -101,13 +105,15 @@ const Feed = ({ authUser, notifyfeedid }) => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
-
+  const navigate = useNavigate();
   // Creator-mode state (when currentFeedId exists)
   const [creatorModeFeeds, setCreatorModeFeeds] = useState(null);
   const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
 
   const JOB_RATIO = 3;
+
+
 
   // stable refs for token & other volatile things
   const tokenRef = useRef(token);
@@ -116,20 +122,26 @@ const Feed = ({ authUser, notifyfeedid }) => {
   }, [token]);
 
   /* ---------------------- Infinite feeds query (existing behavior) ---------------------- */
-  const {
-    data: feedPages,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isFeedsLoading,
-    isError: feedsError,
-  } = useInfiniteQuery({
-    queryKey: ["feeds", token],
-    queryFn: ({ pageParam = 1 }) => getAllFeeds(pageParam, token),
-    getNextPageParam: (lastPage, pages) => (lastPage.length < 10 ? undefined : pages.length + 1),
-    enabled: !!token,
-    refetchOnWindowFocus: false,
-  });
+const {
+  data: feedPages,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoading: isFeedsLoading,
+  isError: feedsError,
+} = useInfiniteQuery({
+queryKey: ["feeds", token, tagname || "all"],
+queryFn: ({ pageParam = 1 }) =>
+  tagname
+    ? getFeedsByHashtag(tagname, pageParam, token)
+    : getAllFeeds(pageParam, token),
+getNextPageParam: (lastPage, pages) =>
+    lastPage.length < 10 ? undefined : pages.length + 1,
+enabled: !!token,
+refetchOnWindowFocus: false,
+});
+
+
 
   const feeds = feedPages?.pages.flat() || [];
 
@@ -495,8 +507,18 @@ const Feed = ({ authUser, notifyfeedid }) => {
 
   /* ---------------------- mixing: preserve feed[0], then mix A1 ---------------------- */
   const filteredJobs = selectedRole ? jobs.filter((job) => job.title?.toLowerCase().includes(selectedRole.toLowerCase())) : jobs;
-  const categoryFilteredFeeds = feedCategory ? feeds.filter((f) => f?.category === feedCategory) : feeds;
-  const filteredFeeds = showReels ? categoryFilteredFeeds.filter((f) => f.type === "video") : categoryFilteredFeeds;
+let filteredFeeds = feeds;
+
+// If hashtag mode → bypass category & reel filters
+if (!tagname) {
+  const categoryFilteredFeeds = feedCategory
+    ? feeds.filter((f) => f?.category === feedCategory)
+    : feeds;
+
+  filteredFeeds = showReels
+    ? categoryFilteredFeeds.filter((f) => f.type === "video")
+    : categoryFilteredFeeds;
+}
 
   // mixing function preserves the very first feed in list (so highlighted stays top)
   const mixFeedsAndJobs = useCallback((feedArr = [], jobArr = [], ratio = JOB_RATIO) => {
@@ -526,15 +548,18 @@ const Feed = ({ authUser, notifyfeedid }) => {
   // Decide what to render in "feeds" area:
   // - If creatorMode active (currentFeedId present AND creatorModeFeeds set) -> show creatorModeFeeds (no jobs)
   // - Else -> use normal infinite cached feeds mixed with jobs
-  let mixed = [];
-  const isCreatorMode = !!currentFeedId && Array.isArray(creatorModeFeeds);
+ let mixed = [];
+const isCreatorMode = !!currentFeedId && Array.isArray(creatorModeFeeds);
 
-  if (isCreatorMode) {
-    // Only show creator's posts. Keep same mixing logic but without jobs (so it's simply feed list)
-    mixed = (creatorModeFeeds || []).map((f) => ({ ...f, __kind: "feed" }));
-  } else {
-    mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : filteredJobs, JOB_RATIO);
-  }
+if (tagname) {
+  // ⭐ HASHTAG MODE — ONLY FEEDS, NO JOBS
+  mixed = filteredFeeds.map((f) => ({ ...f, __kind: "feed" }));
+} else if (isCreatorMode) {
+  mixed = (creatorModeFeeds || []).map((f) => ({ ...f, __kind: "feed" }));
+} else {
+  mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : filteredJobs, JOB_RATIO);
+}
+
 
   /* ---------------------- hide from UI ---------------------- */
   const handleHideFromUI = (feedId) => {
@@ -591,7 +616,14 @@ const Feed = ({ authUser, notifyfeedid }) => {
                     {item.__kind === "job" ? (
                       <JobCard jobData={mapJobForCard(item)} />
                     ) : (
-                      <Postcard postData={item} onHideFromUI={handleHideFromUI} />
+                      <PostcardWrapper 
+  key={item._id || item.feedId || idx}
+  postData={item}
+  authUser={authUser}
+  token={token}
+  onHideFromUI={handleHideFromUI}
+/>
+
                     )}
                   </motion.div>
                 ))

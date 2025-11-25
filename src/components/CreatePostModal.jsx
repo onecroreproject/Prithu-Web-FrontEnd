@@ -188,12 +188,12 @@ export default function CreatePostModal({ open, onClose }) {
 
           <div className="flex gap-5 px-6 pb-6">
             {/* Left Sidebar - Hidden on mobile, shown on desktop */}
-            <div className="hidden lg:block">
+            {/* <div className="hidden lg:block">
               <LeftSidebarButtons
                 selectedBtn={selectedBtn}
                 onSelect={setSelectedBtn}
               />
-            </div>
+            </div> */}
 
             <div className="flex-1 flex flex-col">
               {/* text with emoji picker */}

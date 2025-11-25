@@ -53,13 +53,11 @@ export default function EditEducation() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="flex justify-center items-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
  
   // ➕ Add new blank form
   const handleAddNew = () => {
@@ -203,222 +201,173 @@ export default function EditEducation() {
   };
  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm"
-    >
-      {/* Header Section */}
-      <div className="bg-blue-50 border-b border-blue-100 rounded-t-xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Education</h2>
-              <p className="text-gray-600 text-sm mt-1">
-                Manage your educational background and qualifications
-              </p>
-            </div>
-          </div>
-         
-          <button
-            onClick={handleAddNew}
-            disabled={isAdding}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Add Education
-          </button>
-        </div>
+    <div className="bg-white p-3 sm:p-4 rounded-lg w-full max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">Education</h3>
+        <button
+          onClick={handleAddNew}
+          disabled={isAdding}
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 w-full sm:w-auto text-xs sm:text-sm"
+        >
+          <PlusCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+          Add Education
+        </button>
       </div>
  
-      <div className="p-6">
-        <div className="space-y-6">
-          {educations.length === 0 && !isAdding ? (
-            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-              <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-full flex items-center justify-center border border-gray-200">
-                <GraduationCap className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Education Added</h3>
-              <p className="text-gray-600 text-sm mb-4">Add your educational qualifications to get started</p>
-              <button
-                onClick={handleAddNew}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 mx-auto"
+      <div className="space-y-3">
+        {educations.map((edu, index) => (
+          <motion.div
+            key={edu._id || index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="bg-gray-50 rounded-lg p-3 sm:p-4"
+          >
+            {editingIndex === index ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  edu._id ? handleUpdate(index) : handleSave(index);
+                }}
+                className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2"
               >
-                <PlusCircle className="w-4 h-4" />
-                Add Your First Education
-              </button>
-            </div>
-          ) : (
-            educations.map((edu, index) => (
-              <motion.div
-                key={edu._id || index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="border border-gray-200 rounded-lg p-4 hover:border-blue-200 transition-colors"
-              >
-                {editingIndex === index ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      edu._id ? handleUpdate(index) : handleSave(index);
-                    }}
-                    className="space-y-4"
+                <SelectField
+                  label="Education Level"
+                  value={edu.level}
+                  onChange={(v) => handleChange(index, "level", v)}
+                  icon={GraduationCap}
+                />
+                <Input
+                  label="School/College"
+                  value={edu.schoolOrCollege}
+                  onChange={(v) => handleChange(index, "schoolOrCollege", v)}
+                  icon={BookOpen}
+                />
+                <Input
+                  label="Board/University"
+                  value={edu.boardOrUniversity}
+                  onChange={(v) => handleChange(index, "boardOrUniversity", v)}
+                  icon={BookOpen}
+                />
+                <Input
+                  label="Field of Study"
+                  value={edu.fieldOfStudy}
+                  onChange={(v) => handleChange(index, "fieldOfStudy", v)}
+                  icon={BookOpen}
+                />
+ 
+                <YearPicker
+                  label="Start Year"
+                  value={edu.startYear}
+                  onChange={(v) => handleChange(index, "startYear", v)}
+                />
+                <YearPicker
+                  label="End Year"
+                  value={edu.endYear}
+                  onChange={(v) => handleChange(index, "endYear", v)}
+                />
+ 
+                <Input
+                  label="Grade / Percentage"
+                  value={edu.gradeOrPercentage}
+                  onChange={(v) => handleChange(index, "gradeOrPercentage", v)}
+                  icon={Award}
+                />
+                <Input
+                  label="Location"
+                  value={edu.location}
+                  onChange={(v) => handleChange(index, "location", v)}
+                  icon={MapPin}
+                />
+                <TextArea
+                  label="Description"
+                  value={edu.description}
+                  onChange={(v) => handleChange(index, "description", v)}
+                />
+ 
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 col-span-1 sm:col-span-2 mt-2">
+                  <button
+                    type="submit"
+                    className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <SelectField
-                        label="Education Level"
-                        value={edu.level}
-                        onChange={(v) => handleChange(index, "level", v)}
-                        icon={GraduationCap}
-                      />
-                      <Input
-                        label="School/College"
-                        value={edu.schoolOrCollege}
-                        onChange={(v) => handleChange(index, "schoolOrCollege", v)}
-                        icon={BookOpen}
-                      />
-                      <Input
-                        label="Board/University"
-                        value={edu.boardOrUniversity}
-                        onChange={(v) => handleChange(index, "boardOrUniversity", v)}
-                        icon={BookOpen}
-                      />
-                      <Input
-                        label="Field of Study"
-                        value={edu.fieldOfStudy}
-                        onChange={(v) => handleChange(index, "fieldOfStudy", v)}
-                        icon={BookOpen}
-                      />
- 
-                      <YearPicker
-                        label="Start Year"
-                        value={edu.startYear}
-                        onChange={(v) => handleChange(index, "startYear", v)}
-                      />
-                      <YearPicker
-                        label="End Year"
-                        value={edu.endYear}
-                        onChange={(v) => handleChange(index, "endYear", v)}
-                      />
- 
-                      <Input
-                        label="Grade / Percentage"
-                        value={edu.gradeOrPercentage}
-                        onChange={(v) => handleChange(index, "gradeOrPercentage", v)}
-                        icon={Award}
-                      />
-                      <Input
-                        label="Location"
-                        value={edu.location}
-                        onChange={(v) => handleChange(index, "location", v)}
-                        icon={MapPin}
-                      />
+                    <Save className="w-3 h-3 sm:w-4 sm:h-4" /> Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="flex items-center justify-center gap-2 border border-gray-300 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto text-xs sm:text-sm"
+                  >
+                    <X className="w-3 h-3 sm:w-4 sm:h-4" /> Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                      <GraduationCap className="w-3 h-3 text-blue-600" />
                     </div>
- 
-                    <TextArea
-                      label="Description"
-                      value={edu.description}
-                      onChange={(v) => handleChange(index, "description", v)}
-                    />
- 
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        type="submit"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancel}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <X className="w-4 h-4" />
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <GraduationCap className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 text-lg">
-                            {edu.schoolOrCollege || "Untitled Education"}
-                          </h3>
-                          <p className="text-blue-600 font-medium">
-                            {edu.level} {edu.fieldOfStudy && `- ${edu.fieldOfStudy}`}
-                          </p>
-                        </div>
-                      </div>
-                     
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600">
-                        {edu.boardOrUniversity && (
-                          <p className="flex items-center gap-2">
-                            <BookOpen className="w-4 h-4" />
-                            {edu.boardOrUniversity}
-                          </p>
-                        )}
-                        {(edu.startYear || edu.endYear) && (
-                          <p className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            {edu.startYear || "N/A"} - {edu.endYear || "N/A"}
-                          </p>
-                        )}
-                        {edu.gradeOrPercentage && (
-                          <p className="flex items-center gap-2">
-                            <Award className="w-4 h-4" />
-                            Grade: {edu.gradeOrPercentage}
-                          </p>
-                        )}
-                        {edu.location && (
-                          <p className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            {edu.location}
-                          </p>
-                        )}
-                      </div>
-                     
-                      {edu.description && (
-                        <p className="text-sm text-gray-600 mt-2">{edu.description}</p>
-                      )}
-                    </div>
- 
-                    <div className="flex gap-2 sm:flex-col sm:gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingIndex(index);
-                          hasUnsavedChanges.current = false;
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                      >
-                        <Pencil className="w-4 h-4" />
-                        <span className="sm:hidden">Edit</span>
-                      </button>
- 
-                      <button
-                        onClick={() => handleDelete(edu)}
-                        className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span className="sm:hidden">Delete</span>
-                      </button>
-                    </div>
+                    <p className="font-medium text-gray-800 text-sm sm:text-base">{edu.schoolOrCollege}</p>
                   </div>
-                )}
-              </motion.div>
-            ))
-          )}
-        </div>
+                  <p className="text-xs sm:text-sm text-blue-600 font-medium">
+                    {edu.level} {edu.fieldOfStudy && `- ${edu.fieldOfStudy}`}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-gray-500">
+                    {edu.boardOrUniversity && (
+                      <p className="flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" />
+                        {edu.boardOrUniversity}
+                      </p>
+                    )}
+                    {(edu.startYear || edu.endYear) && (
+                      <p className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {edu.startYear || "N/A"} - {edu.endYear || "N/A"}
+                      </p>
+                    )}
+                    {edu.gradeOrPercentage && (
+                      <p className="flex items-center gap-1">
+                        <Award className="w-3 h-3" />
+                        Grade: {edu.gradeOrPercentage}
+                      </p>
+                    )}
+                    {edu.location && (
+                      <p className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {edu.location}
+                      </p>
+                    )}
+                  </div>
+                  {edu.description && (
+                    <p className="text-xs text-gray-500 mt-1">{edu.description}</p>
+                  )}
+                </div>
+ 
+                <div className="flex gap-2 self-end sm:self-auto">
+                  <button
+                    onClick={() => {
+                      setEditingIndex(index);
+                      hasUnsavedChanges.current = false;
+                    }}
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                  >
+                    <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="sm:inline">Edit</span>
+                  </button>
+ 
+                  <button
+                    onClick={() => handleDelete(edu)}
+                    className="flex items-center gap-1 text-red-500 hover:text-red-700 text-xs p-2 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="sm:inline">Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        ))}
       </div>
  
       {/* ⚠️ Popups */}
@@ -426,9 +375,9 @@ export default function EditEducation() {
         {showLeavePopup && (
           <Popup
             title="Unsaved Changes"
-            message="You have unsaved changes. Do you want to leave without saving?"
+            message="You have unsaved changes. Do you want to save before leaving?"
             confirmLabel="Leave Without Saving"
-            cancelLabel="Continue Editing"
+            cancelLabel="Stay Here"
             onConfirm={confirmLeave}
             onCancel={() => setShowLeavePopup(false)}
           />
@@ -445,11 +394,10 @@ export default function EditEducation() {
           />
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
  
-  
 /* ✅ Popup Component */
 function Popup({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
   return (
@@ -464,22 +412,22 @@ function Popup({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel 
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
         transition={{ duration: 0.2 }}
-        className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full"
+        className="bg-white p-4 sm:p-5 rounded-lg shadow-lg text-center max-w-sm w-full"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600 mb-6">{message}</p>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-          >
-            {cancelLabel}
-          </button>
+        <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">{title}</h3>
+        <p className="text-xs sm:text-sm text-gray-600 mb-4">{message}</p>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+            className="px-3 py-2 sm:px-4 sm:py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto text-xs sm:text-sm"
           >
             {confirmLabel}
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto text-xs sm:text-sm"
+          >
+            {cancelLabel}
           </button>
         </div>
       </motion.div>
@@ -490,24 +438,23 @@ function Popup({ title, message, confirmLabel, cancelLabel, onConfirm, onCancel 
 /* ✅ Year Picker */
 function YearPicker({ label, value, onChange }) {
   const [selectedDate, setSelectedDate] = useState(value ? new Date(value, 0) : null);
- 
   useEffect(() => {
     if (selectedDate) onChange(selectedDate.getFullYear());
   }, [selectedDate]);
  
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-      <div className="relative">
+    <div className="relative">
+      <label className="block text-xs sm:text-sm text-gray-700 mb-1">{label}</label>
+      <div className="flex items-center border border-gray-300 rounded-lg p-2">
         <DatePicker
           selected={selectedDate}
           onChange={(date) => setSelectedDate(date)}
           showYearPicker
           dateFormat="yyyy"
           placeholderText="Select Year"
-          className="w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full outline-none text-xs sm:text-sm bg-transparent"
         />
-        <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 ml-2 flex-shrink-0" />
       </div>
     </div>
   );
@@ -517,20 +464,20 @@ function YearPicker({ label, value, onChange }) {
 function Input({ label, value, onChange, type = "text", icon: Icon }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-xs sm:text-sm text-gray-700 mb-1">{label}</label>
       <div className="relative">
         {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-            <Icon className="w-4 h-4 text-gray-400" />
+          <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+            <Icon className="w-3 h-3 text-gray-400" />
           </div>
         )}
         <input
           type={type}
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
-            Icon ? "pl-10" : ""
-          } hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
+          className={`w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent ${
+            Icon ? "pl-8" : ""
+          }`}
         />
       </div>
     </div>
@@ -539,13 +486,13 @@ function Input({ label, value, onChange, type = "text", icon: Icon }) {
  
 function TextArea({ label, value, onChange }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <div className="col-span-1 sm:col-span-2">
+      <label className="block text-xs sm:text-sm text-gray-700 mb-1">{label}</label>
       <textarea
         rows={3}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
       />
     </div>
   );
@@ -561,28 +508,25 @@ function SelectField({ label, value, onChange, icon: Icon }) {
     "Certification",
     "PhD",
   ];
- 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-xs sm:text-sm text-gray-700 mb-1">{label}</label>
       <div className="relative">
         {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-            <Icon className="w-4 h-4 text-gray-400" />
+          <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+            <Icon className="w-3 h-3 text-gray-400" />
           </div>
         )}
         <select
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
-            Icon ? "pl-10" : ""
-          } hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
+          className={`w-full border border-gray-300 rounded-lg p-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent ${
+            Icon ? "pl-8" : ""
+          }`}
         >
           <option value="">Select Level</option>
           {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
+            <option key={opt}>{opt}</option>
           ))}
         </select>
       </div>

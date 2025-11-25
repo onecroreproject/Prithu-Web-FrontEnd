@@ -21,6 +21,7 @@ export const useStories = () => {
   const [showArrows, setShowArrows] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Default unmuted
 
   const videoRef = useRef(null);
   const progressIntervalRef = useRef(null);
@@ -78,126 +79,37 @@ export const useStories = () => {
 
   // Handle video time update for progress bar
   const handleVideoTimeUpdate = () => {
-    if (videoRef.current && !isPaused) {
+    if (videoRef.current) {
       const video = videoRef.current;
-      if (!isPaused && video.duration && video.currentTime) { // Only update when NOT paused
+      if (video.duration && video.currentTime) {
         const newProgress = (video.currentTime / video.duration) * 100;
         setProgress(newProgress);
-
-        // Auto-advance to next story when video ends
-        if (newProgress >= 100) {
-          navigateFeed("next");
-        }
       }
     }
   };
 
-  // Progress bar logic for images (5 seconds) and video duration
-  useEffect(() => {
-    if (selectedFeedIndex !== null) {
-      const currentFeed = feeds[selectedFeedIndex];
-      if (!currentFeed) return;
-
-      const isVideo = currentFeed.type === "video";
-
-      // Clear any existing intervals
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      if (imageIntervalRef.current) {
-        clearInterval(imageIntervalRef.current);
-        imageIntervalRef.current = null;
-      }
-
-      if (isVideo && videoRef.current) {
-        // For videos, use actual video duration
-        const video = videoRef.current;
-
-        const updateVideoProgress = () => {
-          if (!isPaused && video.duration && video.currentTime) { // Only update when NOT paused
-            const newProgress = (video.currentTime / video.duration) * 100;
-            setProgress(newProgress);
-
-            if (newProgress >= 100) {
-              navigateFeed("next");
-            }
-          }
-        };
-
-        // Update progress based on video timeupdate
-        video.addEventListener('timeupdate', updateVideoProgress);
-
-        // Handle video events
-        const handleVideoEnded = () => {
-          navigateFeed("next");
-        };
-
-        video.addEventListener('ended', handleVideoEnded);
-
-        return () => {
-          video.removeEventListener('timeupdate', updateVideoProgress);
-          video.removeEventListener('ended', handleVideoEnded);
-        };
-      } else {
-        // For images, use 5 seconds
-        const duration = 5000; // 5 seconds as requested
-        const intervalTime = 50; // Update every 50ms for smooth progress
-        const increment = (intervalTime / duration) * 100;
-
-        let currentProgress = 0;
-
-        imageIntervalRef.current = setInterval(() => {
-          if (isPaused) return; // Don't update if paused
-
-          currentProgress += increment;
-          setProgress(Math.min(currentProgress, 100));
-
-          if (currentProgress >= 100) {
-            clearInterval(imageIntervalRef.current);
-            imageIntervalRef.current = null;
-            navigateFeed("next");
-          }
-        }, intervalTime);
-
-        return () => {
-          if (imageIntervalRef.current) {
-            clearInterval(imageIntervalRef.current);
-            imageIntervalRef.current = null;
-          }
-        };
-      }
-    }
-  }, [selectedFeedIndex, feeds, isPaused]);
-
   // Reset progress when changing stories
   useEffect(() => {
     setProgress(0);
-    setIsPaused(false); // Reset pause state when changing stories
   }, [selectedFeedIndex]);
 
-  // Pause/resume management
+  // Prevent body scroll when modal is open
   useEffect(() => {
     if (selectedFeedIndex !== null) {
-      const currentFeed = feeds[selectedFeedIndex];
-      if (currentFeed?.type === 'video' && videoRef.current) {
-        const video = videoRef.current;
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
 
-        if (isPaused) {
-          video.pause();
-        } else {
-          video.play().catch(() => { }); // Ignore autoplay errors
-        }
-      }
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
-  }, [isPaused, selectedFeedIndex, feeds]);
+  }, [selectedFeedIndex]);
 
   const closePopup = () => {
     setSelectedFeedIndex(null);
     setShowComments(false);
     setIsPaused(false);
 
-    // Clear all intervals
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
@@ -440,6 +352,7 @@ export const useStories = () => {
     showArrows,
     showLeftArrow,
     showRightArrow,
+    isMuted,
 
     // Refs
     videoRef,
@@ -459,6 +372,7 @@ export const useStories = () => {
     setShowRightArrow,
     setProgress,
     setIsPaused,
+    setIsMuted,
 
     // Functions
     fetchComments,

@@ -162,3 +162,119 @@ export const getTopRankedJobs = async (token) => {
     return [];
   }
 };
+
+
+
+export const getFeedsByHashtag = async (tagname, page = 1, token) => {
+  try {
+    const cleaned = tagname.replace(/^#+/, "").trim(); // remove "#"
+
+    const res = await api.get(
+      `/api/get/feeds/by/hashtag/${cleaned}?page=${page}&limit=10`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = res.data;
+
+    if (!data?.feeds || !Array.isArray(data.feeds)) return [];
+
+    // Map to unified frontend format
+    return data.feeds.map((feed) => ({
+      feedId: feed.feedId || feed._id || "",
+      _id: feed._id || "",
+      userId: feed.createdByAccount || "",
+
+      type: feed.type || "image",
+      contentUrl: feed.contentUrl || "",
+      caption: feed.caption || "",
+      description: feed.dec || "",
+      category: feed.category || "",
+      language: feed.language || "",
+
+      userName: feed.userName || "Unknown",
+
+      profileAvatar:
+        feed.profileAvatar && feed.profileAvatar.trim() !== ""
+          ? feed.profileAvatar
+          : defaultAvatar,
+
+      avatarToUse:
+        feed.modifyAvatarFromProfile ||
+        feed.profileAvatar ||
+        defaultAvatar,
+
+      timeAgo: feed.timeAgo || "",
+      likesCount: feed.likesCount || 0,
+      commentsCount: feed.commentsCount || 0,
+      viewsCount: feed.viewsCount || 0,
+      shareCount: feed.shareCount || 0,
+      downloadsCount: feed.downloadsCount || 0,
+      dislikesCount: feed.dislikesCount || 0,
+
+      isLiked: feed.isLiked || false,
+      isSaved: feed.isSaved || false,
+      isFollowing: feed.isFollowing || false,
+      isDisliked: feed.isDisliked || false,
+
+      hashtags: feed.hashtags || [],
+
+      themeColor: feed.themeColor || {
+        primary: "#262e39",
+        secondary: "#6e7782",
+        accent: "#a7373a",
+        gradient: "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
+        text: "#FFFFFF",
+      },
+    }));
+  } catch (err) {
+    console.error(
+      "❌ Error fetching hashtag feeds:",
+      err?.response?.data || err.message
+    );
+    return [];
+  }
+};
+
+/**
+ * Calls API to increment image view count for given feedId
+ */
+export const userImageViewCount = async (feedId, token) => {
+  try {
+    const { data } = await api.post(
+      '/user/image/view/count',
+      { feedId },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return data;
+  } catch (error) {
+    console.error('❌ Error recording image view count:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Calls API to increment video view count for given feedId
+ */
+export const userVideoViewCount = async (feedId, token) => {
+  try {
+    const { data } = await api.post(
+      '/user/watching/vidoes',
+      { feedId },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return data;
+  } catch (error) {
+    console.error('❌ Error recording video view count:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+

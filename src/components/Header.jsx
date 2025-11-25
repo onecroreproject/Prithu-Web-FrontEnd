@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase, Activity
+  Calendar, Briefcase, Activity, Users
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -45,7 +45,8 @@ export default function Header() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isEventsOpen, setIsEventsOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
-
+  const [isCommunityOpen, setIsCommunityOpen] = useState(false);
+ 
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({
@@ -131,18 +132,23 @@ export default function Header() {
 
   // -- Events --
   const handleEventsClick = () => {
-    setIsEventsOpen(true);
+     navigate("/event")
     closeAll();
   };
 
   // -- Jobs --
   const handleJobsClick = () => {
-    toast("💼 Jobs feature coming soon!", { icon: "⏳" });
+    navigate("/jobs")
   };
 
   // -- Portfolio --
   const handlePortfolioClick = () => {
     navigate(`/portfolio/${user?.userName || ""}`);
+  };
+
+  // -- Community --
+  const handleCommunityClick = () => {
+    setIsCommunityOpen(true);
   };
 
   const closeAll = () => {
@@ -360,7 +366,6 @@ export default function Header() {
                 navigate("/");
               }
             }}
-
             className="flex items-center gap-2 cursor-pointer"
           >
             <img src={PrithuLogo} alt="Prithu Logo" className="w-8 h-8 md:w-10 md:h-10" />
@@ -369,9 +374,8 @@ export default function Header() {
             </h1>
           </div>
 
-
-          {/* Desktop Search Bar - Hidden on mobile */}
-          <div className="hidden lg:flex flex-1 max-w-2xl mx-24">
+          {/* Desktop Search Bar - Now responsive */}
+          <div className="hidden md:flex flex-1 max-w-2xl mx-4 lg:mx-24">
             <SearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -393,13 +397,8 @@ export default function Header() {
             />
           </div>
 
-          {/* Desktop: Events, Jobs, Portfolio - Hidden on mobile */}
-          <div className="hidden lg:flex items-center gap-2 ml-48">
-            <HeaderIconWithLabel
-              Icon={Calendar}
-              label="Events"
-              onClick={handleEventsClick}
-            />
+          {/* Desktop: Jobs, Portfolio, Community, Events - Updated order */}
+          <div className="hidden lg:flex items-center gap-2 ml-4">
             <HeaderIconWithLabel
               Icon={Briefcase}
               label="Jobs"
@@ -410,13 +409,26 @@ export default function Header() {
               label="Portfolio"
               onClick={handlePortfolioClick}
             />
+            <HeaderIconWithLabel
+              Icon={Users}
+              label="Community"
+              onClick={handleCommunityClick}
+            />
+            <HeaderIconWithLabel
+              Icon={Calendar}
+              label="Events"
+              onClick={handleEventsClick}
+            />
           </div>
         </div>
 
         {/* Right Section */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile search button - Hidden on mobile since we're simplifying */}
-          <button onClick={() => setMobileSearchOpen(true)} className="hidden p-2 rounded-md hover:bg-gray-100 lg:hidden">
+          {/* Mobile search button - Visible on mobile */}
+          <button 
+            onClick={() => setMobileSearchOpen(true)} 
+            className="p-2 rounded-md hover:bg-gray-100 lg:hidden"
+          >
             <Search className="w-5 h-5 text-blue-600" />
           </button>
 
@@ -435,14 +447,17 @@ export default function Header() {
               />
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Profile Dropdown - Clickable User Name and Profile Pic */}
             <div ref={dropdownRef} className="relative">
               <motion.button
                 onClick={() => setDropdownOpen((p) => !p)}
-                className="flex items-center gap-2 rounded-lg p-1 transition-all duration-300 hover:bg-blue-50"
+                className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-all duration-300 hover:bg-blue-50"
                 whileTap={{ scale: 0.97 }}
               >
                 <ProfileAvatar user={user} />
+                <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">
+                  {user?.userName || "User"}
+                </span>
               </motion.button>
 
               <AnimatePresence>
@@ -460,16 +475,16 @@ export default function Header() {
                         <ProfileAvatar user={user} size="md" />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 truncate">
-                            {user?.displayName || user?.userName || "User"}
+                            {user?.name || user?.userName || "User"}
                           </p>
                           <p className="text-sm text-gray-500 truncate">
-                            {user?.email || ""}
+                            {user?.userEmail || ""}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Navigation Links - Updated without duplicate Portfolio */}
+                    {/* Navigation Links */}
                     <div className="p-2 space-y-1">
                       {navItems.map(({ to, label, Icon }) => (
                         <NavLink
@@ -545,7 +560,7 @@ export default function Header() {
                 <ProfileAvatar user={user} size="lg" />
                 <div>
                   <p className="font-semibold text-gray-900">{user?.userName || "User"}</p>
-                  <p className="text-sm text-gray-500">{user?.email || ""}</p>
+                  <p className="text-sm text-gray-500">{user?.userEmail || ""}</p>
                 </div>
               </div>
               <button
@@ -598,19 +613,9 @@ export default function Header() {
                 </button>
               </div>
 
-              {/* Quick Actions - Events, Jobs, Portfolio */}
+              {/* Quick Actions - Jobs, Portfolio, Community, Events (Updated Order) */}
               <div className="pb-4 border-b border-gray-200">
                 <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      handleEventsClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Events</span>
-                  </button>
                   <button
                     onClick={() => {
                       handleJobsClick();
@@ -631,10 +636,30 @@ export default function Header() {
                     <User className="w-5 h-5 text-blue-600" />
                     <span className="font-medium">Portfolio</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      handleCommunityClick();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
+                  >
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium">Community</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleEventsClick();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
+                  >
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium">Events</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Navigation Items - Updated without duplicate Portfolio */}
+              {/* Navigation Items */}
               <div className="space-y-1">
                 {navItems.map(({ to, label, Icon }) => (
                   <NavLink
@@ -708,6 +733,12 @@ export default function Header() {
         open={isEventsOpen}
         onClose={() => setIsEventsOpen(false)}
       />
+
+      {/* Community Modal */}
+      <CommunityModal
+        open={isCommunityOpen}
+        onClose={() => setIsCommunityOpen(false)}
+      />
     </Fragment>
   );
 }
@@ -719,7 +750,7 @@ const EventsModal = ({ open, onClose }) => {
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose} // clicking outside closes modal
+      onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -728,20 +759,57 @@ const EventsModal = ({ open, onClose }) => {
         className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ❌ Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-600 hover:text-black p-1 rounded-full hover:bg-gray-100 transition"
-        >
-          <X size={20} />
-        </button>
-
-        <UpcomingEvents onClose={onClose} />
+        <UpcomingEvents  />
       </motion.div>
     </div>
   );
 };
 
+/* ✅ Community Modal Component */
+const CommunityModal = ({ open, onClose }) => {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header with Close Button */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50">
+          <div className="flex items-center gap-3">
+            <Users className="w-6 h-6 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-900">Community</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Community Content */}
+        <div className="p-6">
+          <div className="text-center py-8">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Community Features Coming Soon!</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Connect with other users, join groups, and participate in community discussions. 
+              This feature is currently under development.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 /* ✅ HeaderIcon component */
 const HeaderIcon = ({ Icon, onClick, badge, active }) => (
@@ -798,5 +866,3 @@ const ProfileAvatar = ({ user, size = "md" }) => {
     </div>
   );
 };
-
-

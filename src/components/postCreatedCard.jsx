@@ -77,16 +77,7 @@ const Createpost = () => {
           onClick={handleOpenModal}
           className="flex items-center gap-2 cursor-pointer"
         >
-          <span className="text-blue-600 dark:text-blue-400">
-            <svg width="22" height="22" fill="none" stroke="currentColor">
-              <path
-                d="M7 17V9.5a4.5 4.5 0 119 0V17m-9 0h9"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
+         
 
           <input
             type="text"

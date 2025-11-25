@@ -1,20 +1,20 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import api from ".././../../api/axios";
+import api from "../../../api/axios";
 import Postcard from "../../FeedPageComponent/Postcard";
-import {useNavigate} from "react-router-dom"
+import { useNavigate } from "react-router-dom";
 
 const UserPosts = ({ authUser, token, id }) => {
-  const [activeTab, setActiveTab] = useState("all"); // Changed default to "all"
+  const [activeTab, setActiveTab] = useState("all");
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fullscreenVideo, setFullscreenVideo] = useState(null);
-  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'allPhotos'
-  const [menuOpen, setMenuOpen] = useState(null); // Track which post's menu is open
-  const [deletingPost, setDeletingPost] = useState(null); // Track which post is being deleted
+  const [viewMode, setViewMode] = useState("grid");
+  const [menuOpen, setMenuOpen] = useState(null);
+  const [deletingPost, setDeletingPost] = useState(null);
   const videoRef = useRef(null);
   const menuRef = useRef(null);
-  const navigate =useNavigate()
+  const navigate = useNavigate();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -34,22 +34,32 @@ const UserPosts = ({ authUser, token, id }) => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
+        setLoading(true);
         let res;
 
-        // 🔥 If id exists → fetch single user's posts
         if (id) {
+          // Fetch single user's posts
           res = await api.get(`/api/get/single/user/post?id=${id}`);
-        } 
-        
-        // 🔥 If no id → fetch logged-in user's posts
-        else {
+        } else {
+          // Fetch logged-in user's posts
           res = await api.get("/api/get/user/post");
         }
 
-        console.log("User Posts:", res.data);
-        setPosts(res.data?.feeds || []);
+        console.log("User Posts Response:", res.data);
+        
+        // Handle both response structures for backward compatibility
+        if (res.data.success) {
+          // New structure from getUserFeedsWeb
+          setPosts(res.data.feeds || []);
+        } else if (res.data.feeds) {
+          // Old structure
+          setPosts(res.data.feeds);
+        } else {
+          setPosts([]);
+        }
       } catch (err) {
         console.error("Error fetching posts:", err);
+        setPosts([]);
       } finally {
         setLoading(false);
       }
@@ -58,7 +68,7 @@ const UserPosts = ({ authUser, token, id }) => {
     fetchPosts();
   }, [id]);
 
-  // Filter posts
+  // Filter posts based on new data structure
   const imagePosts = posts.filter((p) => p.type === "image");
   const videoPosts = posts.filter((p) => p.type === "video");
   
@@ -70,7 +80,7 @@ const UserPosts = ({ authUser, token, id }) => {
     
     switch (activeTab) {
       case "all":
-        return posts; // Show all posts
+        return posts;
       case "image":
         return imagePosts;
       case "video":
@@ -81,6 +91,23 @@ const UserPosts = ({ authUser, token, id }) => {
   };
 
   const currentPosts = getCurrentPosts();
+
+  // Format duration for display
+  const formatDuration = (seconds) => {
+    if (!seconds) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Format watch time for display
+  const formatWatchTime = (seconds) => {
+    if (!seconds) return "0s";
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}m ${secs}s`;
+  };
 
   // Handle menu toggle
   const handleMenuToggle = (postId, event) => {
@@ -106,7 +133,6 @@ const UserPosts = ({ authUser, token, id }) => {
       // Remove post from state immediately
       setPosts(prev => prev.filter(post => post._id !== postId));
       
-      // Show success message
       alert("Post deleted successfully!");
       
     } catch (err) {
@@ -130,7 +156,7 @@ const UserPosts = ({ authUser, token, id }) => {
   // Handle see all photos click
   const handleSeeAllPhotos = () => {
     setViewMode("allPhotos");
-    setActiveTab("image"); // Ensure we're on photos tab
+    setActiveTab("image");
   };
 
   // Handle back to grid view
@@ -168,6 +194,9 @@ const UserPosts = ({ authUser, token, id }) => {
 
   // Render 3-dot menu for each card
   const renderMenuButton = (post) => {
+    // Only show delete option for user's own posts
+    const canDelete = !id || id === authUser?._id;
+
     return (
       <div className="relative" ref={menuRef}>
         {/* Three dots button */}
@@ -195,14 +224,29 @@ const UserPosts = ({ authUser, token, id }) => {
               transition={{ duration: 0.2 }}
               className="absolute top-10 right-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]"
             >
+              {canDelete && (
+                <button
+                  onClick={() => handleDeletePost(post._id)}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete</span>
+                </button>
+              )}
               <button
-                onClick={() => handleDeletePost(post._id)}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/retrivefeed/${post._id}`);
+                  setMenuOpen(null);
+                  alert("Post link copied to clipboard!");
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span>Delete</span>
+                <span>Copy Link</span>
               </button>
             </motion.div>
           )}
@@ -255,9 +299,18 @@ const UserPosts = ({ authUser, token, id }) => {
     return (
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
-          {getTabDisplayName()}
+          {getTabDisplayName()} ({currentPosts.length})
         </h1>
-
+        
+        {/* Show "See All Photos" button only if there are photos */}
+        {imagePosts.length > 0 && activeTab === "image" && (
+          <button
+            onClick={handleSeeAllPhotos}
+            className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
+          >
+            See All Photos
+          </button>
+        )}
       </div>
     );
   };
@@ -267,20 +320,20 @@ const UserPosts = ({ authUser, token, id }) => {
     if (viewMode === "allPhotos") return null;
 
     return (
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab("all")}
-          className={`py-3 px-6 text-sm font-medium transition-all ${
+          className={`py-3 px-6 text-sm font-medium transition-all whitespace-nowrap ${
             activeTab === "all"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
-          All ({posts.length})
+          All Posts ({posts.length})
         </button>
         <button
           onClick={() => setActiveTab("image")}
-          className={`py-3 px-6 text-sm font-medium transition-all ${
+          className={`py-3 px-6 text-sm font-medium transition-all whitespace-nowrap ${
             activeTab === "image"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
@@ -290,7 +343,7 @@ const UserPosts = ({ authUser, token, id }) => {
         </button>
         <button
           onClick={() => setActiveTab("video")}
-          className={`py-3 px-6 text-sm font-medium transition-all ${
+          className={`py-3 px-6 text-sm font-medium transition-all whitespace-nowrap ${
             activeTab === "video"
               ? "border-b-2 border-blue-500 text-blue-600"
               : "text-gray-500 hover:text-gray-700"
@@ -305,16 +358,25 @@ const UserPosts = ({ authUser, token, id }) => {
   // Render content based on view mode and active tab
   const renderContent = () => {
     if (loading) {
-      return <p className="text-gray-500 text-center py-8">Loading posts...</p>;
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      );
     }
 
     if (currentPosts.length === 0) {
       return (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">
+          <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="text-gray-500 text-lg mb-2">
             No {viewMode === "allPhotos" ? "photos" : getTabDisplayName().toLowerCase()} found.
           </p>
-          <p className="text-gray-400 text-sm mt-2">
+          <p className="text-gray-400 text-sm">
             {viewMode === "allPhotos" || activeTab === "image"
               ? "Upload your first photo to get started"
               : activeTab === "video"
@@ -342,7 +404,6 @@ const UserPosts = ({ authUser, token, id }) => {
               transition={{ duration: 0.3, delay: index * 0.1 }}
               className="relative"
             >
-              {/* Add menu button to Postcard view */}
               {renderMenuButton(post)}
               <Postcard
                 postData={post}
@@ -372,48 +433,45 @@ const UserPosts = ({ authUser, token, id }) => {
               {currentPosts.map((post) => (
                 <motion.div
                   key={post._id}
-                  className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
+                  className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 cursor-pointer"
                   whileHover={{ scale: 1.02 }}
+                  onClick={() => navigate(`/retrivefeed/${post._id}${id ? '?creator=true' : ''}`)}
                 >
                   {/* Three dots menu */}
                   {renderMenuButton(post)}
 
-{post.type === "image" ? (
-  <div className="aspect-[4/3]">
-    <img
-      src={post.contentUrl}
-      alt="User post"
-      className="w-full h-full object-cover cursor-pointer"
-      onClick={() => navigate(`/retrivefeed/${post._id}?creator=true`)}
-    />
-  </div>
-) : (
-  <div
-    className="relative h-[250px] cursor-pointer"
-    onClick={() => navigate(`/retrivefeed/${post._id}?creator=true`)}
-  >
-    <video
-      src={post.contentUrl}
-      className="w-full h-full object-cover"
-      poster={post.thumbnail}
-    />
-    <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-      {post.duration || "00:00"}
-    </div>
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="bg-black bg-opacity-40 rounded-full p-3">
-        <svg
-          className="w-8 h-8 text-white"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path d="M8 5v14l11-7z" />
-        </svg>
-      </div>
-    </div>
-  </div>
-)}
-
+                  {/* Content */}
+                  {post.type === "image" ? (
+                    <div className="aspect-[4/3]">
+                      <img
+                        src={post.contentUrl}
+                        alt="User post"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative h-[250px]">
+                      <video
+                        src={post.contentUrl}
+                        className="w-full h-full object-cover"
+                        poster={post.thumbnail}
+                      />
+                      <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                        {formatDuration(post.duration)}
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="bg-black bg-opacity-40 rounded-full p-3">
+                          <svg
+                            className="w-8 h-8 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Engagement metrics */}
                   <div className="absolute bottom-2 left-2 flex items-center space-x-2">
@@ -421,21 +479,27 @@ const UserPosts = ({ authUser, token, id }) => {
                       <span>❤️</span>
                       <span>{post.likesCount || 0}</span>
                     </div>
-                    {post.type === "video" && (
+                    <div className="flex items-center space-x-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      <span>👁️</span>
+                      <span>{post.totalViews || 0}</span>
+                    </div>
+                    {post.type === "video" && post.totalWatchTime > 0 && (
                       <div className="flex items-center space-x-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        <span>👁️</span>
-                        <span>{post.viewsCount || 0}</span>
+                        <span>⏱️</span>
+                        <span>{formatWatchTime(post.totalWatchTime)}</span>
                       </div>
                     )}
                   </div>
 
+                  {/* Time ago */}
+                  <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                    {post.timeAgo || 'Recently'}
+                  </div>
 
-                  {/* Caption preview (only show if exists) */}
-                  {post.caption && (
-                    <div className="p-3">
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        {post.caption}
-                      </p>
+                  {/* Liked indicator */}
+                  {post.isLiked && (
+                    <div className="absolute top-2 right-10 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                      Liked
                     </div>
                   )}
                 </motion.div>
@@ -516,20 +580,24 @@ const UserPosts = ({ authUser, token, id }) => {
                     </div>
                     <div className="flex items-center space-x-1 bg-black bg-opacity-50 px-3 py-1 rounded-full">
                       <span>👁️</span>
-                      <span>{fullscreenVideo.viewsCount || 0}</span>
+                      <span>{fullscreenVideo.totalViews || 0}</span>
                     </div>
+                    {fullscreenVideo.totalWatchTime > 0 && (
+                      <div className="flex items-center space-x-1 bg-black bg-opacity-50 px-3 py-1 rounded-full">
+                        <span>⏱️</span>
+                        <span>{formatWatchTime(fullscreenVideo.totalWatchTime)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
-                    {fullscreenVideo.duration || "00:00"}
+                    {formatDuration(fullscreenVideo.duration)}
                   </div>
                 </div>
 
-                {/* Video Caption */}
-                {fullscreenVideo.caption && (
-                  <div className="mt-2 bg-black bg-opacity-50 px-3 py-2 rounded-lg">
-                    <p className="text-sm">{fullscreenVideo.caption}</p>
-                  </div>
-                )}
+                {/* Time info */}
+                <div className="mt-2 bg-black bg-opacity-50 px-3 py-1 rounded-lg text-sm">
+                  <p>Posted {fullscreenVideo.timeAgo || 'recently'}</p>
+                </div>
               </div>
             </motion.div>
 

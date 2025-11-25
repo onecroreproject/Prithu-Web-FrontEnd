@@ -4,6 +4,7 @@ import { FiChevronDown, FiChevronUp, FiHeart, FiSend } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
 import EmojiPicker from "../EmojiPicker";
+import defaultAvater from "../../assets/user.png"
 
 /**
  * ReplyItem component - renders a single reply and supports nested replies (unlimited).
@@ -111,7 +112,7 @@ const ReplyItem = ({
   return (
     <div className={`relative flex space-x-2 ${depth > 0 ? "pl-3" : ""}`}>
       {depth > 0 && <div className="absolute left-1 top-0 bottom-0 w-px bg-gray-100" />}
-      <img src={reply.avatar || "/default-avatar.png"} className="w-6 h-6 rounded-full object-cover" alt={reply.username} />
+      <img src={reply.avatar || defaultAvater} className="w-6 h-6 rounded-full object-cover" alt={reply.username} />
       <div className="flex-1">
         <div className="px-2">
           <div className="flex justify-between gap-1">
@@ -296,7 +297,7 @@ const CommentItem = ({ comment, feedId, authUser, refreshParentComments, maxDept
   return (
     <div className="w-full">
       <div className="flex items-start space-x-2">
-        <img src={comment.avatar || comment.profileAvatar || "/default-avatar.png"} alt={comment.username || comment.userName || "User"} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+        <img src={comment.avatar || comment.profileAvatar || defaultAvater} alt={comment.username || comment.userName || "User"} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
         <div className="flex-1">
           <div className="px-1">
             <div className="flex items-start justify-between gap-2">

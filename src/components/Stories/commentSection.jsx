@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiHeart, FiMessageCircle, FiSend, FiBookmark, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
+import defaultAvater from "../../assets/user.png";
 
 const CommentsSection = ({ feed }) => {
   // State management
@@ -352,7 +353,7 @@ const CommentsSection = ({ feed }) => {
     return (
       <div className={`flex items-start space-x-2 pt-3 ${depth > 0 ? 'ml-4' : ''}`}>
         <img
-          src={reply.avatar || reply.profileAvatar || "/default-avatar.png"}
+          src={reply.avatar || reply.profileAvatar || defaultAvater}
           className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
           alt=""
         />
@@ -527,7 +528,7 @@ const CommentsSection = ({ feed }) => {
       {/* HEADER */}
       <div className="flex items-center p-4 bg-white">
         <img
-          src={feed.createdByProfile?.profileAvatar || "/default-avatar.png"}
+          src={feed.createdByProfile?.profileAvatar || defaultAvater}
           alt="avatar"
           className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover mr-3"
         />
@@ -566,7 +567,7 @@ const CommentsSection = ({ feed }) => {
                 className="flex items-start space-x-3 pb-3"
               >
                 <img
-                  src={comment.avatar || comment.profileAvatar || "/default-avatar.png"}
+                  src={comment.avatar || comment.profileAvatar || defaultAvater}
                   alt=""
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                 />

@@ -209,26 +209,41 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
 
             <div className="space-y-4">
               {/* Enhanced Drag & Drop Area */}
-              <div
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${
-                  dragOver
-                    ? "border-blue-400 bg-blue-50 scale-[1.02]"
-                    : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById("cover-file-input").click()}
-              >
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8 text-blue-600" />
-                </div>
-                <p className="text-lg text-gray-700 mb-2">
-                  <span className="text-blue-600 font-semibold">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-sm text-gray-500">PNG, JPG, WebP, GIF up to 10MB</p>
-                <p className="text-xs text-gray-400 mt-2">Recommended: 1200×400 pixels</p>
-              </div>
+             <div
+  className={`relative w-full bg-gray-100 rounded-xl border-2 border-dashed overflow-hidden transition-all duration-300 ${
+    dragOver
+      ? "border-blue-400 bg-blue-50"
+      : preview
+      ? "border-gray-200"
+      : "border-gray-300"
+  }`}
+  onDragOver={handleDragOver}
+  onDragLeave={handleDragLeave}
+  onDrop={handleDrop}
+>
+  {preview ? (
+    <>
+      <img
+        src={preview}
+        alt="Cover preview"
+        className="w-full h-auto max-h-[400px] object-contain"
+      />
+      {loading && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-white animate-spin" />
+        </div>
+      )}
+    </>
+  ) : (
+    <div className="w-full h-48 flex flex-col items-center justify-center text-gray-400">
+      <Image className="w-16 h-16 mb-4" />
+      <p className="text-lg font-medium mb-2">No cover image</p>
+      <p className="text-sm text-center px-4">
+        Upload a cover image to personalize your profile
+      </p>
+    </div>
+  )}
+</div>
 
               {/* Hidden Input */}
               <input

@@ -1,11 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStories } from "../components/Stories/hooks/useStories";
 import StoriesThumbnails from "../components/Stories/storiesThumbnail";
 import StoriesModal from "../components/Stories/storiesModel";
 import MobileStoriesView from "../components/Stories/mobileStoriesView";
 
+// Hook to detect mobile/desktop
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+
+  return matches;
+};
+
 const Stories = () => {
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   const {
     // states
     feeds,
@@ -27,6 +46,7 @@ const Stories = () => {
     showArrows,
     showLeftArrow,
     showRightArrow,
+    isMuted,
 
     // refs
     videoRef,
@@ -45,6 +65,7 @@ const Stories = () => {
     setShowLeftArrow,
     setShowRightArrow,
     setProgress,
+    setIsMuted,
 
     // functions
     fetchComments,
@@ -103,8 +124,9 @@ const Stories = () => {
             }}
             style={{ overflow: "hidden" }}
           >
-            {/* Desktop */}
-            <div className="hidden md:block">
+            {/* Conditionally render ONLY ONE component based on screen size */}
+            {!isMobile ? (
+              // Desktop View
               <StoriesModal
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
@@ -118,6 +140,8 @@ const Stories = () => {
                 setIsHovering={setIsHovering}
                 navigateFeed={navigateFeed}
                 handleVideoTimeUpdate={handleVideoTimeUpdate}
+                isMuted={isMuted}
+                setIsMuted={setIsMuted}
 
                 // comments (pass array safely)
                 comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
@@ -136,11 +160,11 @@ const Stories = () => {
                 setShowReplies={setShowReplies}
                 fetchReplies={fetchReplies}
                 postReply={(commentId) =>
-  postReply({
-    feedId: selectedFeed._id,
-    parentCommentId: commentId,
-    replyText: replyInputs[commentId] || ""
-  })}
+                  postReply({
+                    feedId: selectedFeed._id,
+                    parentCommentId: commentId,
+                    replyText: replyInputs[commentId] || ""
+                  })}
                 likeReply={likeReply}
 
                 // feed actions
@@ -148,10 +172,8 @@ const Stories = () => {
                 toggleSaveFeed={() => toggleSaveFeed(selectedFeed._id, selectedFeedIndex)}
                 shareFeedAction={() => shareFeedAction(selectedFeed._id)}
               />
-            </div>
-
-            {/* Mobile */}
-            <div className="md:hidden">
+            ) : (
+              // Mobile View
               <MobileStoriesView
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
@@ -191,7 +213,7 @@ const Stories = () => {
                 shareFeedAction={() => shareFeedAction(selectedFeed._id)}
                 navigateFeed={navigateFeed}
               />
-            </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -20,6 +20,7 @@ const PostHeader = ({
   isFollowing: initialFollowState,
   onFollow,
   onUnfollow,
+  onCommentsClick
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -80,7 +81,9 @@ const PostHeader = ({
   }, [dec]);
 
   return (
-    <div className="flex flex-col border-b border-gray-200  p-4">
+    <div 
+    onClick={onCommentsClick}
+    className="flex flex-col border-b border-gray-200  p-4">
 
       {/* Header */}
       <div className="flex items-center justify-between">
