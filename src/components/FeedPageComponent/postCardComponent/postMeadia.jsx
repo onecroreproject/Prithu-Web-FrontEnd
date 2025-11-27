@@ -109,8 +109,8 @@ export default function PostMedia({
           <div
             ref={containerRef}
             onClick={handleTap}
-            className="relative w-full flex items-center justify-center overflow-hidden"
-            style={{ height: "min(80vh, 520px)" }}
+            className="relative w-full flex items-center object-cover justify-center overflow-hidden"
+            style={{ height: "min(75.5vh, 520px)" }}
           >
             <ColorBackground />
             <img

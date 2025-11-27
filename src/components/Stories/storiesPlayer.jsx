@@ -16,13 +16,21 @@ const StoriesPlayer = ({
   navigateFeed,
   setSelectedFeedIndex,
   setShowComments,
-  likeFeedAction,
-  shareFeedAction,
+
+  // NEW LIKE & SHARE CALLBACKS
+  onLike,
+  onShare,
+  likesCount,
+  isLikedState,
+  totalViews,
+  totalShare,
 }) => {
   const [isPaused, setIsPaused] = useState(false);
   const wheelTimeoutRef = useRef(null);
 
-  // Cleanup on unmount
+  /* ------------------------
+      CLEANUP on UNMOUNT
+  ------------------------- */
   useEffect(() => {
     return () => {
       if (wheelTimeoutRef.current) {
@@ -32,21 +40,19 @@ const StoriesPlayer = ({
     };
   }, []);
 
-
+  /* ------------------------
+     Disable body scroll on hover
+  ------------------------- */
   useEffect(() => {
-  if (isHovering) {
-    document.body.style.overflow = "hidden";
-  } else {
-    document.body.style.overflow = "auto";
-  }
+    document.body.style.overflow = isHovering ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isHovering]);
 
-  return () => {
-    document.body.style.overflow = "auto";
-  };
-}, [isHovering]);
-
-
-  // Sync play/pause state with video element
+  /* ------------------------
+      Sync PLAY / PAUSE
+  ------------------------- */
   useEffect(() => {
     const vid = videoRef?.current;
     if (!vid) return;
@@ -56,14 +62,16 @@ const StoriesPlayer = ({
     } else {
       if (vid.paused && !vid.ended) {
         const playPromise = vid.play();
-        if (playPromise?.catch) playPromise.catch(() => {});
+        if (playPromise?.catch) {
+          playPromise.catch(() => {});
+        }
       }
     }
   }, [isPaused, videoRef]);
 
-  /* ------------------------------
-    TAP / CLICK / TOUCH HANDLER
-  ------------------------------- */
+  /* ------------------------
+        TAP / TOUCH
+  ------------------------- */
   const handleTap = useCallback(
     (e) => {
       e.stopPropagation();
@@ -80,38 +88,39 @@ const StoriesPlayer = ({
       if (y < rect.height * 0.33) return navigateFeed("prev");
       if (y > rect.height * 0.66) return navigateFeed("next");
 
-      // Center → toggle play/pause
+      // center area
       setIsPaused((prev) => !prev);
     },
     [navigateFeed]
   );
 
-  /* ------------------------------
-      WHEEL HANDLER (DEBOUNCED)
-  ------------------------------- */
-const handleWheel = (e) => {
-  e.stopPropagation();
-
-  if (wheelTimeoutRef.current) return;
-
-  wheelTimeoutRef.current = setTimeout(() => {
-    wheelTimeoutRef.current = null;
-  }, 500);
-
-  navigateFeed(e.deltaY < 0 ? "prev" : "next");
-};
-
-  /* ------------------------------
-      ACTION HANDLERS
-  ------------------------------- */
-  const handleLike = (e) => {
+  /* ------------------------
+          WHEEL
+  ------------------------- */
+  const handleWheel = (e) => {
     e.stopPropagation();
-    likeFeedAction?.();
+
+    if (wheelTimeoutRef.current) return;
+
+    wheelTimeoutRef.current = setTimeout(() => {
+      wheelTimeoutRef.current = null;
+    }, 500);
+
+    navigateFeed(e.deltaY < 0 ? "prev" : "next");
   };
 
-  const handleShare = (e) => {
+  /* ------------------------
+        ACTION HANDLERS
+  ------------------------- */
+
+  const handleLikeClick = (e) => {
     e.stopPropagation();
-    shareFeedAction?.();
+    if (onLike) onLike();
+  };
+
+  const handleShareClick = (e) => {
+    e.stopPropagation();
+    if (onShare) onShare();
   };
 
   return (
@@ -124,7 +133,7 @@ const handleWheel = (e) => {
       onWheel={handleWheel}
       tabIndex={0}
     >
-      {/* Close Button */}
+      {/* CLOSE BUTTON */}
       <button
         type="button"
         onClick={(e) => {
@@ -137,7 +146,7 @@ const handleWheel = (e) => {
         <FiX size={20} />
       </button>
 
-      {/* Hover Arrows */}
+      {/* NAV ARROWS */}
       {isHovering && (
         <>
           <button
@@ -173,7 +182,7 @@ const handleWheel = (e) => {
             className="max-w-full max-h-full"
             onEnded={() => navigateFeed("next")}
             playsInline
-            controls
+            controls={false}
             autoPlay={!isPaused}
           />
         ) : (
@@ -186,67 +195,52 @@ const handleWheel = (e) => {
         )}
       </div>
 
-      {/* RIGHT-SIDE ACTIONS */}
+      {/* SIDE ACTIONS */}
       <div className="absolute right-4 bottom-20 z-20 flex flex-col gap-4">
-        {/* Like */}
+
+        {/* LIKE */}
         <button
           type="button"
-          onClick={handleLike}
+          onClick={handleLikeClick}
           className="flex flex-col items-center gap-1 text-white hover:scale-110"
         >
           <div
             className={`p-2 rounded-full ${
-              feed?.isLiked ? "bg-red-500" : "bg-black/40"
+              isLikedState ? "bg-red-500" : "bg-black/40"
             }`}
           >
             <FiHeart size={24} />
           </div>
-          <span className="text-xs">{feed?.likesCount || 0}</span>
+          <span className="text-xs">{likesCount}</span>
         </button>
 
-        {/* Views */}
+        {/* VIEWS */}
         <button
           type="button"
-          onClick={(e) => e.stopPropagation()}
           className="flex flex-col items-center gap-1 text-white"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="p-2 rounded-full bg-black/40">
             <FiEye size={24} />
           </div>
-          <span className="text-xs">{feed?.viewsCount || 0}</span>
+          <span className="text-xs">{totalViews || 0}</span>
         </button>
 
-        {/* Share */}
+        {/* SHARE */}
         <button
           type="button"
-          onClick={handleShare}
+          onClick={handleShareClick}
           className="flex flex-col items-center gap-1 text-white hover:scale-110"
         >
           <div className="p-2 rounded-full bg-black/40 hover:bg-blue-500/80">
             <FiShare2 size={24} />
           </div>
-          <span className="text-xs">Share</span>
+          <span className="text-xs">{totalShare||0}</span>
         </button>
       </div>
 
-      {/* MEDIA TYPE BADGE */}
-      <div className="absolute bottom-4 left-4 z-20">
-        <div className="bg-black/50 px-2 py-1 rounded text-xs text-white">
-          {feed?.type === "video" ? (
-            <span className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              Video
-            </span>
-          ) : (
-            <span className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Photo
-            </span>
-          )}
-        </div>
-      </div>
 
-      {/* HOVER INFO */}
+      {/* HOVER TIP */}
       {isHovering && (
         <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20">
           <div className="bg-black/70 px-3 py-1 rounded text-xs text-white text-center">

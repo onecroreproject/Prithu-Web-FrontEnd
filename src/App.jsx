@@ -39,7 +39,7 @@ import Feed from './pages/Feed.jsx';
 import SearchResultsScreen from "./components/SearchComponent/mainLayout.jsx";
 import UpcomingEvents from "./components/UpcomingEvents.jsx";
 import Jobsection from "./components/Jobs/Jobsection.jsx";
-import JobsHomePage from "./components/Jobs/HeaderJobs/JobSection.jsx";
+import JobsHomePage from "./components/Jobs/HeaderJobs/JobLayout.jsx";
 import JobDomainPage from "./components/Jobs/HeaderJobs/JobDomainPage.jsx";
 
 
@@ -131,7 +131,7 @@ function AppRoutes() {
 
       {/* Shared post */}
       <Route
-        path="/post/:feedId"
+        path="/retrivefeed/:feedId"
         element={
           <ProtectedRoute>
             <PostDetails />

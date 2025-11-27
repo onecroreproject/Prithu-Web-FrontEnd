@@ -36,12 +36,22 @@ export function useSavePost(feedId) {
 
 export function useSharePost(feedId, userId) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ shareChannel, shareTarget }) =>
-      api.post('/api/user/feed/share', { feedId, userId, shareChannel, shareTarget }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['feeds'] }),
+      api.post("/api/user/feed/share", {
+        feedId,
+        userId,
+        shareChannel,
+        shareTarget
+      }),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feeds"] });
+    }
   });
 }
+
 
 export function useFollowUser() {
   const queryClient = useQueryClient();
@@ -87,4 +97,25 @@ export function useUnfollowUser() {
     },
   });
 }
+
+
+
+const downloadFeedService = async ({ feedId, userId }) => {
+  const response = await api.post("/api/user/feed/download", {
+    feedId,
+    userId,
+  });
+
+  return response.data;
+};
+
+// ------------------------------
+// 📌 React Query Hook
+// ------------------------------
+export const useDownloadFeed = () => {
+  return useMutation({
+    mutationFn: ({ feedId, userId }) =>
+      downloadFeedService({ feedId, userId }),
+  });
+};
 

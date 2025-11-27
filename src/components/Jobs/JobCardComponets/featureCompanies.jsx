@@ -1,6 +1,6 @@
 import React, { useState, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchRankedJobs } from "../../../Service/jobservice";
+import { fetchRankedJobs } from "../../../Service/jobservices";
 import UnifiedJobPopup from "./unifiedJobPopUp";
 import { Star, Building2 } from "lucide-react";
 import { motion } from "framer-motion";

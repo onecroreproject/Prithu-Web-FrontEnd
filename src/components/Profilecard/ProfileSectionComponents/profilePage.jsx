@@ -15,29 +15,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
 import { useUserProfile, useTogglePublish } from "../../../hook/userProfile";
 import { toast } from "react-hot-toast";
- 
+
 import EditProfile from "./editProfile";
 import EditEducation from "./editEductionProfile";
 import EditExperience from "./editExperience";
 import EditSkill from "./editSkillProfile";
 import EditCertification from "./editCertificationProfile";
- 
-export default function ProfilePage() {
+
+export default function ProfilePage(id) {
   const [expandedSection, setExpandedSection] = useState("profile");
   const { token } = useAuth();
   const { data: profile, isLoading } = useUserProfile(token);
   const toggleMutation = useTogglePublish(token);
   const [localProfile, setLocalProfile] = useState(profile);
- 
+
   const handleSectionToggle = (section) =>
     setExpandedSection((prev) => (prev === section ? null : section));
- 
+
   // ✅ Publish / Unpublish Resume
   const handleTogglePublish = async () => {
     try {
       const newState = !localProfile?.isPublished;
       const response = await toggleMutation.mutateAsync(newState);
- 
+
       // ✅ Update local state instantly
       if (response?.success) {
         const updatedProfile = {
@@ -56,50 +56,62 @@ export default function ProfilePage() {
       toast.error("❌ Error toggling publish state");
     }
   };
- 
+
   const shareLink = localProfile?.shareableLink;
   const isPublished = localProfile?.isPublished;
- 
+
   if (isLoading)
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
- 
-  const profileSections = [
-    {
-      key: "profile",
-      title: "Profile Information",
-      icon: <User2 className="w-5 h-5 text-blue-600" />,
-      component: <EditProfile />,
-    },
-    {
-      key: "education",
-      title: "Education",
-      icon: <GraduationCap className="w-5 h-5 text-blue-600" />,
-      component: <EditEducation />,
-    },
-    {
-      key: "experience",
-      title: "Work Experience",
-      icon: <Briefcase className="w-5 h-5 text-blue-600" />,
-      component: <EditExperience />,
-    },
-    {
-      key: "skills",
-      title: "Skills",
-      icon: <Code2 className="w-5 h-5 text-blue-600" />,
-      component: <EditSkill />,
-    },
-    {
-      key: "certifications",
-      title: "Certifications",
-      icon: <Award className="w-5 h-5 text-blue-600" />,
-      component: <EditCertification />,
-    },
-  ];
- 
+
+  // 🔒 If ID exists (viewing someone else's profile), show only profile section
+  const hasId = id && id.id;
+  
+  const profileSections = hasId 
+    ? [ // Only show profile section when ID exists
+        {
+          key: "profile",
+          title: "Profile Information",
+          icon: <User2 className="w-5 h-5 text-blue-600" />,
+          component: <EditProfile id={id} />,
+        },
+      ]
+    : [ // Show all sections for own profile
+        {
+          key: "profile",
+          title: "Profile Information",
+          icon: <User2 className="w-5 h-5 text-blue-600" />,
+          component: <EditProfile id={id} />,
+        },
+        {
+          key: "education",
+          title: "Education",
+          icon: <GraduationCap className="w-5 h-5 text-blue-600" />,
+          component: <EditEducation />,
+        },
+        {
+          key: "experience",
+          title: "Work Experience",
+          icon: <Briefcase className="w-5 h-5 text-blue-600" />,
+          component: <EditExperience />,
+        },
+        {
+          key: "skills",
+          title: "Skills",
+          icon: <Code2 className="w-5 h-5 text-blue-600" />,
+          component: <EditSkill />,
+        },
+        {
+          key: "certifications",
+          title: "Certifications",
+          icon: <Award className="w-5 h-5 text-blue-600" />,
+          component: <EditCertification />,
+        },
+      ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -109,25 +121,29 @@ export default function ProfilePage() {
     >
       {/* 🔝 Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-xl font-bold text-gray-900 text-center sm:text-left">User Profile</h2>
- 
-        {/* 🌐 Share Resume Toggle */}
-        <div className="flex items-center justify-center gap-3 bg-blue-50 rounded-lg p-3 sm:p-3 border border-blue-100">
-          <Share2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-          <label className="flex items-center gap-3 cursor-pointer">
-            <span className="text-sm text-gray-700 whitespace-nowrap">Share Resume</span>
-            <input
-              type="checkbox"
-              checked={isPublished}
-              onChange={handleTogglePublish}
-              className="toggle toggle-primary"
-            />
-          </label>
-        </div>
+        <h2 className="text-xl font-bold text-gray-900 text-center sm:text-left">
+          {hasId ? "User Profile" : "My Profile"}
+        </h2>
+
+        {/* 🌐 Share Resume Toggle - Only show for own profile */}
+        {!hasId && (
+          <div className="flex items-center justify-center gap-3 bg-blue-50 rounded-lg p-3 sm:p-3 border border-blue-100">
+            <Share2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <label className="flex items-center gap-3 cursor-pointer">
+              <span className="text-sm text-gray-700 whitespace-nowrap">Share Resume</span>
+              <input
+                type="checkbox"
+                checked={isPublished}
+                onChange={handleTogglePublish}
+                className="toggle toggle-primary"
+              />
+            </label>
+          </div>
+        )}
       </div>
- 
-      {/* ✅ Show shareable link when published */}
-      {isPublished && shareLink && (
+
+      {/* ✅ Show shareable link when published - Only for own profile */}
+      {!hasId && isPublished && shareLink && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -157,7 +173,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
       )}
- 
+
       {/* 📂 Profile Sections */}
       <div className="space-y-4">
         {profileSections.map((section, index) => (
@@ -185,7 +201,7 @@ export default function ProfilePage() {
                   {section.title}
                 </motion.h3>
               </div>
- 
+
               <motion.div
                 initial={false}
                 animate={{
@@ -201,7 +217,7 @@ export default function ProfilePage() {
                 )}
               </motion.div>
             </motion.div>
- 
+
             {/* Expandable Content */}
             <AnimatePresence initial={false}>
               {expandedSection === section.key && (
@@ -230,4 +246,3 @@ export default function ProfilePage() {
     </motion.div>
   );
 }
- 

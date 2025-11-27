@@ -1,7 +1,4 @@
-// ✅ src/components/Profile/EditProfile.jsx
 import React, { useEffect, useState, useRef } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useUserProfile } from "../../../hook/userProfile";
@@ -10,12 +7,12 @@ import { useAuth } from "../../../context/AuthContext";
 import api from "../../../api/axios";
 import debounce from "lodash.debounce";
 import { motion, AnimatePresence } from "framer-motion";
-import { Edit3, Save, X, User, Phone, MapPin, Calendar, Link2, Lock, Users } from "lucide-react";
+import { Edit3, Save, X, User, Mail, Phone, MapPin, Calendar, Globe, Lock, Bell, Link2, ChevronDown, Eye, EyeOff, Users } from "lucide-react";
  
 export default function EditProfile({ id, visibility }) {
   const { token } = useAuth();
-  const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token, id);
-  const currentUser = localStorage.getItem("userId");
+  const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token, id.id);
+  const currentUser=localStorage.getItem("userId");
   const [isEditing, setIsEditing] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -23,6 +20,8 @@ export default function EditProfile({ id, visibility }) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followStatusLoading, setFollowStatusLoading] = useState(false);
  
+  console.log("id",visibility);
+  console.log(user);
   const [formData, setFormData] = useState({
     userName: "",
     name: "",
@@ -38,6 +37,12 @@ export default function EditProfile({ id, visibility }) {
     country: "",
     phoneNumber: "",
     whatsAppNumber: "",
+    theme: "light",
+    language: "English",
+    timezone: "Asia/Kolkata",
+    details: "",
+    notifications: true,
+    privacy: "public",
     socialLinks: {
       facebook: "",
       instagram: "",
@@ -52,32 +57,38 @@ export default function EditProfile({ id, visibility }) {
   const initialDataRef = useRef(JSON.stringify(formData));
  
   // 🧩 Check if current user is following the profile user
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      if (!id || !currentUser || id === String(currentUser)) return;
+// 🧩 Check if current user is following the profile user
+useEffect(() => {
+  const checkFollowStatus = async () => {
+    // currentUser from localStorage is a string id
+    if (!id.id || !currentUser || id.id === String(currentUser)) return;
  
-      try {
-        setFollowStatusLoading(true);
-        const response = await api.post(
-          "/api/check/follow/status",
-          {
-            creatorId: id,
-            followerId: String(currentUser)
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        setIsFollowing(Boolean(response.data?.isFollowing));
-      } catch (err) {
-        console.error("Error checking follow status:", err);
-      } finally {
-        setFollowStatusLoading(false);
-      }
-    };
+    try {
+      setFollowStatusLoading(true);
  
-    checkFollowStatus();
-  }, [id, currentUser, token]);
+      const response = await api.post(
+        "/api/check/follow/status",
+        {
+          creatorId: id.id,                 // profile owner
+          followerId: String(currentUser) // logged-in user (string)
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+ 
+      setIsFollowing(Boolean(response.data?.isFollowing));
+    } catch (err) {
+      console.error("Error checking follow status:", err);
+    } finally {
+      setFollowStatusLoading(false);
+    }
+  };
+ 
+  checkFollowStatus();
+}, [id, currentUser, token]);
+ 
+ 
  
   // 🧩 Prefill user data
   useEffect(() => {
@@ -97,6 +108,12 @@ export default function EditProfile({ id, visibility }) {
       country: user.country || "",
       phoneNumber: user.phoneNumber || "",
       whatsAppNumber: user.whatsAppNumber || "",
+      theme: user.theme || "light",
+      language: user.language || "English",
+      timezone: user.timezone || "Asia/Kolkata",
+      details: user.details || "",
+      notifications: user.notifications ?? true,
+      privacy: user.privacy || "public",
       socialLinks: {
         facebook: user.socialLinks?.facebook || "",
         instagram: user.socialLinks?.instagram || "",
@@ -180,7 +197,7 @@ export default function EditProfile({ id, visibility }) {
  
   const handleSave = (e) => {
     e.preventDefault();
-    const payload = new FormData();
+  const payload = new FormData();
  
     Object.entries(formData).forEach(([key, value]) => {
       if (key === "socialLinks") {
@@ -203,18 +220,6 @@ export default function EditProfile({ id, visibility }) {
     setShowMaritalDate(JSON.parse(initialDataRef.current).maritalStatus === "Married");
   };
  
-  // 🔥 If id exists (viewing another user's profile), show view-only mode with visibility checks
-  if (id) {
-    return (
-      <ProfileDetailsView
-        user={user}
-        visibility={visibility}
-        currentUserId={String(currentUser)}
-        isFollowing={isFollowing}
-      />
-    );
-  }
- 
   if (profileLoading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -223,25 +228,38 @@ export default function EditProfile({ id, visibility }) {
     );
   }
  
+  // 🔥 If id exists (viewing another user's profile), show view-only mode with visibility checks
+ if (id.id) {
+  return (
+    <ProfileDetailsView
+      user={user}
+      visibility={id.visibility}
+      currentUserId={String(currentUser)} // localStorage id (string)
+      isFollowing={isFollowing}
+    />
+  );
+}
+ 
+ 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="bg-white rounded-xl w-full max-w-6xl mx-auto"
+      className="bg-white rounded-xl border border-gray-200 shadow-sm"
     >
       {/* Header Section */}
-      <div className="bg-blue-50 rounded-t-xl p-3 sm:p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <User className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+      <div className="bg-blue-50 border-b border-blue-100 rounded-t-xl p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <User className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900">
                 {isEditing ? "Edit Profile" : "Profile Details"}
               </h2>
-              <p className="text-gray-600 text-xs mt-1">
+              <p className="text-gray-600 text-sm mt-1">
                 {isEditing ? "Update your personal information" : "View and manage your profile"}
               </p>
             </div>
@@ -251,43 +269,43 @@ export default function EditProfile({ id, visibility }) {
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-xs sm:text-sm w-full sm:w-auto"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
             >
-              <Edit3 className="w-3 h-3" />
+              <Edit3 className="w-4 h-4" />
               Edit Profile
             </button>
           ) : (
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-xs sm:text-sm w-1/2 sm:w-auto"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
               >
-                <X className="w-3 h-3" />
+                <X className="w-4 h-4" />
                 Cancel
               </button>
               <button
                 type="submit"
                 form="profile-form"
                 disabled={mutation.isLoading || !hasUnsavedChanges}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors duration-200 text-xs sm:text-sm w-1/2 sm:w-auto ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
                   mutation.isLoading || !hasUnsavedChanges
                     ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
                 }`}
               >
-                <Save className="w-3 h-3" />
-                {mutation.isLoading ? "Saving..." : "Save"}
+                <Save className="w-4 h-4" />
+                {mutation.isLoading ? "Saving..." : "Save Changes"}
               </button>
             </div>
           )}
         </div>
       </div>
  
-      <form id="profile-form" className="p-3 sm:p-4 space-y-4 sm:space-y-6" onSubmit={handleSave}>
+      <form id="profile-form" className="p-6 space-y-8" onSubmit={handleSave}>
         {/* Personal Information Section */}
         <Section title="Personal Information" icon={User}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <InputField
               label="First Name"
               value={formData.name}
@@ -318,7 +336,7 @@ export default function EditProfile({ id, visibility }) {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`text-xs font-medium ${
+                className={`text-sm font-medium ${
                   usernameStatus.available ? "text-green-600" : "text-red-600"
                 }`}
               >
@@ -330,7 +348,7 @@ export default function EditProfile({ id, visibility }) {
  
         {/* Contact Information Section */}
         <Section title="Contact Information" icon={Phone}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <InputField
               label="Phone Number"
               value={formData.phoneNumber}
@@ -348,22 +366,6 @@ export default function EditProfile({ id, visibility }) {
               type="tel"
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
-            <SelectField
-              label="Gender"
-              options={["Male", "Female", "Other"]}
-              value={formData.gender}
-              onChange={(v) => handleChange("gender", v)}
-              disabled={!isEditing}
-            />
-            <SelectField
-              label="Marital Status"
-              options={["Single", "Married", "Divorced", "Widowed"]}
-              value={formData.maritalStatus}
-              onChange={handleMaritalStatusChange}
-              disabled={!isEditing}
-            />
-          </div>
         </Section>
  
         {/* Location Information */}
@@ -374,9 +376,8 @@ export default function EditProfile({ id, visibility }) {
             onChange={(v) => handleChange("address", v)}
             disabled={!isEditing}
             icon={MapPin}
-            rows={2}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <InputField
               label="City"
               value={formData.city}
@@ -394,32 +395,43 @@ export default function EditProfile({ id, visibility }) {
           </div>
         </Section>
  
-        {/* Date of Birth Section */}
+        {/* Dates Section */}
         <Section title="Important Dates" icon={Calendar}>
-          <div className="grid grid-cols-1 gap-2 sm:gap-3">
-            <DateField
+          <div className="space-y-4">
+            <DateInputField
               label="Date of Birth"
               value={formData.dateOfBirth}
               onChange={(date) => handleChange("dateOfBirth", date)}
               disabled={!isEditing}
             />
-            <AnimatePresence>
-              {showMaritalDate && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <DateField
-                    label="Marriage Date"
-                    value={formData.maritalDate}
-                    onChange={(date) => handleChange("maritalDate", date)}
-                    disabled={!isEditing}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+ 
+            <div className="space-y-3">
+              <SelectField
+                label="Marital Status"
+                options={["Single", "Married", "Divorced", "Widowed"]}
+                value={formData.maritalStatus}
+                onChange={handleMaritalStatusChange}
+                disabled={!isEditing}
+              />
+ 
+              <AnimatePresence>
+                {showMaritalDate && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <DateInputField
+                      label="Marriage Date"
+                      value={formData.maritalDate}
+                      onChange={(date) => handleChange("maritalDate", date)}
+                      disabled={!isEditing}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </Section>
  
@@ -430,7 +442,7 @@ export default function EditProfile({ id, visibility }) {
             value={formData.bio}
             onChange={(v) => handleChange("bio", v)}
             disabled={!isEditing}
-            rows={3}
+            rows={4}
           />
           <TextArea
             label="Profile Summary"
@@ -441,9 +453,57 @@ export default function EditProfile({ id, visibility }) {
           />
         </Section>
  
+        {/* Preferences Section */}
+        <Section title="Preferences" icon={Globe}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SelectField
+              label="Theme"
+              options={["light", "dark", "system"]}
+              value={formData.theme}
+              onChange={(v) => handleChange("theme", v)}
+              disabled={!isEditing}
+            />
+            <InputField
+              label="Timezone"
+              value={formData.timezone}
+              onChange={(v) => handleChange("timezone", v)}
+              disabled={!isEditing}
+              icon={Globe}
+            />
+          </div>
+        </Section>
+ 
+ 
+        {/* Privacy & Notifications */}
+        <Section title="Privacy & Notifications" icon={Lock}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SelectField
+              label="Privacy"
+              options={["public", "private", "followers"]}
+              value={formData.privacy}
+              onChange={(v) => handleChange("privacy", v)}
+              disabled={!isEditing}
+            />
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <Bell className="w-4 h-4 text-gray-600" />
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700">Enable Notifications</label>
+                <p className="text-xs text-gray-500">Receive updates and alerts</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={formData.notifications}
+                onChange={(e) => handleChange("notifications", e.target.checked)}
+                disabled={!isEditing}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </Section>
+ 
         {/* Social Links Section */}
-        <Section title="Professional Links" icon={Link2}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+        <Section title="Social Media Links" icon={Link2}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {Object.keys(formData.socialLinks).map((platform) => (
               <InputField
                 key={platform}
@@ -462,10 +522,11 @@ export default function EditProfile({ id, visibility }) {
 }
  
 /* 🔥 Profile Details View Component with Visibility Checks */
+/* 🔥 Profile Details View Component with Visibility Checks */
 function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing }) {
   if (!user) return null;
  
-  // helper: compare current user id with profile owner id
+  // helper: compare current user id with profile owner id (profile may have userId or _id)
   const isViewingOwnProfile = () => {
     const profileOwnerId = user.userId ? String(user.userId) : String(user._id || "");
     return Boolean(currentUserId) && String(currentUserId) === profileOwnerId;
@@ -487,7 +548,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
       case "followers":
         return Boolean(isFollowing);
       default:
-        return true;
+        return true; // safe default
     }
   };
  
@@ -500,7 +561,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
     });
   };
  
-  // Check which sections have visible content
+  // Check which sections have visible content (use visibility rules)
   const hasBasicInfo =
     (isFieldVisible("name", visibility?.name) && (user.name || user.lastName)) ||
     (isFieldVisible("userName", visibility?.userName) && user.userName) ||
@@ -521,10 +582,11 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
     (isFieldVisible("maritalStatus", visibility?.maritalStatus) && user.maritalStatus) ||
     (isFieldVisible("maritalDate", visibility?.maritalDate) && user.maritalDate);
  
-  // Filter social links based on visibility
+  // Filter social links based on visibility rules inside visibility.socialLinks
   const visibleSocialLinks = user.socialLinks
     ? Object.entries(user.socialLinks)
         .filter(([platform, value]) => {
+          // only show if value exists AND visibility setting for that platform allows it
           const platformVisibility = visibility?.socialLinks?.[platform] ?? "public";
           return value && isFieldVisible(platform, platformVisibility);
         })
@@ -535,16 +597,14 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
  
   // 🔒 Privacy Notice Component
   const PrivacyNotice = ({ fieldName }) => (
-    <div className="flex items-center gap-2 text-gray-400 text-xs">
-      <Lock className="w-3 h-3" />
+    <div className="flex items-center gap-2 text-gray-400 text-sm">
+      <Lock className="w-4 h-4" />
       <span>This information is set to private</span>
     </div>
   );
- 
-  // 👥 Followers Only Notice
   const FollowersOnlyNotice = () => (
-    <div className="flex items-center gap-2 text-gray-400 text-xs">
-      <Users className="w-3 h-3" />
+    <div className="flex items-center gap-2 text-gray-400 text-sm">
+      <Users className="w-4 h-4" />
       <span>Follow to view this information</span>
     </div>
   );
@@ -554,276 +614,265 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="bg-white rounded-xl w-full max-w-6xl mx-auto"
+      className="bg-white"
     >
-      {/* Header Section */}
-      <div className="bg-blue-50 rounded-t-xl p-3 sm:p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <User className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-gray-900">
-              Profile Details
-            </h2>
-            <p className="text-gray-600 text-xs mt-1">
-              View profile information
-            </p>
+      {/* Basic Information */}
+      {hasBasicInfo && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">About</h3>
+          <div className="space-y-4">
+            {isFieldVisible("name", visibility?.name) && (user.name || user.lastName) && (
+              <div className="flex items-start">
+                <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-600">Full Name</p>
+                  <p className="text-gray-900 font-medium">{user.name} {user.lastName}</p>
+                </div>
+              </div>
+            )}
+ 
+            {isFieldVisible("userName", visibility?.userName) && user.userName && (
+              <div className="flex items-start">
+                <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-600">Username</p>
+                  <p className="text-gray-900 font-medium">@{user.userName}</p>
+                </div>
+              </div>
+            )}
+ 
+            {user.bio ? (
+              isFieldVisible("bio", visibility?.bio) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Bio</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.bio}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="bio" />
+              )
+            ) : null}
+ 
+            {user.profileSummary ? (
+              isFieldVisible("profileSummary", visibility?.profileSummary) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Profile Summary</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.profileSummary}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="profileSummary" />
+              )
+            ) : null}
           </div>
         </div>
-      </div>
+      )}
  
-      <div className="p-3 sm:p-4 space-y-4 sm:space-y-6">
-        {/* Basic Information */}
-        {hasBasicInfo && (
-          <Section title="About" icon={User}>
-            <div className="space-y-3">
-              {isFieldVisible("name", visibility?.name) && (user.name || user.lastName) && (
+      {/* Contact Information */}
+      {hasContactInfo && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h3>
+          <div className="space-y-4">
+            {user.phoneNumber ? (
+              isFieldVisible("phoneNumber", visibility?.phoneNumber) ? (
                 <div className="flex items-start">
-                  <User className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+                  <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-600">Full Name</p>
-                    <p className="text-gray-900 text-sm font-medium">{user.name} {user.lastName}</p>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="text-gray-900 font-medium">{user.phoneNumber}</p>
                   </div>
                 </div>
-              )}
-                            {isFieldVisible("userName", visibility?.userName) && user.userName && (
+              ) : (
+                <PrivacyNotice fieldName="phoneNumber" />
+              )
+            ) : null}
+ 
+            {user.whatsAppNumber ? (
+              isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) ? (
                 <div className="flex items-start">
-                  <User className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+                  <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-600">Username</p>
-                    <p className="text-gray-900 text-sm font-medium">@{user.userName}</p>
+                    <p className="text-sm text-gray-600">WhatsApp</p>
+                    <p className="text-gray-900 font-medium">{user.whatsAppNumber}</p>
                   </div>
                 </div>
-              )}
- 
-              {user.bio ? (
-                isFieldVisible("bio", visibility?.bio) ? (
-                  <div className="flex items-start">
-                    <User className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Bio</p>
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">{user.bio}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="bio" />
-                )
-              ) : null}
- 
-              {user.profileSummary ? (
-                isFieldVisible("profileSummary", visibility?.profileSummary) ? (
-                  <div className="flex items-start">
-                    <User className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Profile Summary</p>
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">{user.profileSummary}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="profileSummary" />
-                )
-              ) : null}
-            </div>
-          </Section>
-        )}
- 
-        {/* Contact Information */}
-        {hasContactInfo && (
-          <Section title="Contact Information" icon={Phone}>
-            <div className="space-y-3">
-              {user.phoneNumber ? (
-                isFieldVisible("phoneNumber", visibility?.phoneNumber) ? (
-                  <div className="flex items-start">
-                    <Phone className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Phone</p>
-                      <p className="text-gray-900 text-sm font-medium">{user.phoneNumber}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="phoneNumber" />
-                )
-              ) : null}
- 
-              {user.whatsAppNumber ? (
-                isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) ? (
-                  <div className="flex items-start">
-                    <Phone className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">WhatsApp</p>
-                      <p className="text-gray-900 text-sm font-medium">{user.whatsAppNumber}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="whatsAppNumber" />
-                )
-              ) : null}
-            </div>
-          </Section>
-        )}
- 
-        {/* Location Information */}
-        {hasLocationInfo && (
-          <Section title="Location" icon={MapPin}>
-            <div className="space-y-3">
-              {user.address ? (
-                isFieldVisible("address", visibility?.address) ? (
-                  <div className="flex items-start">
-                    <MapPin className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Address</p>
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">{user.address}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="address" />
-                )
-              ) : null}
- 
-              {user.city ? (
-                isFieldVisible("city", visibility?.city) ? (
-                  <div className="flex items-start">
-                    <MapPin className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">City</p>
-                      <p className="text-gray-900 text-sm">{user.city}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="city" />
-                )
-              ) : null}
- 
-              {user.country ? (
-                isFieldVisible("country", visibility?.country) ? (
-                  <div className="flex items-start">
-                    <MapPin className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Country</p>
-                      <p className="text-gray-900 text-sm">{user.country}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="country" />
-                )
-              ) : null}
-            </div>
-          </Section>
-        )}
- 
-        {/* Important Dates */}
-        {hasDateInfo && (
-          <Section title="Life Events" icon={Calendar}>
-            <div className="space-y-3">
-              {user.dateOfBirth ? (
-                isFieldVisible("dateOfBirth", visibility?.dateOfBirth) ? (
-                  <div className="flex items-start">
-                    <Calendar className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Date of Birth</p>
-                      <p className="text-gray-900 text-sm">{formatDate(user.dateOfBirth)}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="dateOfBirth" />
-                )
-              ) : null}
- 
-              {user.maritalStatus ? (
-                isFieldVisible("maritalStatus", visibility?.maritalStatus) ? (
-                  <div className="flex items-start">
-                    <User className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Marital Status</p>
-                      <p className="text-gray-900 text-sm">{user.maritalStatus}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="maritalStatus" />
-                )
-              ) : null}
- 
-              {user.maritalDate ? (
-                isFieldVisible("maritalDate", visibility?.maritalDate) ? (
-                  <div className="flex items-start">
-                    <Calendar className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-600">Marriage Date</p>
-                      <p className="text-gray-900 text-sm">{formatDate(user.maritalDate)}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <PrivacyNotice fieldName="maritalDate" />
-                )
-              ) : null}
-            </div>
-          </Section>
-        )}
- 
-        {/* Social Links */}
-        {hasSocialLinks && (
-          <Section title="Social Media" icon={Link2}>
-            <div className="space-y-2">
-              {visibleSocialLinks.map(({ platform, value }) => (
-                <div key={platform} className="flex items-start">
-                  <Link2 className="w-3 h-3 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-600 capitalize">{platform}</p>
-                    <a
-                      href={value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 break-all text-sm"
-                    >
-                      {value}
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Section>
-        )}
- 
-        {/* Empty State */}
-        {!hasBasicInfo && !hasContactInfo && !hasLocationInfo && !hasDateInfo && !hasSocialLinks && (
-          <div className="text-center py-8">
-            <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">No profile information</h3>
-            <p className="text-gray-500 text-xs">This user hasn't added any profile details yet.</p>
+              ) : (
+                <PrivacyNotice fieldName="whatsAppNumber" />
+              )
+            ) : null}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+ 
+      {/* Location Information */}
+      {hasLocationInfo && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Location</h3>
+          <div className="space-y-4">
+            {user.address ? (
+              isFieldVisible("address", visibility?.address) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Address</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{user.address}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="address" />
+              )
+            ) : null}
+ 
+            {user.city ? (
+              isFieldVisible("city", visibility?.city) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">City</p>
+                    <p className="text-gray-900">{user.city}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="city" />
+              )
+            ) : null}
+ 
+            {user.country ? (
+              isFieldVisible("country", visibility?.country) ? (
+                <div className="flex items-start">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Country</p>
+                    <p className="text-gray-900">{user.country}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="country" />
+              )
+            ) : null}
+          </div>
+        </div>
+      )}
+ 
+      {/* Important Dates */}
+      {hasDateInfo && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Life Events</h3>
+          <div className="space-y-4">
+            {user.dateOfBirth ? (
+              isFieldVisible("dateOfBirth", visibility?.dateOfBirth) ? (
+                <div className="flex items-start">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Date of Birth</p>
+                    <p className="text-gray-900">{formatDate(user.dateOfBirth)}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="dateOfBirth" />
+              )
+            ) : null}
+ 
+            {user.maritalStatus ? (
+              isFieldVisible("maritalStatus", visibility?.maritalStatus) ? (
+                <div className="flex items-start">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Marital Status</p>
+                    <p className="text-gray-900">{user.maritalStatus}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="maritalStatus" />
+              )
+            ) : null}
+ 
+            {user.maritalDate ? (
+              isFieldVisible("maritalDate", visibility?.maritalDate) ? (
+                <div className="flex items-start">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-600">Marriage Date</p>
+                    <p className="text-gray-900">{formatDate(user.maritalDate)}</p>
+                  </div>
+                </div>
+              ) : (
+                <PrivacyNotice fieldName="maritalDate" />
+              )
+            ) : null}
+          </div>
+        </div>
+      )}
+ 
+      {/* Social Links */}
+      {hasSocialLinks && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Social Media</h3>
+          <div className="space-y-3">
+            {visibleSocialLinks.map(({ platform, value }) => (
+              <div key={platform} className="flex items-start">
+                <Link2 className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-600 capitalize">{platform}</p>
+                  <a
+                    href={value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 break-all"
+                  >
+                    {value}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+ 
+ 
+       {/* Empty State */}
+      {!hasBasicInfo && !hasContactInfo && !hasLocationInfo && !hasDateInfo && !hasSocialLinks && (
+        <div className="text-center py-12">
+          <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No profile information</h3>
+          <p className="text-gray-500">This user hasn't added any profile details yet.</p>
+        </div>
+      )}
     </motion.div>
   );
 }
  
+ 
 /* ✅ Reusable Section Component */
 function Section({ title, icon: Icon, children }) {
   return (
-    <div className="space-y-2 sm:space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-          <Icon className="w-3 h-3 text-blue-600" />
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <Icon className="w-4 h-4 text-blue-600" />
         </div>
-        <h3 className="text-sm sm:text-base font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
-      <div className="space-y-2 sm:space-y-3">
+      <div className="space-y-4">
         {children}
       </div>
     </div>
   );
 }
  
-/* ✅ Reusable Input Components */
+/* ✅ Reusable Input Components (for edit mode) */
 function InputField({ label, value, onChange, disabled, icon: Icon, type = "text" }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       <div className="relative">
         {Icon && (
-          <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
-            <Icon className="w-3 h-3 text-gray-400" />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+            <Icon className="w-4 h-4 text-gray-400" />
           </div>
         )}
         <input
@@ -831,12 +880,53 @@ function InputField({ label, value, onChange, disabled, icon: Icon, type = "text
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className={`w-full p-2 rounded-lg transition-colors duration-200 text-xs ${
-            Icon ? "pl-8" : ""
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
+            Icon ? "pl-10" : ""
           } ${
             disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "bg-white border border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+ 
+/* ✅ Simple Date Input Field Component */
+function DateInputField({ label, value, onChange, disabled }) {
+  const formatDateForInput = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string') {
+      return date.split('T')[0];
+    }
+    if (date instanceof Date) {
+      return date.toISOString().split('T')[0];
+    }
+    return '';
+  };
+ 
+  const handleDateChange = (e) => {
+    const newDate = e.target.value ? new Date(e.target.value) : null;
+    onChange(newDate);
+  };
+ 
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          <Calendar className="w-4 h-4 text-gray-400" />
+        </div>
+        <input
+          type="date"
+          value={formatDateForInput(value)}
+          onChange={handleDateChange}
+          disabled={disabled}
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 pl-10 ${
+            disabled
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           }`}
         />
       </div>
@@ -847,11 +937,11 @@ function InputField({ label, value, onChange, disabled, icon: Icon, type = "text
 function TextArea({ label, value, onChange, disabled, icon: Icon, rows = 3 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       <div className="relative">
         {Icon && (
-          <div className="absolute left-2 top-2">
-            <Icon className="w-3 h-3 text-gray-400" />
+          <div className="absolute left-3 top-3">
+            <Icon className="w-4 h-4 text-gray-400" />
           </div>
         )}
         <textarea
@@ -859,12 +949,12 @@ function TextArea({ label, value, onChange, disabled, icon: Icon, rows = 3 }) {
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
           disabled={disabled}
-          className={`w-full p-2 rounded-lg transition-colors duration-200 text-xs ${
-            Icon ? "pl-8" : ""
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
+            Icon ? "pl-10" : ""
           } ${
             disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "bg-white border border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           }`}
         />
       </div>
@@ -875,48 +965,33 @@ function TextArea({ label, value, onChange, disabled, icon: Icon, rows = 3 }) {
 function SelectField({ label, options, value, onChange, disabled }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className={`w-full p-2 rounded-lg transition-colors duration-200 text-xs ${
-          disabled
-            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-            : "bg-white border border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        }`}
-      >
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 appearance-none ${
+            disabled
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          }`}
+        >
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
     </div>
   );
 }
  
-function DateField({ label, value, onChange, disabled }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-      <DatePicker
-        selected={value}
-        onChange={onChange}
-        dateFormat="dd/MM/yyyy"
-        maxDate={new Date()}
-        showYearDropdown
-        disabled={disabled}
-        className={`w-full p-2 rounded-lg transition-colors duration-200 text-xs ${
-          disabled
-            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-            : "bg-white border border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        }`}
-      />
-    </div>
-  );
-}
- 
+export { DateInputField };
  
  
  

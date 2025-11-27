@@ -7,13 +7,16 @@ import { Heart, Calendar, Play, Image, Loader, Eye, EyeOff, Ban, Tag } from "luc
 export default function ActivitySection({ id }) {
   const [activeSubTab, setActiveSubTab] = useState("personal");
 
-  const subTabs = [
-    { id: "personal", label: "Post" },
-    { id: "favourites", label: "Favourites" },
-    { id: "hidden", label: "Hidden" },
-    { id: "notInterested", label: "Not Interested" },
-  ];
-
+  const subTabs = id
+    ? [
+        { id: "personal", label: "Post" },   // only visible tab
+      ]
+    : [
+        { id: "personal", label: "Post" },
+        { id: "favourites", label: "Favourites" },
+        { id: "hidden", label: "Hidden" },
+        { id: "notInterested", label: "Not Interested" },
+      ];
   const renderContent = () => {
     switch (activeSubTab) {
       case "personal":

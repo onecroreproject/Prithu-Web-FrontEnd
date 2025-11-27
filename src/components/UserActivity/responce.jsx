@@ -125,7 +125,7 @@ const Response = () => {
     // Handle notification click - navigate to appropriate page
     const handleNotificationClick = (notification) => {
         if (!notification.isRead) markAsRead(notification._id);
-console.log(notification)
+
         // Handle follow notifications
         if (notification.type?.toLowerCase().includes('follow')) {
             const followerId = notification.sender?.id;

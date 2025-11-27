@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAllFeeds,
@@ -12,11 +12,8 @@ import {
   getFeedsByHashtag,
 } from "../Service/feedService";
 import PostcardWrapper from "../components/FeedPageComponent/postCardWraper";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
 import Stories from "../components/Stories";
 import Createpost from "../components/postCreatedCard";
-import Postcard from "../components/FeedPageComponent/Postcard";
 import JobCard from "../components/Jobs/jobCard";
 import { Skeleton } from "@mui/material";
 
@@ -66,7 +63,7 @@ const mapJobForCard = (job) => ({
     : [],
   createdAt: job.createdAt,
   postedAt: timeAgoFrom(job.createdAt),
-  score: job.priorityScore + (job.isPaid ? 5 : 0) + (job.isApproved ? 2 : 0),
+  score: (job.priorityScore || 0) + (job.isPaid ? 5 : 0) + (job.isApproved ? 2 : 0),
 });
 
 /* ------------------------------- Skeleton ------------------------------- */
@@ -90,30 +87,31 @@ const FeedSkeleton = () => (
 
 /* -------------------------------- Feed Component ------------------------------- */
 
-const Feed = ({ authUser, notifyfeedid ,searchFeedId}) => {
+const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const { tagname } = useParams();
   const { token } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // If route is /retrivefeed/:id, this grabs the id from pathname.
-  // This works with your app routing where the feed page is visible in the same Layout.
-  const currentFeedId = (location.pathname.includes("/retrivefeed/") && location.pathname.split("/retrivefeed/")[1]) || null;
+  // safe extraction (strip query string) for /retrivefeed/:id
+  const currentFeedId = (() => {
+    const m = location.pathname.match(/\/retrivefeed\/([^/]+)/);
+    return m ? decodeURIComponent(m[1].split("?")[0]) : null;
+  })();
 
   const [showReels, setShowReels] = useState(false);
   const [feedCategory, setFeedCategory] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
-  const navigate = useNavigate();
-  // Creator-mode state (when currentFeedId exists)
+
+  // creator-mode state (when currentFeedId exists and not ref=share)
   const [creatorModeFeeds, setCreatorModeFeeds] = useState(null);
   const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
 
   const JOB_RATIO = 3;
-
-
 
   // stable refs for token & other volatile things
   const tokenRef = useRef(token);
@@ -121,35 +119,36 @@ const Feed = ({ authUser, notifyfeedid ,searchFeedId}) => {
     tokenRef.current = token;
   }, [token]);
 
-  /* ---------------------- Infinite feeds query (existing behavior) ---------------------- */
-const {
-  data: feedPages,
-  fetchNextPage,
-  hasNextPage,
-  isFetchingNextPage,
-  isLoading: isFeedsLoading,
-  isError: feedsError,
-} = useInfiniteQuery({
-queryKey: ["feeds", token, tagname || "all"],
-queryFn: ({ pageParam = 1 }) =>
-  tagname
-    ? getFeedsByHashtag(tagname, pageParam, token)
-    : getAllFeeds(pageParam, token),
-getNextPageParam: (lastPage, pages) =>
-    lastPage.length < 10 ? undefined : pages.length + 1,
-enabled: !!token,
-refetchOnWindowFocus: false,
-});
+  // unified query key (use this everywhere)
+  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all"];
 
-
+  /* ---------------------- Infinite feeds query ---------------------- */
+  const {
+    data: feedPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isFeedsLoading,
+    isError: feedsError,
+  } = useInfiniteQuery({
+    queryKey: feedsQueryKey,
+    queryFn: ({ pageParam = 1 }) =>
+      tagname
+        ? getFeedsByHashtag(tagname, pageParam, tokenRef.current || token)
+        : getAllFeeds(pageParam, tokenRef.current || token),
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length < 10 ? undefined : pages.length + 1,
+    enabled: !!(tokenRef.current || token),
+    refetchOnWindowFocus: false,
+  });
 
   const feeds = feedPages?.pages.flat() || [];
 
-  /* ---------------------- Jobs query (existing) ---------------------- */
+  /* ---------------------- Jobs query ---------------------- */
   const { data: jobs = [], isLoading: isJobsLoading, isError: jobsError } = useQuery({
-    queryKey: ["jobs", token],
-    queryFn: () => getTopRankedJobs(token),
-    enabled: !!token,
+    queryKey: ["jobs", tokenRef.current || token],
+    queryFn: () => getTopRankedJobs(tokenRef.current || token),
+    enabled: !!(tokenRef.current || token),
   });
 
   /* ---------------------- normalize single feed (fallback) ---------------------- */
@@ -191,63 +190,185 @@ refetchOnWindowFocus: false,
   }, []);
 
   /* ---------------------- Helper: inject single feed into cache (safe) ---------------------- */
-  const injectSingleFeedIntoCache = useCallback((singleFeed) => {
-    if (!singleFeed) return;
-    queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
-      if (!oldData || !oldData.pages) {
-        return { pages: [[singleFeed]], pageParams: [1] };
-      }
-      const seenId = singleFeed._id || singleFeed.feedId || singleFeed.id || singleFeed.feedID;
-      // remove duplicates anywhere
-      const cleanedPages = oldData.pages.map((p) => p.filter((it) => (it._id || it.feedId || it.id || it.feedID) !== seenId));
-      const newFirstPage = [{ ...singleFeed, __highlight: true }, ...(cleanedPages[0] || [])];
-      return { ...oldData, pages: [newFirstPage, ...cleanedPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
-    });
-  }, [queryClient]);
+  const injectSingleFeedIntoCache = useCallback(
+    (singleFeed) => {
+      if (!singleFeed) return;
+      queryClient.setQueryData(feedsQueryKey, (oldData) => {
+        // If no cache, create a first page
+        if (!oldData || !oldData.pages) {
+          return { pages: [[{ ...singleFeed, __highlight: true }]], pageParams: [1] };
+        }
+
+        const seenId = singleFeed._id || singleFeed.feedId || singleFeed.id || singleFeed.feedID;
+
+        // Remove the item from wherever it appears (preserve per-page order)
+        const cleanedPages = oldData.pages.map((page) =>
+          page.filter((it) => (it._id || it.feedId || it.id || it.feedID) !== seenId)
+        );
+
+        // Insert the single at the start of the first page (preserve order of others)
+        const newFirstPage = [{ ...singleFeed, __highlight: true }, ...(cleanedPages[0] || [])];
+
+        return { ...oldData, pages: [newFirstPage, ...cleanedPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
+      });
+    },
+    [queryClient, feedsQueryKey]
+  );
 
   /* ---------------------- Helper: move feed in cache to top ---------------------- */
-  const moveFeedToTop = useCallback((feedId) => {
-    if (!feedId) return;
-    queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
-      if (!oldData || !oldData.pages) return oldData;
-      const flat = oldData.pages.flat();
-      const idx = flat.findIndex((it) => (it._id || it.feedId || it.id || it.feedID) === feedId);
-      if (idx === -1) return oldData;
-      const [found] = flat.splice(idx, 1);
-      const highlighted = { ...found, __highlight: true };
-      const newFirstPage = [highlighted, ...flat];
-      return { ...oldData, pages: [newFirstPage, ...oldData.pages.slice(1)], pageParams: oldData.pageParams ?? [1] };
-    });
-  }, [queryClient]);
+  const moveFeedToTop = useCallback(
+    (feedId) => {
+      if (!feedId) return;
+      queryClient.setQueryData(feedsQueryKey, (oldData) => {
+        if (!oldData || !oldData.pages) return oldData;
+
+        const idCheck = (it) => (it._id || it.feedId || it.id || it.feedID) === feedId;
+
+        // Find and remove the item from its page
+        let removedItem = null;
+        const newPages = oldData.pages.map((page) => {
+          if (removedItem) return page;
+          const idx = page.findIndex(idCheck);
+          if (idx === -1) return page;
+          removedItem = page[idx];
+          return [...page.slice(0, idx), ...page.slice(idx + 1)];
+        });
+
+        // No item found => nothing to do
+        if (!removedItem) return oldData;
+
+        // Put removed item at start of first page (highlighted)
+        const highlighted = { ...removedItem, __highlight: true };
+        const firstPage = newPages[0] ? [highlighted, ...newPages[0]] : [highlighted];
+
+        return { ...oldData, pages: [firstPage, ...newPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
+      });
+    },
+    [queryClient, feedsQueryKey]
+  );
 
   /* ---------------------- highlight helper ---------------------- */
-  const highlightAndUnhighlight = useCallback((feedId) => {
-    if (!feedId) return;
-    setHighlightedFeedId(feedId);
-    moveFeedToTop(feedId);
-    // remove highlight later
-    setTimeout(() => {
-      setHighlightedFeedId(null);
-      queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) => page.map((item) => {
-            if ((item._id || item.feedId || item.id || item.feedID) === feedId) {
-              return { ...item, __highlight: false };
-            }
-            return item;
-          })),
-          pageParams: oldData.pageParams ?? [1],
-        };
-      });
-    }, 4000);
-  }, [moveFeedToTop, queryClient]);
+  const highlightAndUnhighlight = useCallback(
+    (feedId) => {
+      if (!feedId) return;
+      setHighlightedFeedId(feedId);
+      moveFeedToTop(feedId);
 
-  /* ---------------------- Creator mode: fetch creator feeds when currentFeedId exists ---------------------- */
+      // remove highlight later
+      setTimeout(() => {
+        setHighlightedFeedId(null);
+        queryClient.setQueryData(feedsQueryKey, (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) =>
+              page.map((item) => {
+                if ((item._id || item.feedId || item.id || item.feedID) === feedId) {
+                  return { ...item, __highlight: false };
+                }
+                return item;
+              })
+            ),
+            pageParams: oldData.pageParams ?? [1],
+          };
+        });
+      }, 4000);
+    },
+    [moveFeedToTop, queryClient, feedsQueryKey]
+  );
+
+  /* ---------------------- Share injector: /retrivefeed/:id?ref=share ---------------------- */
+  useEffect(() => {
+    if (!currentFeedId) return;
+
+    const params = new URLSearchParams(location.search);
+    const isShare = params.get("ref") === "share";
+    if (!isShare) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        if (hasScrolledToNotifyFeed) return;
+
+        // Try cache first
+        const cache = queryClient.getQueryData(feedsQueryKey);
+        const pages = cache?.pages ?? [];
+        const flat = pages.flat();
+        const matchIndex = flat.findIndex((it) => (it._id || it.feedId || it.id || it.feedID) === currentFeedId);
+
+        // Build normalized single feed object (if found in cache reuse it)
+        let single = null;
+        if (matchIndex !== -1) {
+          single = flat[matchIndex];
+        } else {
+          // fetch single feed from API (allow unauth requests if backend supports)
+          const raw = await getSingleFeed(currentFeedId, tokenRef.current || token);
+          if (!raw) {
+            setHasScrolledToNotifyFeed(true);
+            return;
+          }
+          single = normalizeSingleFeed(raw);
+        }
+
+        if (cancelled) return;
+
+        // Inject single into cache, preserving original order
+        injectSingleFeedIntoCache(single);
+
+        // Highlight & scroll
+        setHighlightedFeedId(currentFeedId);
+        setTimeout(() => {
+          const feedTop = document.getElementById("feedTop");
+          feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setHasScrolledToNotifyFeed(true);
+        }, 250);
+
+        // Clear highlight and __highlight flag after a short while
+        setTimeout(() => {
+          setHighlightedFeedId(null);
+          queryClient.setQueryData(feedsQueryKey, (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) =>
+                page.map((item) =>
+                  (item._id || item.feedId || item.id || item.feedID) === currentFeedId
+                    ? { ...item, __highlight: false }
+                    : item
+                )
+              ),
+              pageParams: oldData.pageParams ?? [1],
+            };
+          });
+        }, 3500);
+
+        // OPTIONAL: remove ref=share so refresh doesn't re-run - uncomment if desired:
+        // window.history.replaceState({}, document.title, location.pathname);
+      } catch (err) {
+        console.error("Error handling retrievefeed share:", err);
+        setHasScrolledToNotifyFeed(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentFeedId, location.search, feedsQueryKey, tokenRef, queryClient, injectSingleFeedIntoCache, normalizeSingleFeed, token, hasScrolledToNotifyFeed]);
+
+  /* ---------------------- Creator mode: fetch creator feeds when currentFeedId exists (skip for ref=share) ---------------------- */
   useEffect(() => {
     // If there's no feed id in pathname, reset creator mode
     if (!currentFeedId) {
+      setCreatorModeFeeds(null);
+      setCreatorId(null);
+      setIsCreatorModeLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const isShare = params.get("ref") === "share";
+    if (isShare) {
+      // keep creator mode disabled; the shared feed will be injected elsewhere
       setCreatorModeFeeds(null);
       setCreatorId(null);
       setIsCreatorModeLoading(false);
@@ -259,15 +380,12 @@ refetchOnWindowFocus: false,
     const run = async () => {
       setIsCreatorModeLoading(true);
       try {
-        // getFeedsByCreator is expected to return enriched feeds (you said it's enriched)
-        const res = await getFeedsByCreator(currentFeedId, tokenRef.current);
-        // normalize defensive path: if res.feeds exist use them; otherwise accept res as array
+        const res = await getFeedsByCreator(currentFeedId, tokenRef.current || token);
         const creatorFeedsRaw = res?.feeds ?? (Array.isArray(res) ? res : []);
         const cId = res?.creatorId ?? (creatorFeedsRaw[0]?.createdByAccount || creatorFeedsRaw[0]?.userId || null);
 
         if (cancelled) return;
 
-        // We expect enriched objects matching main feed shape; still normalize minimally to ensure _id present
         const normalized = creatorFeedsRaw.map((f) => ({
           ...f,
           _id: f._id || f.feedId || f.id,
@@ -280,20 +398,21 @@ refetchOnWindowFocus: false,
         const clickedIndex = normalized.findIndex((it) => (it._id || it.feedId) === currentFeedId);
         if (clickedIndex > -1) {
           const [clicked] = normalized.splice(clickedIndex, 1);
-          // mark highlight
           const highlighted = { ...clicked, __highlight: true };
           normalized.unshift(highlighted);
-          // auto-scroll to top once
+
           setTimeout(() => {
             const feedTop = document.getElementById("feedTop");
             feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
           }, 250);
-          // clear highlight after a few seconds
+
           setTimeout(() => {
-            setCreatorModeFeeds((prev) => prev?.map((item) => {
-              if ((item._id || item.feedId) === currentFeedId) return { ...item, __highlight: false };
-              return item;
-            }));
+            setCreatorModeFeeds((prev) =>
+              prev?.map((item) => {
+                if ((item._id || item.feedId) === currentFeedId) return { ...item, __highlight: false };
+                return item;
+              })
+            );
           }, 3500);
         }
 
@@ -301,7 +420,6 @@ refetchOnWindowFocus: false,
         setCreatorId(cId || null);
       } catch (err) {
         console.error("Error fetching creator feeds:", err);
-        // fallback: set creatorModeFeeds to null so regular feed shows
         setCreatorModeFeeds(null);
         setCreatorId(null);
       } finally {
@@ -311,20 +429,22 @@ refetchOnWindowFocus: false,
 
     run();
 
-    return () => { cancelled = true; };
-  }, [currentFeedId]);
+    return () => {
+      cancelled = true;
+    };
+    // re-run when id or token changes
+  }, [currentFeedId, tokenRef.current, token]);
 
-  /* ---------------------- notifyfeedid handling: keep your previous behavior (no break) ---------------------- */
-  // This effect makes sure when notifyfeedid is present (notifications), the feed moves to top or is fetched
+  /* ---------------------- notifyfeedid handling (notifications) ---------------------- */
   useEffect(() => {
     if (!notifyfeedid) return;
-    if (!token) return;
+    if (!tokenRef.current && !token) return;
     if (hasScrolledToNotifyFeed) return;
 
     let cancelled = false;
     const run = async () => {
       // Try cache first
-      const cache = queryClient.getQueryData(["feeds", tokenRef.current]);
+      const cache = queryClient.getQueryData(feedsQueryKey);
       const flat = cache?.pages?.flat?.() || [];
       const found = flat.find((it) => (it._id || it.feedId || it.id || it.feedID) === notifyfeedid);
 
@@ -341,7 +461,7 @@ refetchOnWindowFocus: false,
         setTimeout(() => {
           if (cancelled) return;
           setHighlightedFeedId(null);
-          queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
+          queryClient.setQueryData(feedsQueryKey, (oldData) => {
             if (!oldData) return oldData;
             return {
               ...oldData,
@@ -360,13 +480,12 @@ refetchOnWindowFocus: false,
         return;
       }
 
-      // If not found in cache but feeds not loaded yet - wait for feeds to load (effect will re-run)
+      // If not found in cache but feeds not loaded yet - wait
       const feedsLoaded = !!feedPages && Array.isArray(feedPages.pages) && feedPages.pages.length > 0;
       if (!feedsLoaded) return;
 
-      // Otherwise fetch single feed and inject
       try {
-        const raw = await getSingleFeed(notifyfeedid, tokenRef.current);
+        const raw = await getSingleFeed(notifyfeedid, tokenRef.current || token);
         if (!raw) {
           setHasScrolledToNotifyFeed(true);
           return;
@@ -384,7 +503,7 @@ refetchOnWindowFocus: false,
         setTimeout(() => {
           if (cancelled) return;
           setHighlightedFeedId(null);
-          queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
+          queryClient.setQueryData(feedsQueryKey, (oldData) => {
             if (!oldData) return oldData;
             return {
               ...oldData,
@@ -407,7 +526,9 @@ refetchOnWindowFocus: false,
 
     run();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifyfeedid, feedPages, hasScrolledToNotifyFeed, token]);
 
@@ -435,9 +556,9 @@ refetchOnWindowFocus: false,
 
   useEffect(() => {
     if (feedCategory !== null) {
-      queryClient.removeQueries(["feeds", token]);
+      queryClient.removeQueries(feedsQueryKey);
     }
-  }, [feedCategory, queryClient, token]);
+  }, [feedCategory, queryClient, feedsQueryKey]);
 
   useEffect(() => {
     const handleHighlightFeed = (e) => {
@@ -466,7 +587,7 @@ refetchOnWindowFocus: false,
   useEffect(() => {
     const handleFollowStatusChange = (e) => {
       const { userId, isFollowing } = e.detail;
-      queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
+      queryClient.setQueryData(feedsQueryKey, (oldData) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -479,7 +600,7 @@ refetchOnWindowFocus: false,
     };
     window.addEventListener("userFollowStatusChanged", handleFollowStatusChange);
     return () => window.removeEventListener("userFollowStatusChanged", handleFollowStatusChange);
-  }, [queryClient]);
+  }, [queryClient, feedsQueryKey]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -507,18 +628,14 @@ refetchOnWindowFocus: false,
 
   /* ---------------------- mixing: preserve feed[0], then mix A1 ---------------------- */
   const filteredJobs = selectedRole ? jobs.filter((job) => job.title?.toLowerCase().includes(selectedRole.toLowerCase())) : jobs;
-let filteredFeeds = feeds;
+  let filteredFeeds = feeds;
 
-// If hashtag mode → bypass category & reel filters
-if (!tagname) {
-  const categoryFilteredFeeds = feedCategory
-    ? feeds.filter((f) => f?.category === feedCategory)
-    : feeds;
+  // If hashtag mode → bypass category & reel filters
+  if (!tagname) {
+    const categoryFilteredFeeds = feedCategory ? feeds.filter((f) => f?.category === feedCategory) : feeds;
 
-  filteredFeeds = showReels
-    ? categoryFilteredFeeds.filter((f) => f.type === "video")
-    : categoryFilteredFeeds;
-}
+    filteredFeeds = showReels ? categoryFilteredFeeds.filter((f) => f.type === "video") : categoryFilteredFeeds;
+  }
 
   // mixing function preserves the very first feed in list (so highlighted stays top)
   const mixFeedsAndJobs = useCallback((feedArr = [], jobArr = [], ratio = JOB_RATIO) => {
@@ -548,18 +665,17 @@ if (!tagname) {
   // Decide what to render in "feeds" area:
   // - If creatorMode active (currentFeedId present AND creatorModeFeeds set) -> show creatorModeFeeds (no jobs)
   // - Else -> use normal infinite cached feeds mixed with jobs
- let mixed = [];
-const isCreatorMode = !!currentFeedId && Array.isArray(creatorModeFeeds);
+  let mixed = [];
+  const isCreatorMode = !!currentFeedId && Array.isArray(creatorModeFeeds);
 
-if (tagname) {
-  // ⭐ HASHTAG MODE — ONLY FEEDS, NO JOBS
-  mixed = filteredFeeds.map((f) => ({ ...f, __kind: "feed" }));
-} else if (isCreatorMode) {
-  mixed = (creatorModeFeeds || []).map((f) => ({ ...f, __kind: "feed" }));
-} else {
-  mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : filteredJobs, JOB_RATIO);
-}
-
+  if (tagname) {
+    // ⭐ HASHTAG MODE — ONLY FEEDS, NO JOBS
+    mixed = filteredFeeds.map((f) => ({ ...f, __kind: "feed" }));
+  } else if (isCreatorMode) {
+    mixed = (creatorModeFeeds || []).map((f) => ({ ...f, __kind: "feed" }));
+  } else {
+    mixed = mixFeedsAndJobs(filteredFeeds, showReels ? [] : filteredJobs, JOB_RATIO);
+  }
 
   /* ---------------------- hide from UI ---------------------- */
   const handleHideFromUI = (feedId) => {
@@ -568,7 +684,7 @@ if (tagname) {
       setCreatorModeFeeds((prev) => prev?.filter((it) => (it._id || it.feedId || it.id || it.feedID) !== feedId));
     }
 
-    queryClient.setQueryData(["feeds", tokenRef.current], (oldData) => {
+    queryClient.setQueryData(feedsQueryKey, (oldData) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -588,7 +704,7 @@ if (tagname) {
           <Stories />
 
           <div className="mt-4 mb-6">
-            <Createpost authUser={authUser} token={token} />
+            <Createpost authUser={authUser} token={tokenRef.current || token} />
           </div>
 
           {isCreatorMode && (
@@ -616,14 +732,13 @@ if (tagname) {
                     {item.__kind === "job" ? (
                       <JobCard jobData={mapJobForCard(item)} />
                     ) : (
-                      <PostcardWrapper 
-  key={item._id || item.feedId || idx}
-  postData={item}
-  authUser={authUser}
-  token={token}
-  onHideFromUI={handleHideFromUI}
-/>
-
+                      <PostcardWrapper
+                        key={item._id || item.feedId || idx}
+                        postData={item}
+                        authUser={authUser}
+                        token={tokenRef.current || token}
+                        onHideFromUI={handleHideFromUI}
+                      />
                     )}
                   </motion.div>
                 ))

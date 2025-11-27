@@ -23,6 +23,7 @@ export const useAutoLogin = ({ setToken, setUser, setSessionId, navigate }) => {
           {
             refreshToken,
             deviceId,
+            sessionId,
             os,
             browser,
             deviceType,

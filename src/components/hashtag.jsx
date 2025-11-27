@@ -110,7 +110,7 @@ export default function TrendingHashtags() {
     const clean = hashtag.tag.replace(/^#+/, "");
     navigate(`/hashtag/${clean}`);
   }}
-      className="font-semibold text-gray-900 text-sm sm:text-lg truncate">
+      className="font-semibold text-gray-900 text-sm sm:text-lg hover:cursor-pointer hover:text-blue-400 hover:underline truncate">
         #{hashtag.tag}
       </h3>
       <p className="text-gray-600 text-xs sm:text-sm truncate">

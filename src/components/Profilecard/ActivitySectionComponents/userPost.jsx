@@ -200,19 +200,22 @@ const UserPosts = ({ authUser, token, id }) => {
     return (
       <div className="relative" ref={menuRef}>
         {/* Three dots button */}
-        <button
-          onClick={(e) => handleMenuToggle(post._id, e)}
-          className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-1.5 rounded-full transition-all z-10"
-          disabled={deletingPost === post._id}
-        >
-          {deletingPost === post._id ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-            </svg>
-          )}
-        </button>
+        {!id && (
+  <button
+    onClick={(e) => handleMenuToggle(post._id, e)}
+    className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-1.5 rounded-full transition-all z-10"
+    disabled={deletingPost === post._id}
+  >
+    {deletingPost === post._id ? (
+      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+    ) : (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+      </svg>
+    )}
+  </button>
+)}
+
 
         {/* Dropdown menu */}
         <AnimatePresence>
@@ -302,15 +305,7 @@ const UserPosts = ({ authUser, token, id }) => {
           {getTabDisplayName()} ({currentPosts.length})
         </h1>
         
-        {/* Show "See All Photos" button only if there are photos */}
-        {imagePosts.length > 0 && activeTab === "image" && (
-          <button
-            onClick={handleSeeAllPhotos}
-            className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
-          >
-            See All Photos
-          </button>
-        )}
+     
       </div>
     );
   };

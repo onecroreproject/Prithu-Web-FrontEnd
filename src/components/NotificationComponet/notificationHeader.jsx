@@ -87,12 +87,6 @@ export default function NotificationHeader({
               >
                 Read All
               </button>
-              <button
-                onClick={onDeleteAll}
-                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-all duration-200"
-              >
-                Clear All
-              </button>
             </div>
           </div>
         </div>

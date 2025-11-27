@@ -1,32 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-hot-toast";
+
 import { useStories } from "../components/Stories/hooks/useStories";
 import StoriesThumbnails from "../components/Stories/storiesThumbnail";
 import StoriesModal from "../components/Stories/storiesModel";
 import MobileStoriesView from "../components/Stories/mobileStoriesView";
 
-// Hook to detect mobile/desktop
+import { useLikePost, useSharePost } from "../hooks/usePostActions";
+
+
+// Detect mobile/desktop
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
+    if (media.matches !== matches) setMatches(media.matches);
     const listener = () => setMatches(media.matches);
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
   }, [matches, query]);
 
   return matches;
 };
 
 const Stories = () => {
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const {
-    // states
     feeds,
     selectedFeedIndex,
     thumbnails,
@@ -74,14 +76,115 @@ const Stories = () => {
     fetchReplies,
     postReply,
     likeReply,
-    likeFeedAction,
     toggleSaveFeed,
-    shareFeedAction,
     navigateFeed,
     handleVideoTimeUpdate,
   } = useStories();
 
-  const selectedFeed = selectedFeedIndex !== null ? feeds[selectedFeedIndex] : null;
+
+  // -------------------------------------------------
+  // 1️⃣ SELECTED FEED
+  // -------------------------------------------------
+  const selectedFeed =
+    selectedFeedIndex !== null ? feeds[selectedFeedIndex] : null;
+
+  if (!selectedFeed) {
+    // Prevent errors on first render
+  }
+
+  const feedId = selectedFeed?._id || null;
+
+  // IMPORTANT: your feed uses totalLikes
+  const apiTotalLikes = selectedFeed?.totalLikes ?? 0;
+
+  // -------------------------------------------------
+  // 2️⃣ LIKE STATE
+  // -------------------------------------------------
+  const [isLikedState, setIsLiked] = useState(selectedFeed?.isLiked || false);
+  const [likesCount, setLikesCount] = useState(apiTotalLikes);
+  const [totalViews,setTotalViews] =useState(selectedFeed?.totalViews||0);
+  const [totalShare,setTotalShare] =useState(selectedFeed?.totalShares||0);
+
+  const stableFeedId = useRef(feedId);
+
+  // when changing feed slide, update UI
+  useEffect(() => {
+    if (feedId) {
+      stableFeedId.current = feedId;
+
+      setIsLiked(selectedFeed?.isLiked || false);
+      setLikesCount(selectedFeed?.totalLikes ?? 0);
+      setTotalViews(selectedFeed?.totalViews ?? 0);
+      setTotalShare(selectedFeed?.totalShares ?? 0);
+    }
+  }, [feedId, selectedFeed]);
+
+
+  const UserId = localStorage.getItem("userId");
+  const likeMutation = useLikePost();
+  const shareMutation = useSharePost(feedId, UserId);
+
+
+  // -------------------------------------------------
+  // 3️⃣ SHARE POST
+  // -------------------------------------------------
+const handleShare = useCallback(async () => {
+  if (!feedId) return;
+
+
+
+  const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
+
+  shareMutation.mutate({
+    shareChannel: navigator.share ? "native_share" : "copy_link",
+    shareTarget: null
+  });
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Check this post",
+        url: shareUrl,
+      });
+      return;
+    } catch {}
+  }
+
+  navigator.clipboard.writeText(shareUrl);
+  toast.success("Share link copied!");
+}, [feedId, shareMutation]);
+
+  // -------------------------------------------------
+  // 4️⃣ LIKE POST (Optimistic)
+  // -------------------------------------------------
+  const handleLikeFeed = useCallback(() => {
+    if (!feedId) return;
+
+    const updated = !isLikedState;
+
+    // Update UI instantly
+    setIsLiked(updated);
+    setLikesCount((prev) => (updated ? prev + 1 : Math.max(prev - 1, 0)));
+
+    likeMutation.mutate(
+      {
+        feedId,
+        userId: UserId,
+        action: updated ? "like" : "unlike",
+      },
+      {
+        onError: () => {
+          // Revert UI on failure
+          setIsLiked(!updated);
+          setLikesCount((prev) =>
+            updated ? Math.max(prev - 1, 0) : prev + 1
+          );
+          toast.error("Failed to update like");
+        },
+      }
+    );
+  }, [feedId, isLikedState, likeMutation, UserId]);
+
 
   return (
     <motion.div
@@ -92,6 +195,7 @@ const Stories = () => {
       onMouseEnter={() => setShowArrows(true)}
       onMouseLeave={() => setShowArrows(false)}
     >
+      {/* Thumbnails */}
       <StoriesThumbnails
         feeds={feeds}
         loading={loading}
@@ -110,7 +214,7 @@ const Stories = () => {
       />
 
       <AnimatePresence>
-        {selectedFeedIndex !== null && selectedFeed && (
+        {selectedFeed && (
           <motion.div
             key="modal"
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
@@ -124,94 +228,105 @@ const Stories = () => {
             }}
             style={{ overflow: "hidden" }}
           >
-            {/* Conditionally render ONLY ONE component based on screen size */}
             {!isMobile ? (
-              // Desktop View
               <StoriesModal
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
-                setSelectedFeedIndex={(i) => setSelectedFeedIndex(i)}
-                setIsPaused={setIsPaused}
-                setShowComments={setShowComments}
+                setSelectedFeedIndex={setSelectedFeedIndex}
+
+                // PLAYER
                 videoRef={videoRef}
                 progress={progress}
                 isPaused={isPaused}
-                isHovering={isHovering}
-                setIsHovering={setIsHovering}
-                navigateFeed={navigateFeed}
-                handleVideoTimeUpdate={handleVideoTimeUpdate}
+                setIsPaused={setIsPaused}
                 isMuted={isMuted}
                 setIsMuted={setIsMuted}
+                isHovering={isHovering}
+                setIsHovering={setIsHovering}
+                handleVideoTimeUpdate={handleVideoTimeUpdate}
+                navigateFeed={navigateFeed}
 
-                // comments (pass array safely)
-                comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
-                commentLoading={commentLoading}
+                // LIKE & SHARE
+                onLike={handleLikeFeed}
+                onShare={handleShare}
+                likesCount={likesCount}
+                isLikedState={isLikedState}
+                totalViews={totalViews}
+                totalShare={totalShare}
+
+                // COMMENTS
+                comments={comments[feedId] || []}
                 newComment={newComment}
                 setNewComment={setNewComment}
-                handleAddComment={() => handleAddComment(selectedFeed._id)}
-                likeComment={(commentId) => likeComment(commentId, selectedFeed._id)}
+                handleAddComment={() => handleAddComment(feedId)}
+                likeComment={(commentId) => likeComment(commentId, feedId)}
+                commentLoading={commentLoading}
+                setShowComments={setShowComments}
 
-                // replies
+                // REPLIES
                 replies={replies}
                 replyInputs={replyInputs}
                 setReplyInputs={setReplyInputs}
-                replyLoading={replyLoading}
                 showReplies={showReplies}
                 setShowReplies={setShowReplies}
                 fetchReplies={fetchReplies}
                 postReply={(commentId) =>
                   postReply({
-                    feedId: selectedFeed._id,
+                    feedId,
                     parentCommentId: commentId,
-                    replyText: replyInputs[commentId] || ""
-                  })}
+                    replyText: replyInputs[commentId] || "",
+                  })
+                }
                 likeReply={likeReply}
 
-                // feed actions
-                likeFeedAction={(idx) => likeFeedAction(selectedFeed._id, idx)}
-                toggleSaveFeed={() => toggleSaveFeed(selectedFeed._id, selectedFeedIndex)}
-                shareFeedAction={() => shareFeedAction(selectedFeed._id)}
+                // SAVE
+                toggleSaveFeed={() => toggleSaveFeed(feedId, selectedFeedIndex)}
               />
             ) : (
-              // Mobile View
               <MobileStoriesView
                 feed={selectedFeed}
                 selectedFeedIndex={selectedFeedIndex}
-                setSelectedFeedIndex={(i) => setSelectedFeedIndex(i)}
+                setSelectedFeedIndex={setSelectedFeedIndex}
+                setShowComments={setShowComments}
+                // PLAYER
                 videoRef={videoRef}
                 progress={progress}
                 isPaused={isPaused}
                 setIsPaused={setIsPaused}
-                setShowComments={setShowComments}
-                showComments={showComments}
+                isMuted={isMuted}
+                setIsMuted={setIsMuted}
                 touchStartTime={touchStartTime}
                 setTouchStartTime={setTouchStartTime}
                 handleVideoTimeUpdate={handleVideoTimeUpdate}
+                navigateFeed={navigateFeed}
                 setProgress={setProgress}
-                // comments (array)
-                comments={selectedFeed?._id ? comments[selectedFeed._id] || [] : []}
-                commentLoading={commentLoading}
+
+                // LIKE & SHARE
+                onLike={handleLikeFeed}
+                onShare={handleShare}
+                likesCount={likesCount}
+                isLiked={isLikedState}
+
+                // COMMENTS
+                comments={comments[feedId] || []}
                 newComment={newComment}
                 setNewComment={setNewComment}
-                handleAddComment={() => handleAddComment(selectedFeed._id)}
-                likeComment={(commentId) => likeComment(commentId, selectedFeed._id)}
+                handleAddComment={() => handleAddComment(feedId)}
+                likeComment={(commentId) => likeComment(commentId, feedId)}
+                commentLoading={commentLoading}
 
-                // replies
+                // REPLIES
                 replies={replies}
                 replyInputs={replyInputs}
                 setReplyInputs={setReplyInputs}
-                replyLoading={replyLoading}
                 showReplies={showReplies}
                 setShowReplies={setShowReplies}
                 fetchReplies={fetchReplies}
-                postReply={(commentId) => postReply(selectedFeed._id, commentId)}
+                postReply={(commentId) => postReply(feedId, commentId)}
                 likeReply={likeReply}
 
-                // feed actions
-                likeFeedAction={(idx) => likeFeedAction(selectedFeed._id, idx)}
-                toggleSaveFeed={() => toggleSaveFeed(selectedFeed._id, selectedFeedIndex)}
-                shareFeedAction={() => shareFeedAction(selectedFeed._id)}
-                navigateFeed={navigateFeed}
+                // SAVE
+                toggleSaveFeed={() => toggleSaveFeed(feedId, selectedFeedIndex)}
               />
             )}
           </motion.div>

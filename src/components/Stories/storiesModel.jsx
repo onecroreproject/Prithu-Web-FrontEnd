@@ -13,6 +13,12 @@ const StoriesModal = ({
   setProgress,
   navigateFeed,
   setIsHovering,
+  onLike,
+  onShare,
+  likesCount,
+  isLikedState,
+  totalViews,
+                totalShare,
 
   // Comments props
   comments,
@@ -38,6 +44,7 @@ const StoriesModal = ({
   toggleSaveFeed,
   shareFeedAction,
 }) => {
+ 
   return (
     <motion.div
       className="hidden md:flex relative h-[90vh] max-h-[700px] w-[850px] bg-white rounded-lg overflow-hidden mx-auto"
@@ -58,6 +65,12 @@ const StoriesModal = ({
         setShowComments={setShowComments}
         likeFeedAction={likeFeedAction}
         shareFeedAction={shareFeedAction}
+        onLike={onLike}
+  onShare={onShare}
+  likesCount={likesCount}
+  isLikedState={isLikedState}
+  totalViews={totalViews}
+                totalShare={totalShare}
       />
 
       <CommentsSection

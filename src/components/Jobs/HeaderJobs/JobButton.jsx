@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
+const CreateJobPost = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handlePostFullTimeJob = () => {
@@ -27,7 +27,7 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
         <span className="text-lg sm:text-xl mr-2">+</span>New Job
       </button>
 
-      {/* Modal */}
+      {/* Job Type Selection Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl shadow-2xl relative mx-2 sm:mx-4 max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
@@ -57,14 +57,16 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
                   
                   <div>
                     <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">Hire a Freelancer</h3>
-                    <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">Find the perfect creator in minutes.</p>
+                    <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">Find the perfect creator for short-term projects.</p>
                     
                     <ul className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                       <li className="flex items-start space-x-2 sm:space-x-3">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-sm"></div>
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-green-500 bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
                         </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Get proposals from creators matching your needs</span>
+                        <span className="text-gray-700 text-sm sm:text-base">Perfect for project-based work and specific tasks</span>
                       </li>
                       <li className="flex items-start space-x-2 sm:space-x-3">
                         <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-green-500 bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -72,21 +74,29 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Discuss, share files & schedule video calls</span>
+                        <span className="text-gray-700 text-sm sm:text-base">Flexible contract durations and hourly rates</span>
                       </li>
                       <li className="flex items-start space-x-2 sm:space-x-3">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-sm"></div>
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-green-500 bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
                         </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Pay seamlessly and securely with a credit card</span>
+                        <span className="text-gray-700 text-sm sm:text-base">Remote work with flexible timelines</span>
                       </li>
                     </ul>
                     
+                    <div className="space-y-2 text-xs text-gray-500">
+                      <div><strong>Employment Type:</strong> freelance</div>
+                      <div><strong>Work Mode:</strong> remote</div>
+                      <div><strong>Duration:</strong> Project-based</div>
+                    </div>
+                    
                     <button
                       onClick={handleFindFreelancer}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold transition-colors duration-200 text-sm sm:text-base"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold transition-colors duration-200 text-sm sm:text-base mt-4"
                     >
-                      Find a Freelancer Today
+                      Post Freelance Job
                     </button>
                   </div>
                 </div>
@@ -101,7 +111,7 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
                   
                   <div>
                     <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">Post a Full-Time Job</h3>
-                    <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">Promote your full-time opportunity.</p>
+                    <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6">Hire permanent employees for your team.</p>
                     
                     <ul className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                       <li className="flex items-start space-x-2 sm:space-x-3">
@@ -110,13 +120,7 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Share your job opportunity with millions of designers</span>
-                      </li>
-                      <li className="flex items-start space-x-2 sm:space-x-3">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-sm"></div>
-                        </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Redirect applications to your favorite external tool</span>
+                        <span className="text-gray-700 text-sm sm:text-base">Comprehensive job posting with detailed requirements</span>
                       </li>
                       <li className="flex items-start space-x-2 sm:space-x-3">
                         <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-green-500 bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -124,25 +128,54 @@ const JobButton = ({ onOpenFullTimeJobs, onOpenFreelancer }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <span className="text-gray-700 text-sm sm:text-base">Job posts are free and expire after 30 days</span>
+                        <span className="text-gray-700 text-sm sm:text-base">Salary ranges, benefits, and company details</span>
+                      </li>
+                      <li className="flex items-start space-x-2 sm:space-x-3">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border border-green-500 bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span className="text-gray-700 text-sm sm:text-base">Multiple work modes: onsite, remote, or hybrid</span>
                       </li>
                     </ul>
+
+                    <div className="space-y-2 text-xs text-gray-500">
+                      <div><strong>Employment Type:</strong> full-time</div>
+                      <div><strong>Work Mode:</strong> onsite/remote/hybrid</div>
+                      <div><strong>Duration:</strong> Permanent</div>
+                    </div>
                     
                     <button
                       onClick={handlePostFullTimeJob}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold transition-colors duration-200 text-sm sm:text-base"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg font-semibold transition-colors duration-200 text-sm sm:text-base mt-4"
                     >
-                      Post a Full-Time Job
+                      Post Full-Time Job
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Schema Information */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Job Post Includes:</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-gray-600">
+                  <div>• Company Details & Logo</div>
+                  <div>• Job Title & Category</div>
+                  <div>• Location & Work Mode</div>
+                  <div>• Skills & Qualifications</div>
+                  <div>• Salary & Benefits</div>
+                  <div>• Interview Process</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+
     </>
   );
 };
 
-export default JobButton;
+export default CreateJobPost;

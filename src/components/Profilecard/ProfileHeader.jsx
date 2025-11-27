@@ -15,11 +15,12 @@ import {
 } from "../../Service/profileService";
 import api from "../../api/axios";
 import { getCroppedImg } from "../../components/ProfileHeaderComponent/ImageCropmodel";
+import defaultAvatars from "../../assets/user.png";
 
-const defaultBanner =
-  "https://res.cloudinary.com/demo/image/upload/v1720000000/default-cover.jpg";
-const defaultAvatar =
-  "https://res.cloudinary.com/demo/image/upload/v1720000000/default-avatar.jpg";
+const defaultBanner =defaultAvatars
+ 
+const defaultAvatar =defaultAvatars
+ 
 
 export default function ProfileHeader({ id }) {
   const { token } = useAuth();
@@ -290,12 +291,7 @@ export default function ProfileHeader({ id }) {
               {/* Mobile Follow Section */}
               {!isOwnProfile && currentUser !== id && (
                 <div className="flex items-center gap-4 mt-3 sm:hidden">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
-                      {followersCount}
-                    </div>
-                    <div className="text-xs text-gray-600">Followers</div>
-                  </div>
+                  
 
                   <div>
                     {isFollowing ? (
@@ -323,13 +319,7 @@ export default function ProfileHeader({ id }) {
             {/* Desktop Follow Section */}
             {!isOwnProfile && currentUser !== id && (
               <div className="hidden sm:flex flex-col items-end gap-2">
-                <div className="text-center">
-                  <div className="text-xl font-bold text-gray-900">
-                    {followersCount}
-                  </div>
-                  <div className="text-sm text-gray-600">Followers</div>
-                </div>
-
+               
                 {isFollowing ? (
                   <button
                     onClick={handleUnfollow}

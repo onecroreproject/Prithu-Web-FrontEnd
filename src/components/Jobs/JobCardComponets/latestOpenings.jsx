@@ -1,6 +1,6 @@
 import React, { useState, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchRankedJobs } from "../../../Service/jobservice";
+import { fetchRankedJobs } from "../../../Service/jobservices";
 import UnifiedJobPopup from "./unifiedJobPopUp";
 import { Flame, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
@@ -53,7 +53,7 @@ const LatestOpenings = memo(function LatestOpenings({ openings = [], onOpeningSe
       transition: { duration: 0.25, ease: "easeOut" },
     },
   };
-
+console.log(openings)
   return (
     <div className="pb-5 border-b border-gray-100 dark:border-gray-700">
       {/* Header */}
@@ -84,15 +84,15 @@ const LatestOpenings = memo(function LatestOpenings({ openings = [], onOpeningSe
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
                 <span className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 truncate">
-                  {job.title || "Untitled Opening"}
+                  {job.jobSubCategory || "Untitled Opening"}
                 </span>
               </div>
 
               {/* Location */}
-              {job.location && (
+              {job && (
                 <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1">
                   <MapPin className="w-3.5 h-3.5 text-orange-500" />
-                  <span className="truncate">{job.location}</span>
+                  <span className="truncate">{job.city}</span>,<span className="truncate">{job.state}</span>,<span className="truncate">{job.country}</span>
                 </div>
               )}
             </motion.li>

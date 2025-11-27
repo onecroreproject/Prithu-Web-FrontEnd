@@ -117,82 +117,78 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-  /**
-   * 🔐 Login with redirect support (and device-aware session)
-   */
-  const login = async ({ identifier, password }) => {
-    setLoading(true);
-    try {
-      let storedDeviceId = localStorage.getItem("deviceId");
-      let deviceType, os, browser;
+ /**
+ * 🔐 Login with redirect support (ANY URL including queries)
+ */
+const login = async ({ identifier, password }) => {
+  setLoading(true);
+  try {
+    let storedDeviceId = localStorage.getItem("deviceId");
+    let deviceType, os, browser;
 
-      if (!storedDeviceId) {
-        const deviceDetails = getDeviceDetails();
-        storedDeviceId = deviceDetails.deviceId;
-        deviceType = deviceDetails.deviceType;
-        os = deviceDetails.os;
-        browser = deviceDetails.browser;
-        localStorage.setItem("deviceId", storedDeviceId);
-      } else {
-        const deviceDetails = getDeviceDetails();
-        deviceType = deviceDetails.deviceType;
-        os = deviceDetails.os;
-        browser = deviceDetails.browser;
-      }
+    const deviceDetails = getDeviceDetails();
+    deviceType = deviceDetails.deviceType;
+    os = deviceDetails.os;
+    browser = deviceDetails.browser;
 
-      const existingSessionId = localStorage.getItem("sessionId");
-
-      const loginPayload = {
-        identifier,
-        password,
-        deviceId: storedDeviceId,
-        deviceType,
-        os,
-        browser,
-        sessionId: existingSessionId || null,
-      };
-
-      const { data } = await api.post("/api/auth/user/login", loginPayload);
-      const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
-
-      if (!accessToken) throw new Error("Invalid login response");
-
-      // Save tokens
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("sessionId", newSessionId);
+    if (!storedDeviceId) {
+      storedDeviceId = deviceDetails.deviceId;
       localStorage.setItem("deviceId", storedDeviceId);
-      localStorage.setItem("userId", userId);
-
-      setToken(accessToken);
-      setRefreshToken(refreshToken);
-      setSessionId(newSessionId);
-
-      await fetchUserProfile(accessToken);
-
-      window.history.replaceState({}, "", "/login");
-
-      const params = new URLSearchParams(window.location.search);
-      const redirectPath = params.get("redirect");
-
-      if (redirectPath) {
-        navigate(decodeURIComponent(redirectPath), { replace: true });
-      } else {
-        navigate("/", { replace: true });
-      }
-
-      return true;
-
-    } catch (err) {
-      console.error("Login Error:", err);
-
-      // ⭐ RE-THROW BACKEND ERROR SO UI CAN SHOW IT
-      throw err;
-
-    } finally {
-      setLoading(false);
     }
-  };
+
+    const existingSessionId = localStorage.getItem("sessionId");
+
+    const loginPayload = {
+      identifier,
+      password,
+      deviceId: storedDeviceId,
+      deviceType,
+      os,
+      browser,
+      sessionId: existingSessionId || null,
+    };
+
+    const { data } = await api.post("/api/auth/user/login", loginPayload);
+    const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
+
+    if (!accessToken) throw new Error("Invalid login response");
+
+    // Save tokens
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("sessionId", newSessionId);
+    localStorage.setItem("deviceId", storedDeviceId);
+    localStorage.setItem("userId", userId);
+
+    setToken(accessToken);
+    setRefreshToken(refreshToken);
+    setSessionId(newSessionId);
+
+    await fetchUserProfile(accessToken);
+
+    // ❗ DO NOT REMOVE QUERY PARAMS — removing this fixes redirect bug
+    // window.history.replaceState({}, "", "/login");
+
+    // 🔥 Read redirect param
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get("redirect");
+
+    if (redirectPath) {
+      navigate(decodeURIComponent(redirectPath), { replace: true });
+    } else {
+      navigate("/", { replace: true });
+    }
+
+    return true;
+
+  } catch (err) {
+    console.error("Login Error:", err);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
 
 
@@ -319,7 +315,6 @@ export const AuthProvider = ({ children }) => {
     refreshToken,
     user,
     sessionId,
-    deviceId,
     onlineUsers,
     socketConnected,
     socket,

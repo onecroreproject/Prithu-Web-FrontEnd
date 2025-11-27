@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import PostOptionsMenu from "../PostOptionsMenu";
 import api from "../../../api/axios";
 import { Bookmark, BookmarkCheck } from "lucide-react";
+import ModernPostHeader from "../postModelPostHeader";
 
 const PostHeader = ({
   userId,
   userName,
+  post,
   profileAvatar,
   timeAgo,
   navigate,
@@ -82,29 +84,14 @@ const PostHeader = ({
 
   return (
     <div 
-    onClick={onCommentsClick}
-    className="flex flex-col border-b border-gray-200  p-4">
+    className="flex flex-col border-b border-gray-200  p-2">
 
       {/* Header */}
       <div className="flex items-center justify-between">
         
         {/* Avatar + Name */}
-        <div
-          onClick={() => navigate(`/user/profile/${userId}`)}
-          className="flex items-center gap-3 cursor-pointer"
-        >
-          <img
-            src={profileAvatar}
-            alt="avatar"
-            className="w-11 h-11 rounded-full object-cover"
-          />
-          <div>
-            <p className="font-semibold text-gray-900 dark:text-white">
-              {userName}
-            </p>
-            <p className="text-xs text-gray-500">{timeAgo || "Recently"}</p>
-          </div>
-        </div>
+       
+        <ModernPostHeader post={post}/>
 
         {/* Right Buttons */}
         <div className="flex items-center gap-3">
@@ -152,36 +139,7 @@ const PostHeader = ({
         </div>
       </div>
 
-      {/* Description */}
-      {dec && (
-        <div className="mt-2">
-          <div
-            ref={descRef}
-            className={`text-sm text-gray-700 dark:text-gray-300 overflow-hidden transition-all duration-200 ${
-              expanded ? "max-h-none" : "max-h-[80px] line-clamp-4"
-            }`}
-            dangerouslySetInnerHTML={{ __html: dec }}
-          />
-
-          {!expanded && isOverflowing && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-xs text-blue-600 font-medium mt-1"
-            >
-              Show more...
-            </button>
-          )}
-
-          {expanded && (
-            <button
-              onClick={() => setExpanded(false)}
-              className="text-xs text-blue-600 font-medium mt-1"
-            >
-              Show less
-            </button>
-          )}
-        </div>
-      )}
+     
     </div>
   );
 };

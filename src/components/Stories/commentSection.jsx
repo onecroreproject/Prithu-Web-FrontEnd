@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FiHeart, FiMessageCircle, FiSend, FiBookmark, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiHeart, FiMessageCircle, FiSend, FiBookmark, FiChevronDown, FiChevronUp, FiTrash2 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
 import defaultAvater from "../../assets/user.png";
+import EmojiPicker from "../EmojiPicker";
 
 const CommentsSection = ({ feed }) => {
+  const authUser=localStorage.getItem("userId")
   // State management
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -41,7 +43,7 @@ const CommentsSection = ({ feed }) => {
       setCommentLoading(false);
     }
   };
-
+console.log(nestedReplies)
   // Add new comment
   const handleAddComment = async (feedId) => {
     if (!newComment.trim()) return;
@@ -58,6 +60,69 @@ const CommentsSection = ({ feed }) => {
       }
     } catch (error) {
       console.error("Error adding comment:", error);
+    }
+  };
+
+  // Delete comment
+  const handleDeleteComment = async (commentId) => {
+  
+    try {
+      await api.delete(`/api/user/delete/comment/${commentId}`);
+      
+      // Remove comment from state
+      setComments(prev => prev.filter(comment => 
+        (comment.commentId || comment._id) !== commentId
+      ));
+      
+      // Clean up replies state
+      setReplies(prev => {
+        const newReplies = { ...prev };
+        delete newReplies[commentId];
+        return newReplies;
+      });
+    } catch (error) {
+      console.error("delete comment error", error);
+      alert("Failed to delete comment");
+    }
+  };
+
+  // Delete reply
+  const handleDeleteReply = async (replyId, commentId, isNested = false) => {
+  
+    try {
+      await api.delete(`/api/user/delete/reply/comment/${replyId}`);
+      
+      if (isNested) {
+        // Handle nested reply deletion
+        Object.keys(nestedReplies).forEach(key => {
+          if (key.startsWith(`${commentId}_`)) {
+            setNestedReplies(prev => ({
+              ...prev,
+              [key]: prev[key].filter(reply => 
+                (reply.replyId || reply._id) !== replyId
+              )
+            }));
+          }
+        });
+      } else {
+        // Handle regular reply deletion
+        setReplies(prev => ({
+          ...prev,
+          [commentId]: (prev[commentId] || []).filter(reply => 
+            (reply.replyId || reply._id) !== replyId
+          )
+        }));
+      }
+
+      // Update comment reply count
+      setComments(prev => prev.map(comment =>
+        (comment.commentId || comment._id) === commentId
+          ? { ...comment, replyCount: Math.max(0, (comment.replyCount || 1) - 1) }
+          : comment
+      ));
+    } catch (error) {
+      console.error("delete reply error", error);
+      alert("Failed to delete reply");
     }
   };
 
@@ -222,7 +287,7 @@ const CommentsSection = ({ feed }) => {
       const response = await api.post('/api/get/nested/replies', {
         parentReplyId
       });
-
+console.log(response.data.replies)
       setNestedReplies(prev => ({
         ...prev,
         [key]: response.data.replies || []
@@ -339,8 +404,14 @@ const CommentsSection = ({ feed }) => {
     return { firstLevelReplies, nestedRepliesMap };
   };
 
+  // Check if user is owner of comment/reply
+  const isOwner = (item) => {
+    return authUser && item.userId === authUser;
+  };
+
   // Recursive component for nested replies
   const ReplyItem = ({ reply, commentId, depth = 0, parentUsername = "" }) => {
+
     const maxDepth = 3;
     const canNest = depth < maxDepth;
     const nestedRepliesKey = `${commentId}_${reply.replyId || reply._id}`;
@@ -349,6 +420,7 @@ const CommentsSection = ({ feed }) => {
     const hasNestedReplies = nestedReplyCount > 0;
     const isNestedInputActive = activeNestedReplyInput === nestedRepliesKey;
     const isLoading = nestedReplyLoading[nestedRepliesKey];
+    const replyIsOwner = isOwner(reply);
 
     return (
       <div className={`flex items-start space-x-2 pt-3 ${depth > 0 ? 'ml-4' : ''}`}>
@@ -372,14 +444,27 @@ const CommentsSection = ({ feed }) => {
                 {reply.replyText || reply.commentText}
               </p>
             </div>
-            <button
-              onClick={() => likeReply(reply.replyId || reply._id, commentId)}
-              className={`text-xs flex items-center space-x-1 flex-shrink-0 ${reply.isLiked ? "text-red-500" : "text-gray-500"
-                }`}
-            >
-              <span>{reply.isLiked ? "♥" : "♡"}</span>
-              <span>{reply.likeCount || 0}</span>
-            </button>
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button
+                onClick={() => likeReply(reply.replyId || reply._id, commentId)}
+                className={`text-xs flex items-center space-x-1 ${reply.isLiked ? "text-red-500" : "text-gray-500"
+                  }`}
+              >
+                <span>{reply.isLiked ? "♥" : "♡"}</span>
+                <span>{reply.likeCount || 0}</span>
+              </button>
+              
+              {/* Delete button for reply owner */}
+              {replyIsOwner && (
+                <button
+                  onClick={() => handleDeleteReply(reply.replyId || reply._id, commentId, depth > 0)}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  title="Delete reply"
+                >
+                  <FiTrash2 size={12} />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Nested Reply buttons */}
@@ -429,7 +514,7 @@ const CommentsSection = ({ feed }) => {
                     e.target.value
                   )}
                   placeholder={`Reply to ${reply.username || reply.userName}...`}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 pr-20"
                   onKeyPress={(e) => e.key === "Enter" && handlePostReply(
                     feed._id,
                     commentId,
@@ -438,6 +523,16 @@ const CommentsSection = ({ feed }) => {
                   )}
                   autoFocus
                 />
+                <div className="absolute right-12">
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) => handleNestedReplyInput(
+                      commentId,
+                      reply.replyId || reply._id,
+                      (nestedReplyInputs[nestedRepliesKey] || "") + emoji
+                    )}
+                    buttonClassName="p-1 text-gray-400 hover:text-blue-600 rounded"
+                  />
+                </div>
                 <button
                   onClick={() => handlePostReply(
                     feed._id,
@@ -557,6 +652,9 @@ const CommentsSection = ({ feed }) => {
             const isRepliesOpen = showReplies[comment.commentId || comment._id];
             const hasReplies = (comment.replyCount || 0) > 0;
             const isReplyInputActive = activeReplyInput === (comment.commentId || comment._id);
+            const commentIsOwner = isOwner(comment);
+
+          
 
             return (
               <motion.div
@@ -586,14 +684,27 @@ const CommentsSection = ({ feed }) => {
                       <p className="text-sm text-gray-800 mt-1 break-words">{comment.commentText}</p>
                     </div>
 
-                    <button
-                      onClick={() => likeComment(comment.commentId || comment._id, feed._id)}
-                      className={`text-xs flex items-center space-x-1 flex-shrink-0 ${comment.isLiked ? "text-red-500" : "text-gray-500"
-                        }`}
-                    >
-                      <span>{comment.isLiked ? "♥" : "♡"}</span>
-                      <span>{comment.likeCount || 0}</span>
-                    </button>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <button
+                        onClick={() => likeComment(comment.commentId || comment._id, feed._id)}
+                        className={`text-xs flex items-center space-x-1 ${comment.isLiked ? "text-red-500" : "text-gray-500"
+                          }`}
+                      >
+                        <span>{comment.isLiked ? "♥" : "♡"}</span>
+                        <span>{comment.likeCount || 0}</span>
+                      </button>
+                      
+                      {/* Delete button for comment owner */}
+                      {commentIsOwner && (
+                        <button
+                          onClick={() => handleDeleteComment(comment.commentId || comment._id)}
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                          title="Delete comment"
+                        >
+                          <FiTrash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Reply buttons */}
@@ -630,7 +741,7 @@ const CommentsSection = ({ feed }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.15 }}
-                        className="flex items-center space-x-2 pt-3"
+                        className="flex items-center space-x-2 pt-3 relative"
                       >
                         <input
                           value={replyInputs[comment.commentId || comment._id] || ""}
@@ -641,10 +752,19 @@ const CommentsSection = ({ feed }) => {
                             }))
                           }
                           placeholder="Write a reply..."
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 pr-20"
                           onKeyPress={(e) => e.key === "Enter" && handlePostReply(feed._id, comment.commentId || comment._id)}
                           autoFocus
                         />
+                        <div className="absolute right-12">
+                          <EmojiPicker
+                            onEmojiSelect={(emoji) => setReplyInputs(prev => ({
+                              ...prev,
+                              [comment.commentId || comment._id]: (prev[comment.commentId || comment._id] || "") + emoji
+                            }))}
+                            buttonClassName="p-1 text-gray-400 hover:text-blue-600 rounded"
+                          />
+                        </div>
                         <button
                           onClick={() => handlePostReply(feed._id, comment.commentId || comment._id)}
                           disabled={!replyInputs[comment.commentId || comment._id]?.trim()}
@@ -691,15 +811,21 @@ const CommentsSection = ({ feed }) => {
 
       {/* BOTTOM ACTION BAR */}
       <div className="p-4 bg-white">
-        <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all">
+        <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all relative">
           <input
             type="text"
             placeholder="Add a comment..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleAddComment(feed._id)}
-            className="flex-1 text-sm outline-none bg-transparent"
+            className="flex-1 text-sm outline-none bg-transparent pr-20"
           />
+          <div className="absolute right-10">
+            <EmojiPicker
+              onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
+              buttonClassName="p-1 text-gray-400 hover:text-blue-600 rounded"
+            />
+          </div>
           <button
             onClick={() => handleAddComment(feed._id)}
             disabled={!newComment.trim()}

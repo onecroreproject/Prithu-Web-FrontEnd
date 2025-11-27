@@ -15,6 +15,8 @@ import { FiMessageCircle } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import CommentItem from "./CommentItem";
 import api from "../../api/axios";
+import EmojiPicker from "../EmojiPicker";
+import ModernPostHeader from "./postModelPostHeader";
 
 const PostCommentsModal = ({
   open,
@@ -171,20 +173,7 @@ const PostCommentsModal = ({
         >
           {/* Header */}
           <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar
-                src={post?.profileAvatar}
-                sx={{ width: 40, height: 40 }}
-              />
-              <Box>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  {post?.userName || "Unknown User"}
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {post?.timeAgo || "Unknown place"}
-                </Typography>
-              </Box>
-            </Stack>
+            <ModernPostHeader post={post}/>
           </Box>
 
           {/* Comments List */}
@@ -223,7 +212,13 @@ const PostCommentsModal = ({
                       comment={comment}
                       authUser={authUser}
                       feedId={currentFeedId}
-                      refreshComments={fetchComments}
+                      refreshParentComments={(updater) => {
+      if (typeof updater === "function") {
+         setComments(prev => updater(prev));   // 🔥 instant UI update
+      } else {
+         fetchComments(); // fallback, optional
+      }
+   }}
                     />
                   </motion.div>
                 ))}
@@ -233,34 +228,65 @@ const PostCommentsModal = ({
 
           {/* Add Comment */}
           <Stack
-            direction="row"
-            spacing={1}
-            sx={{ p: 2, borderTop: "1px solid #eee" }}
-            alignItems="center"
-          >
-            <Avatar src={authUser?.profileAvatar} sx={{ width: 36, height: 36 }} />
+  direction="row"
+  spacing={1.5}
+  sx={{ p: 2, borderTop: "1px solid #eee" }}
+  alignItems="center"
+  position="relative"
+>
+  {/* Avatar */}
+  <Avatar
+    src={authUser?.profileAvatar}
+    sx={{ width: 36, height: 36 }}
+  />
 
-            <TextField
-              variant="standard"
-              placeholder="Write a comment..."
-              value={newComment}
-              inputRef={inputRef}
-              onChange={(e) => setNewComment(e.target.value)}
-              fullWidth
-              InputProps={{ disableUnderline: true }}
-              onKeyDown={(e) =>
-                e.key === "Enter" && newComment.trim() && handlePostComment()
-              }
-            />
+  {/* Input Box */}
+  <Box sx={{ flex: 1, position: "relative" }}>
 
-            <IconButton
-              onClick={handlePostComment}
-              disabled={!newComment.trim()}
-              sx={{ color: "#1976d2" }}
-            >
-              <SendIcon />
-            </IconButton>
-          </Stack>
+    <TextField
+      variant="standard"
+      placeholder="Write a comment..."
+      value={newComment}
+      inputRef={inputRef}
+      onChange={(e) => setNewComment(e.target.value)}
+      fullWidth
+      InputProps={{ disableUnderline: true }}
+      onKeyDown={(e) =>
+        e.key === "Enter" && newComment.trim() && handlePostComment()
+      }
+      sx={{
+        pr: 5, // space for emoji button
+      }}
+    />
+
+    {/* Emoji Picker Button (aligned inside text field on the right) */}
+    <Box
+      sx={{
+        position: "absolute",
+        right: 8,
+        top: "50%",
+        transform: "translateY(-50%)",
+      }}
+    >
+      <EmojiPicker
+        onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
+        buttonClassName="p-1 text-gray-500 hover:text-blue-600 rounded"
+      />
+    </Box>
+  </Box>
+
+  {/* Send Button */}
+  <IconButton
+    onClick={handlePostComment}
+    disabled={!newComment.trim()}
+    sx={{
+      color: newComment.trim() ? "#1976d2" : "#aaa",
+    }}
+  >
+    <SendIcon />
+  </IconButton>
+</Stack>
+
         </Box>
       </Stack>
 

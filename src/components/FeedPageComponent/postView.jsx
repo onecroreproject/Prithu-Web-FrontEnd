@@ -11,7 +11,8 @@ export default function PostDetails() {
     const fetchPost = async () => {
       try {
         const res = await api.get(`/api/feed/${feedId}`);
-        setPost(res.data);
+        console.log(res.data)
+        setPost(res.data.feed);
       } catch (err) {
         console.error("Failed to fetch post:", err);
       }

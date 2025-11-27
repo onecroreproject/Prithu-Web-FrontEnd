@@ -23,6 +23,7 @@ import {
   useSharePost,
   useFollowUser,
   useUnfollowUser,
+ useDownloadFeed,
 } from "../../hooks/usePostActions";
 
 import { useComments } from "../../hooks/useComments";
@@ -80,9 +81,11 @@ function Postcard({
 
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
-  const shareMutation = useSharePost();
+  const shareMutation = useSharePost(feedId,userId);
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const downloadMutation = useDownloadFeed();
+
 
   // Update comments
   useEffect(() => {
@@ -90,6 +93,7 @@ function Postcard({
       setComments(commentsData.slice(0, 10));
     }
   }, [commentsData]);
+
 
   // IMAGE VIEW COUNT
   useEffect(() => {
@@ -209,7 +213,7 @@ function Postcard({
   }, [isSaved, feedId, saveMutation]);
 
   const handleShare = useCallback(async () => {
-    const shareUrl = `${window.location.origin}/post/${feedId}?ref=share`;
+    const shareUrl = `${window.location.origin}/retrivefeed/${feedId}?ref=share`;
 
     shareMutation.mutate({
       feedId,
@@ -234,6 +238,44 @@ function Postcard({
     toast.success("Share link copied!");
   }, [feedId, tempUser._id, shareMutation]);
 
+
+
+  
+const handleDownload = () => {
+  if (!feedId) return toast.error("Invalid feed!");
+
+  downloadMutation.mutate(
+    { feedId, userId: tempUser._id },
+    {
+      onSuccess: async ({ downloadLink }) => {
+        if (!downloadLink) return toast.error("No download link found!");
+
+        try {
+          const response = await fetch(downloadLink, { mode: "cors" });
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = downloadLink.split("/").pop();
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          window.URL.revokeObjectURL(blobUrl);
+          toast.success("Download started!");
+        } catch (error) {
+          toast.error("Failed to download");
+        }
+      },
+
+      onError: () => toast.error("Download failed"),
+    }
+  );
+};
+
+
+
   if (loading) {
     return (
       <div className="w-full h-80 bg-gray-200 animate-pulse rounded-2xl mx-auto" />
@@ -245,6 +287,7 @@ function Postcard({
       <PostHeader
         userId={userId}
         userName={userName}
+        post={postData}
         profileAvatar={profileAvatar}
         timeAgo={timeAgo}
         navigate={navigate}
@@ -293,6 +336,7 @@ function Postcard({
         caption={caption}
         userName={userName}
         commentCount={commentCount}
+        handleDownload={handleDownload}
         onCommentsClick={() => setShowCommentsModal(true)}
       />
 
@@ -304,6 +348,7 @@ function Postcard({
         feedId={feedId}
         setCommentCount={setCommentCount}
         comments={comments}
+        setComments={setComments}
       />
     </div>
   );
