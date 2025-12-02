@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import JobModal from "./JobModal";
+
 
 export default function JobCards({ jobs = [], filterDomain = null }) {
-  const [selectedJob, setSelectedJob] = useState(null);
+
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
   const navigate = useNavigate();
 
@@ -13,13 +13,23 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
     : jobs;
 
   const handleJobClick = (job, index) => {
-    setSelectedJob(job);
-    setCurrentJobIndex(index);
+  const sameRoleJobs = filteredJobs.filter(
+  (j) => j.jobRole === job.jobRole
+);
+
+const currentIndexInRole = sameRoleJobs.findIndex((j) => j._id === job._id);
+
+navigate(`/job/${job._id}`, {
+  state: {
+    job,
+    jobs: sameRoleJobs,
+    index: currentIndexInRole,
+  },
+});
+
   };
 
-  const handleClose = () => {
-    setSelectedJob(null);
-  };
+
 
   const handleNext = () => {
     if (currentJobIndex < filteredJobs.length - 1) {
@@ -186,30 +196,18 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
 
             {/* Quick Apply Button */}
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleJobClick(job, idx);
-              }}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
-            >
+  key={job._id}
+  onClick={() => handleJobClick(job, idx)}
+ className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
+            
+>
+
+             
               Quick Apply
             </button>
           </div>
         ))}
       </div>
-
-      {/* Job Modal */}
-      {selectedJob && (
-        <JobModal
-          job={selectedJob}
-          isOpen={!!selectedJob}
-          onClose={handleClose}
-          onNext={handleNext}
-          onPrevious={handlePrevious}
-          currentIndex={currentJobIndex}
-          totalJobs={filteredJobs.length}
-        />
-      )}
     </>
   );
 }

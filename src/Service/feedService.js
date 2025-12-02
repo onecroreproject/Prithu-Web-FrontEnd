@@ -16,7 +16,7 @@ export const getAllFeeds = async (page = 1, token) => {
       }
     );
 
-    console.log("🧠 Feeds API Response:", data);
+
 
     if (!data?.feeds || !Array.isArray(data.feeds)) return [];
 
@@ -153,15 +153,25 @@ export const getFeedsByCreator = async (feedId, token) => {
  */
 export const getTopRankedJobs = async (token) => {
   try {
-    const { data } = await api.get("/job/top/ranked/jobs", {
+    const response = await api.get("/job/top/ranked/jobs", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return Array.isArray(data.jobs) ? data.jobs : [];
+
+    const data = response?.data;
+
+    // Validate success response
+    if (!data?.success || !Array.isArray(data.jobs)) {
+      console.warn("⚠️ Unexpected API format:", data);
+      return [];
+    }
+
+    return data.jobs; // full job objects → (used in mapper)
   } catch (error) {
     console.error("❌ Error fetching top-ranked jobs:", error);
     return [];
   }
 };
+
 
 
 

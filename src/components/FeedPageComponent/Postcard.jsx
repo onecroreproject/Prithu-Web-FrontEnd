@@ -102,11 +102,11 @@ function Postcard({
     if (!isVisible) return;
     if (imageViewCounted) return;
 
-    console.log("🟢 IMAGE TRIGGERED →", feedId);
+    // console.log("🟢 IMAGE TRIGGERED →", feedId);
 
     userImageViewCount(feedId)
       .then(() => {
-        console.log("🟢 IMAGE VIEW COUNTED →", feedId);
+        // console.log("🟢 IMAGE VIEW COUNTED →", feedId);
         setImageViewCounted(true);
       })
       .catch((err) =>
@@ -125,11 +125,11 @@ function Postcard({
     if (!video) return;
 
     const handleEnded = () => {
-      console.log("🎬 Video FULL END →", feedId);
+      // console.log("🎬 Video FULL END →", feedId);
 
       userVideoViewCount(feedId)
         .then(() => {
-          console.log("🟢 VIDEO FULL VIEW COUNTED →", feedId);
+          // console.log("🟢 VIDEO FULL VIEW COUNTED →", feedId);
           setVideoViewCounted(true);
         })
         .catch((err) =>

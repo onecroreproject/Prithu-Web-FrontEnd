@@ -12,14 +12,14 @@ export default function PostcardWrapper(props) {
       (entries) => {
         const entry = entries[0];
 
-        console.log("📌 OBSERVER ENTRY:", {
-          feedId: props?.postData?.feedId,
-          isIntersecting: entry.isIntersecting,
-          ratio: entry.intersectionRatio,
-        });
+        // console.log("📌 OBSERVER ENTRY:", {
+        //   feedId: props?.postData?.feedId,
+        //   isIntersecting: entry.isIntersecting,
+        //   ratio: entry.intersectionRatio,
+        // });
 
         if (entry.isIntersecting) {
-          console.log("👀 Card now VISIBLE →", props?.postData?.feedId);
+          // console.log("👀 Card now VISIBLE →", props?.postData?.feedId);
           setIsVisible(true);
         }
       },

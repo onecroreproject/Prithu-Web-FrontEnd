@@ -213,34 +213,9 @@ export default function Header() {
       .map(s => s.item);
   }, []);
 
-  const fetchTrending = async () => {
-    try {
-      const cacheRaw = localStorage.getItem(TRENDING_CACHE_KEY);
-      if (cacheRaw) {
-        const parsed = JSON.parse(cacheRaw);
-        if (parsed?.ts && Date.now() - parsed.ts < TRENDING_CACHE_TTL) {
-          setTrending(parsed.data || []);
-          trendingFetchedAt.current = parsed.ts;
-          return;
-        }
-      }
-      const { data } = await api.get("/api/trending/hashtags");
-      if (Array.isArray(data)) {
-        setTrending(data);
-        localStorage.setItem(
-          TRENDING_CACHE_KEY,
-          JSON.stringify({ ts: Date.now(), data })
-        );
-        trendingFetchedAt.current = Date.now();
-      }
-    } catch (err) {
-      console.error("❌ failed to fetch trending hashtags", err);
-    }
-  };
 
   useEffect(() => {
     loadHistory();
-    fetchTrending();
   }, []);
 
   const performSearch = useCallback(async q => {

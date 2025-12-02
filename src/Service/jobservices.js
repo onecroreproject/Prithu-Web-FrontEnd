@@ -1,4 +1,5 @@
-import api from "../api/axios";
+import companyApi from "../api/companyApi";
+import api from "../api/axios"
 
 /**
  * API to create or update a job post (multipart/form-data expected for image)
@@ -6,18 +7,41 @@ import api from "../api/axios";
  */
 export const createOrUpdateJobPost = async (formData) => {
   try {
+
+
+    // 🔹 Get token from localStorage
+    const token = localStorage.getItem("companyToken");
+
+    if (!token) {
+      throw new Error("No token found. Please log in again.");
+    }
+
     const config = {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`, // ⬅️ send token
       },
     };
-    const response = await api.post("/company/job/create", formData, config);
+
+    // 🔹 API Call
+    const response = await companyApi.post(
+      "/job/company/create/job",
+      formData,
+      config
+    );
+
     return response.data;
   } catch (error) {
-    console.error("❌ Error creating/updating job:", error.response?.data || error.message);
+    console.error(
+      "❌ Error creating/updating job:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
+
+
+
 
 /**
  * Fetch all jobs with optional filters as params object
@@ -34,10 +58,10 @@ export const getAllJobs = async (params = {}, token) => {
         Authorization: `Bearer ${token}`,
       }
     };
-console.log(params)
+
     // Call backend with full query string
     const response = await api.get(`/job/user/get/all?${queryString}`, config);
-console.log(response.data)
+
     return response.data?.jobs || [];
   } catch (error) {
     console.error("❌ Error fetching all jobs:", error.response?.data || error.message);
@@ -54,7 +78,7 @@ console.log(response.data)
 export const getJobById = async (jobId, token) => {
   try {
     const config = { headers: { Authorization: `Bearer ${token}` } };
-    const response = await api.get(`/job/get/job/${jobId}`, config);
+    const response = await api.get(`/job/get/jobs/by/id/${jobId}`, config);
     return response.data.job;
   } catch (error) {
     console.error("❌ Error fetching job by ID:", error.response?.data || error.message);
@@ -156,7 +180,7 @@ export const getRankedJobs = async (token) => {
   try {
     const config = { headers: { Authorization: `Bearer ${token}` } }
     const response = await api.get('/job/top/ranked/jobs', config);
-    console.log(response.data.jobs)
+
     return response.data.jobs || [];
   } catch (error) {
     console.error("❌ Error fetching ranked jobs:", error.response?.data || error.message);
@@ -170,6 +194,12 @@ export const getRankedJobs = async (token) => {
 
 export const fetchRankedJobs = async () => {
   const { data } = await api.get("/job/top/ranked/jobs");
-  console.log(data.jobs)
+
   return data?.jobs || [];
+};
+
+
+
+export const getDraftJobById = async (jobId) => {
+  return api.get(`/job/get/draft/jobs/${jobId}`);
 };

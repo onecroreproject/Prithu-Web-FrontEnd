@@ -33,38 +33,147 @@ const timeAgoFrom = (iso) => {
 };
 
 const mapJobForCard = (job) => ({
+  
   _id: job._id,
-  title: job.title || "Untitled Job",
-  companyName: job.companyName || "Unknown Company",
-  category: job.category || "General",
-  location: job.location || "Remote",
-  jobRole: job.jobRole || job.role || "—",
-  jobType: job.jobType || "Full-time",
-  language: job.language || "en",
-  salary:
-    typeof job.salary === "number" && job.salary > 0
-      ? `₹${job.salary.toLocaleString()}`
-      : job.salaryRange || "—",
+
+  /* --------------------------------------------------
+   * BASIC JOB INFO
+   * -------------------------------------------------- */
+  title: job.jobTitle || "Untitled Job",
+  jobRole: job.jobRole || "—",
+  category: job.jobCategory || "General",
+  subCategory: job.jobSubCategory || null,
+  employmentType: job.employmentType || "full-time",
+  workMode: job.workMode || "onsite",
+  shiftType: job.shiftType || "day",
+  city: job.city || "—",
+  state: job.state || null,
+  country: job.country || null,
+
+  /* --------------------------------------------------
+   * SALARY
+   * -------------------------------------------------- */
+  salaryType: job.salaryType || "monthly",
+  salaryMin: job.salaryMin || 0,
+  salaryMax: job.salaryMax || 0,
+  salaryRange:
+    job.salaryMin && job.salaryMax
+      ? `₹${job.salaryMin.toLocaleString()} - ₹${job.salaryMax.toLocaleString()}`
+      : "Based on Experience",
+
+  /* --------------------------------------------------
+   * EXPERIENCE
+   * -------------------------------------------------- */
+  experienceMin: job.minimumExperience || 0,
+  experienceMax: job.maximumExperience || null,
   experience:
-    typeof job.experience === "number" && job.experience >= 0
-      ? `${job.experience}+ yrs`
-      : job.experience || "—",
-  image: job.image || "https://cdn-icons-png.flaticon.com/512/1187/1187541.png",
+    typeof job.minimumExperience === "number"
+      ? `${job.minimumExperience}+ yrs`
+      : "—",
+
+  /* --------------------------------------------------
+   * COMPANY (BASIC FROM JOBPOST SNAPSHOT)
+   * -------------------------------------------------- */
+  companyName: job.postedBy?.companyName || "Unknown Company",
+  companyLogo:
+    job.companyLogo ||
+    job.companyProfile?.logo ||
+    "https://cdn-icons-png.flaticon.com/512/1187/1187541.png",
+
+  /* --------------------------------------------------
+   * POSTED BY (FROM COMPANY LOGIN)
+   * -------------------------------------------------- */
   postedBy: {
-    _id: job.postedBy?._id || null,
-    userName: job.postedBy?.userName || "Unknown User",
-    email: job.postedBy?.email || "Not available",
-    profileAvatar: job.postedBy?.profileAvatar || defaultAvatar,
+    name: job.postedBy?.name || "Unknown",
+    email: job.postedBy?.email || null,
+    phone: job.postedBy?.phone || null,
+    position: job.postedBy?.position || "HR",
   },
-  tags: Array.isArray(job.tags)
-    ? job.tags.filter(Boolean)
-    : typeof job.tags === "string"
-    ? job.tags.split(",").map((t) => t.trim())
-    : [],
+
+  postedUserName: job.postedBy?.name || "Unknown",
+
+  /* --------------------------------------------------
+   * COMPANY PROFILE
+   * -------------------------------------------------- */
+  companyProfile: {
+    logo: job.companyProfile?.logo || null,
+    about: job.companyProfile?.about || "",
+    mission: job.companyProfile?.mission || "",
+    vision: job.companyProfile?.vision || "",
+    city: job.companyProfile?.city || "",
+    state: job.companyProfile?.state || "",
+    country: job.companyProfile?.country || "",
+    yearEstablished: job.companyProfile?.yearEstablished || null,
+    employeeCount: job.companyProfile?.employeeCount || null,
+  },
+
+  /* --------------------------------------------------
+   * VISIBILITY SETTINGS
+   * -------------------------------------------------- */
+  visibilitySettings: job.visibilitySettings || {},
+
+  /* --------------------------------------------------
+   * TAGS
+   * -------------------------------------------------- */
+  tags: Array.isArray(job.tags) ? job.tags.filter(Boolean) : [],
+
+  /* --------------------------------------------------
+   * DATES
+   * -------------------------------------------------- */
   createdAt: job.createdAt,
   postedAt: timeAgoFrom(job.createdAt),
-  score: (job.priorityScore || 0) + (job.isPaid ? 5 : 0) + (job.isApproved ? 2 : 0),
+
+  /* --------------------------------------------------
+   * STATUS INFO
+   * -------------------------------------------------- */
+  status: job.status || "active",
+  isApproved: job.isApproved || false,
+  isPaid: job.paymentAmount > 0,
+  isPromoted: job.isPromoted || false,
+  isFeatured: job.isFeatured || false,
+
+  /* --------------------------------------------------
+   * RANKING SCORES
+   * -------------------------------------------------- */
+  priorityScore: job.priorityScore || 0,
+  paymentAmount: job.paymentAmount || 0,
+  boostLevel: job.boostLevel || 0,
+  engagementScore: job.engagementScore || 0,
+
+  /* --------------------------------------------------
+   * DESCRIPTION
+   * -------------------------------------------------- */
+  description: job.jobDescription || "No description available",
+
+  /* --------------------------------------------------
+   * ENGAGEMENT COUNTS
+   * -------------------------------------------------- */
+  likeCount: job.likeCount || 0,
+  shareCount: job.shareCount || 0,
+  saveCount: job.saveCount || 0,
+  applyCount: job.applyCount || 0,
+  viewCount: job.viewCount || 0,
+
+  /* --------------------------------------------------
+   * USER’S PERSONAL ENGAGEMENT STATE
+   * -------------------------------------------------- */
+  isLiked: job.isLiked || false,
+  isSaved: job.isSaved || false,
+  isApplied: job.isApplied || false,
+  isViewed: job.isViewed || false,
+
+  /* --------------------------------------------------
+   * FINAL COMBINED SCORE
+   * -------------------------------------------------- */
+  score:
+    (job.priorityScore || 0) +
+    (job.paymentAmount > 0 ? 5 : 0) +
+    (job.isApproved ? 2 : 0) +
+    (job.engagementScore || 0) +
+    (job.boostLevel || 0),
 });
+
+
 
 /* ------------------------------- Skeleton ------------------------------- */
 

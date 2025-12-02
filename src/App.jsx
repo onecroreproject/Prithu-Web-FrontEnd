@@ -41,6 +41,10 @@ import UpcomingEvents from "./components/UpcomingEvents.jsx";
 import Jobsection from "./components/Jobs/Jobsection.jsx";
 import JobsHomePage from "./components/Jobs/HeaderJobs/JobLayout.jsx";
 import JobDomainPage from "./components/Jobs/HeaderJobs/JobDomainPage.jsx";
+import CompanyLogin from "./components/CompanyLoginComponents/mainLoginLayout.jsx";
+import JobPageWrapper from "./components/Jobs/HeaderJobs/jobPageWraper.jsx";
+import CompanyDashboard from "./Company/Home/companyLayout.jsx";
+import JobPostingForm from "./Company/Home/companyLayoutComponent/tabComponent/createTabComponent/JobApplication.jsx";
 
 
 // ✅ Create a single QueryClient instance
@@ -83,6 +87,7 @@ function AppRoutes() {
         <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="invite" element={<InviteFriends />} />
         <Route path="activity" element={<UserActivity />} />
+     
 
         {/* Settings nested routes */}
         <Route path="settings/*" element={<SettingsPage />}>
@@ -128,6 +133,11 @@ function AppRoutes() {
       <Route path="/event" element={<UpcomingEvents/>}/>
       <Route path="/jobs/:domain" element={<JobDomainPage/>}/>
       <Route path="/jobs" element ={<JobsHomePage/>}/>
+      <Route path="/company/login" element ={<CompanyLogin/>}/>
+      <Route path="/company/home" element={<CompanyDashboard/>}/>
+      <Route path="/job/:id" element ={<JobPageWrapper/>}/>
+      <Route path="/jobs/create" element={<JobPostingForm/>} />
+      <Route path="/jobs/edit/:id" element={<JobPostingForm />} />
 
       {/* Shared post */}
       <Route

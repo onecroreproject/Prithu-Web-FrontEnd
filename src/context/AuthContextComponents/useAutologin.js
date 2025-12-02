@@ -52,7 +52,7 @@ export const useAutoLogin = ({ setToken, setUser, setSessionId, navigate }) => {
 
         // ✅ Reconnect socket
         const socket = connectSocket(data.accessToken, data.sessionId || sessionId);
-        if (socket) console.log("✅ Socket reconnected on auto-login");
+        // if (socket) console.log("✅ Socket reconnected on auto-login");
 
       } catch (err) {
         console.warn("⚠️ Session invalid or expired:", err.message);

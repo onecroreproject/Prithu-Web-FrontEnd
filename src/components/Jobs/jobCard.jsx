@@ -4,18 +4,25 @@ import {
   ShareOutlined,
   FavoriteBorder,
   Favorite,
-  MoreVert,
   WorkOutline,
   LocationOn,
   AccessTime,
+  Star,
+  Bolt,
+  BookmarkBorder,
+  Bookmark,
+  Visibility,
 } from "@mui/icons-material";
 import api from "../../api/axios";
 import JobDetailsPopup from "./jobCardPop-Up";
+import { updateJobEngagement } from "../../Service/jobservices";
 import { FEED_CARD_STYLE } from "../../constance/feedLayout";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const JobCard = ({ jobData }) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(jobData?.isLiked || false);
+  const [isSaved, setIsSaved] = useState(jobData?.isSaved || false);
   const [stats, setStats] = useState({});
   const [showPopup, setShowPopup] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -25,25 +32,59 @@ const JobCard = ({ jobData }) => {
     _id,
     title = "Software Engineer",
     companyName = "Unknown Company",
-    location = "Not specified",
-    jobType = "Full-time",
+    city = "Remote",
+    state,
+    country,
+    employmentType = "Full-time",
+    workMode = "On-site",
     experience = "—",
     salaryRange = "Based on Experience",
     description = "No description provided",
-    image = "",
-    profileAvatar = "",
-    userName = "Anonymous",
+    companyLogo = "https://cdn-icons-png.flaticon.com/512/1187/1187541.png",
+    postedUserName = "Anonymous",
     postedAt = "Recently",
     createdAt,
+    isPaid = false,
+    isFeatured = false,
+    boostLevel = 0,
+    tags = [],
+    likeCount = 0,
+    shareCount = 0,
+    saveCount = 0,
+    viewCount = 0,
   } = jobData || {};
+
+  // Format location
+  const location = useMemo(() => {
+    if (city && state) return `${city}, ${state}`;
+    if (city) return city;
+    if (state) return state;
+    return "Remote";
+  }, [city, state, country]);
+
+  // Format job type badge
+  const jobTypeBadge = useMemo(() => {
+    if (employmentType === "full-time") return "Full Time";
+    if (employmentType === "part-time") return "Part Time";
+    if (employmentType === "contract") return "Contract";
+    if (employmentType === "internship") return "Internship";
+    if (employmentType === "freelance") return "Freelance";
+    return employmentType;
+  }, [employmentType]);
+
+  // Format work mode badge
+  const workModeBadge = useMemo(() => {
+    if (workMode === "remote") return "Remote";
+    if (workMode === "hybrid") return "Hybrid";
+    if (workMode === "onsite") return "On-site";
+    return workMode;
+  }, [workMode]);
 
   // 🔥 NEW — Detect if job was posted today
   const isNew = useMemo(() => {
     if (!createdAt) return false;
-
     const posted = new Date(createdAt);
     const today = new Date();
-
     return (
       posted.getDate() === today.getDate() &&
       posted.getMonth() === today.getMonth() &&
@@ -51,6 +92,9 @@ const JobCard = ({ jobData }) => {
     );
   }, [createdAt]);
 
+  // Show boost badge for promoted jobs
+  const showBoost = useMemo(() => isPaid || boostLevel > 0, [isPaid, boostLevel]);
+  const navigate=useNavigate();
   const fetchStats = useCallback(async () => {
     try {
       const { data } = await api.get(`/job/stats/${_id}`);
@@ -81,117 +125,244 @@ const JobCard = ({ jobData }) => {
 
   const handleLike = useCallback(async () => {
     try {
-      await api.post("/job/update", { jobId: _id, actionType: "like" });
-      setIsLiked((p) => !p);
+      const token = localStorage.getItem("token");
+      await updateJobEngagement(_id, "like", token);
+      
+      setIsLiked((prev) => !prev);
       fetchStats();
-      toast.success(isLiked ? "Removed from favorites" : "Added to favorites");
+      
+      toast.success(!isLiked ? "Added to favorites" : "Removed from favorites");
     } catch {
       toast.error("Failed to update like.");
     }
-  }, [_id, fetchStats, isLiked]);
+  }, [_id, isLiked, fetchStats]);
+
+  const handleSave = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await updateJobEngagement(_id, "save", token);
+      
+      setIsSaved((prev) => !prev);
+      fetchStats();
+      
+      toast.success(!isSaved ? "Job saved" : "Job unsaved");
+    } catch {
+      toast.error("Failed to update save status.");
+    }
+  }, [_id, isSaved, fetchStats]);
 
   const handleShare = useCallback(async () => {
     try {
+      const token = localStorage.getItem("token");
       const shareUrl = `${window.location.origin}/jobs/${_id}`;
+      
       await navigator.clipboard.writeText(shareUrl);
-      await api.post("/job/update", { jobId: _id, actionType: "share" });
+      await updateJobEngagement(_id, "share", token);
+      
+      fetchStats();
       toast.success("Link copied!");
     } catch {
       toast.error("Failed to share job.");
     }
-  }, [_id]);
+  }, [_id, fetchStats]);
+
+  const handleView = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await updateJobEngagement(_id, "view", token);
+      fetchStats();
+    } catch (err) {
+      console.error("View update failed:", err);
+    }
+  }, [_id, fetchStats]);
+
+  const handleViewDetails = useCallback(() => {
+    handleView(); // Trigger view engagement
+    navigate(`/job/${_id}`)
+  }, [handleView]);
+
+  // Clean description for card preview
+  const cleanDescription = useMemo(() => {
+    const text = description.replace(/<[^>]*>/g, '');
+    return text.length > 80 ? text.substring(0, 80) + '...' : text;
+  }, [description]);
 
   return (
     <>
-      <div ref={cardRef} className={FEED_CARD_STYLE}>
-        {/* TOP IMAGE SECTION */}
-        <div className="relative h-40 sm:h-48 w-full overflow-hidden">
-          <img
-            loading="lazy"
-            src={image || "https://cdn-icons-png.flaticon.com/512/1187/1187541.png"}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-
-          {/* 🔥 NEW Badge */}
-          {isNew && (
-            <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-pulse shadow-md">
-              NEW
-            </span>
-          )}
-
-          {/* Right Actions */}
-          <div className="absolute top-2 right-2 flex space-x-2 text-white">
-            <button onClick={handleShare} className="hover:text-gray-200" aria-label="Share job">
-              <ShareOutlined fontSize="small" />
-            </button>
-
-            <button onClick={handleLike} className="hover:text-red-400" aria-label="Like job">
-              {isLiked ? <Favorite fontSize="small" /> : <FavoriteBorder fontSize="small" />}
-            </button>
-
-            <button className="hover:text-gray-200" aria-hidden>
-              <MoreVert fontSize="small" />
-            </button>
-          </div>
-        </div>
-
-        {/* USER INFO (POSTED BY) */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-          <img
-            loading="lazy"
-            src={profileAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-            alt={userName}
-            className="w-10 h-10 rounded-full border border-gray-300 object-cover"
-          />
-          <div>
-            <p className="text-sm font-semibold text-gray-800">{userName}</p>
-            <p className="text-xs text-gray-500">Posted {postedAt}</p>
-          </div>
-        </div>
-
-        {/* JOB DETAILS */}
-        <div className="px-5 py-4">
-          <p className="text-lg font-bold text-gray-900">{title}</p>
-          <p className="text-sm font-semibold text-blue-700 mt-1">{companyName}</p>
-          <p className="text-sm font-semibold text-gray-800 mt-1 mb-2">
-            Salary: {salaryRange}
-          </p>
-
-          <div className="text-xs text-gray-600 space-y-1 mb-3">
-            <div className="flex items-center gap-1">
-              <LocationOn fontSize="small" /> {location}
-            </div>
-            <div className="flex items-center gap-1">
-              <WorkOutline fontSize="small" /> {jobType}
-            </div>
-            <div className="flex items-center gap-1">
-              <AccessTime fontSize="small" /> Experience: {experience}
+      <div ref={cardRef} className={`${FEED_CARD_STYLE} hover:shadow-lg transition-all duration-300 border border-gray-200`}>
+        <div className="flex flex-col sm:flex-row">
+          {/* LEFT - Company Image */}
+          <div className="sm:w-1/4 p-3 flex items-center justify-center bg-gray-50 rounded-l-lg">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-white border border-gray-200">
+              <img
+                loading="lazy"
+                src={companyLogo}
+                alt={companyName}
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Badges */}
+              <div className="absolute -top-1 -left-1 flex flex-col gap-1">
+                {isNew && (
+                  <span className="bg-red-500 text-white text-[7px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                    NEW
+                  </span>
+                )}
+                {showBoost && (
+                  <span className="bg-amber-500 text-white text-[7px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <Bolt sx={{ fontSize: 8 }} />
+                    BOOST
+                  </span>
+                )}
+                {isFeatured && (
+                  <span className="bg-blue-500 text-white text-[7px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <Star sx={{ fontSize: 8 }} />
+                    FEATURED
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-    <div
-  className="text-sm text-gray-600 line-clamp-3"
-  dangerouslySetInnerHTML={{ __html: description }}
-/>
+          {/* RIGHT - Job Details */}
+          <div className="sm:w-3/4 p-3 sm:pl-0">
+            {/* Header with title and actions */}
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-base leading-tight line-clamp-1">{title}</h3>
+                <p className="text-blue-600 font-semibold text-sm line-clamp-1">{companyName}</p>
+              </div>
+              <div className="flex space-x-1 ml-2">
+                {/* Share Button */}
+                <button 
+                  onClick={handleShare} 
+                  className="text-gray-400 hover:text-blue-600 p-1 transition-colors relative group"
+                  aria-label="Share job"
+                >
+                  <ShareOutlined fontSize="small" />
+                  {shareCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {shareCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Save Button */}
+                <button 
+                  onClick={handleSave} 
+                  className="text-gray-400 hover:text-green-600 p-1 transition-colors relative group"
+                  aria-label="Save job"
+                >
+                  {isSaved ? 
+                    <Bookmark fontSize="small" className="text-green-600" /> : 
+                    <BookmarkBorder fontSize="small" />
+                  }
+                </button>
+                
+                {/* Like Button */}
+                <button 
+                  onClick={handleLike} 
+                  className="text-gray-400 hover:text-red-500 p-1 transition-colors relative group"
+                  aria-label="Like job"
+                >
+                  {isLiked ? 
+                    <Favorite fontSize="small" className="text-red-500" /> : 
+                    <FavoriteBorder fontSize="small" />
+                  }
+                </button>
+              </div>
+            </div>
 
-        </div>
+            {/* Key Details */}
+            <div className="space-y-1.5 mb-2">
+              <div className="flex flex-wrap gap-1.5 text-xs text-gray-600">
+                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <LocationOn fontSize="small" />
+                  <span className="line-clamp-1">{location}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <WorkOutline fontSize="small" />
+                  <span>{jobTypeBadge}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                  <AccessTime fontSize="small" />
+                  <span>{workModeBadge}</span>
+                </div>
+                {experience !== "—" && (
+                  <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                    <span>{experience}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-sm font-semibold text-green-600">
+                {salaryRange}
+              </div>
+            </div>
 
-        {/* VIEW JOB BUTTON */}
-        <div className="py-3 flex justify-center">
-          <button
-            onClick={() => setShowPopup(true)}
-            className="bg-black text-white text-sm font-semibold rounded-lg px-6 py-2 hover:bg-gray-900 transition-all flex items-center gap-1"
-          >
-            View Job <span className="rotate-[-45deg]">↗</span>
-          </button>
+            {/* Description Preview */}
+            <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">
+              {cleanDescription}
+            </p>
+
+            {/* Tags (if any) */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {tags.slice(0, 3).map((tag, index) => (
+                  <span 
+                    key={index}
+                    className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full border border-blue-100"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {tags.length > 3 && (
+                  <span className="bg-gray-50 text-gray-500 text-xs px-2 py-0.5 rounded-full">
+                    +{tags.length - 3} more
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Footer with user info and CTA */}
+            <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center border border-gray-300">
+                  <span className="text-xs font-medium text-gray-600">
+                    {postedUserName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>Posted {postedAt}</span>
+                  {viewCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Visibility fontSize="small" />
+                      <span>{viewCount}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                onClick={handleViewDetails}
+                className="bg-black text-white text-xs font-medium rounded-md px-3 py-1.5 hover:bg-gray-800 transition-all flex items-center gap-1"
+              >
+                <Visibility fontSize="small" />
+                View Details
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {showPopup && (
-        <JobDetailsPopup open={showPopup} onClose={() => setShowPopup(false)} job={jobData} />
+        <JobDetailsPopup 
+          open={showPopup} 
+          isSaved={isSaved}
+          onSave={handleSave}
+          onClose={() => setShowPopup(false)}
+          job={jobData} 
+        />
       )}
     </>
   );

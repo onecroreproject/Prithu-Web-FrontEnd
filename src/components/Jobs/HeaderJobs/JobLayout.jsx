@@ -4,6 +4,11 @@ import FullTimeJobs from "./FullTimeJobs";
 import JobFilter from "./filterSection";
 import Freelancer from "./Freelancer";
 import { getAllJobs } from "../../../Service/jobservices";
+import { Search, Briefcase, MapPin, Filter, X } from "lucide-react";
+import Header from "../../Header";
+import { useLocation } from "react-router-dom";
+
+
 
 export default function JobsHomePage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -14,53 +19,107 @@ export default function JobsHomePage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [fadeOut, setFadeOut] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const location = useLocation();
+const queryParams = new URLSearchParams(location.search);
+const companyParam = queryParams.get("company");
+
+
   const [filters, setFilters] = useState({
     employmentType: [],
     workMode: [],
-    salaryRange: '',
-    experience: '',
+    salaryRange: "",
+    experience: "",
     education: [],
     skills: [],
-    companyIndustry: '',
-    jobFreshness: ''
+    companyIndustry: "",
+    jobFreshness: "",
   });
 
+  // Calculate active filters count
+  useEffect(() => {
+    let count = 0;
+    if (selectedCategory !== "All") count++;
+    if (selectedCity) count++;
+    if (filters.employmentType.length > 0) count++;
+    if (filters.workMode.length > 0) count++;
+    if (filters.salaryRange) count++;
+    if (filters.experience) count++;
+    if (filters.education.length > 0) count++;
+    if (filters.skills.length > 0) count++;
+    if (filters.companyIndustry) count++;
+    if (filters.jobFreshness) count++;
+    setActiveFiltersCount(count);
+  }, [selectedCategory, selectedCity, filters]);
+
   const fetchJobs = async () => {
-    setLoading(true);
-    try {
-      const apiFilters = {};
-      if (selectedCategory && selectedCategory !== "All") apiFilters.category = selectedCategory;
-      if (selectedCity) apiFilters.location = selectedCity;
-      if (searchText) apiFilters.search = searchText;
-      
-      // Add advanced filters
-      if (filters.employmentType.length > 0) apiFilters.employmentType = filters.employmentType;
-      if (filters.workMode.length > 0) apiFilters.workMode = filters.workMode;
-      if (filters.salaryRange) apiFilters.salaryRange = filters.salaryRange;
-      if (filters.experience) apiFilters.experience = filters.experience;
-      if (filters.education.length > 0) apiFilters.education = filters.education;
-      if (filters.skills.length > 0) apiFilters.skills = filters.skills;
-      if (filters.companyIndustry) apiFilters.companyIndustry = filters.companyIndustry;
-      if (filters.jobFreshness) apiFilters.jobFreshness = filters.jobFreshness;
-      
-      console.log("API Filters:", apiFilters);
-      const jobsFromApi = await getAllJobs(apiFilters);
+  setLoading(true);
+  setFadeOut(true);
+
+  try {
+    const apiFilters = {};
+
+    if (selectedCategory && selectedCategory !== "All")
+      apiFilters.category = selectedCategory;
+
+    if (selectedCity) apiFilters.location = selectedCity;
+    if (searchText) apiFilters.search = searchText;
+
+    // Add company filter from URL
+    if (companyParam) apiFilters.companyId = companyParam;
+
+    // Advanced filters
+    if (filters.employmentType.length > 0)
+      apiFilters.employmentType = filters.employmentType;
+
+    if (filters.workMode.length > 0)
+      apiFilters.workMode = filters.workMode;
+
+    if (filters.salaryRange)
+      apiFilters.salaryRange = filters.salaryRange;
+
+    if (filters.experience)
+      apiFilters.experience = filters.experience;
+
+    if (filters.education.length > 0)
+      apiFilters.education = filters.education;
+
+    if (filters.skills.length > 0)
+      apiFilters.skills = filters.skills;
+
+    if (filters.companyIndustry)
+      apiFilters.companyIndustry = filters.companyIndustry;
+
+    if (filters.jobFreshness)
+      apiFilters.jobFreshness = filters.jobFreshness;
+
+    const jobsFromApi = await getAllJobs(apiFilters);
+
+    setTimeout(() => {
       setJobs(jobsFromApi);
-    } catch (err) {
-      console.error("Error fetching jobs:", err);
-      setJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setFadeOut(false);
+    }, 200);
+  } catch (err) {
+    console.error("Error fetching jobs:", err);
+    setJobs([]);
+    setFadeOut(false);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchJobs();
-    }, 300); // Debounce API calls
-    
+    }, 400);
+
     return () => clearTimeout(timeoutId);
-  }, [selectedCategory, selectedCity, searchText, filters]);
+  }, [selectedCategory, selectedCity, searchText, filters,  companyParam]);
 
   const handleOpenFullTimeJobs = () => {
     setShowFullTimeJobs(true);
@@ -79,54 +138,139 @@ export default function JobsHomePage() {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory("All");
+    setSelectedCity("");
+    setSearchText("");
+    setFilters({
+      employmentType: [],
+      workMode: [],
+      salaryRange: "",
+      experience: "",
+      education: [],
+      skills: [],
+      companyIndustry: "",
+      jobFreshness: "",
+    });
   };
 
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-        <div className="text-lg font-semibold text-gray-800 text-center">
-          Jobs
+      <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+        {/* Use Header component for mobile */}
+        <Header />
+        
+        {/* Mobile Filter Button and Search Bar - Below Header */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-6 h-6 text-blue-600" />
+              <div>
+                <h1 className="text-lg font-semibold text-gray-800">Jobs</h1>
+                <p className="text-xs text-gray-500">Find your dream job</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="relative p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="w-5 h-5 text-gray-600" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Search */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search jobs, companies, keywords..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
+            />
+          </div>
         </div>
       </div>
 
-      <section className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
-        {/* Mobile Filters - Collapsible */}
-        <div className="lg:hidden w-full bg-white border-b border-gray-200">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+      {/* Mobile Filters Overlay */}
+      {showMobileFilters && (
+        <div className="lg:hidden fixed inset-0 z-30 bg-black bg-opacity-50">
+          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+                <div className="flex items-center gap-2">
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowMobileFilters(false)}
+                    className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="max-h-96 overflow-y-auto">
-              <JobFilter
-                onOpenFullTimeJobs={handleOpenFullTimeJobs}
-                onOpenFreelancer={handleOpenFreelancer}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                selectedCountry={selectedCountry}
-                onCountryChange={setSelectedCountry}
-                selectedCity={selectedCity}
-                onCityChange={setSelectedCity}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                searchText={searchText}
-                onSearchChange={setSearchText}
-              />
+            <div className="h-[calc(100vh-80px)] overflow-y-auto">
+              <div className="p-4">
+                <JobFilter
+                  onOpenFullTimeJobs={handleOpenFullTimeJobs}
+                  onOpenFreelancer={handleOpenFreelancer}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  selectedCountry={selectedCountry}
+                  onCountryChange={setSelectedCountry}
+                  selectedCity={selectedCity}
+                  onCityChange={setSelectedCity}
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  searchText={searchText}
+                  onSearchChange={setSearchText}
+                />
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Desktop Sidebar - Fixed with independent scrolling */}
-        <aside className="hidden lg:block w-80 bg-white border-r border-gray-200 fixed left-0 top-0 h-screen overflow-y-auto">
+      <section className="flex min-h-screen bg-gray-50">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block w-80 bg-white border-r mt-10 border-gray-200 fixed left-0 top-0 h-screen overflow-y-auto z-10">
           <div className="p-6">
+            {/* Use Header component at top of desktop sidebar */}
             <div className="mb-6">
-              <h1 className="text-xl font-bold text-gray-900">Jobs</h1>
-              <p className="text-sm text-gray-500 mt-1">Find your dream job</p>
+              <Header />
             </div>
+            
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <Briefcase className="w-8 h-8 text-blue-600" />
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Jobs</h1>
+                  <p className="text-sm text-gray-500">Find your dream job</p>
+                </div>
+              </div>
+            </div>
+
             <JobFilter
               onOpenFullTimeJobs={handleOpenFullTimeJobs}
               onOpenFreelancer={handleOpenFreelancer}
@@ -144,58 +288,102 @@ export default function JobsHomePage() {
           </div>
         </aside>
 
-        {/* Main Content - Independent scrolling */}
-        <main className="flex-1 lg:ml-80 min-h-screen">
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-80 min-h-screen mt-12">
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-gray-200">
-              <div>
+            {/* Desktop Header Info Section */}
+            {companyParam && (
+  <p className="text-blue-600 mt-1 font-medium">
+    Showing jobs for company: {jobs[0]?.companyName}
+  </p>
+)}
+
+            <div className="hidden lg:flex items-center justify-between mb-8">
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold text-gray-900">
                   Available Jobs
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
+                  {jobs.length} job{jobs.length !== 1 ? "s" : ""} found
+                  {activeFiltersCount > 0 &&
+                    ` • ${activeFiltersCount} filter${
+                      activeFiltersCount !== 1 ? "s" : ""
+                    } active`}
                 </p>
               </div>
-              
-              {/* Search for mobile */}
-              <div className="lg:hidden w-full sm:w-64">
-                <div className="relative">
-                  <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                    
+              {/* Desktop Search - Centered */}
+              <div className="flex-1 flex justify-center">
+                <div className="relative w-full max-w-2xl">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search jobs..."
+                    placeholder="Search jobs, companies, keywords..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 border-b border-gray-400 bg-transparent transition-all duration-200 
+                             focus:outline-none focus:ring-0 focus:border-blue-600"
                   />
                 </div>
+              </div>
+              
+              {/* Clear Filters Button */}
+              <div className="flex-1 flex justify-end">
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear all filters
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Loading State */}
             {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                <p className="text-gray-600">
+                  Finding the best jobs for you...
+                </p>
               </div>
             ) : (
               <>
-                {/* Job Cards */}
-                {jobs.length > 0 ? (
-                  <JobCards jobs={jobs} />
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="text-gray-400 mb-4">
-                      <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
+                {/* Job Cards with Animation */}
+                <div
+                  className={`transition-all duration-300 ease-out ${
+                    fadeOut
+                      ? "opacity-0 translate-y-4"
+                      : "opacity-100 translate-y-0"
+                  }`}
+                >
+                  {jobs.length > 0 ? (
+                    <JobCards jobs={jobs} />
+                  ) : (
+                    <div className="text-center py-16">
+                      <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                        <Briefcase className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                        No jobs found
+                      </h3>
+                      <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                        We couldn't find any jobs matching your criteria. Try
+                        adjusting your filters or search terms.
+                      </p>
+                      {activeFiltersCount > 0 && (
+                        <button
+                          onClick={clearAllFilters}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        >
+                          Clear all filters
+                        </button>
+                      )}
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
-                    <p className="text-gray-500">Try adjusting your filters or search terms</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -203,13 +391,8 @@ export default function JobsHomePage() {
       </section>
 
       {/* Modals */}
-      {showFullTimeJobs && (
-        <FullTimeJobs onClose={handleCloseFullTimeJobs} />
-      )}
-
-      {showFreelancer && (
-        <Freelancer onClose={handleCloseFreelancer} />
-      )}
+      {showFullTimeJobs && <FullTimeJobs onClose={handleCloseFullTimeJobs} />}
+      {showFreelancer && <Freelancer onClose={handleCloseFreelancer} />}
     </>
   );
 }
