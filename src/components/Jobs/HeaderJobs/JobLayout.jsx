@@ -6,9 +6,7 @@ import Freelancer from "./Freelancer";
 import { getAllJobs } from "../../../Service/jobservices";
 import { Search, Briefcase, MapPin, Filter, X } from "lucide-react";
 import Header from "../../Header";
-import { useLocation } from "react-router-dom";
-
-
+import { useLocation, useSearchParams } from "react-router-dom";
 
 export default function JobsHomePage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -22,10 +20,55 @@ export default function JobsHomePage() {
   const [fadeOut, setFadeOut] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-const queryParams = new URLSearchParams(location.search);
-const companyParam = queryParams.get("company");
 
+  // Get URL parameters
+  const roleParam = searchParams.get("role");
+  const cityParam = searchParams.get("city");
+  const stateParam = searchParams.get("state");
+  const countryParam = searchParams.get("country");
+  const companyParam = searchParams.get("company");
+
+  // Initialize search text and filters from URL on component mount
+  useEffect(() => {
+    console.log("URL Parameters:", {
+      role: roleParam,
+      city: cityParam,
+      state: stateParam,
+      country: countryParam,
+      company: companyParam
+    });
+
+    // Set search text from role parameter
+    if (roleParam) {
+      setSearchText(roleParam);
+    }
+
+    // Set location filters from URL
+    if (cityParam) {
+      setSelectedCity(cityParam);
+    }
+    if (countryParam) {
+      setSelectedCountry(countryParam);
+    }
+
+    // Update selected category based on role (optional)
+    if (roleParam) {
+      // You can map roles to categories if needed
+      const roleToCategoryMap = {
+        'Designer': 'Design',
+        'Developer': 'Technology',
+        'Manager': 'Business',
+        // Add more mappings as needed
+      };
+      
+      if (roleToCategoryMap[roleParam]) {
+        setSelectedCategory(roleToCategoryMap[roleParam]);
+      }
+    }
+  }, [roleParam, cityParam, stateParam, countryParam, companyParam]);
 
   const [filters, setFilters] = useState({
     employmentType: [],
@@ -43,6 +86,7 @@ const companyParam = queryParams.get("company");
     let count = 0;
     if (selectedCategory !== "All") count++;
     if (selectedCity) count++;
+    if (selectedCountry) count++;
     if (filters.employmentType.length > 0) count++;
     if (filters.workMode.length > 0) count++;
     if (filters.salaryRange) count++;
@@ -52,66 +96,78 @@ const companyParam = queryParams.get("company");
     if (filters.companyIndustry) count++;
     if (filters.jobFreshness) count++;
     setActiveFiltersCount(count);
-  }, [selectedCategory, selectedCity, filters]);
+  }, [selectedCategory, selectedCity, selectedCountry, filters]);
 
   const fetchJobs = async () => {
-  setLoading(true);
-  setFadeOut(true);
+    setLoading(true);
+    setFadeOut(true);
 
-  try {
-    const apiFilters = {};
+    try {
+      const apiFilters = {};
 
-    if (selectedCategory && selectedCategory !== "All")
-      apiFilters.category = selectedCategory;
+      // Apply category filter
+      if (selectedCategory && selectedCategory !== "All")
+        apiFilters.category = selectedCategory;
 
-    if (selectedCity) apiFilters.location = selectedCity;
-    if (searchText) apiFilters.search = searchText;
+      // Apply location filters from URL
+      if (cityParam) {
+        apiFilters.city = cityParam;
+      } else if (selectedCity) {
+        apiFilters.location = selectedCity;
+      }
+      
+      if (countryParam) {
+        apiFilters.country = countryParam;
+      } else if (selectedCountry) {
+        apiFilters.country = selectedCountry;
+      }
 
-    // Add company filter from URL
-    if (companyParam) apiFilters.companyId = companyParam;
+      // Apply search text (from role parameter or manual input)
+      if (searchText) apiFilters.search = searchText;
 
-    // Advanced filters
-    if (filters.employmentType.length > 0)
-      apiFilters.employmentType = filters.employmentType;
+      // Add company filter from URL
+      if (companyParam) apiFilters.companyId = companyParam;
 
-    if (filters.workMode.length > 0)
-      apiFilters.workMode = filters.workMode;
+      // Advanced filters
+      if (filters.employmentType.length > 0)
+        apiFilters.employmentType = filters.employmentType;
 
-    if (filters.salaryRange)
-      apiFilters.salaryRange = filters.salaryRange;
+      if (filters.workMode.length > 0)
+        apiFilters.workMode = filters.workMode;
 
-    if (filters.experience)
-      apiFilters.experience = filters.experience;
+      if (filters.salaryRange)
+        apiFilters.salaryRange = filters.salaryRange;
 
-    if (filters.education.length > 0)
-      apiFilters.education = filters.education;
+      if (filters.experience)
+        apiFilters.experience = filters.experience;
 
-    if (filters.skills.length > 0)
-      apiFilters.skills = filters.skills;
+      if (filters.education.length > 0)
+        apiFilters.education = filters.education;
 
-    if (filters.companyIndustry)
-      apiFilters.companyIndustry = filters.companyIndustry;
+      if (filters.skills.length > 0)
+        apiFilters.skills = filters.skills;
 
-    if (filters.jobFreshness)
-      apiFilters.jobFreshness = filters.jobFreshness;
+      if (filters.companyIndustry)
+        apiFilters.companyIndustry = filters.companyIndustry;
 
-    const jobsFromApi = await getAllJobs(apiFilters);
+      if (filters.jobFreshness)
+        apiFilters.jobFreshness = filters.jobFreshness;
 
-    setTimeout(() => {
-      setJobs(jobsFromApi);
+      console.log("Fetching jobs with filters:", apiFilters);
+      const jobsFromApi = await getAllJobs(apiFilters);
+console.log("result",jobsFromApi)
+      setTimeout(() => {
+        setJobs(jobsFromApi);
+        setFadeOut(false);
+      }, 200);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+      setJobs([]);
       setFadeOut(false);
-    }, 200);
-  } catch (err) {
-    console.error("Error fetching jobs:", err);
-    setJobs([]);
-    setFadeOut(false);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -119,7 +175,7 @@ const companyParam = queryParams.get("company");
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedCategory, selectedCity, searchText, filters,  companyParam]);
+  }, [selectedCategory, selectedCity, selectedCountry, searchText, filters, cityParam, countryParam, companyParam]);
 
   const handleOpenFullTimeJobs = () => {
     setShowFullTimeJobs(true);
@@ -147,6 +203,7 @@ const companyParam = queryParams.get("company");
   const clearAllFilters = () => {
     setSelectedCategory("All");
     setSelectedCity("");
+    setSelectedCountry("");
     setSearchText("");
     setFilters({
       employmentType: [],
@@ -158,7 +215,29 @@ const companyParam = queryParams.get("company");
       companyIndustry: "",
       jobFreshness: "",
     });
+    
+    // Clear URL parameters if they exist
+    if (searchParams.toString()) {
+      setSearchParams({});
+    }
   };
+
+  // Update URL when filters change
+  const updateUrlFilters = () => {
+    const params = new URLSearchParams();
+    
+    if (searchText) params.set("role", searchText);
+    if (selectedCity) params.set("city", selectedCity);
+    if (selectedCountry) params.set("country", selectedCountry);
+    if (companyParam) params.set("company", companyParam);
+    
+    setSearchParams(params);
+  };
+
+  // Call updateUrlFilters when relevant filters change
+  useEffect(() => {
+    updateUrlFilters();
+  }, [searchText, selectedCity, selectedCountry]);
 
   return (
     <>
@@ -291,28 +370,62 @@ const companyParam = queryParams.get("company");
         {/* Main Content */}
         <main className="flex-1 lg:ml-80 min-h-screen mt-12">
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Desktop Header Info Section */}
-            {companyParam && (
-  <p className="text-blue-600 mt-1 font-medium">
-    Showing jobs for company: {jobs[0]?.companyName}
-  </p>
-)}
-
+            {/* Header showing active filters from URL */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Available Jobs
+              </h1>
+              
+              {/* Show active URL filters */}
+              {(roleParam || cityParam || countryParam || companyParam) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {roleParam && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      Role: {roleParam}
+                    </span>
+                  )}
+                  {cityParam && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      <MapPin className="w-3 h-3" />
+                      {cityParam}
+                    </span>
+                  )}
+                  {countryParam && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                      Country: {countryParam}
+                    </span>
+                  )}
+                  {companyParam && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                      Company: {companyParam}
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              <p className="text-gray-600 mt-2">
+                {jobs.length} job{jobs.length !== 1 ? "s" : ""} found
+                {activeFiltersCount > 0 &&
+                  ` • ${activeFiltersCount} filter${
+                    activeFiltersCount !== 1 ? "s" : ""
+                  } active`}
+              </p>
+            </div>
+                    
+            {/* Desktop Search - Centered */}
             <div className="hidden lg:flex items-center justify-between mb-8">
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Available Jobs
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  {jobs.length} job{jobs.length !== 1 ? "s" : ""} found
-                  {activeFiltersCount > 0 &&
-                    ` • ${activeFiltersCount} filter${
-                      activeFiltersCount !== 1 ? "s" : ""
-                    } active`}
-                </p>
+                {/* Company filter info */}
+                {companyParam && jobs.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-600 font-medium">
+                      Showing jobs from {jobs[0]?.companyName || "this company"}
+                    </span>
+                  </div>
+                )}
               </div>
-                    
-              {/* Desktop Search - Centered */}
+              
               <div className="flex-1 flex justify-center">
                 <div className="relative w-full max-w-2xl">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -370,8 +483,12 @@ const companyParam = queryParams.get("company");
                         No jobs found
                       </h3>
                       <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                        We couldn't find any jobs matching your criteria. Try
-                        adjusting your filters or search terms.
+                        {roleParam || cityParam || countryParam 
+                          ? `No jobs found for "${roleParam || ''}"${
+                              cityParam ? ` in ${cityParam}` : ''
+                            }${countryParam ? `, ${countryParam}` : ''}.`
+                          : "We couldn't find any jobs matching your criteria."
+                        }
                       </p>
                       {activeFiltersCount > 0 && (
                         <button

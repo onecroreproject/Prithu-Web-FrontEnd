@@ -245,7 +245,7 @@ const CreateJob = ({ selectedDraft, onDraftSaved, onClearDraft, recentDrafts, lo
       </div>
 
       {/* Recent Drafts & Jobs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className=" gap-6">
         {/* Left Column - Quick Tips */}
         <div className="lg:col-span-2 space-y-6">
           {/* Recent Drafts */}
@@ -354,119 +354,10 @@ const CreateJob = ({ selectedDraft, onDraftSaved, onClearDraft, recentDrafts, lo
           </div>
         </div>
 
-        {/* Right Column - Recent Activity */}
-        <div className="space-y-6">
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-            <div className="space-y-4">
-              {localDrafts.slice(0, 3).map(job => (
-                <div
-                  key={job.id}
-                  className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => handleEditDraft(job)}
-                >
-                  <div className={`p-2 rounded-lg ${
-                    job.status === 'active' ? 'bg-emerald-50' : 'bg-amber-50'
-                  }`}>
-                    <MdWork className={
-                      job.status === 'active' ? 'text-emerald-600' : 'text-amber-600'
-                    } />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{job.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
-                        {job.category}
-                      </span>
-                      <span className="text-xs text-gray-500">{job.created}</span>
-                    </div>
-                  </div>
-                  <div className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    job.status === 'active'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {job.status}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Stats</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <FiBriefcase className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total Drafts</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {totalDrafts}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-50 rounded-lg">
-                    <FiCheckCircle className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Published Jobs</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {activeJobs}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 rounded-lg">
-                    <FiFileText className="text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Unsaved Drafts</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {draftCount}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+       
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="mt-8 pt-6 border-t border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h4 className="font-medium text-gray-900">Ready to create your perfect job posting?</h4>
-            <p className="text-sm text-gray-500 mt-1">
-              Use our comprehensive form to create detailed job descriptions
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleOpenNewForm}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-xl shadow-sm hover:shadow transition-all"
-            >
-              Start Creating
-            </button>
-            <button
-              onClick={() => window.open('/help/job-creation', '_blank')}
-              className="px-6 py-3 bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition-colors"
-            >
-              View Guide
-            </button>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 };

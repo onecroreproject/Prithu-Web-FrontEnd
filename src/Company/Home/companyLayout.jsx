@@ -6,14 +6,33 @@ import { FiMenu, FiX, FiFileText } from 'react-icons/fi';
 import companyApi from '../../api/companyApi';
 import { toast } from 'react-toastify';
 import SettingsPage from './companyLayoutComponent/tabComponent/settings';
+import HrDashboard from './companyLayoutComponent/tabComponent/dashBoard';
+import Applicants from './companyLayoutComponent/tabComponent/appicatns';
 
 const CompanyDashboard = () => {
+  const [companyProfile, setCompanyProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('createJob');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentDrafts, setRecentDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [selectedDraft, setSelectedDraft] = useState(null);
   const [draftModalOpen, setDraftModalOpen] = useState(false);
+
+  // Fetch company profile
+  useEffect(() => {
+    const fetchCompanyProfile = async () => {
+      try {
+        const res = await companyApi.get("/job/get/company/profile");
+        console.log("Company Profile Response:", res.data);
+        setCompanyProfile(res.data);
+      } catch (error) {
+        console.error("Error fetching company profile:", error);
+        toast.error("Failed to load company profile");
+      }
+    };
+
+    fetchCompanyProfile();
+  }, []);
 
   // Fetch recent drafts
   const fetchRecentDrafts = async () => {
@@ -47,15 +66,12 @@ const CompanyDashboard = () => {
 
   // Handle draft selection
   const handleDraftSelect = (draft) => {
-    console.log(draft)
     setSelectedDraft(draft);
-    // Navigate(`/jobs/edit/${}`)
     setSidebarOpen(false);
   };
- console.log(activeTab)
+
   const renderContent = () => {
     switch (activeTab) {
-       
       case 'createJob':
         return (
           <CreateJob 
@@ -66,11 +82,12 @@ const CompanyDashboard = () => {
             loadingDrafts={loadingDrafts}
           />
         );
-
-        case 'settings':
-        return (
-          <SettingsPage/>
-        );
+      case 'applicants':
+        return <Applicants />;
+      case 'dashboard':
+        return <HrDashboard />;
+      case 'settings':
+        return <SettingsPage companyProfile={companyProfile} />;
       case 'viewJobs':
         return <ViewJobs />;
       default:
@@ -99,8 +116,15 @@ const CompanyDashboard = () => {
             >
               {sidebarOpen ? <FiX className="text-gray-700" /> : <FiMenu className="text-gray-700" />}
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">Job Dashboard</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Company Dashboard</h1>
           </div>
+          
+          {/* Show company name if available */}
+          {companyProfile?.companyName && (
+            <div className="text-sm text-gray-600 font-medium">
+              {companyProfile.companyName}
+            </div>
+          )}
           
           {/* Mobile Drafts Button */}
           {activeTab === 'createJob' && recentDrafts.length > 0 && (
@@ -136,6 +160,7 @@ const CompanyDashboard = () => {
             }}
             onMobileItemClick={() => setSidebarOpen(false)}
             recentDraftsCount={recentDrafts.length}
+            companyInfo={companyProfile}
           />
         </div>
 
@@ -155,14 +180,36 @@ const CompanyDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl xl:text-3xl font-bold text-gray-900">
-                    {activeTab === 'createJob' ? 'Create New Job' : 'Manage Job Postings'}
+                    {activeTab === 'createJob' ? 'Create New Job' : 
+                     activeTab === 'dashboard' ? 'Dashboard' :
+                     activeTab === 'applicants' ? 'Applicants' :
+                     activeTab === 'settings' ? 'Settings' : 
+                     activeTab === 'viewJobs' ? 'Job Listings' : 'Company Dashboard'}
                   </h1>
                   <p className="text-gray-600 mt-2">
                     {activeTab === 'createJob' 
                       ? 'Create and publish new job opportunities' 
+                      : activeTab === 'dashboard'
+                      ? 'Overview of your hiring activities'
+                      : activeTab === 'applicants'
+                      ? 'Manage and review job applications'
+                      : activeTab === 'settings'
+                      ? 'Manage your company settings'
                       : 'View and manage all job postings'}
                   </p>
                 </div>
+                
+                {/* Company name display */}
+                {companyProfile?.companyName && (
+                  <div className="text-right">
+                    <div className="text-lg font-semibold text-gray-900">
+                      {companyProfile.companyName}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {companyProfile.companyEmail}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Drafts button for desktop */}
                 {activeTab === 'createJob' && recentDrafts.length > 0 && (

@@ -2,136 +2,131 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import jobData from "../../../../../JsonFile/jobSelection.json";
 import { createOrUpdateJobPost, getDraftJobById } from "../../../../../Service/jobservices";
-import { 
-  FiArrowLeft, 
-  FiSave, 
-  FiUpload, 
-  FiCheckCircle,
-  FiPlus,
-  FiX,
-  FiCalendar,
-  FiMapPin,
-  FiBriefcase,
-  FiDollarSign,
-  FiUsers,
-  FiFileText,
-  FiPackage,
-  FiAward,
-  FiTool,
-  FiHeart,
-  FiClock,
-  FiFolder,
-  FiTag,
-  FiImage,
+import {
+  FiArrowLeft,
+  FiSave,
   FiEye,
   FiSearch,
+  FiChevronUp,
   FiChevronDown,
-  FiChevronUp
+  FiX,
+  FiCheckCircle,
+  FiPlus,
+  FiImage,
+  FiBriefcase,
+  FiFileText,
+  FiUsers,
+  FiDollarSign,
+  FiTool,
+  FiPackage,
+  FiHeart,
+  FiAward,
+  FiClock,
+  FiFolder,
+  FiTag
 } from "react-icons/fi";
-import { 
-  MdWork, 
-  MdDescription, 
-  MdSettings,
+import {
   MdBusiness,
-  MdEmail,
-  MdPhone,
+  MdSettings,
+  MdDescription,
   MdSchool,
-  MdMonetizationOn,
   MdPerson,
   MdLocationOn,
   MdAccessTime
 } from "react-icons/md";
 
+// Import new components
+import BasicInfoTab from "./components/tabs/BasicInfoTab";
+import JobDetailsTab from "./components/tabs/JobDetailsTab";
+import SalaryBenefitsTab from "./components/tabs/SalaryBenefitsTab";
+
 const JobPostingForm = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Get job ID from URL params
   const location = useLocation();
-  const [formData, setFormData] = useState({
-    // Basic Job Info
-    jobTitle: '',
-    jobRole: '',
-    jobCategory: '',
-    jobSubCategory: '',
-    employmentType: '',
-    workMode: '',
-    shiftType: '',
-    openingsCount: 1,
-    urgencyLevel: '',
+ const [formData, setFormData] = useState({
+  // Basic Job Info
+  jobTitle: '',
+  jobRole: '',
+  jobCategory: '',
+  jobSubCategory: '',
+  employmentType: '',
+  workMode: '',
+  shiftType: '',
+  openingsCount: 1,
+  urgencyLevel: '',
 
-    // Location
-    city: '',
-    state: '',
-    country: '',
-    pincode: '',
-    fullAddress: '',
-    remoteEligibility: false,
-    latitude: '',
-    longitude: '',
+  // Location
+  city: '',
+  state: '',
+  country: '',
+  pincode: '',
+  fullAddress: '',
+  remoteEligibility: false,
+  latitude: '',
+  longitude: '',
 
-    // Job Description
-    jobDescription: '',
-    responsibilities: [''],
-    dailyTasks: [''],
-    keyDuties: [''],
+  // Job Description
+  jobDescription: '',
+  responsibilities: [], // Changed from [''] to []
+  dailyTasks: [], // Changed from [''] to []
+  keyDuties: [], // Changed from [''] to []
 
-    // Skills
-    requiredSkills: [''],
-    preferredSkills: [''],
-    technicalSkills: [''],
-    softSkills: [''],
-    toolsAndTechnologies: [''],
+  // Skills
+  requiredSkills: [], // Changed from [''] to []
+  preferredSkills: [], // Changed from [''] to []
+  technicalSkills: [], // Changed from [''] to []
+  softSkills: [], // Changed from [''] to []
+  toolsAndTechnologies: [], // Changed from [''] to []
 
-    // Qualification
-    educationLevel: '',
-    degreeRequired: '',
-    certificationRequired: [''],
-    minimumExperience: 0,
-    maximumExperience: 0,
-    freshersAllowed: false,
+  // Qualification
+  educationLevel: '',
+  degreeRequired: '',
+  certificationRequired: [], // Changed from [''] to []
+  minimumExperience: 0,
+  maximumExperience: 0,
+  freshersAllowed: false,
 
-    // Salary
-    salaryType: 'monthly',
-    salaryMin: 0,
-    salaryMax: 0,
-    salaryCurrency: 'INR',
-    salaryVisibility: 'public',
-    benefits: [''],
-    perks: [''],
-    incentives: '',
-    bonuses: '',
+  // Salary
+  salaryType: 'monthly',
+  salaryMin: 0,
+  salaryMax: 0,
+  salaryCurrency: 'INR',
+  salaryVisibility: 'public',
+  benefits: [], // Changed from [''] to []
+  perks: [], // Changed from [''] to []
+  incentives: '',
+  bonuses: '',
 
-    // Hiring Information
-    hiringManagerName: '',
-    hiringManagerEmail: '',
-    hiringManagerPhone: '',
-    interviewMode: '',
-    interviewLocation: '',
-    interviewRounds: [''],
-    hiringProcess: [''],
-    interviewInstructions: '',
+  // Hiring Information
+  hiringManagerName: '',
+  hiringManagerEmail: '',
+  hiringManagerPhone: '',
+  interviewMode: '',
+  interviewLocation: '',
+  interviewRounds: [], // Changed from [''] to []
+  hiringProcess: [], // Changed from [''] to []
+  interviewInstructions: '',
 
-    // Timing & Duration
-    startDate: '',
-    endDate: '',
-    contractDuration: '',
-    jobTimings: '',
-    workingHours: '',
-    workingDays: '',
-    holidaysType: '',
+  // Timing & Duration
+  startDate: '',
+  endDate: '',
+  contractDuration: '',
+  jobTimings: '',
+  workingHours: '',
+  workingDays: '',
+  holidaysType: '',
 
-    // Documents Required
-    resumeRequired: true,
-    coverLetterRequired: false,
-    documentsRequired: [''],
+  // Documents Required
+  resumeRequired: true,
+  coverLetterRequired: false,
+  documentsRequired: [], // Changed from [''] to []
 
-    // SEO & Keywords
-    tags: [''],
-    skillKeywords: [''],
-    keywordSearch: [''],
-
-    // Status
-    status: 'draft',
-  });
+  // SEO & Keywords
+  tags: [], // Changed from [''] to []
+  skillKeywords: [], // Changed from [''] to []
+  keywordSearch: [], // Changed from [''] to []
+});
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,6 +151,9 @@ const JobPostingForm = () => {
   // Get all categories from JSON
   const allCategories = jobData.mainCategories.flatMap(category => category.items);
   const jobRoles = jobData.jobRoles;
+
+
+  
 
   // Filter categories and roles based on search
   const filteredCategories = allCategories.filter(category =>
@@ -318,8 +316,7 @@ const fetchJobData = async (jobId) => {
         skillKeywords: parseArrayField(jobData.skillKeywords),
         keywordSearch: parseArrayField(jobData.keywordSearch),
 
-        // Status
-        status: jobData.status || 'draft',
+  
       };
 
       setFormData(updatedFormData);
@@ -353,11 +350,11 @@ const fetchJobData = async (jobId) => {
   };
 
   const addArrayField = (field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }));
-  };
+  setFormData(prev => ({
+    ...prev,
+    [field]: [...prev[field], ''] // Keep adding empty string for new field
+  }));
+};
 
   const removeArrayField = (index, field) => {
     setFormData(prev => ({
@@ -405,11 +402,11 @@ const fetchJobData = async (jobId) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e, saveAsDraft = false) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // If user is doing a final submit (not saving draft), validate required fields:
-  if (!saveAsDraft && !validateForm()) {
+  // Validate required fields for final submission
+  if (!validateForm()) {
     return;
   }
 
@@ -423,38 +420,48 @@ const fetchJobData = async (jobId) => {
       submissionData.append('id', id);
     }
 
-    // Helper to normalize status string to backend-expected value
-    const normalizeStatus = (s) => {
-      if (s === null || s === undefined) return s;
-      const lower = String(s).trim().toLowerCase();
-      // Map common variants to backend expected value 'submit'
-      if (lower === 'submit' || lower === 'submitted' || lower === 'send') return 'submit';
-      // keep other statuses lowercase
-      return lower;
-    };
-
-    // Append all form data (arrays handled)
-    Object.keys(formData).forEach(key => {
-      const value = formData[key];
-
+    // Helper function to clean and append form data
+    const appendFormField = (key, value) => {
+      if (value === null || value === undefined || value === '') {
+        return false;
+      }
+      
       if (Array.isArray(value)) {
-        const filteredArray = value.filter(item => String(item).trim() !== '');
+        const filteredArray = value.filter(item => item && item.toString().trim() !== '');
         if (filteredArray.length > 0) {
-          // Append arrays as key[index] to match your previous approach
           filteredArray.forEach((item, index) => {
             submissionData.append(`${key}[${index}]`, item);
           });
+          return true;
         }
-      } else if (value !== null && value !== undefined) {
-        if (key === 'status') {
-          // if saving as draft, override status to 'draft'
-          const finalStatus = saveAsDraft ? 'draft' : normalizeStatus(value);
-          submissionData.append('status', finalStatus);
-        } else {
-          submissionData.append(key, value);
-        }
+        return false;
       }
+      
+      if (typeof value === 'boolean') {
+        submissionData.append(key, value.toString());
+        return true;
+      }
+      
+      if (typeof value === 'number') {
+        submissionData.append(key, value.toString());
+        return true;
+      }
+      
+      if (typeof value === 'string' && value.trim() !== '') {
+        submissionData.append(key, value.trim());
+        return true;
+      }
+      
+      return false;
+    };
+
+    // Append all non-empty form fields
+    Object.entries(formData).forEach(([key, value]) => {
+      appendFormField(key, value);
     });
+
+    // Always set status to 'submit' for final submission
+    submissionData.append('status', 'submit');
 
     // Append job image if exists
     if (jobImage) {
@@ -466,207 +473,132 @@ const fetchJobData = async (jobId) => {
       submissionData.append('removeExistingImage', 'true');
     }
 
-    // Call API and normalize axios / non-axios responses
+    // Log the data being sent for debugging
+    console.log("Form data being submitted:");
+    for (let [key, value] of submissionData.entries()) {
+      console.log(key, value);
+    }
+
     const apiRes = await createOrUpdateJobPost(submissionData);
     const result = apiRes?.data ?? apiRes;
 
     if (result && result.success) {
-      if (saveAsDraft) {
-        setSavedDraft(true);
-        setTimeout(() => setSavedDraft(false), 3000);
-      } else {
-        alert(isEditMode ? 'Job updated successfully!' : 'Job created successfully!');
-        navigate('/company/home');
-      }
+      alert(isEditMode ? 'Job submitted successfully!' : 'Job created successfully!');
+      navigate('/company/home');
     } else {
-      // show backend message if present
-      throw new Error(result?.message || 'Save failed');
+      throw new Error(result?.message || 'Submission failed');
     }
   } catch (error) {
-    console.error('Error saving job:', error);
+    console.error('Error submitting job:', error);
     alert(`Failed to ${isEditMode ? 'update' : 'create'} job. ${error?.message ? error.message : ''}`);
   } finally {
     setIsSubmitting(false);
   }
 };
 
-
-  const handleSaveDraft = async () => {
+// Also update the initial formData to ensure all array fields have at least one non-empty item
+// In your fetchJobData function, update the parseArrayField helper:
+const parseArrayField = (field) => {
+  if (!field) return [];
+  if (Array.isArray(field)) {
+    const filtered = field.filter(item => item && item.toString().trim() !== '');
+    return filtered.length > 0 ? filtered : [];
+  }
+  if (typeof field === 'string') {
     try {
-      const draftData = new FormData();
-
-      // Append job ID if in edit mode
-      if (isEditMode && id) {
-        draftData.append('id', id);
+      const parsed = JSON.parse(field);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.filter(item => item && item.toString().trim() !== '');
+        return filtered.length > 0 ? filtered : [];
       }
-
-      // Append all form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          const filteredArray = value.filter(item => item.trim() !== '');
-          if (filteredArray.length > 0) {
-            filteredArray.forEach((v) => draftData.append(key, v));
-          }
-        } else {
-          draftData.append(key, value);
-        }
-      });
-
-      draftData.append("status", "draft");
-
-      // Append job image if exists
-      if (jobImage) {
-        draftData.append('jobImage', jobImage);
-      }
-
-      const response = await createOrUpdateJobPost(draftData);
-
-      console.log("Draft Saved:", response);
-
-      setSavedDraft(true);
-      setTimeout(() => setSavedDraft(false), 3000);
-
-    } catch (err) {
-      console.error("Save draft failed:", err);
-      alert('Failed to save draft. Please try again.');
+    } catch {
+      const items = field.split(',').map(item => item.trim()).filter(item => item);
+      return items.length > 0 ? items : [];
     }
-  };
+  }
+  return [];
+};
 
-  // Custom select component for Job Category with search
-  const CategorySelect = () => {
-    return (
-      <div className="relative" ref={categoryRef}>
-        <label className="block text-sm font-semibold text-gray-900 mb-3">
-          Job Category *
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={categorySearch}
-            onChange={(e) => setCategorySearch(e.target.value)}
-            onFocus={() => setShowCategoryDropdown(true)}
-            placeholder="Search category..."
-            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-10 ${
-              errors.jobCategory ? 'border-red-300 bg-red-50' : 'border-gray-300'
-            }`}
-          />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            <FiSearch />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400"
-          >
-            {showCategoryDropdown ? <FiChevronUp /> : <FiChevronDown />}
-          </button>
-        </div>
-        {showCategoryDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {filteredCategories.length > 0 ? (
-              filteredCategories.map((category, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, jobCategory: category }));
-                    setCategorySearch('');
-                    setShowCategoryDropdown(false);
-                  }}
-                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
-                >
-                  {category}
-                </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-gray-500">No categories found</div>
-            )}
-          </div>
-        )}
-        {errors.jobCategory && <p className="text-red-500 text-sm mt-2">{errors.jobCategory}</p>}
-        {formData.jobCategory && !showCategoryDropdown && (
-          <div className="mt-2">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm">
-              {formData.jobCategory}
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, jobCategory: '' }))}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                <FiX className="text-sm" />
-              </button>
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  };
 
-  // Custom select component for Job Role with search
-  const RoleSelect = () => {
-    return (
-      <div className="relative" ref={roleRef}>
-        <label className="block text-sm font-semibold text-gray-900 mb-3">
-          Job Role
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={roleSearch}
-            onChange={(e) => setRoleSearch(e.target.value)}
-            onFocus={() => setShowRoleDropdown(true)}
-            placeholder="Search job role..."
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-10"
-          />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            <FiSearch />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-            className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400"
-          >
-            {showRoleDropdown ? <FiChevronUp /> : <FiChevronDown />}
-          </button>
-        </div>
-        {showRoleDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {filteredRoles.length > 0 ? (
-              filteredRoles.map((role, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, jobRole: role.value }));
-                    setRoleSearch('');
-                    setShowRoleDropdown(false);
-                  }}
-                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
-                >
-                  <div className="font-medium">{role.label}</div>
-                  <div className="text-xs text-gray-500">{role.category}</div>
-                </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-gray-500">No roles found</div>
-            )}
-          </div>
-        )}
-        {formData.jobRole && !showRoleDropdown && (
-          <div className="mt-2">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm">
-              {formData.jobRole}
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, jobRole: '' }))}
-                className="text-green-500 hover:text-green-700"
-              >
-                <FiX className="text-sm" />
-              </button>
-            </span>
-          </div>
-        )}
-      </div>
-    );
-  };
+const handleSaveDraft = async () => {
+  try {
+    setIsSubmitting(true);
+    const draftData = new FormData();
+
+    // Append job ID if in edit mode
+    if (isEditMode && id) {
+      draftData.append('id', id);
+    }
+
+    // Helper function to clean and append form data
+    const appendFormField = (key, value) => {
+      if (value === null || value === undefined || value === '') {
+        return false;
+      }
+      
+      if (Array.isArray(value)) {
+        const filteredArray = value.filter(item => item && item.toString().trim() !== '');
+        if (filteredArray.length > 0) {
+          filteredArray.forEach((item, index) => {
+            draftData.append(`${key}[${index}]`, item);
+          });
+          return true;
+        }
+        return false;
+      }
+      
+      if (typeof value === 'boolean') {
+        draftData.append(key, value.toString());
+        return true;
+      }
+      
+      if (typeof value === 'number') {
+        draftData.append(key, value.toString());
+        return true;
+      }
+      
+      if (typeof value === 'string' && value.trim() !== '') {
+        draftData.append(key, value.trim());
+        return true;
+      }
+      
+      return false;
+    };
+
+    // Append all non-empty form fields
+    Object.entries(formData).forEach(([key, value]) => {
+      appendFormField(key, value);
+    });
+
+    // Always set status to 'draft' for draft saves
+    draftData.append('status', 'draft');
+
+    // Append job image if exists
+    if (jobImage) {
+      draftData.append('jobImage', jobImage);
+    }
+
+    console.log("Draft data being sent:");
+    for (let [key, value] of draftData.entries()) {
+      console.log(key, value);
+    }
+
+    const response = await createOrUpdateJobPost(draftData);
+
+    console.log("Draft Saved:", response);
+
+    setSavedDraft(true);
+    setTimeout(() => setSavedDraft(false), 3000);
+
+  } catch (err) {
+    console.error("Save draft failed:", err);
+    alert('Failed to save draft. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
 
   // Constants for dropdowns
   const employmentTypes = ["full-time", "part-time", "contract", "internship", "freelance"];
@@ -676,7 +608,6 @@ const fetchJobData = async (jobId) => {
   const salaryTypes = ["monthly", "yearly", "hourly"];
   const salaryVisibilities = ["public", "private", "restricted"];
   const interviewModes = ["online", "offline"];
-  const statusOptions = ["draft", "inactive", "expired", "closed","submit"];
   const educationLevels = ["High School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD", "No Formal Education Required"];
   const salaryCurrencies = ["INR", "USD", "EUR", "GBP", "AUD", "CAD"];
 
@@ -802,396 +733,37 @@ const fetchJobData = async (jobId) => {
     switch (activeTab) {
       case 'basic':
         return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Basic Job Information</h2>
-              <p className="text-gray-600">Start by providing the basic details about the job position.</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                {/* Job Title */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    <div className="flex items-center gap-2">
-                      <FiBriefcase className="text-blue-600" />
-                      Job Title *
-                    </div>
-                  </label>
-                  <input
-                    type="text"
-                    name="jobTitle"
-                    value={formData.jobTitle}
-                    onChange={handleInputChange}
-                    required
-                    className={`w-full px-4 py-3 text-lg border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                      errors.jobTitle ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Senior Frontend Developer"
-                  />
-                  {errors.jobTitle && <p className="text-red-500 text-sm mt-2">{errors.jobTitle}</p>}
-                </div>
-
-                {/* Job Category & Role */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <CategorySelect />
-                  </div>
-
-                  <div>
-                    <RoleSelect />
-                  </div>
-                </div>
-
-                {/* Employment Type & Work Mode */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      <div className="flex items-center gap-2">
-                        <MdWork className="text-blue-600" />
-                        Employment Type *
-                      </div>
-                    </label>
-                    <select
-                      name="employmentType"
-                      value={formData.employmentType}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                        errors.employmentType ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">Select Type</option>
-                      {employmentTypes.map(type => (
-                        <option key={type} value={type} className="capitalize">
-                          {type.replace('-', ' ')}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.employmentType && <p className="text-red-500 text-sm mt-2">{errors.employmentType}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      <div className="flex items-center gap-2">
-                        <FiBriefcase className="text-blue-600" />
-                        Work Mode *
-                      </div>
-                    </label>
-                    <select
-                      name="workMode"
-                      value={formData.workMode}
-                      onChange={handleInputChange}
-                      required
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                        errors.workMode ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">Select Mode</option>
-                      {workModes.map(mode => (
-                        <option key={mode} value={mode} className="capitalize">
-                          {mode}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.workMode && <p className="text-red-500 text-sm mt-2">{errors.workMode}</p>}
-                  </div>
-                </div>
-
-                {/* Shift Type & Openings */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Shift Type
-                    </label>
-                    <select
-                      name="shiftType"
-                      value={formData.shiftType}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    >
-                      <option value="">Select Shift</option>
-                      {shiftTypes.map(shift => (
-                        <option key={shift} value={shift} className="capitalize">
-                          {shift}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Openings Count *
-                    </label>
-                    <input
-                      type="number"
-                      name="openingsCount"
-                      value={formData.openingsCount}
-                      onChange={handleInputChange}
-                      min="1"
-                      required
-                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                        errors.openingsCount ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.openingsCount && <p className="text-red-500 text-sm mt-2">{errors.openingsCount}</p>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                {/* Location Information */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    <div className="flex items-center gap-2">
-                      <FiMapPin className="text-blue-600" />
-                      Location Details
-                    </div>
-                  </label>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        placeholder="City"
-                        className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      />
-                      <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleInputChange}
-                        placeholder="State"
-                        className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleInputChange}
-                        placeholder="Country"
-                        className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      />
-                      <input
-                        type="text"
-                        name="pincode"
-                        value={formData.pincode}
-                        onChange={handleInputChange}
-                        placeholder="Pincode"
-                        className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      />
-                    </div>
-                    <textarea
-                      name="fullAddress"
-                      value={formData.fullAddress}
-                      onChange={handleInputChange}
-                      rows={3}
-                      placeholder="Full Address"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
-                    />
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="remoteEligibility"
-                        checked={formData.remoteEligibility}
-                        onChange={handleInputChange}
-                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        id="remoteEligibility"
-                      />
-                      <label htmlFor="remoteEligibility" className="ml-3 text-gray-700">
-                        Remote work eligible
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Urgency Level */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    Urgency Level
-                  </label>
-                  <select
-                    name="urgencyLevel"
-                    value={formData.urgencyLevel}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  >
-                    <option value="">Select Urgency</option>
-                    {urgencyLevels.map(level => (
-                      <option key={level} value={level} className="capitalize">
-                        {level}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+          <BasicInfoTab
+            formData={formData}
+            handleInputChange={handleInputChange}
+            errors={errors}
+            categorySearch={categorySearch}
+            setCategorySearch={setCategorySearch}
+            showCategoryDropdown={showCategoryDropdown}
+            setShowCategoryDropdown={setShowCategoryDropdown}
+            filteredCategories={filteredCategories}
+            roleSearch={roleSearch}
+            setRoleSearch={setRoleSearch}
+            showRoleDropdown={showRoleDropdown}
+            setShowRoleDropdown={setShowRoleDropdown}
+            filteredRoles={filteredRoles}
+            employmentTypes={employmentTypes}
+            workModes={workModes}
+            shiftTypes={shiftTypes}
+            urgencyLevels={urgencyLevels}
+          />
         );
 
       case 'details':
         return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Job Description & Responsibilities</h2>
-              <p className="text-gray-600">Describe the job role, responsibilities, and daily tasks.</p>
-            </div>
-
-            {/* Job Description */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
-                <div className="flex items-center gap-2">
-                  <MdDescription className="text-blue-600" />
-                  Job Description *
-                </div>
-              </label>
-              <textarea
-                name="jobDescription"
-                value={formData.jobDescription}
-                onChange={handleInputChange}
-                required
-                rows={8}
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-lg resize-none ${
-                  errors.jobDescription ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Describe the job role, expectations, company culture, and what makes this position exciting..."
-              />
-              {errors.jobDescription && <p className="text-red-500 text-sm mt-2">{errors.jobDescription}</p>}
-              <div className="text-sm text-gray-500 mt-2">
-                <p>Tip: Be specific about responsibilities, growth opportunities, and team culture.</p>
-              </div>
-            </div>
-
-            {/* Responsibilities */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Key Responsibilities
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('responsibilities')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Responsibility
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.responsibilities.map((responsibility, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={responsibility}
-                        onChange={(e) => handleArrayInputChange(index, 'responsibilities', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a key responsibility"
-                      />
-                    </div>
-                    {formData.responsibilities.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'responsibilities')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Daily Tasks */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Daily Tasks & Activities
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('dailyTasks')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Task
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.dailyTasks.map((task, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={task}
-                        onChange={(e) => handleArrayInputChange(index, 'dailyTasks', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a daily task"
-                      />
-                    </div>
-                    {formData.dailyTasks.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'dailyTasks')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Key Duties */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Key Duties
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('keyDuties')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Duty
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.keyDuties.map((duty, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={duty}
-                        onChange={(e) => handleArrayInputChange(index, 'keyDuties', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a key duty"
-                      />
-                    </div>
-                    {formData.keyDuties.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'keyDuties')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <JobDetailsTab
+            formData={formData}
+            errors={errors}
+            handleInputChange={handleInputChange}
+            handleArrayInputChange={handleArrayInputChange}
+            addArrayField={addArrayField}
+            removeArrayField={removeArrayField}
+          />
         );
 
       case 'skills':
@@ -1510,215 +1082,13 @@ const fetchJobData = async (jobId) => {
 
       case 'salary':
         return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Salary & Benefits</h2>
-              <p className="text-gray-600">Define the compensation package and benefits for this position.</p>
-            </div>
-
-            {/* Salary Information */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <MdMonetizationOn className="text-blue-600" />
-                  Salary Information
-                </div>
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Salary Type</label>
-                  <select
-                    name="salaryType"
-                    value={formData.salaryType}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  >
-                    {salaryTypes.map(type => (
-                      <option key={type} value={type} className="capitalize">
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Salary Visibility</label>
-                  <select
-                    name="salaryVisibility"
-                    value={formData.salaryVisibility}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  >
-                    {salaryVisibilities.map(visibility => (
-                      <option key={visibility} value={visibility} className="capitalize">
-                        {visibility}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Minimum Salary</label>
-                  <div className="flex items-center">
-                    <select
-                      name="salaryCurrency"
-                      value={formData.salaryCurrency}
-                      onChange={handleInputChange}
-                      className="px-4 py-3 border-2 border-r-0 border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    >
-                      {salaryCurrencies.map(currency => (
-                        <option key={currency} value={currency}>{currency}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      name="salaryMin"
-                      value={formData.salaryMin}
-                      onChange={handleInputChange}
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-r-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      placeholder="e.g., 50000"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Maximum Salary</label>
-                  <div className="flex items-center">
-                    <span className="px-4 py-3 border-2 border-r-0 border-gray-300 rounded-l-xl bg-gray-50 text-gray-700">
-                      {formData.salaryCurrency}
-                    </span>
-                    <input
-                      type="number"
-                      name="salaryMax"
-                      value={formData.salaryMax}
-                      onChange={handleInputChange}
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-r-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      placeholder="e.g., 100000"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Incentives</label>
-                  <input
-                    type="text"
-                    name="incentives"
-                    value={formData.incentives}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., Performance bonuses"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Bonuses</label>
-                  <input
-                    type="text"
-                    name="bonuses"
-                    value={formData.bonuses}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., Annual bonus"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Benefits */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiHeart className="text-blue-600" />
-                    Benefits
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('benefits')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Benefit
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={benefit}
-                        onChange={(e) => handleArrayInputChange(index, 'benefits', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a benefit"
-                      />
-                    </div>
-                    {formData.benefits.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'benefits')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Perks */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiAward className="text-blue-600" />
-                    Perks
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('perks')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Perk
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.perks.map((perk, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={perk}
-                        onChange={(e) => handleArrayInputChange(index, 'perks', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a perk"
-                      />
-                    </div>
-                    {formData.perks.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'perks')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <SalaryBenefitsTab
+            formData={formData}
+            handleInputChange={handleInputChange}
+            handleArrayInputChange={handleArrayInputChange}
+            addArrayField={addArrayField}
+            removeArrayField={removeArrayField}
+          />
         );
 
       case 'hiring':
@@ -2224,30 +1594,7 @@ const fetchJobData = async (jobId) => {
             {/* Job Image Upload */}
             <JobImageUpload />
 
-            {/* Status */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <FiCheckCircle className="text-blue-600" />
-                  Job Status
-                </div>
-              </h3>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              >
-                {statusOptions.map(status => (
-                  <option key={status} value={status} className="capitalize">
-                    {status}
-                  </option>
-                ))}
-              </select>
-              <p className="text-sm text-gray-500 mt-3">
-                Select "Draft" to save for later, or "Submit" to Admin Review.
-              </p>
-            </div>
+           
           </div>
         );
 
@@ -2556,25 +1903,27 @@ const fetchJobData = async (jobId) => {
                         {activeTab === 'additional' ? 'Review' : 'Next Step'}
                       </button>
                       
-                      {activeTab === 'additional' && (
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
-                        >
-                          {isSubmitting ? (
-                            <span className="flex items-center gap-2">
-                              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              {isEditMode ? 'Updating...' : 'Publishing...'}
-                            </span>
-                          ) : (
-                            isEditMode ? 'Update Job' : 'Publish Job'
-                          )}
-                        </button>
-                      )}
+                     {activeTab === 'additional' && (
+  <button
+    type="submit"
+    disabled={isSubmitting}
+    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+  >
+    {isSubmitting ? (
+      <span className="flex items-center gap-2">
+        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        {isEditMode ? 'Updating...' : 'Publishing...'}
+      </span>
+    ) : (
+      // Changed from "Update Job" to "Submit for Review"
+      isEditMode ? 'Submit for Review' : 'Submit for Review'
+    )}
+  </button>
+)}
+
                     </div>
                   </div>
                 </div>

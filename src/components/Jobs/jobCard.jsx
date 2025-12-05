@@ -355,15 +355,6 @@ const JobCard = ({ jobData }) => {
         </div>
       </div>
 
-      {showPopup && (
-        <JobDetailsPopup 
-          open={showPopup} 
-          isSaved={isSaved}
-          onSave={handleSave}
-          onClose={() => setShowPopup(false)}
-          job={jobData} 
-        />
-      )}
     </>
   );
 };

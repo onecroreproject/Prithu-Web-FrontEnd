@@ -245,24 +245,10 @@ const JobFilter = ({
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg  p-2">
         <h2 className="font-semibold text-gray-900 text-lg mb-3">Filters</h2>
         
-        {/* Quick Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <button
-            onClick={onOpenFullTimeJobs}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
-          >
-            Full Time
-          </button>
-          <button
-            onClick={onOpenFreelancer}
-            className="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
-          >
-            Freelance
-          </button>
-        </div>
+        
       </div>
 
       {/* Active Filters */}

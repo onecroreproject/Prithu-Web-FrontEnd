@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchRankedJobs } from "../../../Service/jobservices";
 import { Briefcase, MapPin, AlertCircle, RefreshCw, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
 
 export default function JobTopRolesCard() {
-  const navigate = useNavigate(); // Initialize navigation
+  const navigate = useNavigate();
   
   /* ---------------------- 🔹 Fetch Ranked Jobs ---------------------- */
   const { 
@@ -23,9 +23,31 @@ export default function JobTopRolesCard() {
   });
 
   const topRoles = jobs.slice(0, 5);
+  console.log("Top roles:", topRoles);
 
-  const handleRoleClick = (roleId) => {
-    navigate(`/job/${roleId}`);
+  // Fixed: Enhanced handleRoleClick function
+  const handleRoleClick = (role) => {
+    console.log("Selected role:", role);
+    
+    // Prepare query parameters
+    const queryParams = new URLSearchParams();
+    
+    // Add job role/title
+    if (role.jobRole) {
+      queryParams.append("role", role.jobRole);
+    } else if (role.jobTitle) {
+      queryParams.append("role", role.jobTitle);
+    }
+    
+    // Add other relevant filters if available
+    if (role.city) queryParams.append("city", role.city);
+    if (role.state) queryParams.append("state", role.state);
+    if (role.country) queryParams.append("country", role.country);
+    if (role.jobType) queryParams.append("type", role.jobType);
+    if (role.experienceLevel) queryParams.append("experience", role.experienceLevel);
+    
+    // Navigate with query parameters
+    navigate(`/jobs?${queryParams.toString()}`);
   };
 
   return (
@@ -36,7 +58,7 @@ export default function JobTopRolesCard() {
     >
       <TopJobRoles 
         roles={topRoles} 
-        onRoleSelect={handleRoleClick} // Pass navigation function
+        onRoleSelect={handleRoleClick}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -51,7 +73,7 @@ export default function JobTopRolesCard() {
    ============================================================================ */
 const TopJobRoles = memo(function TopJobRoles({ 
   roles = [], 
-  onRoleSelect, // This now receives job ID for navigation
+  onRoleSelect,
   isLoading,
   isError,
   error,
@@ -133,6 +155,13 @@ const TopJobRoles = memo(function TopJobRoles({
     );
   }
 
+  // Handle click on a role
+  const handleClick = (role) => {
+    if (onRoleSelect) {
+      onRoleSelect(role); // Pass the entire role object
+    }
+  };
+
   return (
     <div className="pb-2">
       {/* Header */}
@@ -150,7 +179,7 @@ const TopJobRoles = memo(function TopJobRoles({
             <motion.li
               key={role._id || i}
               variants={fade}
-              onClick={() => onRoleSelect && onRoleSelect(role._id)} // Pass job ID
+              onClick={() => handleClick(role)} // Pass the entire role object
               className="p-2 rounded-lg bg-gray-50/60 dark:bg-[#202024]/60 
                          hover:bg-green-50 dark:hover:bg-green-900/20 
                          border border-transparent hover:border-green-200 dark:hover:border-green-800/50
@@ -185,7 +214,18 @@ const TopJobRoles = memo(function TopJobRoles({
                   </div>
                 )}
 
-               
+                {/* Salary Information - Added this section */}
+                {(role.salaryMin || role.salaryMax) && (
+                  <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs">
+                    <Briefcase className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">
+                      {role.salaryCurrency === 'INR' ? '₹' : '$'}
+                      {role.salaryMin || 0} - {role.salaryCurrency === 'INR' ? '₹' : '$'}
+                      {role.salaryMax || 0}
+                      {role.salaryType ? ` per ${role.salaryType}` : ''}
+                    </span>
+                  </div>
+                )}
               </div>
             </motion.li>
           ))}

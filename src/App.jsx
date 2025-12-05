@@ -45,6 +45,8 @@ import CompanyLogin from "./components/CompanyLoginComponents/mainLoginLayout.js
 import JobPageWrapper from "./components/Jobs/HeaderJobs/jobPageWraper.jsx";
 import CompanyDashboard from "./Company/Home/companyLayout.jsx";
 import JobPostingForm from "./Company/Home/companyLayoutComponent/tabComponent/createTabComponent/JobApplication.jsx";
+import JobApplicationPage from "./components/Jobs/HeaderJobs/appliedPagePop-up.jsx";
+import AptitudeTest from "./components/Aptitude/mainLayout.jsx";
 
 
 // ✅ Create a single QueryClient instance
@@ -138,6 +140,8 @@ function AppRoutes() {
       <Route path="/job/:id" element ={<JobPageWrapper/>}/>
       <Route path="/jobs/create" element={<JobPostingForm/>} />
       <Route path="/jobs/edit/:id" element={<JobPostingForm />} />
+      <Route path="/job/apply/:jobId" element={<JobApplicationPage />} />
+      <Route path="aptitude" element={<AptitudeTest/>}/>
 
       {/* Shared post */}
       <Route

@@ -154,7 +154,7 @@ export default function Header() {
 
   // -- Aptitude --
   const handleAptitudeClick = () => {
-    setIsAptitudeOpen(true);
+   navigate("/aptitude")
   };
 
   const closeAll = () => {

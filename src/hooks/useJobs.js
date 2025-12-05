@@ -5,20 +5,7 @@ import { toast } from 'react-hot-toast';
 
 /**
  * Fetch top ranked jobs
- */
-export function useTopRankedJobs(token) {
-    return useQuery({
-        queryKey: ['topRankedJobs', token],
-        queryFn: async () => {
-            const { data } = await api.get('/job/top/ranked/jobs', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return data.jobs || [];
-        },
-        enabled: !!token,
-        staleTime: 10 * 60 * 1000, // 10 minutes
-    });
-}
+
 
 /**
  * Fetch top roles
@@ -83,7 +70,7 @@ export function useJobDetails(jobId) {
     return useQuery({
         queryKey: ['jobDetails', jobId],
         queryFn: async () => {
-            const { data } = await api.get(`/job/get/job/${jobId}`);
+            const { data } = await api.get(`/job/get/jb/${jobId}`);
             return data.job;
         },
         enabled: !!jobId,

@@ -1,58 +1,103 @@
 // ✅ src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import toast from "react-hot-toast";
+
 import { getDeviceDetails } from "../utils/getDeviceDetails";
 import { connectSocket, disconnectSocket } from "../webSocket/socket";
+
 import { useAutoLogin } from "./AuthContextComponents/useAutologin";
 import { usePresenceTracker } from "./AuthContextComponents/userPresenceTracker";
 
-// ---------------------- ⚙️ Create Context ----------------------
+// -----------------------------------------------------------------------------
+// 🌍 Create Context
+// -----------------------------------------------------------------------------
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  // ---------------------- 🌐 Core States ----------------------
+  // ---------------------------------------------------------------------------
+  // 🧩 Core States
+  // ---------------------------------------------------------------------------
   const [loading, setLoading] = useState(false);
+
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+
   const [user, setUser] = useState(null);
   const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId") || null);
-  const [deviceId, setDeviceId] = useState(localStorage.getItem("deviceId") || null);
+
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [socketConnected, setSocketConnected] = useState(false);
   const [socket, setSocket] = useState(null);
+
   const [resetEmail, setResetEmail] = useState(null);
 
-  // ---------------------- 🚀 Hooks ----------------------
-  useAutoLogin({ setToken, setUser, setSessionId, navigate });
-  usePresenceTracker({ token, sessionId, user, socket });
+  // Presence Tracker Controller
+  const [canStartPresence, setCanStartPresence] = useState(false);
 
-  // ---------------------- ⚡ Socket Connection ----------------------
+  // ---------------------------------------------------------------------------
+  // 👤 Normalize User (_id / userId compatibility)
+  // ---------------------------------------------------------------------------
+  const normalizedUser = user
+    ? { ...user, _id: user._id || user.userId }
+    : null;
+
+  // ---------------------------------------------------------------------------
+  // 🚀 AutoLogin Hook
+  // ---------------------------------------------------------------------------
+  useAutoLogin({ setToken, setUser, setSessionId, navigate });
+
+  // ---------------------------------------------------------------------------
+  // ❤️ Presence Tracker (Runs *only after* socket + user + session ready)
+  // ❗ React-safe: top-level conditional hook call
+  // ---------------------------------------------------------------------------
+  usePresenceTracker({
+  token,
+  sessionId,
+  user: normalizedUser,
+  socket
+});
+
+
+  // ---------------------------------------------------------------------------
+  // ⚡ SOCKET CONNECTION HANDLING
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!token || !sessionId || !user?._id) return;
+    if (!token || !sessionId || !normalizedUser?._id) return;
 
     const newSocket = connectSocket(token, sessionId);
     setSocket(newSocket);
 
+    // 🔵 On Connect
     newSocket.on("connect", () => {
-      console.log("✅ [SOCKET] Connected:", newSocket.id);
+      console.log("🟢 SOCKET CONNECTED:", newSocket.id);
       setSocketConnected(true);
-      newSocket.emit("userOnline", { userId: user._id });
+
+      newSocket.emit("userOnline", { userId: normalizedUser._id });
+
+      // Allow presence tracker to start
+      setCanStartPresence(true);
     });
 
+    // 🔴 On Disconnect
     newSocket.on("disconnect", (reason) => {
-      console.warn("🔌 [SOCKET] Disconnected:", reason);
+      console.warn("🔴 SOCKET DISCONNECTED:", reason);
       setSocketConnected(false);
-      newSocket.emit("userOffline", { userId: user._id });
+
+      newSocket.emit("userOffline", { userId: normalizedUser._id });
+
+      // Stop presence tracking
+      setCanStartPresence(false);
     });
 
-    // 🟢 Presence Updates
+    // 👥 Track Online Users
     newSocket.on("userOnline", ({ userId }) =>
       setOnlineUsers((prev) => new Set([...prev, userId]))
     );
+
     newSocket.on("userOffline", ({ userId }) =>
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
@@ -61,51 +106,33 @@ export const AuthProvider = ({ children }) => {
       })
     );
 
-    // ✅ Note: newNotification and notificationRead events are handled in socket.js
-    // and dispatched as CustomEvents for components to listen to
-
     return () => {
-      newSocket.emit("userOffline", { userId: user?._id });
+      newSocket.emit("userOffline", { userId: normalizedUser?._id });
       disconnectSocket();
-      setSocketConnected(false);
       setSocket(null);
+      setSocketConnected(false);
+      setCanStartPresence(false);
     };
-  }, [token, sessionId, user?._id]);
 
-  // ---------------------- 🧩 Auth Actions ----------------------
+  }, [token, sessionId, normalizedUser?._id]);
 
-  const register = async ({
-    username,
-    email,
-    password,
-    referralCode,
-    phone,
-    whatsapp,
-    accountType,
-  }) => {
+  // ---------------------------------------------------------------------------
+  // 🔐 REGISTER
+  // ---------------------------------------------------------------------------
+  const register = async (payload) => {
     setLoading(true);
     try {
-      await api.post("/api/auth/user/register", {
-        username,
-        email,
-        password,
-        referralCode,
-        phone,
-        whatsapp,
-        accountType,
-      });
+      await api.post("/api/auth/user/register", payload);
 
       toast.success("🎉 Account created successfully!");
 
-      // Read redirect param (from shared link)
-      const params = new URLSearchParams(window.location.search);
-      const redirectPath = params.get("redirect");
+      const redirectPath = new URLSearchParams(window.location.search).get("redirect");
 
-      if (redirectPath) {
-        navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
-      } else {
-        navigate("/login");
-      }
+      navigate(
+        redirectPath
+          ? `/login?redirect=${encodeURIComponent(redirectPath)}`
+          : "/login"
+      );
 
       return true;
     } catch (err) {
@@ -116,101 +143,79 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-
- /**
- * 🔐 Login with redirect support (ANY URL including queries)
- */
-const login = async ({ identifier, password }) => {
-  setLoading(true);
-  try {
-    let storedDeviceId = localStorage.getItem("deviceId");
-    let deviceType, os, browser;
-
-    const deviceDetails = getDeviceDetails();
-    deviceType = deviceDetails.deviceType;
-    os = deviceDetails.os;
-    browser = deviceDetails.browser;
-
-    if (!storedDeviceId) {
-      storedDeviceId = deviceDetails.deviceId;
-      localStorage.setItem("deviceId", storedDeviceId);
-    }
-
-    const existingSessionId = localStorage.getItem("sessionId");
-
-    const loginPayload = {
-      identifier,
-      password,
-      deviceId: storedDeviceId,
-      deviceType,
-      os,
-      browser,
-      sessionId: existingSessionId || null,
-    };
-
-    const { data } = await api.post("/api/auth/user/login", loginPayload);
-    const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
-
-    if (!accessToken) throw new Error("Invalid login response");
-
-    // Save tokens
-    localStorage.setItem("token", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("sessionId", newSessionId);
-    localStorage.setItem("deviceId", storedDeviceId);
-    localStorage.setItem("userId", userId);
-
-    setToken(accessToken);
-    setRefreshToken(refreshToken);
-    setSessionId(newSessionId);
-
-    await fetchUserProfile(accessToken);
-
-    // ❗ DO NOT REMOVE QUERY PARAMS — removing this fixes redirect bug
-    // window.history.replaceState({}, "", "/login");
-
-    // 🔥 Read redirect param
-    const params = new URLSearchParams(window.location.search);
-    const redirectPath = params.get("redirect");
-
-    if (redirectPath) {
-      navigate(decodeURIComponent(redirectPath), { replace: true });
-    } else {
-      navigate("/", { replace: true });
-    }
-
-    return true;
-
-  } catch (err) {
-    console.error("Login Error:", err);
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-
-
-
-  /**
-   * 👤 Fetch user profile
-   */
-  const fetchUserProfile = useCallback(async (customToken) => {
+  // ---------------------------------------------------------------------------
+  // 🔐 LOGIN
+  // ---------------------------------------------------------------------------
+  const login = async ({ identifier, password }) => {
+    setLoading(true);
     try {
-      const res = await api.get("/api/get/profile/detail", {
-        headers: { Authorization: `Bearer ${customToken || token}` },
-      });
-      setUser(res.data.profile);
+      let storedDeviceId = localStorage.getItem("deviceId");
+      const deviceDetails = getDeviceDetails();
+
+      if (!storedDeviceId) {
+        storedDeviceId = deviceDetails.deviceId;
+        localStorage.setItem("deviceId", storedDeviceId);
+      }
+
+      const existingSessionId = localStorage.getItem("sessionId");
+
+      const payload = {
+        identifier,
+        password,
+        deviceId: storedDeviceId,
+        deviceType: deviceDetails.deviceType,
+        os: deviceDetails.os,
+        browser: deviceDetails.browser,
+        sessionId: existingSessionId || null,
+      };
+
+      const { data } = await api.post("/api/auth/user/login", payload);
+
+      const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
+
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("sessionId", newSessionId);
+      localStorage.setItem("userId", userId);
+
+      setToken(accessToken);
+      setRefreshToken(refreshToken);
+      setSessionId(newSessionId);
+
+      await fetchUserProfile(accessToken);
+
+      const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+
+      navigate(redirectParam ? decodeURIComponent(redirectParam) : "/", { replace: true });
+
+      return true;
+
     } catch (err) {
-      console.warn("❌ Failed to fetch profile:", err.message);
+      console.error("Login Error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
-  }, [token]);
+  };
 
+  // ---------------------------------------------------------------------------
+  // 👤 FETCH USER PROFILE
+  // ---------------------------------------------------------------------------
+  const fetchUserProfile = useCallback(
+    async () => {
+      try {
+        const res = await api.get("/api/get/profile/detail");
+        setUser(res.data.profile);
+      } catch (err) {
+        console.warn("❌ Failed to fetch profile:", err.message);
+      }
+    },
+    [token]
+  );
 
-  /**
-   * 📩 Forgot Password Flows
-   */
+  // ---------------------------------------------------------------------------
+  // 🔐 OTP & PASSWORD RESET FLOWS
+  // ---------------------------------------------------------------------------
   const sendOtpForReset = async (email) => {
     try {
       const res = await api.post("/api/auth/user/otp-send", { email });
@@ -226,10 +231,10 @@ const login = async ({ identifier, password }) => {
   const verifyOtpForNewUser = async ({ email, otp }) => {
     try {
       const res = await api.post("/api/auth/new/user/verify-otp", { email, otp });
-      toast.success(res.data.message || "OTP verified successfully ✅");
+      toast.success(res.data.message || "OTP verified successfully");
       return true;
     } catch (err) {
-      toast.error(err.response?.data?.error || "Invalid or expired OTP ❌");
+      toast.error(err.response?.data?.error || "Invalid OTP ❌");
       return false;
     }
   };
@@ -237,7 +242,7 @@ const login = async ({ identifier, password }) => {
   const verifyOtpForReset = async ({ otp }) => {
     try {
       const res = await api.post("/api/auth/exist/user/verify-otp", { otp });
-      toast.success(res.data.message || "OTP verified successfully ✅");
+      toast.success(res.data.message || "OTP verified successfully");
       setResetEmail(res.data.email);
       return true;
     } catch (err) {
@@ -249,7 +254,7 @@ const login = async ({ identifier, password }) => {
   const resetPassword = async (newPassword) => {
     try {
       if (!resetEmail) {
-        toast.error("Email not found for reset flow ❌");
+        toast.error("Invalid reset flow ❌");
         return false;
       }
 
@@ -267,9 +272,9 @@ const login = async ({ identifier, password }) => {
     }
   };
 
-  /**
-   * 🚪 Logout
-   */
+  // ---------------------------------------------------------------------------
+  // 🚪 LOGOUT
+  // ---------------------------------------------------------------------------
   const logout = async () => {
     try {
       await api.post(
@@ -280,60 +285,56 @@ const login = async ({ identifier, password }) => {
     } catch (err) {
       console.error("Logout error:", err.message);
     } finally {
-      if (socket) socket.emit("userOffline", { userId: user?._id });
+      if (socket) socket.emit("userOffline", { userId: normalizedUser?._id });
+
       disconnectSocket();
+      setCanStartPresence(false);
 
-      // ✅ Preserve deviceId (and optionally other data)
       const preservedDeviceId = localStorage.getItem("deviceId");
-
-      // Clear all other data
       localStorage.clear();
+      if (preservedDeviceId) localStorage.setItem("deviceId", preservedDeviceId);
 
-      // Restore preserved values
-      if (preservedDeviceId) {
-        localStorage.setItem("deviceId", preservedDeviceId);
-      }
-
-      // 🔄 Reset states
       setToken(null);
       setUser(null);
       setRefreshToken(null);
       setSessionId(null);
-      setSocketConnected(false);
       setSocket(null);
+      setSocketConnected(false);
 
       toast.success("👋 Logged out successfully");
       navigate("/login");
     }
   };
 
-
-  // ---------------------- 🌍 Context Value ----------------------
+  // ---------------------------------------------------------------------------
+  // 🌍 Provider Value
+  // ---------------------------------------------------------------------------
   const contextValue = {
     loading,
     token,
     refreshToken,
     user,
     sessionId,
-    onlineUsers,
-    socketConnected,
     socket,
+    socketConnected,
+    onlineUsers,
+
     register,
     login,
     logout,
+
     verifyOtpForNewUser,
     sendOtpForReset,
     verifyOtpForReset,
     resetPassword,
+
     fetchUserProfile,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-// ---------------------- 🪄 Custom Hook ----------------------
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
-};
+// -----------------------------------------------------------------------------
+// 🪄 useAuth Hook
+// -----------------------------------------------------------------------------
+export const useAuth = () => useContext(AuthContext);

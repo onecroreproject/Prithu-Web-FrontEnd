@@ -62,7 +62,7 @@ const CompanyLoginForm = ({ onViewChange, setUserEmail }) => {
         toast.success('Login successful!');
         localStorage.setItem('companyToken', response.data.token);
         localStorage.setItem('companyData', JSON.stringify(response.data.company));
-        window.location.href = '/company/dashboard';
+        window.location.href = '/company/home';
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
