@@ -5,6 +5,7 @@ import Register from './MainLoginComponent/companyRegistrationComponat';
 import ForgotPassword from './MainLoginComponent/companyForgotPassword';
 import SendOTP from './MainLoginComponent/companySendOtp';
 import VerifyOTP from './MainLoginComponent/VerifyOtp';
+import CompanyResetPassword from './MainLoginComponent/companyResetPassword';
 
 const CompanyLogin = () => {
   const [currentView, setCurrentView] = useState('login');
@@ -15,7 +16,8 @@ console.log(currentView)
     register: <Register onViewChange={setCurrentView} setUserEmail={setUserEmail} />,
     forgotPassword: <ForgotPassword onViewChange={setCurrentView} setUserEmail={setUserEmail} />,
     sendOTP: <SendOTP onViewChange={setCurrentView} userEmail={userEmail} />,
-    verifyOTP: <VerifyOTP onViewChange={setCurrentView} userEmail={userEmail} />
+    verifyOTP: <VerifyOTP onViewChange={setCurrentView} userEmail={userEmail} />,
+    resetPassword:<CompanyResetPassword onViewChange={setCurrentView} userEmail={userEmail} />
   };
 
   return (

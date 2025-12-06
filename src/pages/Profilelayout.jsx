@@ -15,7 +15,7 @@ import ForumsSection from "../components/Profilecard/FormsSection";
 import Jobsection from "../components/Jobs/Jobsection";
  
 const Profilelayout = () => {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("Activity");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

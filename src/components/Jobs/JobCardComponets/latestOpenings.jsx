@@ -27,7 +27,10 @@ export default function JobLatestOpeningsCard() {
   const navigate = useNavigate();
 
   const handleJobOpen = (jobId) => {
-    navigate(`/job/${jobId}`);
+   const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set("jobId", jobId);
+    
+    navigate(`/jobs?${currentParams.toString()}`);
   };
 
   return (
@@ -55,6 +58,7 @@ const LatestOpenings = memo(function LatestOpenings({
   error,
   onRetry 
 }) {
+ 
   const fade = {
     hidden: { opacity: 0, y: 6 },
     visible: {
@@ -158,7 +162,7 @@ const LatestOpenings = memo(function LatestOpenings({
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:bg-green-600 transition-colors" />
                 <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate leading-tight">
-                  {job.jobSubCategory || "Untitled Opening"}
+                  {job.jobTitle || "Untitled Opening"}
                 </span>
               </div>
 

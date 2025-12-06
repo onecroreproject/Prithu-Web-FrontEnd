@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LeftSidebarButtons from "./createPostModelComponets/leftSidebarButtons";
@@ -10,6 +9,7 @@ import EmojiPicker from "./EmojiPicker";
 import { uploadCreatorFeed } from "../API_Services/postServices";
 import { toast } from "react-hot-toast";
 import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 export default function CreatePostModal({ open, onClose }) {
   const [postText, setPostText] = useState("");
@@ -25,7 +25,7 @@ export default function CreatePostModal({ open, onClose }) {
   const [isScheduled, setIsScheduled] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const navigate=useNavigate();
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -122,10 +122,30 @@ export default function CreatePostModal({ open, onClose }) {
   };
 
   /* ------------------------------------------------------
+      VALIDATION FUNCTION
+  ------------------------------------------------------- */
+  const validatePost = () => {
+    if (files.length === 0) {
+      toast.error("Please select a file (image or video) to publish");
+      return false;
+    }
+
+    if (!categoryId) {
+      toast.error("Please select a category");
+      return false;
+    }
+
+    return true;
+  };
+
+  /* ------------------------------------------------------
       PUBLISH / SCHEDULE
   ------------------------------------------------------- */
   const publish = async () => {
     try {
+      // Validation check
+       if (!validatePost()) return;
+
       const token = localStorage.getItem("token");
       if (!token) return toast.error("Please login first");
 
@@ -142,7 +162,7 @@ export default function CreatePostModal({ open, onClose }) {
 
       const res = await uploadCreatorFeed(formData, token);
       toast.success(res.message || "Feed uploaded successfully");
-
+      navigate("/")
       resetAll();
       onClose?.();
     } catch (err) {
@@ -150,6 +170,13 @@ export default function CreatePostModal({ open, onClose }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* ------------------------------------------------------
+      ENHANCED VALIDATION FOR PUBLISH BUTTON
+  ------------------------------------------------------- */
+  const isPublishDisabled = () => {
+    return files.length === 0 || !categoryId || loading;
   };
 
   if (!open) return null;
@@ -183,17 +210,15 @@ export default function CreatePostModal({ open, onClose }) {
           </button>
 
           <div className="text-center mt-6 mb-4 text-2xl font-semibold text-blue-500">
-            + Create New Post
+            What's on your mind
           </div>
 
           <div className="flex gap-5 px-6 pb-6">
-            {/* Left Sidebar - Hidden on mobile, shown on desktop */}
-            {/* <div className="hidden lg:block">
-              <LeftSidebarButtons
-                selectedBtn={selectedBtn}
-                onSelect={setSelectedBtn}
-              />
-            </div> */}
+            {/* Left Sidebar Buttons */}
+            {/* <LeftSidebarButtons
+              selectedBtn={selectedBtn}
+              setSelectedBtn={setSelectedBtn}
+            /> */}
 
             <div className="flex-1 flex flex-col">
               {/* text with emoji picker */}
@@ -201,7 +226,7 @@ export default function CreatePostModal({ open, onClose }) {
                 <textarea
                   ref={textareaRef}
                   className="w-full border rounded-md px-3 py-2 text-base min-h-[70px] focus:outline-none pr-12"
-                  placeholder="What's on your mind?"
+                  placeholder="What's on your mind? play with #"
                   value={postText}
                   onChange={(e) => setPostText(e.target.value)}
                   rows={3}
@@ -226,6 +251,20 @@ export default function CreatePostModal({ open, onClose }) {
                 </div>
               </div>
 
+              {/* Validation Messages */}
+              <AnimatePresence>
+                {(files.length === 0 || !categoryId) && (
+                  <motion.div
+                    className="mt-2"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                  
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Media Section */}
               <AnimatePresence>
                 {selectedBtn === "media" && (
@@ -237,18 +276,21 @@ export default function CreatePostModal({ open, onClose }) {
                   >
                     {/* Dropdowns */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                      <select
-                        value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">Select Category</option>
-                        {categories.map((cat) => (
-                          <option key={cat.categoryId} value={cat.categoryId}>
-                            {cat.categoryName}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={categoryId}
+                          onChange={(e) => setCategoryId(e.target.value)}
+                          className={`w-full border rounded px-2 py-1 text-sm border-gray-300'}`}
+                        >
+                          <option value="">Select Category *</option>
+                          {categories.map((cat) => (
+                            <option key={cat.categoryId} value={cat.categoryId}>
+                              {cat.categoryName}
+                            </option>
+                          ))}
+                        </select>
+                        
+                      </div>
 
                       {/* Schedule Toggle */}
                       <div className="flex items-center gap-2">
@@ -297,6 +339,7 @@ export default function CreatePostModal({ open, onClose }) {
                       onDropFiles={handleDrop}
                       onRemoveFile={handleRemoveFile}
                       type={type}
+                      required={true}
                     />
                   </motion.div>
                 )}
@@ -326,12 +369,20 @@ export default function CreatePostModal({ open, onClose }) {
 
               {/* Publish Button */}
               <button
-                className="w-full bg-[#26Aeee] hover:bg-blue-600 text-white font-medium text-lg rounded-md py-2.5 mt-5 transition-all"
+                className={`w-full font-medium text-lg rounded-md py-2.5 mt-5 transition-all ${isPublishDisabled()
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[#26Aeee] hover:bg-blue-600 text-white"
+                  }`}
                 onClick={publish}
-                disabled={loading}
+                disabled={isPublishDisabled()}
               >
                 {loading ? "Publishing..." : "Publish"}
               </button>
+
+              {/* Validation hint */}
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                * File and category selection are required
+              </div>
             </div>
           </div>
         </motion.div>
@@ -339,4 +390,3 @@ export default function CreatePostModal({ open, onClose }) {
     </>
   );
 }
-

@@ -5,7 +5,7 @@ import api from "../../../api/axios";
 
 export default function JobPageWrapper() {
   const { state } = useLocation();
-  console.log("Received state:", state);
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -42,6 +42,7 @@ export default function JobPageWrapper() {
        * BASIC INFO
        * ---------------------------------------------------------- */
       _id: apiJob.jobId || apiJob._id,
+      companyId:apiJob.companyId,
       jobTitle: apiJob.jobTitle,
       jobRole: apiJob.jobRole,
       jobCategory: apiJob.jobCategory,
@@ -158,7 +159,7 @@ export default function JobPageWrapper() {
        * COMPANY INFO - HANDLE BOTH FORMATS
        * ---------------------------------------------------------- */
       companyName: apiJob.companyName || apiJob.postedBy?.companyName || '',
-      companyLogo: apiJob.companyLogo,
+      companyLogo: apiJob.logo,
       companyIndustry: apiJob.companyIndustry,
       companyWebsite: apiJob.companyWebsite,
 
@@ -194,7 +195,7 @@ export default function JobPageWrapper() {
    * FETCH JOB BY ID FROM API
    * ---------------------------------------------------------- */
   useEffect(() => {
-    console.log("Job ID from params:", id);
+  
 
     const fetchJobDetails = async () => {
       if (!id) {
@@ -205,14 +206,13 @@ export default function JobPageWrapper() {
 
       try {
         setLoading(true);
-        console.log("Fetching job from API:", id);
+  
         const response = await api.get(`/job/get/jobs/by/id/${id}`);
 
-        console.log("API Response:", response.data);
-
+        
         if (response.data.success && response.data.job) {
           const transformedJob = transformJobData(response.data.job);
-          console.log("Transformed job:", transformedJob);
+         
           setJob(transformedJob);
           setJobs([transformedJob]);
           setCurrentIndex(0);
@@ -334,12 +334,7 @@ export default function JobPageWrapper() {
     );
   }
 
-  console.log("Passing to JobPage:", {
-    job,
-    currentIndex,
-    totalJobs: jobs.length,
-    showNavigation: jobs.length > 1
-  });
+  
 
   return (
     <JobPage

@@ -8,6 +8,8 @@ import {
   IconButton,
   TextField,
   Snackbar,
+  Button,
+  Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
@@ -17,23 +19,92 @@ import CommentItem from "./CommentItem";
 import api from "../../api/axios";
 import EmojiPicker from "../EmojiPicker";
 import ModernPostHeader from "./postModelPostHeader";
+import { useAuth } from "../../context/AuthContext";
 
 const PostCommentsModal = ({
   open,
   onClose,
   post,
-  authUser,
   feedId,
-  setCommentCount
+  setCommentCount,
+  comments,
+  setComments,
 }) => {
-
-  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [toastMsg, setToastMsg] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [checkingFollow, setCheckingFollow] = useState(false);
+  const [isOwnPost, setIsOwnPost] = useState(false);
+  const [isFollowingLoading, setIsFollowingLoading] = useState(false);
 
   const inputRef = useRef(null);
   const currentFeedId = feedId || post?._id;
+  const postCreatorId = post?.userId;
+
+  const authUser =localStorage.getItem("userId");
+console.log(authUser)
+console.log("post",postCreatorId)
+  /* ------------------------ Check Follow Status ------------------------ */
+  const checkFollowStatus = async () => {
+    if (!postCreatorId || !authUser) return;
+    
+    // If current user is the post creator, allow commenting
+    if (postCreatorId === authUser) {
+      setIsOwnPost(true);
+      setIsFollowing(true); // User "follows" themselves for commenting purposes
+      return;
+    }
+
+    setIsOwnPost(false);
+    setCheckingFollow(true);
+    
+    try {
+      const res = await api.post("/api/check/follow/status", {
+        creatorId: postCreatorId,
+      });
+      
+      if (res.data.success) {
+        setIsFollowing(res.data.isFollowing);
+      }
+    } catch (err) {
+      console.error("Error checking follow status:", err);
+      setIsFollowing(false); // Default to false on error
+    } finally {
+      setCheckingFollow(false);
+    }
+  };
+
+  /* ------------------------ Follow User ------------------------ */
+  const handleFollowUser = async () => {
+    if (!postCreatorId || !authUser?._id) return;
+    
+    setIsFollowingLoading(true);
+    
+    try {
+      const res = await api.post("/api/user/follow/creator", {
+        userId: postCreatorId,
+      });
+      
+      if (res.data.success) {
+        // Immediately update UI
+        setIsFollowing(true);
+        setToastMsg(`You are now following ${post?.userName || "this user"}`);
+        
+        // Focus the comment input after successful follow
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+          }
+        }, 100);
+      }
+    } catch (err) {
+      console.error("Error following user:", err);
+      setToastMsg("Failed to follow user");
+    } finally {
+      setIsFollowingLoading(false);
+    }
+  };
 
   /* ------------------------ Fetch Comments ------------------------ */
   const fetchComments = async () => {
@@ -59,13 +130,27 @@ const PostCommentsModal = ({
   useEffect(() => {
     if (open) {
       fetchComments();
-      setTimeout(() => inputRef.current?.focus(), 200);
+      checkFollowStatus(); // Check follow status when modal opens
+      
+      // Focus input after a short delay
+      setTimeout(() => {
+        if (inputRef.current && (isFollowing || isOwnPost)) {
+          inputRef.current.focus();
+        }
+      }, 300);
+    } else {
+      // Reset states when modal closes
+      setIsFollowing(false);
+      setIsOwnPost(false);
+      setIsFollowingLoading(false);
+      setNewComment("");
     }
-  }, [open]);
+  }, [open, postCreatorId, authUser?._id]);
 
   /* ---------------------------- Submit Comment ---------------------------- */
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
+    if (!isFollowing && !isOwnPost) return;
 
     try {
       await api.post("/api/user/feed/comment", {
@@ -75,15 +160,24 @@ const PostCommentsModal = ({
 
       // Reload comments to get fresh data with proper IDs and counts
       await fetchComments();
-      setCommentCount(prev => prev + 1);
+      setCommentCount((prev) => prev + 1);
       setNewComment("");
       setToastMsg("Comment posted");
-
+      
+      // Keep focus on input after posting
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 50);
     } catch (err) {
       console.error("Error posting comment:", err);
       setToastMsg(err.response?.data?.message || "Failed to post");
     }
   };
+
+  // Determine if comment input should be disabled
+  const isCommentDisabled = checkingFollow || (!isFollowing && !isOwnPost);
 
   return (
     <Dialog
@@ -129,7 +223,7 @@ const PostCommentsModal = ({
             justifyContent: "center",
             alignItems: "center",
             overflow: "hidden",
-            bgcolor: 'black'
+            bgcolor: "black",
           }}
         >
           {post?.contentUrl &&
@@ -173,7 +267,44 @@ const PostCommentsModal = ({
         >
           {/* Header */}
           <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
-            <ModernPostHeader post={post}/>
+            <ModernPostHeader post={post} />
+            
+            {/* Follow status indicator - ONLY SHOW IF NOT FOLLOWING AND NOT OWN POST */}
+            {!isOwnPost && !checkingFollow && !isFollowing && (
+              <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
+               
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleFollowUser}
+                  disabled={isFollowingLoading}
+                  sx={{ 
+                    textTransform: "none", 
+                    fontSize: "0.75rem",
+                    minWidth: 80
+                  }}
+                >
+                  {isFollowingLoading ? (
+                    <Box 
+                      sx={{ 
+                        width: 12, 
+                        height: 12, 
+                        border: "2px solid white", 
+                        borderTopColor: "transparent", 
+                        borderRadius: "50%", 
+                        animation: "spin 1s linear infinite",
+                        "@keyframes spin": {
+                          "0%": { transform: "rotate(0deg)" },
+                          "100%": { transform: "rotate(360deg)" }
+                        }
+                      }} 
+                    />
+                  ) : (
+                    `Follow ${post?.userName || ""} for comment`
+                  )}
+                </Button>
+              </Box>
+            )}
           </Box>
 
           {/* Comments List */}
@@ -182,21 +313,52 @@ const PostCommentsModal = ({
               // Loading skeleton
               Array.from({ length: 3 }).map((_, i) => (
                 <Stack key={i} direction="row" spacing={1} sx={{ mb: 2 }}>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'grey.200' }} />
+                  <Avatar
+                    sx={{ width: 32, height: 32, bgcolor: "grey.200" }}
+                  />
                   <Box sx={{ flex: 1 }}>
-                    <Box sx={{ width: '60%', height: 16, bgcolor: 'grey.200', mb: 1, borderRadius: 1 }} />
-                    <Box sx={{ width: '80%', height: 14, bgcolor: 'grey.200', borderRadius: 1 }} />
+                    <Box
+                      sx={{
+                        width: "60%",
+                        height: 16,
+                        bgcolor: "grey.200",
+                        mb: 1,
+                        borderRadius: 1,
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: "80%",
+                        height: 14,
+                        bgcolor: "grey.200",
+                        borderRadius: 1,
+                      }}
+                    />
                   </Box>
                 </Stack>
               ))
             ) : comments.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: 4, color: 'text.secondary' }}>
-                <FiMessageCircle style={{ fontSize: 32, opacity: 0.4, margin: '0 auto 8px' }} />
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 4,
+                  color: "text.secondary",
+                }}
+              >
+                <FiMessageCircle
+                  style={{
+                    fontSize: 32,
+                    opacity: 0.4,
+                    margin: "0 auto 8px",
+                  }}
+                />
                 <Typography variant="body2" fontWeight="medium">
                   No comments yet
                 </Typography>
                 <Typography variant="caption">
-                  Be the first to comment
+                  {isCommentDisabled && !isOwnPost
+                    ? "Follow to comment"
+                    : "Be the first to comment"}
                 </Typography>
               </Box>
             ) : (
@@ -213,12 +375,12 @@ const PostCommentsModal = ({
                       authUser={authUser}
                       feedId={currentFeedId}
                       refreshParentComments={(updater) => {
-      if (typeof updater === "function") {
-         setComments(prev => updater(prev));   // 🔥 instant UI update
-      } else {
-         fetchComments(); // fallback, optional
-      }
-   }}
+                        if (typeof updater === "function") {
+                          setComments((prev) => updater(prev)); // 🔥 instant UI update
+                        } else {
+                          fetchComments(); // fallback, optional
+                        }
+                      }}
                     />
                   </motion.div>
                 ))}
@@ -228,65 +390,84 @@ const PostCommentsModal = ({
 
           {/* Add Comment */}
           <Stack
-  direction="row"
-  spacing={1.5}
-  sx={{ p: 2, borderTop: "1px solid #eee" }}
-  alignItems="center"
-  position="relative"
->
-  {/* Avatar */}
-  <Avatar
-    src={authUser?.profileAvatar}
-    sx={{ width: 36, height: 36 }}
-  />
+            direction="row"
+            spacing={1.5}
+            sx={{ p: 2, borderTop: "1px solid #eee" }}
+            alignItems="center"
+            position="relative"
+          >
+            {/* Avatar */}
+            <Avatar
+              src={authUser?.profileAvatar}
+              sx={{ width: 36, height: 36 }}
+            />
 
-  {/* Input Box */}
-  <Box sx={{ flex: 1, position: "relative" }}>
+            {/* Input Box */}
+            <Box sx={{ flex: 1, position: "relative" }}>
+              <TextField
+                variant="standard"
+                placeholder={
+                  checkingFollow
+                    ? "Checking follow status..."
+                    : isCommentDisabled && !isOwnPost
+                    ? `Follow ${post?.userName || "this user"} to comment`
+                    : "Write a comment..."
+                }
+                value={newComment}
+                inputRef={inputRef}
+                onChange={(e) => setNewComment(e.target.value)}
+                fullWidth
+                InputProps={{ disableUnderline: true }}
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  newComment.trim() &&
+                  !isCommentDisabled &&
+                  handlePostComment()
+                }
+                sx={{
+                  pr: 5,
+                  opacity: isCommentDisabled ? 0.6 : 1,
+                  pointerEvents: isCommentDisabled ? "none" : "auto",
+                  "& .MuiInput-input": {
+                    cursor: isCommentDisabled ? "not-allowed" : "text",
+                  }
+                }}
+                disabled={isCommentDisabled}
+              />
 
-    <TextField
-      variant="standard"
-      placeholder="Write a comment..."
-      value={newComment}
-      inputRef={inputRef}
-      onChange={(e) => setNewComment(e.target.value)}
-      fullWidth
-      InputProps={{ disableUnderline: true }}
-      onKeyDown={(e) =>
-        e.key === "Enter" && newComment.trim() && handlePostComment()
-      }
-      sx={{
-        pr: 5, // space for emoji button
-      }}
-    />
+              {/* Emoji Picker Button */}
+              {!isCommentDisabled && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                >
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
+                    buttonClassName="p-1 text-gray-500 hover:text-blue-600 rounded"
+                  />
+                </Box>
+              )}
+            </Box>
 
-    {/* Emoji Picker Button (aligned inside text field on the right) */}
-    <Box
-      sx={{
-        position: "absolute",
-        right: 8,
-        top: "50%",
-        transform: "translateY(-50%)",
-      }}
-    >
-      <EmojiPicker
-        onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
-        buttonClassName="p-1 text-gray-500 hover:text-blue-600 rounded"
-      />
-    </Box>
-  </Box>
-
-  {/* Send Button */}
-  <IconButton
-    onClick={handlePostComment}
-    disabled={!newComment.trim()}
-    sx={{
-      color: newComment.trim() ? "#1976d2" : "#aaa",
-    }}
-  >
-    <SendIcon />
-  </IconButton>
-</Stack>
-
+            {/* Send Button */}
+            <IconButton
+              onClick={handlePostComment}
+              disabled={!newComment.trim() || isCommentDisabled}
+              sx={{
+                color:
+                  !newComment.trim() || isCommentDisabled
+                    ? "#aaa"
+                    : "#1976d2",
+                cursor: isCommentDisabled ? "not-allowed" : "pointer",
+              }}
+            >
+              <SendIcon />
+            </IconButton>
+          </Stack>
         </Box>
       </Stack>
 

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { FiHeart, FiMessageCircle, FiSend, FiBookmark, FiChevronDown, FiChevronUp, FiTrash2 } from "react-icons/fi";
+import { FiHeart, FiMessageCircle, FiSend, FiBookmark, FiChevronDown, FiChevronUp, FiTrash2, FiUserPlus } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
 import defaultAvater from "../../assets/user.png";
 import EmojiPicker from "../EmojiPicker";
 
 const CommentsSection = ({ feed }) => {
-  const authUser=localStorage.getItem("userId")
+  const authUser = localStorage.getItem("userId");
+  
   // State management
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -26,7 +27,77 @@ const CommentsSection = ({ feed }) => {
   const [activeNestedReplyInput, setActiveNestedReplyInput] = useState(null);
   const [nestedReplyLoading, setNestedReplyLoading] = useState({});
 
-  // Fetch comments for the feed
+  // Follow status state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [checkingFollow, setCheckingFollow] = useState(false);
+  const [isOwnPost, setIsOwnPost] = useState(false);
+  const [followingLoading, setFollowingLoading] = useState(false);
+
+  const postCreatorId = feed?.createdByAccount?._id || feed?.createdByProfile?._id;
+
+  /* ------------------------ Check Follow Status ------------------------ */
+  const checkFollowStatus = async () => {
+    if (!postCreatorId || !authUser) return;
+    
+    // If current user is the post creator, allow commenting
+    if (postCreatorId === authUser) {
+      setIsOwnPost(true);
+      setIsFollowing(true);
+      return;
+    }
+
+    setIsOwnPost(false);
+    setCheckingFollow(true);
+    
+    try {
+      const res = await api.post("/api/check/follow/status", {
+        creatorId: postCreatorId,
+      });
+      
+      if (res.data.success) {
+        setIsFollowing(res.data.isFollowing);
+      }
+    } catch (err) {
+      console.error("Error checking follow status:", err);
+      setIsFollowing(false);
+    } finally {
+      setCheckingFollow(false);
+    }
+  };
+
+  /* ------------------------ Follow User ------------------------ */
+  const handleFollowUser = async () => {
+    if (!postCreatorId || !authUser) return;
+    
+    setFollowingLoading(true);
+    
+    try {
+      const res = await api.post("/api/user/follow/creator", {
+        userId: postCreatorId,
+      });
+      
+      if (res.data.success) {
+        // Immediately update UI
+        setIsFollowing(true);
+        // Focus the comment input after successful follow
+        setTimeout(() => {
+          const commentInput = document.querySelector('.comment-input');
+          if (commentInput) {
+            commentInput.focus();
+          }
+        }, 100);
+      }
+    } catch (err) {
+      console.error("Error following user:", err);
+    } finally {
+      setFollowingLoading(false);
+    }
+  };
+
+  // Determine if comment input should be disabled
+  const isCommentDisabled = checkingFollow || (!isFollowing && !isOwnPost);
+
+  /* ------------------------ Fetch Comments ------------------------ */
   const fetchComments = async () => {
     if (!feed?._id) return;
 
@@ -43,10 +114,11 @@ const CommentsSection = ({ feed }) => {
       setCommentLoading(false);
     }
   };
-console.log(nestedReplies)
-  // Add new comment
+
+  /* ------------------------ Add new comment ------------------------ */
   const handleAddComment = async (feedId) => {
     if (!newComment.trim()) return;
+    if (!isFollowing && !isOwnPost) return;
 
     try {
       const response = await api.post('/api/user/feed/comment', {
@@ -63,7 +135,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Delete comment
+  /* ------------------------ Delete comment ------------------------ */
   const handleDeleteComment = async (commentId) => {
   
     try {
@@ -86,7 +158,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Delete reply
+  /* ------------------------ Delete reply ------------------------ */
   const handleDeleteReply = async (replyId, commentId, isNested = false) => {
   
     try {
@@ -126,7 +198,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Like main comment
+  /* ------------------------ Like main comment ------------------------ */
   const likeComment = async (commentId, feedId) => {
     try {
       const response = await api.post('/api/user/comment/like', {
@@ -151,7 +223,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Fetch replies for a comment
+  /* ------------------------ Fetch replies for a comment ------------------------ */
   const fetchReplies = async (commentId) => {
     try {
       setReplyLoading(prev => ({ ...prev, [commentId]: true }));
@@ -171,7 +243,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Post reply (both regular and nested)
+  /* ------------------------ Post reply (both regular and nested) ------------------------ */
   const postReply = async ({ feedId, parentCommentId, parentReplyId = null, replyText }) => {
     try {
       const response = await api.post('/api/user/feed/reply/comment', {
@@ -214,7 +286,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Like reply
+  /* ------------------------ Like reply ------------------------ */
   const likeReply = async (replyId, commentId) => {
     try {
       const response = await api.post('/api/user/replycomment/like', {
@@ -263,7 +335,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Toggle replies section
+  /* ------------------------ Toggle replies section ------------------------ */
   const toggleReplySection = async (commentId) => {
     if (showReplies[commentId]) {
       setShowReplies(prev => ({ ...prev, [commentId]: false }));
@@ -277,7 +349,7 @@ console.log(nestedReplies)
     }
   };
 
-  // Fetch nested replies
+  /* ------------------------ Fetch nested replies ------------------------ */
   const fetchNestedReplies = async (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
 
@@ -287,7 +359,7 @@ console.log(nestedReplies)
       const response = await api.post('/api/get/nested/replies', {
         parentReplyId
       });
-console.log(response.data.replies)
+
       setNestedReplies(prev => ({
         ...prev,
         [key]: response.data.replies || []
@@ -299,7 +371,7 @@ console.log(response.data.replies)
     }
   };
 
-  // Toggle nested replies section
+  /* ------------------------ Toggle nested replies section ------------------------ */
   const toggleNestedReplySection = async (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
 
@@ -313,7 +385,7 @@ console.log(response.data.replies)
     }
   };
 
-  // Handle nested reply input
+  /* ------------------------ Handle nested reply input ------------------------ */
   const handleNestedReplyInput = (commentId, parentReplyId, value) => {
     setNestedReplyInputs(prev => ({
       ...prev,
@@ -321,7 +393,7 @@ console.log(response.data.replies)
     }));
   };
 
-  // Open nested reply input
+  /* ------------------------ Open nested reply input ------------------------ */
   const openNestedReplyInput = (commentId, parentReplyId, targetUsername) => {
     setActiveNestedReplyInput(`${commentId}_${parentReplyId}`);
     setNestedReplyInputs(prev => ({
@@ -330,7 +402,7 @@ console.log(response.data.replies)
     }));
   };
 
-  // Unified function to handle both regular and nested replies
+  /* ------------------------ Unified function to handle both regular and nested replies ------------------------ */
   const handlePostReply = async (feedId, commentId, parentReplyId = null, targetUsername = null) => {
     const isNestedReply = parentReplyId !== null;
     const text = isNestedReply
@@ -369,7 +441,7 @@ console.log(response.data.replies)
     }
   };
 
-  // Get nested reply count
+  /* ------------------------ Get nested reply count ------------------------ */
   const getNestedReplyCount = (parentReplyId, commentId) => {
     const key = `${commentId}_${parentReplyId}`;
 
@@ -385,7 +457,7 @@ console.log(response.data.replies)
     return nestedCount;
   };
 
-  // Organize replies by parentReplyId
+  /* ------------------------ Organize replies by parentReplyId ------------------------ */
   const organizeReplies = (repliesArray) => {
     const firstLevelReplies = [];
     const nestedRepliesMap = {};
@@ -404,12 +476,12 @@ console.log(response.data.replies)
     return { firstLevelReplies, nestedRepliesMap };
   };
 
-  // Check if user is owner of comment/reply
+  /* ------------------------ Check if user is owner of comment/reply ------------------------ */
   const isOwner = (item) => {
     return authUser && item.userId === authUser;
   };
 
-  // Recursive component for nested replies
+  /* ------------------------ Recursive component for nested replies ------------------------ */
   const ReplyItem = ({ reply, commentId, depth = 0, parentUsername = "" }) => {
 
     const maxDepth = 3;
@@ -582,7 +654,7 @@ console.log(response.data.replies)
     );
   };
 
-  // Component to render organized replies
+  /* ------------------------ Component to render organized replies ------------------------ */
   const OrganizedReplies = ({ commentId }) => {
     const repliesArray = replies[commentId] || [];
     const { firstLevelReplies, nestedRepliesMap } = organizeReplies(repliesArray);
@@ -611,10 +683,11 @@ console.log(response.data.replies)
     );
   };
 
-  // Load comments when feed changes
+  /* ------------------------ Load comments when feed changes ------------------------ */
   useEffect(() => {
     if (feed?._id) {
       fetchComments();
+      checkFollowStatus(); // Check follow status when component loads
     }
   }, [feed?._id]);
 
@@ -632,6 +705,28 @@ console.log(response.data.replies)
             {feed.createdByProfile?.userName || "Unknown User"}
           </div>
           <div className="text-xs text-gray-500 truncate">{feed.location || "Unknown place"}</div>
+          
+          {/* Follow status indicator */}
+          {!isOwnPost && !checkingFollow && !isFollowing && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-amber-600 font-medium">Follow to comment</span>
+              <button
+                onClick={handleFollowUser}
+                disabled={followingLoading}
+                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center gap-1 transition-colors disabled:opacity-70"
+              >
+                {followingLoading ? (
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <FiUserPlus size={10} />
+                    <span>Follow</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          
         </div>
       </div>
 
@@ -653,8 +748,6 @@ console.log(response.data.replies)
             const hasReplies = (comment.replyCount || 0) > 0;
             const isReplyInputActive = activeReplyInput === (comment.commentId || comment._id);
             const commentIsOwner = isOwner(comment);
-
-          
 
             return (
               <motion.div
@@ -804,39 +897,68 @@ console.log(response.data.replies)
           <div className="text-center text-gray-500 py-8">
             <FiMessageCircle className="text-2xl mx-auto mb-2 opacity-40" />
             <p className="text-sm font-medium">No comments yet</p>
-            <p className="text-xs mt-1">Be the first to comment</p>
+            <p className="text-xs mt-1">
+              {isCommentDisabled && !isOwnPost
+                ? "Follow to comment"
+                : "Be the first to comment"}
+            </p>
           </div>
         )}
       </div>
 
       {/* BOTTOM ACTION BAR */}
       <div className="p-4 bg-white">
-        <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all relative">
-          <input
-            type="text"
-            placeholder="Add a comment..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAddComment(feed._id)}
-            className="flex-1 text-sm outline-none bg-transparent pr-20"
-          />
-          <div className="absolute right-10">
-            <EmojiPicker
-              onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
-              buttonClassName="p-1 text-gray-400 hover:text-blue-600 rounded"
-            />
+        {checkingFollow ? (
+          <div className="flex items-center justify-center border border-gray-300 rounded-lg px-3 py-2">
+            <p className="text-sm text-gray-500">Checking follow status...</p>
           </div>
-          <button
-            onClick={() => handleAddComment(feed._id)}
-            disabled={!newComment.trim()}
-            className={`p-1 rounded transition-colors ${!newComment.trim()
-                ? "text-blue-300 cursor-not-allowed"
-                : "text-blue-600 hover:text-blue-700"
-              }`}
-          >
-            <FiSend size={16} />
-          </button>
-        </div>
+        ) : !isFollowing && !isOwnPost ? (
+          <div className="flex items-center justify-between border border-amber-300 bg-amber-50 rounded-lg px-3 py-2">
+            <p className="text-sm text-amber-700 font-medium">Follow {feed.createdByProfile?.userName || "this user"} to comment</p>
+            <button
+              onClick={handleFollowUser}
+              disabled={followingLoading}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded flex items-center gap-1 transition-colors disabled:opacity-70"
+            >
+              {followingLoading ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <FiUserPlus size={12} />
+                  <span>Follow</span>
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all relative">
+            <input
+              type="text"
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && handleAddComment(feed._id)}
+              className="flex-1 text-sm outline-none bg-transparent pr-20 comment-input"
+              disabled={isCommentDisabled}
+            />
+            <div className="absolute right-10">
+              <EmojiPicker
+                onEmojiSelect={(emoji) => setNewComment(newComment + emoji)}
+                buttonClassName="p-1 text-gray-400 hover:text-blue-600 rounded"
+              />
+            </div>
+            <button
+              onClick={() => handleAddComment(feed._id)}
+              disabled={!newComment.trim() || isCommentDisabled}
+              className={`p-1 rounded transition-colors ${!newComment.trim() || isCommentDisabled
+                  ? "text-blue-300 cursor-not-allowed"
+                  : "text-blue-600 hover:text-blue-700"
+                }`}
+            >
+              <FiSend size={16} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

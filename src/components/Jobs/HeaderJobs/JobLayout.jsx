@@ -4,7 +4,7 @@ import FullTimeJobs from "./FullTimeJobs";
 import JobFilter from "./filterSection";
 import Freelancer from "./Freelancer";
 import { getAllJobs } from "../../../Service/jobservices";
-import { Search, Briefcase, MapPin, Filter, X } from "lucide-react";
+import { Search, Briefcase, MapPin, Filter, X, ArrowLeft } from "lucide-react";
 import Header from "../../Header";
 import { useLocation, useSearchParams } from "react-router-dom";
 
@@ -22,6 +22,8 @@ export default function JobsHomePage() {
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   
   const [searchParams, setSearchParams] = useSearchParams();
+  const jobIdParam = searchParams.get("jobId");
+
   const location = useLocation();
 
   // Get URL parameters
@@ -31,6 +33,9 @@ export default function JobsHomePage() {
   const countryParam = searchParams.get("country");
   const companyParam = searchParams.get("company");
 
+  // Check if we're viewing a single job
+  const isSingleJobView = Boolean(jobIdParam);
+
   // Initialize search text and filters from URL on component mount
   useEffect(() => {
     console.log("URL Parameters:", {
@@ -38,10 +43,12 @@ export default function JobsHomePage() {
       city: cityParam,
       state: stateParam,
       country: countryParam,
-      company: companyParam
+      company: companyParam,
+      jobId: jobIdParam
     });
 
-    // Set search text from role parameter
+    // Don't reset any filters when jobId is present - keep existing UI state
+    // Only set search text if role param exists
     if (roleParam) {
       setSearchText(roleParam);
     }
@@ -56,19 +63,17 @@ export default function JobsHomePage() {
 
     // Update selected category based on role (optional)
     if (roleParam) {
-      // You can map roles to categories if needed
       const roleToCategoryMap = {
         'Designer': 'Design',
         'Developer': 'Technology',
         'Manager': 'Business',
-        // Add more mappings as needed
       };
       
       if (roleToCategoryMap[roleParam]) {
         setSelectedCategory(roleToCategoryMap[roleParam]);
       }
     }
-  }, [roleParam, cityParam, stateParam, countryParam, companyParam]);
+  }, [roleParam, cityParam, stateParam, countryParam, companyParam, jobIdParam]);
 
   const [filters, setFilters] = useState({
     employmentType: [],
@@ -81,7 +86,7 @@ export default function JobsHomePage() {
     jobFreshness: "",
   });
 
-  // Calculate active filters count
+  // Calculate active filters count (count normally even when viewing single job)
   useEffect(() => {
     let count = 0;
     if (selectedCategory !== "All") count++;
@@ -104,6 +109,14 @@ export default function JobsHomePage() {
 
     try {
       const apiFilters = {};
+
+      if (jobIdParam) {
+        apiFilters.jobId = jobIdParam;
+        const jobsFromApi = await getAllJobs(apiFilters);
+        setJobs(jobsFromApi);
+        setFadeOut(false);
+        return;
+      }
 
       // Apply category filter
       if (selectedCategory && selectedCategory !== "All")
@@ -153,9 +166,10 @@ export default function JobsHomePage() {
       if (filters.jobFreshness)
         apiFilters.jobFreshness = filters.jobFreshness;
 
-      console.log("Fetching jobs with filters:", apiFilters);
+     
       const jobsFromApi = await getAllJobs(apiFilters);
-console.log("result",jobsFromApi)
+   
+
       setTimeout(() => {
         setJobs(jobsFromApi);
         setFadeOut(false);
@@ -175,7 +189,7 @@ console.log("result",jobsFromApi)
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedCategory, selectedCity, selectedCountry, searchText, filters, cityParam, countryParam, companyParam]);
+  }, [selectedCategory, selectedCity, selectedCountry, searchText, filters, cityParam, countryParam, companyParam, jobIdParam]);
 
   const handleOpenFullTimeJobs = () => {
     setShowFullTimeJobs(true);
@@ -222,34 +236,57 @@ console.log("result",jobsFromApi)
     }
   };
 
-  // Update URL when filters change
-  const updateUrlFilters = () => {
-    const params = new URLSearchParams();
-    
-    if (searchText) params.set("role", searchText);
-    if (selectedCity) params.set("city", selectedCity);
-    if (selectedCountry) params.set("country", selectedCountry);
-    if (companyParam) params.set("company", companyParam);
-    
-    setSearchParams(params);
+  // Function to go back to all jobs (only for mobile)
+  const handleBackToAllJobs = () => {
+    // Remove jobId from URL but keep other filters
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("jobId");
+    setSearchParams(newParams);
   };
 
+  // Update URL when filters change
+ const updateUrlFilters = () => {
+  const params = new URLSearchParams(searchParams); // keep existing query params
+  
+  if (jobIdParam) return;  // ⛔ Never overwrite when jobId is present
+  
+  params.set("role", searchText || "");
+  
+  if (selectedCity) params.set("city", selectedCity);
+  else params.delete("city");
+
+  if (selectedCountry) params.set("country", selectedCountry);
+  else params.delete("country");
+
+  setSearchParams(params);
+};
+
+
   // Call updateUrlFilters when relevant filters change
-  useEffect(() => {
-    updateUrlFilters();
-  }, [searchText, selectedCity, selectedCountry]);
+ useEffect(() => {
+  if (jobIdParam) return; // ⛔ Do NOT modify URL when viewing single job
+  
+  updateUrlFilters();
+}, [searchText, selectedCity, selectedCountry]);
 
   return (
     <>
       {/* Mobile Header */}
       <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        {/* Use Header component for mobile */}
         <Header />
         
         {/* Mobile Filter Button and Search Bar - Below Header */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
+              {isSingleJobView && (
+                <button
+                  onClick={handleBackToAllJobs}
+                  className="mr-2 p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
+              )}
               <Briefcase className="w-6 h-6 text-blue-600" />
               <div>
                 <h1 className="text-lg font-semibold text-gray-800">Jobs</h1>
@@ -257,17 +294,19 @@ console.log("result",jobsFromApi)
               </div>
             </div>
 
-            <button
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="relative p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Filter className="w-5 h-5 text-gray-600" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
+            {!isSingleJobView && (
+              <button
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="relative p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Filter className="w-5 h-5 text-gray-600" />
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Mobile Search */}
@@ -285,7 +324,7 @@ console.log("result",jobsFromApi)
       </div>
 
       {/* Mobile Filters Overlay */}
-      {showMobileFilters && (
+      {showMobileFilters && !isSingleJobView && (
         <div className="lg:hidden fixed inset-0 z-30 bg-black bg-opacity-50">
           <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
             <div className="p-4 border-b border-gray-200">
@@ -332,7 +371,7 @@ console.log("result",jobsFromApi)
       )}
 
       <section className="flex min-h-screen bg-gray-50">
-        {/* Desktop Sidebar */}
+        {/* Desktop Sidebar - Always show */}
         <aside className="hidden lg:block w-80 bg-white border-r mt-10 border-gray-200 fixed left-0 top-0 h-screen overflow-y-auto z-10">
           <div className="p-6">
             {/* Use Header component at top of desktop sidebar */}
@@ -404,7 +443,9 @@ console.log("result",jobsFromApi)
               )}
               
               <p className="text-gray-600 mt-2">
-                {jobs.length} job{jobs.length !== 1 ? "s" : ""} found
+                {isSingleJobView 
+                  ? `Showing job details` 
+                  : `${jobs.length} job${jobs.length !== 1 ? "s" : ""} found`}
                 {activeFiltersCount > 0 &&
                   ` • ${activeFiltersCount} filter${
                     activeFiltersCount !== 1 ? "s" : ""
@@ -459,12 +500,12 @@ console.log("result",jobsFromApi)
               <div className="flex flex-col items-center justify-center py-16 space-y-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
                 <p className="text-gray-600">
-                  Finding the best jobs for you...
+                  {isSingleJobView ? "Loading job details..." : "Finding the best jobs for you..."}
                 </p>
               </div>
             ) : (
               <>
-                {/* Job Cards with Animation */}
+                {/* Job Cards with Animation - Same layout always */}
                 <div
                   className={`transition-all duration-300 ease-out ${
                     fadeOut
@@ -480,14 +521,16 @@ console.log("result",jobsFromApi)
                         <Briefcase className="w-10 h-10 text-gray-400" />
                       </div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                        No jobs found
+                        {isSingleJobView ? "Job not found" : "No jobs found"}
                       </h3>
                       <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                        {roleParam || cityParam || countryParam 
-                          ? `No jobs found for "${roleParam || ''}"${
-                              cityParam ? ` in ${cityParam}` : ''
-                            }${countryParam ? `, ${countryParam}` : ''}.`
-                          : "We couldn't find any jobs matching your criteria."
+                        {isSingleJobView 
+                          ? "The job you're looking for doesn't exist or has been removed."
+                          : roleParam || cityParam || countryParam 
+                            ? `No jobs found for "${roleParam || ''}"${
+                                cityParam ? ` in ${cityParam}` : ''
+                              }${countryParam ? `, ${countryParam}` : ''}.`
+                            : "We couldn't find any jobs matching your criteria."
                         }
                       </p>
                       {activeFiltersCount > 0 && (

@@ -609,7 +609,7 @@ const PersonCard = ({ person }) => {
       className="flex  items-center justify-between px-4 py-3  bg-white cursor-pointer transition group"
     >
       {/* Left Section - Avatar */}
-      <div className="flex items-center min-w-0 gap-4">
+      <div className="flex items-center min-w-0 gap-4" >
         <img
           src={person.profileAvatar || defaultAvater}
           alt={person.userName || person.name}
@@ -654,20 +654,7 @@ const PersonCard = ({ person }) => {
         </div>
       </div>
 
-      {/* Right Section - Action Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle add friend or cancel request
-        }}
-        className={`ml-4 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-          person.requestSent
-            ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            : "bg-blue-600 text-white hover:bg-blue-700"
-        }`}
-      >
-        {person.requestSent ? "Cancel request" : "Add friend"}
-      </button>
+    
     </motion.div>
   );
 };
@@ -713,38 +700,71 @@ const JobCard = ({ job }) => {
 
   const handleViewJob = (e) => {
     e.stopPropagation();
-    navigate(`/job/view/${job._id}`);
+
+    const jobId = job._id || job.id || job.jobId;
+    if (!jobId) {
+      console.error("❌ No jobId found:", job);
+      return;
+    }
+
+    // Preserve other URL parameters if they exist
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set("jobId", jobId);
+    
+    navigate(`/jobs?${currentParams.toString()}`);
   };
 
   return (
-    <motion.div 
-      whileHover={{ scale: 1.01, y: -1 }} 
-      className=" flex p-2 flex-col bg-white hover:shadow-md transition-all  cursor-pointer group"
+    <motion.div
+      whileHover={{ scale: 1.01, y: -1 }}
+      className="p-6 bg-white rounded-lg shadow-sm hover:shadow-md cursor-pointer border border-gray-100 transition-shadow duration-200"
       onClick={handleViewJob}
     >
-      <div className="flex items-start justify-between  gap-2">
-        <div className="flex items-center gap-3">
-            <Briefcase className="w-3 h-3text-orange-600" />
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900 text-md">{job.title || job.role || job.jobRole || "Untitled Position"}</h3>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            {job.jobTitle || job.title || job.jobRole || "Untitled Job"}
+          </h3>
+
+          <div className="flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-gray-500" />
+            <p className="text-gray-700 font-medium">
+              {job.companyName || job.company || "Unknown Company"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1 text-gray-500 text-sm mb-4">
+            <MapPin className="w-4 h-4" />
+            <span>{job.city || job.location || job.country || "Location not set"}</span>
+          </div>
+        </div>
+        
+        <div className="text-right">
+          {job.salaryMin && job.salaryMax && (
+            <div className="text-lg font-semibold text-green-600">
+              ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}
+            </div>
+          )}
+          <div className="text-sm text-gray-500 mt-1">
+            {job.employmentType || "Full-time"}
           </div>
         </div>
       </div>
       
-      <div className="flex items-center ">
-        <div className="flex gap-6 items-center text-sm text-gray-600">
-             <p className="text-gray-600">{job.companyName || "Company not specified"}</p>
-          {job.location && (
-            <div className="flex items-center">
-              <MapPin className="w-4 h-4" />
-              <span>{job.location}</span>
-            </div>
-          )}
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">
+            Posted {new Date(job.createdAt).toLocaleDateString()}
+          </span>
         </div>
+        <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+          View Details →
+        </button>
       </div>
     </motion.div>
   );
 };
+
 
 // FeedCard with single column layout
 const FeedCard = ({ feed }) => {

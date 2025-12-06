@@ -1,87 +1,103 @@
-// src/components/Auth/ForgotPassword.jsx
+// src/components/Auth/ResetPassword.jsx
 import React, { useState, useEffect } from 'react';
-import { Mail, ArrowLeft, Shield, ArrowRight, X, Check } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, Check, X, ArrowLeft, ArrowRight } from 'lucide-react';
 import api from '../../../api/axios';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
-const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
-  const [email, setEmail] = useState('');
+const CompanyResetPassword = ({ onViewChange, userEmail }) => {
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [loading, setLoading] = useState(false);
-  const [emailExists, setEmailExists] = useState(null); // null: not checked, true: exists, false: doesn't exist
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    symbol: false
+  });
 
-  // Check email availability when email changes
+  const [passwordMatch, setPasswordMatch] = useState(null);
+
+  // Check password strength
   useEffect(() => {
-    const checkEmailExists = async () => {
-      if (email && email.includes('@')) {
-        setCheckingEmail(true);
-        try {
-          const response = await api.get(`/job/avilability/check?field=email&value=${email}`);
-          // Note: The API returns { available: true/false }
-          // For forgot password, we want the opposite: if email is "available" (not taken), it doesn't exist
-          // If email is "taken" (available: false), it exists
-          setEmailExists(!response.data.available);
-        } catch (error) {
-          console.error('Email check failed:', error);
-          setEmailExists(null);
-        } finally {
-          setCheckingEmail(false);
-        }
-      } else {
-        setEmailExists(null);
-      }
-    };
+    const password = formData.newPassword;
+    setPasswordStrength({
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    });
+  }, [formData.newPassword]);
 
-    const timer = setTimeout(() => {
-      if (email && email.includes('@')) {
-        checkEmailExists();
-      } else {
-        setEmailExists(null);
-      }
-    }, 500);
+  // Check password match
+  useEffect(() => {
+    if (formData.confirmPassword) {
+      setPasswordMatch(formData.newPassword === formData.confirmPassword);
+    } else {
+      setPasswordMatch(null);
+    }
+  }, [formData.newPassword, formData.confirmPassword]);
 
-    return () => clearTimeout(timer);
-  }, [email]);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email || !email.includes('@')) {
-      toast.error('Please enter a valid email address');
+    // Validate password strength
+    const isStrongPassword = Object.values(passwordStrength).every(Boolean);
+    if (!isStrongPassword) {
+      toast.error('Please meet all password requirements');
       return;
     }
 
-    if (emailExists === false) {
-      toast.error('This email is not registered. Please register first.');
-      return;
-    }
-
-    if (emailExists === null) {
-      toast.error('Please wait while we verify your email');
+    // Validate password match
+    if (formData.newPassword !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
     setLoading(true);
+
     try {
-      const response = await api.post('/job/company/send-otp', { email });
-      
+      const response = await api.post('/job/company/reset-password', {
+        email: userEmail,
+        newPassword: formData.newPassword
+      });
+
       if (response.data.success) {
-        toast.success('4-digit OTP sent to your email!');
-        setUserEmail(email);
-        onViewChange('verifyOTP');
+        toast.success('Password reset successfully!');
+        // Redirect to login after successful reset
+        setTimeout(() => {
+          onViewChange('login');
+        }, 1500);
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to send OTP';
+      const message = error.response?.data?.message || 'Failed to reset password';
       toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
+  const PasswordRequirement = ({ met, text }) => (
+    <div className={`flex items-center gap-2 ${met ? 'text-green-600' : 'text-gray-500'}`}>
+      {met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+      <span className="text-xs">{text}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-green-100">
@@ -107,12 +123,12 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
           >
             {/* Back Button */}
             <motion.button
-              onClick={() => onViewChange("login")}
+              onClick={() => onViewChange('verifyOTP')}
               className="flex items-center gap-2 text-green-100 hover:text-white transition-colors mb-6 text-sm"
               whileHover={{ x: -5 }}
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to login
+              Back to OTP
             </motion.button>
 
             {/* Main Content */}
@@ -126,7 +142,7 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              Reset Your{' '}
+              Set New{' '}
               <span className="text-green-200">Password</span>
             </motion.h1>
 
@@ -136,7 +152,7 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              Enter your registered email address and we'll send you a 4-digit OTP to reset your password securely.
+              Create a strong new password for your account. Make sure it meets all security requirements.
             </motion.p>
           </motion.div>
 
@@ -152,18 +168,18 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
                 <Shield className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Secure Process</h3>
-                <p className="text-green-100 text-xs">4-digit OTP verification</p>
+                <h3 className="font-semibold text-sm">Secure Reset</h3>
+                <p className="text-green-100 text-xs">Your security is protected</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm border border-white/30">
-                <Mail className="w-4 h-4 text-white" />
+                <Lock className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Email Delivery</h3>
-                <p className="text-green-100 text-xs">OTP sent to registered email</p>
+                <h3 className="font-semibold text-sm">Strong Password</h3>
+                <p className="text-green-100 text-xs">Enhanced account security</p>
               </div>
             </div>
           </motion.div>
@@ -177,36 +193,11 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
           >
             <h3 className="font-semibold text-sm mb-2 text-green-100">Password Requirements:</h3>
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
-                  <Check className="w-2 h-2 text-green-300" />
-                </div>
-                <span className="text-xs text-green-100">At least 8 characters</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
-                  <Check className="w-2 h-2 text-green-300" />
-                </div>
-                <span className="text-xs text-green-100">One uppercase letter (A-Z)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
-                  <Check className="w-2 h-2 text-green-300" />
-                </div>
-                <span className="text-xs text-green-100">One lowercase letter (a-z)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
-                  <Check className="w-2 h-2 text-green-300" />
-                </div>
-                <span className="text-xs text-green-100">One number (0-9)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
-                  <Check className="w-2 h-2 text-green-300" />
-                </div>
-                <span className="text-xs text-green-100">One symbol (!@#$% etc.)</span>
-              </div>
+              <PasswordRequirement met={passwordStrength.length} text="At least 8 characters" />
+              <PasswordRequirement met={passwordStrength.uppercase} text="One uppercase letter (A-Z)" />
+              <PasswordRequirement met={passwordStrength.lowercase} text="One lowercase letter (a-z)" />
+              <PasswordRequirement met={passwordStrength.number} text="One number (0-9)" />
+              <PasswordRequirement met={passwordStrength.symbol} text="One symbol (!@#$% etc.)" />
             </div>
           </motion.div>
 
@@ -218,12 +209,12 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
             transition={{ delay: 0.7 }}
           >
             <p className="text-green-100 text-xs">
-              Your security is our priority
+              Reset for: {userEmail}
             </p>
           </motion.div>
         </div>
 
-        {/* Right Side - Reset Form */}
+        {/* Right Side - Reset Password Form */}
         <div className="w-full md:w-3/5 p-6 md:p-8 flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, x: 30 }}
@@ -238,7 +229,7 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Reset Password
+                Create New Password
               </motion.h2>
               <motion.p 
                 className="text-gray-600 text-sm"
@@ -246,75 +237,105 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                Enter your registered email to receive 4-digit verification OTP
+                Enter a strong new password for your account
               </motion.p>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Input */}
+              {/* New Password */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address *
+                  New Password *
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={handleEmailChange}
+                    type={showNewPassword ? 'text' : 'password'}
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 shadow-sm hover:border-green-300"
-                    placeholder="company@example.com"
+                    className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 shadow-sm hover:border-green-300"
+                    placeholder="Create strong password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-                
-                {/* Email Status Indicator */}
-                {checkingEmail && email && email.includes('@') && (
-                  <motion.p 
-                    className="text-xs text-blue-600 mt-2 flex items-center gap-1"
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
+
+                {/* Password Strength Indicator */}
+                {formData.newPassword && (
+                  <motion.div 
+                    className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
                   >
-                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    Checking email...
-                  </motion.p>
+                    <p className="text-xs font-medium text-gray-700 mb-1">Password Requirements:</p>
+                    <PasswordRequirement met={passwordStrength.length} text="At least 8 characters" />
+                    <PasswordRequirement met={passwordStrength.uppercase} text="One uppercase letter" />
+                    <PasswordRequirement met={passwordStrength.lowercase} text="One lowercase letter" />
+                    <PasswordRequirement met={passwordStrength.number} text="One number" />
+                    <PasswordRequirement met={passwordStrength.symbol} text="One special character" />
+                  </motion.div>
                 )}
-                
-                {emailExists === true && (
+              </motion.div>
+
+              {/* Confirm Password */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirm New Password *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-10 pr-10 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 shadow-sm hover:border-green-300"
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Password Match Indicator */}
+                {passwordMatch !== null && (
                   <motion.p 
-                    className="text-xs text-green-600 mt-2 flex items-center gap-1 font-medium"
+                    className={`text-xs mt-2 flex items-center gap-1 ${passwordMatch ? 'text-green-600' : 'text-red-600'}`}
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <Check className="w-3 h-3" />
-                    Email verified. You can send 4-digit OTP.
-                  </motion.p>
-                )}
-                
-                {emailExists === false && (
-                  <motion.p 
-                    className="text-xs text-red-600 mt-2 flex items-center gap-1 font-medium"
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <X className="w-3 h-3" />
-                    This email is not registered.
-                  </motion.p>
-                )}
-                
-                {!checkingEmail && !emailExists && email && email.includes('@') && (
-                  <motion.p 
-                    className="text-xs text-gray-500 mt-2 flex items-center gap-1"
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <Shield className="w-3 h-3 text-green-500" />
-                    We'll send a 4-digit OTP to this email
+                    {passwordMatch ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Passwords match
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-3 h-3" />
+                        Passwords do not match
+                      </>
+                    )}
                   </motion.p>
                 )}
               </motion.div>
@@ -322,22 +343,22 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
               {/* Submit Button */}
               <motion.button
                 type="submit"
-                disabled={loading || checkingEmail || emailExists === false || !email || !email.includes('@')}
+                disabled={loading || !Object.values(passwordStrength).every(Boolean) || !passwordMatch}
                 className="w-full bg-gradient-to-r from-green-600 to-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-green-700 focus:ring-2 focus:ring-green-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 text-sm group"
                 whileHover={{ scale: loading ? 1 : 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.8 }}
               >
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Sending 4-digit OTP...
+                    Resetting Password...
                   </>
                 ) : (
                   <>
-                    Send 4-digit OTP
+                    Reset Password
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </>
                 )}
@@ -349,22 +370,14 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
               className="mt-6 space-y-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.9 }}
             >
-              {/* Register Link if email doesn't exist */}
-              {emailExists === false && (
-                <div className="text-center p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-gray-700">
-                    Don't have an account?{' '}
-                    <button
-                      onClick={() => onViewChange('register')}
-                      className="text-green-600 hover:text-green-700 font-semibold transition-colors duration-200 underline underline-offset-2"
-                    >
-                      Register here
-                    </button>
-                  </p>
-                </div>
-              )}
+              {/* Security Note */}
+              <div className="text-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-xs text-green-700">
+                  <strong>Note:</strong> Your new password cannot be the same as your old password. For security, please choose a completely new password.
+                </p>
+              </div>
 
               {/* Back to Login */}
               <div className="text-center">
@@ -385,7 +398,7 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
               className="mt-6 text-center"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
+              transition={{ delay: 1.0 }}
             >
               <p className="text-xs text-gray-500">
                 Need assistance? Contact{' '}
@@ -401,4 +414,4 @@ const CompanyForgotPassword = ({ onViewChange, setUserEmail }) => {
   );
 };
 
-export default CompanyForgotPassword;
+export default CompanyResetPassword;

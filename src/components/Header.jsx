@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase, Activity, Users, Brain
+  Calendar, Briefcase, Activity, Users, Brain, Building, Users as CommunityIcon,
+  TrendingUp, Clock
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -29,14 +30,12 @@ import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
 const MAX_HISTORY = 12;
-const TRENDING_CACHE_KEY = "prithu_trending_cache_v1";
-const TRENDING_CACHE_TTL = 60 * 60 * 1000;
 
 export default function Header() {
   const { user, token, logout, fetchUserProfile } = useAuth();
   const navigate = useNavigate();
 
-  // Notification count from React Query hook (replaces manual polling)
+  // Notification count from React Query hook
   const notifCount = useUnreadNotificationCount(token);
   const refreshNotifications = useRefreshNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -47,7 +46,7 @@ export default function Header() {
   const [isReelsActive, setIsReelsActive] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const [isAptitudeOpen, setIsAptitudeOpen] = useState(false);
- 
+  
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({
@@ -58,7 +57,6 @@ export default function Header() {
   const [activeTab, setActiveTab] = useState("all");
   const [history, setHistory] = useState([]);
   const [trending, setTrending] = useState([]);
-  const trendingFetchedAt = useRef(0);
 
   // refs
   const dropdownRef = useRef(null);
@@ -66,34 +64,31 @@ export default function Header() {
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Updated navItems - Removed duplicate "Portfolio" from main navigation
+  // Enhanced navItems with icons
   const navItems = [
-    { to: "/", label: "Home", Icon: Home },
-    { to: "/profile", label: "Profile", Icon: User },
-    { to: "/settings", label: "Settings", Icon: Settings },
-    { to: "/subscriptions", label: "Subscriptions", Icon: BellRing },
-    { to: "/referral", label: "Referral", Icon: Gift },
-    { to: "/activity", label: "My Activity", Icon: Activity }
+    { to: "/", label: "Home", Icon: Home, desc: "Your feed" },
+    { to: "/profile", label: "Profile", Icon: User, desc: "View your profile" },
+    { to: "/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
+    { to: "/subscriptions", label: "Subscriptions", Icon: BellRing, desc: "Manage subscriptions" },
+    { to: "/referral", label: "Referral", Icon: Gift, desc: "Referral program" },
+    { to: "/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" }
   ];
 
   useEffect(() => {
     if (token) fetchUserProfile();
   }, [token]);
 
-  // -- Real-time notification updates via WebSocket --
-  // React Query hook handles fetching/caching, WebSocket handles real-time updates
+  // Real-time notification updates
   useEffect(() => {
     const handleNewNotif = e => {
       const notif = e.detail;
       console.log("🔔 New notification received:", notif);
 
-      // Show toast notification
       toast.success(`🔔 ${notif.title || "New notification!"}`, {
         duration: 4000,
         position: "top-right",
       });
 
-      // Refresh notifications from React Query cache
       refreshNotifications();
     };
 
@@ -102,7 +97,6 @@ export default function Header() {
       refreshNotifications();
     };
 
-    // Listen for socket events
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
 
@@ -112,7 +106,7 @@ export default function Header() {
     };
   }, [refreshNotifications]);
 
-  // -- Outside clicks --
+  // Outside click handlers
   useEffect(() => {
     const handleOutsideClick = e => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
@@ -124,37 +118,48 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // -- Reels --
+  // Navigation handlers
   const handleReelClick = () => {
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
     window.dispatchEvent(new CustomEvent("toggleReels", { detail: { isActive: nextState } }));
   };
 
-  // -- Events --
   const handleEventsClick = () => {
-     navigate("/event")
+    // Show "Coming Soon" toast for events
+    toast("📅 Events feature coming soon!", {
+      icon: "🎉",
+      duration: 3000,
+      position: "top-center"
+    });
+    // Uncomment below when events feature is ready
+    // navigate("/event");
     closeAll();
   };
 
-  // -- Jobs --
   const handleJobsClick = () => {
-    navigate("/jobs")
+    navigate("/jobs");
   };
 
-  // -- Portfolio --
   const handlePortfolioClick = () => {
     navigate(`/portfolio/${user?.userName || ""}`);
   };
 
-  // -- Community --
   const handleCommunityClick = () => {
-    setIsCommunityOpen(true);
+    // Show "Coming Soon" toast for community
+    toast("👥 Community feature coming soon!", {
+      icon: "🚀",
+      duration: 3000,
+      position: "top-center"
+    });
+    // Uncomment below when community feature is ready
+    // navigate("/community");
   };
 
-  // -- Aptitude --
   const handleAptitudeClick = () => {
-   navigate("/aptitude")
+ 
+       navigate("/aptitude");;
+
   };
 
   const closeAll = () => {
@@ -164,13 +169,12 @@ export default function Header() {
   };
 
   const handleBellClick = () => {
-    setNotifOpen((p) => !p);
+    setNotifOpen(p => !p);
     setDropdownOpen(false);
     setMobileMenuOpen(false);
-  
   };
 
-  // -- Search helpers --
+  // Search helpers
   const saveToHistory = text => {
     if (!text || !text.trim()) return;
     const normalized = text.trim();
@@ -212,7 +216,6 @@ export default function Header() {
       .sort((a, b) => b.score - a.score)
       .map(s => s.item);
   }, []);
-
 
   useEffect(() => {
     loadHistory();
@@ -325,15 +328,15 @@ export default function Header() {
 
   return (
     <Fragment>
-      {/* HEADER */}
+      {/* MAIN HEADER */}
       <motion.header
-        className="fixed top-0 left-0 w-full bg-white flex items-center justify-between px-4 md:px-6 py-3 shadow-md z-50"
+        className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-6 py-2.5 z-50"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        {/* Left Section: Logo + Heading */}
-        <div className="flex items-center gap-4">
+        {/* Left Section: Logo + Search */}
+        <div className="flex items-center gap-3 md:gap-6 flex-1">
           {/* Logo */}
           <div
             onClick={() => {
@@ -344,16 +347,25 @@ export default function Header() {
                 navigate("/");
               }
             }}
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer group shrink-0"
           >
-            <img src={PrithuLogo} alt="Prithu Logo" className="w-8 h-8 md:w-10 md:h-10" />
-            <h1 className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent">
+            <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
+              <img 
+                src={PrithuLogo} 
+                alt="Prithu Logo" 
+                className="w-8 h-8 md:w-9 md:h-9 transition-transform duration-200 group-hover:scale-105" 
+              />
+            </motion.div>
+            <motion.h1 
+              className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+              whileHover={{ scale: 1.05 }}
+            >
               PRITHU
-            </h1>
+            </motion.h1>
           </div>
 
-          {/* Desktop Search Bar - Now responsive */}
-          <div className="hidden md:flex flex-1 max-w-2xl mx-4 lg:mx-24">
+          {/* Desktop Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-xl lg:max-w-2xl">
             <SearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -374,55 +386,116 @@ export default function Header() {
               searchRef={searchRef}
             />
           </div>
-
-          {/* Desktop: Jobs, Portfolio, Community, Aptitude, Events - Updated order */}
-          <div className="hidden lg:flex items-center gap-2 ml-4">
-            <HeaderIconWithLabel
-              Icon={Briefcase}
-              label="Jobs"
-              onClick={handleJobsClick}
-            />
-            <HeaderIconWithLabel
-              Icon={User}
-              label="Portfolio"
-              onClick={handlePortfolioClick}
-            />
-            <HeaderIconWithLabel
-              Icon={Users}
-              label="Community"
-              onClick={handleCommunityClick}
-            />
-            <HeaderIconWithLabel
-              Icon={Brain}
-              label="Aptitude"
-              onClick={handleAptitudeClick}
-            />
-            <HeaderIconWithLabel
-              Icon={Calendar}
-              label="Events"
-              onClick={handleEventsClick}
-            />
-          </div>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile search button - Visible on mobile */}
+        {/* Center Section: Navigation Icons */}
+        <div className="hidden lg:flex items-center justify-center gap-1 mx-4">
+          {[
+            { Icon: Briefcase, label: "Jobs", onClick: handleJobsClick },
+            { Icon: User, label: "Portfolio", onClick: handlePortfolioClick },
+            { 
+              Icon: CommunityIcon, 
+              label: "Community", 
+              onClick: handleCommunityClick,
+              comingSoon: true 
+            },
+            { 
+              Icon: Brain, 
+              label: "Aptitude", 
+              onClick: handleAptitudeClick,
+              comingSoon: true 
+            },
+            { 
+              Icon: Calendar, 
+              label: "Events", 
+              onClick: handleEventsClick,
+              comingSoon: true 
+            }
+          ].map((item, index) => (
+            <motion.button
+              key={item.label}
+              onClick={item.onClick}
+              className="flex flex-col items-center px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-blue-50 group relative"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <div className="relative">
+                <item.Icon className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+              
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs mt-1 text-gray-600 group-hover:text-blue-700 font-medium transition-colors">
+                  {item.label}
+                </span>
+               
+              </div>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Right Section: Actions & Profile */}
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobile search button */}
           <button 
             onClick={() => setMobileSearchOpen(true)} 
-            className="p-2 rounded-md hover:bg-gray-100 lg:hidden"
+            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden transition-colors"
+            aria-label="Search"
           >
             <Search className="w-5 h-5 text-blue-600" />
           </button>
 
-          {/* Desktop Actions - Hidden on mobile */}
-          <div className="hidden lg:flex items-center gap-3">
-            <HeaderIcon Icon={Plus} onClick={() => setIsCreatePostOpen(true)} />
-            <HeaderIcon Icon={Video} onClick={handleReelClick} active={isReelsActive} />
+          {/* Desktop Actions */}
+          <div className="hidden lg:flex items-center gap-2">
+            {/* Create Post */}
+            <motion.button
+              onClick={() => setIsCreatePostOpen(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+             
+            </motion.button>
+
+            {/* Reels */}
+            <motion.button
+              onClick={handleReelClick}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${isReelsActive 
+                ? "bg-blue-100 text-blue-700 border border-blue-200" 
+                : "hover:bg-gray-100 text-gray-700"
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Video className={`w-5 h-5 ${isReelsActive ? "text-blue-600" : "text-gray-600"}`} />
+              <span className="text-sm font-medium">Reels</span>
+            </motion.button>
 
             {/* Notification */}
             <div ref={notificationRef} className="relative">
-              <HeaderIcon Icon={BellRing} badge={notifCount} onClick={handleBellClick} />
+              <motion.button
+                onClick={handleBellClick}
+                className={`relative p-2.5 rounded-lg transition-all duration-200 ${notifOpen 
+                  ? "bg-blue-100 ring-2 ring-blue-200" 
+                  : "hover:bg-gray-100"
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
+                {notifCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow"
+                  >
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </motion.span>
+                )}
+              </motion.button>
               <NotificationDropdown
                 isOpen={notifOpen}
                 onClose={() => setNotifOpen(false)}
@@ -430,17 +503,32 @@ export default function Header() {
               />
             </div>
 
-            {/* Profile Dropdown - Clickable User Name and Profile Pic */}
+            {/* Profile Dropdown */}
             <div ref={dropdownRef} className="relative">
               <motion.button
-                onClick={() => setDropdownOpen((p) => !p)}
-                className="flex items-center gap-2 rounded-lg p-1 pr-2 transition-all duration-300 hover:bg-blue-50"
-                whileTap={{ scale: 0.97 }}
+                onClick={() => setDropdownOpen(p => !p)}
+                className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-gray-100"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <ProfileAvatar user={user} />
-                <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">
-                  {user?.userName || "User"}
-                </span>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900 leading-tight truncate max-w-[120px]">
+                    {user?.userName || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate max-w-[120px]">
+                    {user?.userEmail?.split('@')[0] || "Welcome"}
+                  </p>
+                </div>
+                <motion.div
+                  animate={{ rotate: dropdownOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-gray-400"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </motion.div>
               </motion.button>
 
               <AnimatePresence>
@@ -449,49 +537,55 @@ export default function Header() {
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.25 }}
-                    className="absolute right-0 top-12 w-64 bg-white border border-gray-200 rounded-xl shadow-lg backdrop-blur-sm z-[150]"
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute right-0 top-12 w-72 bg-white border border-gray-200 rounded-xl shadow-lg backdrop-blur-sm z-[150] overflow-hidden"
                   >
-                    {/* User Info Section */}
-                    <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-50">
+                    {/* User Info */}
+                    <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50/50 to-blue-50/30">
                       <div className="flex items-center gap-3">
-                        <ProfileAvatar user={user} size="md" />
+                        <ProfileAvatar user={user} size="lg" />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 truncate">
                             {user?.name || user?.userName || "User"}
                           </p>
                           <p className="text-sm text-gray-500 truncate">
-                            {user?.userEmail || ""}
+                            {user?.userEmail || "Welcome to Prithu"}
                           </p>
                         </div>
                       </div>
                     </div>
 
+
                     {/* Navigation Links */}
                     <div className="p-2 space-y-1">
-                      {navItems.map(({ to, label, Icon }) => (
+                      {navItems.map(({ to, label, Icon, desc }) => (
                         <NavLink
                           key={to}
                           to={to}
                           onClick={closeAll}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition ${isActive
-                              ? "bg-blue-100 text-blue-700 font-medium"
-                              : "text-gray-700 hover:bg-blue-50"
+                            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-700 hover:bg-gray-50"
                             }`
                           }
                         >
-                          <Icon className="w-4 h-4 text-blue-600" />
-                          {label}
+                          <div className={`p-1.5 rounded-lg bg-gray-100`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{label}</p>
+                            <p className="text-xs text-gray-500 truncate">{desc}</p>
+                          </div>
                         </NavLink>
                       ))}
                     </div>
 
                     {/* Logout */}
-                    <div className="p-2 border-t border-gray-100">
+                    <div className="p-3 border-t border-gray-100 bg-gray-50/50">
                       <button
                         onClick={logout}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition w-full text-left"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium text-sm"
                       >
                         <LogOut className="w-4 h-4" />
                         Logout
@@ -503,25 +597,38 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Mobile Actions - Only Notification and Hamburger */}
+          {/* Mobile Menu Button */}
           <div className="flex lg:hidden items-center gap-2">
-            {/* Notification */}
+            {/* Notification for mobile */}
             <div ref={notificationRef} className="relative">
-              <HeaderIcon Icon={BellRing} badge={notifCount} onClick={handleBellClick} />
-              <NotificationDropdown
-                isOpen={notifOpen}
-                onClose={() => setNotifOpen(false)}
-                onUpdateCount={refreshNotifications}
-              />
+              <motion.button
+                onClick={handleBellClick}
+                className={`relative p-2 rounded-lg transition-all ${notifOpen 
+                  ? "bg-blue-100 ring-2 ring-blue-200" 
+                  : "hover:bg-gray-100"
+                }`}
+              >
+                <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
+                {notifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </motion.button>
             </div>
 
-            {/* Hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen((p) => !p)}
-              className="p-2 rounded-md hover:bg-gray-100"
+            {/* Hamburger Menu */}
+            <motion.button
+              onClick={() => setMobileMenuOpen(p => !p)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              whileTap={{ scale: 0.95 }}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-blue-600" /> : <Menu className="w-5 h-5 text-blue-600" />}
-            </button>
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5 text-blue-600" />
+              ) : (
+                <Menu className="w-5 h-5 text-blue-600" />
+              )}
+            </motion.button>
           </div>
         </div>
       </motion.header>
@@ -534,142 +641,120 @@ export default function Header() {
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-0 left-0 h-full w-full bg-white shadow-2xl z-50 lg:hidden"
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 lg:hidden"
           >
             {/* Mobile Menu Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
               <div className="flex items-center gap-3">
                 <ProfileAvatar user={user} size="lg" />
                 <div>
                   <p className="font-semibold text-gray-900">{user?.userName || "User"}</p>
-                  <p className="text-sm text-gray-500">{user?.userEmail || ""}</p>
+                  <p className="text-sm text-gray-500">{user?.userEmail || "Welcome"}</p>
                 </div>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            {/* Mobile Menu Content */}
-            <div className="p-4 space-y-2 h-[calc(100vh-80px)] overflow-y-auto">
-              {/* Mobile Search */}
-              <div className="pb-4 border-b border-gray-200">
-                <button
-                  onClick={() => {
-                    setMobileSearchOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                >
-                  <Search className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium">Search</span>
-                </button>
-              </div>
 
-              {/* Mobile Actions */}
-              <div className="flex gap-2 pb-4 border-b border-gray-200">
+            {/* Mobile Menu Content */}
+            <div className="p-4 space-y-1 h-[calc(100vh-80px)] overflow-y-auto">
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
                   onClick={() => {
                     setIsCreatePostOpen(true);
                     setMobileMenuOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                  className="flex flex-col items-center gap-2 p-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all"
                 >
                   <Plus className="w-5 h-5" />
-                  Create Post
+                  <span className="text-sm">Create Post</span>
                 </button>
                 <button
                   onClick={() => {
                     handleReelClick();
                     setMobileMenuOpen(false);
                   }}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium ${isReelsActive
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl font-medium transition-all ${isReelsActive
                     ? "bg-blue-100 text-blue-700 border border-blue-300"
-                    : "bg-gray-100 text-gray-700"
-                    }`}
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                 >
                   <Video className="w-5 h-5" />
-                  Reels
+                  <span className="text-sm">Reels</span>
                 </button>
               </div>
 
-              {/* Quick Actions - Jobs, Portfolio, Community, Aptitude, Events (Updated Order) */}
-              <div className="pb-4 border-b border-gray-200">
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      handleJobsClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <Briefcase className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Jobs</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handlePortfolioClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <User className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Portfolio</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleCommunityClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Community</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleAptitudeClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <Brain className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Aptitude</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleEventsClick();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 rounded-lg transition text-left"
-                  >
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Events</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Navigation Items */}
-              <div className="space-y-1">
-                {navItems.map(({ to, label, Icon }) => (
+              {/* Navigation Links */}
+              <div className="space-y-1 mb-4">
+                {navItems.map(({ to, label, Icon, desc }) => (
                   <NavLink
                     key={to}
                     to={to}
                     onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-blue-50"
+                      `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-50"
                       }`
                     }
                   >
-                    <Icon className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">{label}</span>
+                    <div className={`p-2 rounded-lg bg-gray-100`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{label}</p>
+                      <p className="text-xs text-gray-500">{desc}</p>
+                    </div>
                   </NavLink>
                 ))}
+              </div>
+
+              {/* Quick Navigation */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Quick Access</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { Icon: Briefcase, label: "Jobs", onClick: handleJobsClick },
+                    { Icon: User, label: "Portfolio", onClick: handlePortfolioClick },
+                    { 
+                      Icon: CommunityIcon, 
+                      label: "Community", 
+                      onClick: handleCommunityClick,
+                      comingSoon: true 
+                    },
+                    { 
+                      Icon: Brain, 
+                      label: "Aptitude", 
+                      onClick: handleAptitudeClick,
+                      comingSoon: true 
+                    },
+                    { 
+                      Icon: Calendar, 
+                      label: "Events", 
+                      onClick: handleEventsClick,
+                      comingSoon: true 
+                    }
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        item.onClick();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors relative"
+                    >
+                      <item.Icon className="w-5 h-5 text-gray-600 mb-1" />
+                      <span className="text-xs text-gray-700 font-medium">{item.label}</span>
+                     
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Logout */}
@@ -678,10 +763,10 @@ export default function Header() {
                   logout();
                   setMobileMenuOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition w-full text-left mt-4"
+                className="flex items-center justify-center gap-2 w-full px-4 py-3.5 text-red-600 hover:bg-red-50 rounded-lg transition-all font-medium mt-4 border-t border-gray-100"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
+                Logout
               </button>
             </div>
           </motion.div>
@@ -690,8 +775,12 @@ export default function Header() {
 
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -721,178 +810,17 @@ export default function Header() {
         onClose={() => setIsCreatePostOpen(false)}
       />
 
-      {/* Events Modal */}
-      <EventsModal
-        open={isEventsOpen}
-        onClose={() => setIsEventsOpen(false)}
-      />
-
-      {/* Community Modal */}
-      <CommunityModal
-        open={isCommunityOpen}
-        onClose={() => setIsCommunityOpen(false)}
-      />
-
-      {/* Aptitude Modal */}
-      <AptitudeModal
-        open={isAptitudeOpen}
-        onClose={() => setIsAptitudeOpen(false)}
-      />
+      {/* Modals (commented out for now) */}
+      {/* <EventsModal open={isEventsOpen} onClose={() => setIsEventsOpen(false)} /> */}
+      {/* <CommunityModal open={isCommunityOpen} onClose={() => setIsCommunityOpen(false)} /> */}
+      {/* <AptitudeModal open={isAptitudeOpen} onClose={() => setIsAptitudeOpen(false)} /> */}
     </Fragment>
   );
 }
 
-/* ✅ Events Modal Component */
-const EventsModal = ({ open, onClose }) => {
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <UpcomingEvents  />
-      </motion.div>
-    </div>
-  );
-};
-
-/* ✅ Community Modal Component */
-const CommunityModal = ({ open, onClose }) => {
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header with Close Button */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50">
-          <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Community</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Community Content */}
-        <div className="p-6">
-          <div className="text-center py-8">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Community Features Coming Soon!</h3>
-            <p className="text-gray-600 max-w-md mx-auto">
-              Connect with other users, join groups, and participate in community discussions. 
-              This feature is currently under development.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-/* ✅ Aptitude Modal Component */
-const AptitudeModal = ({ open, onClose }) => {
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden border border-gray-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header with Close Button */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50">
-          <div className="flex items-center gap-3">
-            <Brain className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Aptitude Tests</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Aptitude Content */}
-        <div className="p-6">
-          <div className="text-center py-8">
-            <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aptitude Tests Coming Soon!</h3>
-            <p className="text-gray-600 max-w-md mx-auto">
-              Practice and improve your skills with our comprehensive aptitude tests. 
-              This feature is currently under development and will be available soon.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-/* ✅ HeaderIcon component */
-const HeaderIcon = ({ Icon, onClick, badge, active }) => (
-  <button
-    onClick={onClick}
-    className={`relative p-2 rounded-full transition-all duration-300 ${active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
-      }`}
-  >
-    <Icon
-      className={`w-5 h-5 transition-all ${active ? "text-blue-700 scale-110" : "text-blue-600"
-        }`}
-    />
-    {badge > 0 && (
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
-        {badge > 99 ? '99+' : badge}
-      </span>
-    )}
-  </button>
-);
-
-/* ✅ HeaderIcon with Label for Desktop - Text on right side */
-const HeaderIconWithLabel = ({ Icon, label, onClick, active }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${active ? "bg-blue-100 ring-2 ring-blue-400" : "hover:bg-gray-100"
-      }`}
-  >
-    <Icon
-      className={`w-5 h-5 transition-all ${active ? "text-blue-700 scale-110" : "text-blue-600"
-        }`}
-    />
-    <span className="text-sm font-medium text-gray-700 whitespace-nowrap">{label}</span>
-  </button>
-);
-
-/* ✅ Avatar component */
+/* ✅ Profile Avatar component */
 const ProfileAvatar = ({ user, size = "md" }) => {
-  const fallback = user?.displayName?.[0]?.toUpperCase() || "U";
+  const fallback = user?.displayName?.[0]?.toUpperCase() || user?.userName?.[0]?.toUpperCase() || "U";
   const sizeClasses = {
     sm: "w-8 h-8 text-sm",
     md: "w-9 h-9 text-sm",
@@ -900,14 +828,20 @@ const ProfileAvatar = ({ user, size = "md" }) => {
   };
 
   return user?.profileAvatar ? (
-    <img
+    <motion.img
       src={user.profileAvatar}
       alt="Avatar"
-      className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200`}
+      className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200 shadow-sm`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
     />
   ) : (
-    <div className={`${sizeClasses[size]} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200`}>
+    <motion.div
+      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200 shadow-sm`}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
       {fallback}
-    </div>
+    </motion.div>
   );
 };

@@ -4,7 +4,7 @@ import { FaCamera, FaSmile, FaVideo } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import CreatePostModal from "./CreatePostModal";
 
-const Createpost = () => {
+const Createpost = ({ onPostCreated }) => { // Add onPostCreated prop
   const [modalOpen, setModalOpen] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
 
@@ -15,45 +15,20 @@ const Createpost = () => {
   const handleCloseModal = useCallback(() => setModalOpen(false), []);
 
   const handleSubmit = useCallback(async (postData) => {
-  try {
-    // postData contains: { file, language, categoryId, type, scheduleDate, dec }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.warn("❌ No token found");
-      return;
-    }
-
-    const form = new FormData();
-    form.append("file", postData.file);               // Media
-    form.append("language", postData.language);       // Language
-    form.append("categoryId", postData.categoryId);   // Category
-    form.append("type", postData.type);               // Feed type (image/video)
-    form.append("dec", postData.dec || "");           // Description (hashtags extracted in backend)
-
-    if (postData.scheduleDate) {
-      form.append("scheduleDate", postData.scheduleDate);
-    }
-
-    const res = await api.post(
-      "/creator/feed/upload",
-      form,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+    try {
+      // This function should be in your API service
+      // For now, let the modal handle the submission
+      console.log("Post data in Createpost:", postData);
+      
+      // After successful post creation, call the callback
+      if (onPostCreated) {
+        onPostCreated();
       }
-    );
-
-    console.log("Uploaded:", res.data);
-    setModalOpen(false);
-
-  } catch (err) {
-    console.error("❌ Upload failed:", err?.response?.data || err.message);
-  }
-}, []);
-
+      
+    } catch (err) {
+      console.error("❌ Upload failed:", err?.response?.data || err.message);
+    }
+  }, [onPostCreated]);
 
   const handleComingSoon = useCallback(() => {
     setComingSoon(true);
@@ -77,8 +52,6 @@ const Createpost = () => {
           onClick={handleOpenModal}
           className="flex items-center gap-2 cursor-pointer"
         >
-         
-
           <input
             type="text"
             readOnly
@@ -125,8 +98,12 @@ const Createpost = () => {
         </div>
       </div>
 
-      {/* Modal */}
-      <CreatePostModal open={modalOpen} onClose={handleCloseModal} onSubmit={handleSubmit} />
+      {/* Modal - Pass onPostCreated callback */}
+      <CreatePostModal 
+        open={modalOpen} 
+        onClose={handleCloseModal} 
+        onPostCreated={onPostCreated} 
+      />
 
       {/* Coming Soon Popup */}
       <AnimatePresence>

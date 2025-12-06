@@ -49,7 +49,7 @@ export default function JobPage({
   totalJobs,
   showNavigation 
 }) {
-  console.log("Job data received:", job);
+
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(job?.isSaved || false);
   const [isLiked, setIsLiked] = useState(job?.isLiked || false);
@@ -240,6 +240,11 @@ export default function JobPage({
     return { text: job.urgencyLevel, color: "bg-gray-100 text-gray-700 border-gray-200" };
   };
 
+const handleClickCompany = () => {
+  navigate(`/company/${job.companyId}`);
+};
+
+
   const urgencyBadge = getUrgencyBadge();
   const requirements = getApplicationRequirements();
 
@@ -336,7 +341,9 @@ export default function JobPage({
                       {job.jobTitle || "Untitled Position"}
                     </h1>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-base lg:text-lg text-gray-700 mb-4">
-                      <span className="font-semibold text-gray-900 truncate">{job.companyName || "Company"}</span>
+                      <button 
+                      onClick={handleClickCompany}
+                      className="font-semibold  truncate cursor-pointer text-blue-400">{job.companyName || "Company"}</button>
                       <span className="hidden sm:inline w-1 h-1 bg-gray-400 rounded-full"></span>
                       <span className="text-gray-600 capitalize truncate">{job.jobRole || job.jobCategory || "Not specified"}</span>
                     </div>

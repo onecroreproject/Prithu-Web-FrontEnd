@@ -15,10 +15,11 @@ import PostcardWrapper from "../components/FeedPageComponent/postCardWraper";
 import Stories from "../components/Stories";
 import Createpost from "../components/postCreatedCard";
 import JobCard from "../components/Jobs/jobCard";
-import { Skeleton } from "@mui/material";
+import { Skeleton, IconButton } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import TagIcon from "@mui/icons-material/Tag";
 
 /* ------------------------------- Helpers ---------------------------------- */
-
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const timeAgoFrom = (iso) => {
@@ -174,9 +175,7 @@ const mapJobForCard = (job) => ({
 });
 
 
-
 /* ------------------------------- Skeleton ------------------------------- */
-
 const FeedSkeleton = () => (
   <motion.div className="w-full bg-white rounded-2xl shadow-sm p-4">
     <div className="flex items-center gap-3 mb-3">
@@ -195,13 +194,15 @@ const FeedSkeleton = () => (
 );
 
 /* -------------------------------- Feed Component ------------------------------- */
-
 const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const { tagname } = useParams();
   const { token } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Check if we're in hashtag mode
+  const isHashtagMode = !!tagname;
 
   // safe extraction (strip query string) for /retrivefeed/:id
   const currentFeedId = (() => {
@@ -215,7 +216,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
 
-  // creator-mode state (when currentFeedId exists and not ref=share)
+  // creator-mode state
   const [creatorModeFeeds, setCreatorModeFeeds] = useState(null);
   const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
@@ -253,11 +254,11 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
   const feeds = feedPages?.pages.flat() || [];
 
-  /* ---------------------- Jobs query ---------------------- */
+  /* ---------------------- Jobs query (disabled for hashtag mode) ---------------------- */
   const { data: jobs = [], isLoading: isJobsLoading, isError: jobsError } = useQuery({
     queryKey: ["jobs", tokenRef.current || token],
     queryFn: () => getTopRankedJobs(tokenRef.current || token),
-    enabled: !!(tokenRef.current || token),
+    enabled: !!(tokenRef.current || token) && !isHashtagMode, // Disable for hashtag mode
   });
 
   /* ---------------------- normalize single feed (fallback) ---------------------- */
@@ -450,9 +451,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
             };
           });
         }, 3500);
-
-        // OPTIONAL: remove ref=share so refresh doesn't re-run - uncomment if desired:
-        // window.history.replaceState({}, document.title, location.pathname);
       } catch (err) {
         console.error("Error handling retrievefeed share:", err);
         setHasScrolledToNotifyFeed(true);
@@ -464,9 +462,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     };
   }, [currentFeedId, location.search, feedsQueryKey, tokenRef, queryClient, injectSingleFeedIntoCache, normalizeSingleFeed, token, hasScrolledToNotifyFeed]);
 
-  /* ---------------------- Creator mode: fetch creator feeds when currentFeedId exists (skip for ref=share) ---------------------- */
+  /* ---------------------- Creator mode ---------------------- */
   useEffect(() => {
-    // If there's no feed id in pathname, reset creator mode
     if (!currentFeedId) {
       setCreatorModeFeeds(null);
       setCreatorId(null);
@@ -477,14 +474,12 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     const params = new URLSearchParams(location.search);
     const isShare = params.get("ref") === "share";
     if (isShare) {
-      // keep creator mode disabled; the shared feed will be injected elsewhere
       setCreatorModeFeeds(null);
       setCreatorId(null);
       setIsCreatorModeLoading(false);
       return;
     }
 
-    // Avoid repeated fetches for same id
     let cancelled = false;
     const run = async () => {
       setIsCreatorModeLoading(true);
@@ -541,7 +536,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     return () => {
       cancelled = true;
     };
-    // re-run when id or token changes
   }, [currentFeedId, tokenRef.current, token]);
 
   /* ---------------------- notifyfeedid handling (notifications) ---------------------- */
@@ -576,7 +570,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
               ...oldData,
               pages: oldData.pages.map((page) =>
                 page.map((item) =>
-                  (item._id || item.feedId || item.id || item.feedID) === notifyfeedid
+                  (item._id || item.feedId || item.id || it.feedID) === notifyfeedid
                     ? { ...item, __highlight: false }
                     : item
                 )
@@ -618,7 +612,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
               ...oldData,
               pages: oldData.pages.map((page) =>
                 page.map((item) =>
-                  (item._id || item.feedId || item.id || item.feedID) === notifyfeedid
+                  (item._id || item.feedId || item.id || it.feedID) === notifyfeedid
                     ? { ...item, __highlight: false }
                     : item
                 )
@@ -638,7 +632,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifyfeedid, feedPages, hasScrolledToNotifyFeed, token]);
 
   /* ---------------------- legacy auto scroll flag ---------------------- */
@@ -742,7 +735,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   // If hashtag mode → bypass category & reel filters
   if (!tagname) {
     const categoryFilteredFeeds = feedCategory ? feeds.filter((f) => f?.category === feedCategory) : feeds;
-
     filteredFeeds = showReels ? categoryFilteredFeeds.filter((f) => f.type === "video") : categoryFilteredFeeds;
   }
 
@@ -772,12 +764,10 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   }, []);
 
   // Decide what to render in "feeds" area:
-  // - If creatorMode active (currentFeedId present AND creatorModeFeeds set) -> show creatorModeFeeds (no jobs)
-  // - Else -> use normal infinite cached feeds mixed with jobs
   let mixed = [];
   const isCreatorMode = !!currentFeedId && Array.isArray(creatorModeFeeds);
 
-  if (tagname) {
+  if (isHashtagMode) {
     // ⭐ HASHTAG MODE — ONLY FEEDS, NO JOBS
     mixed = filteredFeeds.map((f) => ({ ...f, __kind: "feed" }));
   } else if (isCreatorMode) {
@@ -788,7 +778,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
   /* ---------------------- hide from UI ---------------------- */
   const handleHideFromUI = (feedId) => {
-    // hide both in local creator list (if present) and cache
     if (isCreatorMode) {
       setCreatorModeFeeds((prev) => prev?.filter((it) => (it._id || it.feedId || it.id || it.feedID) !== feedId));
     }
@@ -797,7 +786,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
-        pages: oldData.pages.map((page) => page.filter((item) => (item.feedId || item._id || item.id || item.feedID) !== feedId)),
+        pages: oldData.pages.map((page) => page.filter((item) => (item.feedId || item._id || item.id || it.feedID) !== feedId)),
         pageParams: oldData.pageParams ?? [1],
       };
     });
@@ -805,18 +794,30 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
   const isLoading = isFeedsLoading || isJobsLoading || isCreatorModeLoading;
 
+  /* ---------------------- Handle back navigation ---------------------- */
+  const handleBackClick = () => {
+    navigate(-1); // Go back to previous page
+  };
+
   /* ------------------------------- Render --------------------------------- */
   return (
     <>
       <div id="feedTop">
         <div className={`mx-auto px-3 sm:px-4 md:px-6 py-5 max-w-3xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
-          <Stories />
+      
+          {/* ⭐ REGULAR HOME PAGE COMPONENTS (only show when NOT in hashtag mode) */}
+          {!isHashtagMode && (
+            <>
+              <Stories />
+              
+              <div className="mt-4 mb-6">
+                <Createpost authUser={authUser} token={tokenRef.current || token}  />
+              </div>
+            </>
+          )}
 
-          <div className="mt-4 mb-6">
-            <Createpost authUser={authUser} token={tokenRef.current || token} />
-          </div>
-
-          {isCreatorMode && (
+          {/* Creator mode header (only when in creator mode, not hashtag) */}
+          {isCreatorMode && !isHashtagMode && (
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden">
@@ -831,14 +832,21 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
             </div>
           )}
 
+          {/* Feeds/Jobs content */}
           <AnimatePresence>
             <div className="flex flex-col gap-5">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
               ) : mixed.length > 0 ? (
                 mixed.map((item, idx) => (
-                  <motion.div key={item._id || item.feedId || idx} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.4 }}>
-                    {item.__kind === "job" ? (
+                  <motion.div 
+                    key={item._id || item.feedId || idx} 
+                    initial={{ opacity: 0, y: 30 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, scale: 0.9 }} 
+                    transition={{ duration: 0.4 }}
+                  >
+                    {item.__kind === "job" && !isHashtagMode ? (
                       <JobCard jobData={mapJobForCard(item)} />
                     ) : (
                       <PostcardWrapper
@@ -853,7 +861,11 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                 ))
               ) : (
                 <p className="text-center text-gray-500 py-8">
-                  {feedsError || jobsError ? "⚠️ Failed to load content." : feedCategory ? "No feeds found for this category." : showReels ? "No reels found 🎬" : "No content available."}
+                  {feedsError || jobsError ? "⚠️ Failed to load content." : 
+                   feedCategory ? "No feeds found for this category." : 
+                   showReels ? "No reels found 🎬" : 
+                   isHashtagMode ? `No posts found for #${tagname}` : 
+                   "No content available."}
                 </p>
               )}
             </div>

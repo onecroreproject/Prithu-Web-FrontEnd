@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-
 export default function JobCards({ jobs = [], filterDomain = null }) {
-
   const [currentJobIndex, setCurrentJobIndex] = useState(0);
+  const [selectedJob, setSelectedJob] = useState(null); // Added missing state
   const navigate = useNavigate();
 
   // Filter jobs by domain if provided
@@ -13,23 +12,20 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
     : jobs;
 
   const handleJobClick = (job, index) => {
-  const sameRoleJobs = filteredJobs.filter(
-  (j) => j.jobRole === job.jobRole
-);
+    const sameRoleJobs = filteredJobs.filter(
+      (j) => j.jobRole === job.jobRole
+    );
 
-const currentIndexInRole = sameRoleJobs.findIndex((j) => j._id === job._id);
+    const currentIndexInRole = sameRoleJobs.findIndex((j) => j._id === job._id);
 
-navigate(`/job/${job._id}`, {
-  state: {
-    job,
-    jobs: sameRoleJobs,
-    index: currentIndexInRole,
-  },
-});
-
+    navigate(`/job/${job._id}`, {
+      state: {
+        job,
+        jobs: sameRoleJobs,
+        index: currentIndexInRole,
+      },
+    });
   };
-
-
 
   const handleNext = () => {
     if (currentJobIndex < filteredJobs.length - 1) {
@@ -88,9 +84,13 @@ navigate(`/job/${job._id}`, {
 
   // Get initials for avatar
   const getInitials = (companyName) => {
+    if (!companyName) return 'JD';
     return companyName
-      ? companyName.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-      : 'JD';
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   // Format experience
@@ -109,24 +109,38 @@ navigate(`/job/${job._id}`, {
     return "Experience not specified";
   };
 
+  const handleClickCompany = (companyId) => (e) => {
+    e.stopPropagation(); // Prevent triggering job click
+    if (companyId) {
+      navigate(`/company/${companyId}`);
+    }
+  };
+
+  // Generate a unique key for each job
+  const getJobKey = (job, idx) => {
+    return job._id || `job-${job.jobTitle}-${job.companyName}-${idx}`;
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredJobs.map((job, idx) => (
           <div
-            key={job._id || idx}
-            onClick={() => handleJobClick(job, idx)}
+            key={getJobKey(job, idx)}
             className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer hover:border-blue-300 hover:transform hover:-translate-y-1"
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
+              <div
+                onClick={handleClickCompany(job.companyId)}
+                className="flex items-center gap-3 cursor-pointer"
+              >
                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
                   {getInitials(job.companyName)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
-                    {job.companyName}
+                    {job.companyName || "Unknown Company"}
                   </h3>
                   <div className="flex items-center text-gray-500 text-xs mt-1">
                     <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +157,7 @@ navigate(`/job/${job._id}`, {
 
             {/* Job Title */}
             <h2 className="font-bold text-gray-900 text-lg mb-3 line-clamp-2 leading-tight">
-              {job.jobTitle}
+              {job.jobTitle || "Untitled Position"}
             </h2>
 
             {/* Job Description */}
@@ -186,23 +200,19 @@ navigate(`/job/${job._id}`, {
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {new Date(job.createdAt).toLocaleDateString()}
+                {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Date not available"}
               </div>
               
               <div className="text-xs text-gray-500">
-                {job.openingsCount} opening{job.openingsCount > 1 ? 's' : ''}
+                {(job.openingsCount || 0)} opening{(job.openingsCount || 0) > 1 ? 's' : ''}
               </div>
             </div>
 
             {/* Quick Apply Button */}
             <button 
-  key={job._id}
-  onClick={() => handleJobClick(job, idx)}
- className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
-            
->
-
-             
+              onClick={() => handleJobClick(job, idx)}
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
+            >
               Quick Apply
             </button>
           </div>
