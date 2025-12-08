@@ -16,6 +16,7 @@ import {
 import api from "../../api/axios";
 import { getCroppedImg } from "../../components/ProfileHeaderComponent/ImageCropmodel";
 import defaultAvatars from "../../assets/user.png";
+import { useNavigate } from "react-router-dom";
 
 const defaultBanner =defaultAvatars
  
@@ -26,7 +27,7 @@ export default function ProfileHeader({ id }) {
   const { token } = useAuth();
   const { data: user, isLoading, refetch } = useUserProfile(token, id);
   const currentUser = localStorage.getItem("userId");
-
+  const navigate=useNavigate()
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
 
@@ -104,7 +105,7 @@ export default function ProfileHeader({ id }) {
         { userId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      
       toast.success("Followed successfully!");
       await refetch();
     } catch (err) {
@@ -133,7 +134,7 @@ export default function ProfileHeader({ id }) {
         { userId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      navigate("/")
       toast.success("Unfollowed successfully!");
       await refetch();
     } catch (err) {

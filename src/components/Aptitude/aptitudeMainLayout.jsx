@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Play, 
   Clock, 
@@ -16,7 +16,10 @@ import {
   Loader,
   X,
   Maximize2,
-  Minimize2
+  Minimize2,
+  FolderOpen,
+  Hash,
+  Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -25,7 +28,7 @@ import Header from '../Header';
 
 const AptitudeTest = () => {
   const [loading, setLoading] = useState(false);
-  const [testStatus, setTestStatus] = useState('idle'); // idle, starting, active, completed
+  const [testStatus, setTestStatus] = useState('idle');
   const [testUrl, setTestUrl] = useState('');
   const [testScores, setTestScores] = useState([]);
   const [stats, setStats] = useState({
@@ -36,64 +39,263 @@ const AptitudeTest = () => {
   });
   const [iframeError, setIframeError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [groupedTests, setGroupedTests] = useState({});
+  const iframeRef = useRef(null);
 
-  // Poll for test completion
-  useEffect(() => {
-    let interval;
+  // Process and group test results by test name
+  const processTestResults = (results) => {
+    if (!results || !Array.isArray(results)) return {};
     
-    const pollForResults = async () => {
-      try {
-        const res = await api.get("/api/aptitude/latest/results");
+    const grouped = {};
+    
+    results.forEach(test => {
+      const testName = test.testName || 'Unnamed Test';
+      
+      if (!grouped[testName]) {
+        grouped[testName] = {
+          tests: [],
+          highestScore: 0,
+          averageScore: 0,
+          totalAttempts: 0,
+          bestAttempt: null,
+          latestAttempt: null
+        };
+      }
+      
+      grouped[testName].tests.push(test);
+      grouped[testName].totalAttempts++;
+      
+      // Update highest score
+      if (test.score > grouped[testName].highestScore) {
+        grouped[testName].highestScore = test.score;
+        grouped[testName].bestAttempt = test;
+      }
+      
+      // Set latest attempt
+      if (!grouped[testName].latestAttempt || 
+          new Date(test.receivedAt) > new Date(grouped[testName].latestAttempt.receivedAt)) {
+        grouped[testName].latestAttempt = test;
+      }
+    });
+    
+    // Calculate average scores
+    Object.keys(grouped).forEach(testName => {
+      const group = grouped[testName];
+      const totalScore = group.tests.reduce((sum, test) => sum + test.score, 0);
+      group.averageScore = (totalScore / group.totalAttempts).toFixed(1);
+    });
+    
+    return grouped;
+  };
+
+  // Enhanced message listener for iframe communication
+  useEffect(() => {
+    const handleMessage = (event) => {
+      console.log("📨 Message received from iframe:", {
+        origin: event.origin,
+        data: event.data,
+        source: event.source
+      });
+      
+      // Accept messages from test server (allow both with and without trailing slash)
+      if (event.origin === "http://192.168.1.11:8000" || 
+          event.origin === "http://192.168.1.11:8000/") {
+        console.log("✅ Valid message from test server");
         
-        if (res.data.success && res.data.latest) {
-          const isNewResult = !testScores.some(score => 
-            score._id === res.data.latest._id || 
-            (score.score === res.data.latest.score && 
-             Math.abs(new Date(score.createdAt) - new Date(res.data.latest.createdAt)) < 1000)
-          );
+        // Handle different message types
+        if (event.data.type === "TEST_COMPLETED" || 
+            event.data.completed === true ||
+            event.data.score !== undefined ||
+            event.data.message?.includes("completed") ||
+            event.data.status === "completed") {
           
-          if (isNewResult) {
-            console.log("New test result received:", res.data.latest);
-            
-            setTestScores(prev => [res.data.latest, ...prev]);
-            calculateStats([res.data.latest, ...testScores]);
-            setTestStatus("completed");
-            setTestUrl("");
-            
-            clearInterval(interval);
-            
+          console.log("🎯 Test completion detected via postMessage");
+          
+          // If score data is included, show it immediately
+          if (event.data.score !== undefined) {
             toast.success(
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                <span>Test completed! Your score: {res.data.latest.score}/100</span>
+                <span>Test completed! Score: {event.data.score}/100</span>
               </div>,
               { duration: 5000 }
             );
+          } else {
+            toast.success("Test completed! Fetching results...");
           }
+          
+          // Close iframe and fetch results
+          setTestStatus("completed");
+          setTestUrl("");
+          
+          // Fetch updated scores immediately
+          setTimeout(() => {
+            fetchAptitudeScores();
+          }, 1000);
         }
-      } catch (err) {
-        console.error("Error polling for results:", err);
+        
+        // Handle test submission
+        if (event.data.action === "submit" || event.data.submitted === true) {
+          console.log("📝 Test submitted via postMessage");
+          toast.info("Test submitted! Processing results...", { duration: 3000 });
+        }
       }
     };
 
+    window.addEventListener("message", handleMessage);
+    
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, []);
+
+  // Enhanced polling with better detection
+  useEffect(() => {
+    let pollInterval;
+    let timeoutId;
+    let attemptCount = 0;
+    const maxAttempts = 40; // 40 attempts = 120 seconds (2 minutes)
+
+    const stopPolling = () => {
+      console.log("🛑 Stopping polling");
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      attemptCount = 0;
+    };
+
+    const checkForCompletion = async () => {
+      try {
+        attemptCount++;
+        console.log(`🔍 Polling attempt ${attemptCount}/${maxAttempts}`);
+        
+        const res = await api.get("/api/aptitude/latest/results");
+        
+        if (res.data.success) {
+          // Always update the scores with latest data
+          if (res.data.results && res.data.results.length > 0) {
+            const latestResult = res.data.results[0]; // Most recent is first
+            const existingIds = testScores.map(score => score._id);
+            
+            // If this is a new result, complete the test
+            if (!existingIds.includes(latestResult._id)) {
+              console.log("🎯 New test result detected!", latestResult);
+              
+              // Update state
+              const newScores = [latestResult, ...testScores];
+              setTestScores(newScores);
+              
+              const grouped = processTestResults(newScores);
+              setGroupedTests(grouped);
+              calculateStats(newScores);
+              
+              // Close iframe and show completion
+              setTestStatus("completed");
+              setTestUrl("");
+              
+              stopPolling();
+              
+              // Show success toast
+              toast.success(
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-500" />
+                  <span>{latestResult.testName || 'Test'} completed! Score: {latestResult.score}/100</span>
+                </div>,
+                { duration: 5000 }
+              );
+              
+              return true; // Completion detected
+            } else {
+              console.log("No new results yet. Latest ID:", existingIds[0]);
+            }
+          }
+        }
+        
+        // If we've exceeded max attempts, stop polling
+        if (attemptCount >= maxAttempts) {
+          console.log("⏰ Max polling attempts reached");
+          toast.info("Test session timed out. Check your test history for results.", { duration: 4000 });
+          setTestStatus("idle");
+          setTestUrl("");
+          stopPolling();
+        }
+        
+        return false;
+      } catch (err) {
+        console.error("Polling error:", err);
+        return false;
+      }
+    };
+
+    const startPolling = () => {
+      console.log("🚀 Starting enhanced polling...");
+      attemptCount = 0;
+      
+      // Initial immediate check
+      setTimeout(() => checkForCompletion(), 1000);
+      
+      // Regular polling every 3 seconds
+      pollInterval = setInterval(checkForCompletion, 3000);
+      
+      // Safety timeout - close iframe after 3 minutes (reduced from 5)
+      timeoutId = setTimeout(() => {
+        console.log("⏰ Safety timeout reached (3 minutes)");
+        toast.info("Test session timed out. If you completed the test, check your history.", { duration: 4000 });
+        setTestStatus("idle");
+        setTestUrl("");
+        stopPolling();
+      }, 3 * 60 * 1000); // 3 minutes
+    };
+
     if (testStatus === "active") {
-      console.log("Starting polling for test results...");
-      interval = setInterval(pollForResults, 3000);
-      pollForResults();
+      startPolling();
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return stopPolling;
   }, [testStatus, testScores]);
+
+  // Add this useEffect for detecting iframe visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && testStatus === "active") {
+        console.log("👁️ Page hidden - test might be completed in background");
+        // Trigger a check when user returns to tab
+        setTimeout(() => {
+          if (testStatus === "active") {
+            fetchAptitudeScores();
+          }
+        }, 1000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [testStatus]);
 
   // Fetch user's aptitude scores
   const fetchAptitudeScores = async () => {
     try {
+      console.log("📋 Fetching aptitude scores...");
       const response = await api.get('/api/aptitude/latest/results');
       if (response.data.success) {
-        setTestScores(response.data.results || []);
-        calculateStats(response.data.results || []);
+        const scores = response.data.results || [];
+        console.log("📊 Scores fetched:", scores.length);
+        setTestScores(scores);
+        
+        // Process and group tests
+        const grouped = processTestResults(scores);
+        setGroupedTests(grouped);
+        
+        // Calculate overall stats
+        calculateStats(scores);
       }
     } catch (error) {
       console.error('Failed to fetch aptitude scores:', error);
@@ -102,7 +304,7 @@ const AptitudeTest = () => {
   };
 
   const calculateStats = (scores) => {
-    if (scores.length === 0) {
+    if (!scores || scores.length === 0) {
       setStats({
         averageScore: 0,
         totalTests: 0,
@@ -112,16 +314,15 @@ const AptitudeTest = () => {
       return;
     }
     
-    const completedScores = scores.filter(test => test.status === 'completed' || test.status === 'Completed');
+    const completedScores = scores.filter(test => test.score !== undefined);
     const totalScore = completedScores.reduce((sum, test) => sum + (test.score || 0), 0);
     const bestScore = completedScores.length > 0 ? Math.max(...completedScores.map(test => test.score || 0)) : 0;
-    const completionRate = (completedScores.length / scores.length) * 100;
     
     setStats({
       averageScore: completedScores.length > 0 ? (totalScore / completedScores.length).toFixed(1) : 0,
       totalTests: scores.length,
       bestScore,
-      completionRate: completionRate.toFixed(1)
+      completionRate: completedScores.length > 0 ? 100 : 0
     });
   };
 
@@ -135,14 +336,13 @@ const AptitudeTest = () => {
     setIframeError(false);
     
     try {
-      console.log("Starting aptitude test...");
+      console.log("🚀 Starting aptitude test...");
       const response = await api.post("/api/aptitude/start-test");
       
       if (response.data.success) {
-        console.log("Test started, URL:", response.data.testUrl);
+        console.log("✅ Test started, URL:", response.data.testUrl);
         setTestUrl(response.data.testUrl);
         
-        // Small delay to show "starting" state before iframe loads
         setTimeout(() => {
           setTestStatus("active");
         }, 1000);
@@ -158,7 +358,7 @@ const AptitudeTest = () => {
         throw new Error(response.data.message || "Failed to start test");
       }
     } catch (error) {
-      console.error("Failed to start aptitude test:", error);
+      console.error("❌ Failed to start aptitude test:", error);
       toast.error(error.response?.data?.message || "Failed to start aptitude test");
       setTestStatus("idle");
     } finally {
@@ -167,12 +367,12 @@ const AptitudeTest = () => {
   };
 
   const handleIframeLoad = () => {
-    console.log("Iframe loaded successfully");
+    console.log("✅ Iframe loaded successfully");
     setIframeError(false);
   };
 
   const handleIframeError = () => {
-    console.error("Iframe failed to load");
+    console.error("❌ Iframe failed to load");
     setIframeError(true);
     toast.error("Failed to load test. Please try again.");
     setTestStatus("idle");
@@ -186,6 +386,44 @@ const AptitudeTest = () => {
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  const manualCheckResults = async () => {
+    toast.loading("Checking for test results...");
+    try {
+      await fetchAptitudeScores();
+      // Check if we have new results
+      const res = await api.get("/api/aptitude/latest/results");
+      if (res.data.success && res.data.results && res.data.results.length > 0) {
+        const latest = res.data.results[0];
+        const existingIds = testScores.map(score => score._id);
+        
+        if (!existingIds.includes(latest._id)) {
+          // New result found
+          toast.dismiss();
+          toast.success(`Test completed! Score: ${latest.score}/100`);
+          setTestStatus("completed");
+          setTestUrl("");
+        } else {
+          toast.dismiss();
+          toast.info("No new results yet. Complete the test to see results.");
+        }
+      }
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to check results");
+    }
+  };
+
+  const handleTestFinished = () => {
+    if (window.confirm("Have you completed the test? Click OK to check for results and close the test window.")) {
+      setTestStatus("completed");
+      setTestUrl("");
+      setTimeout(() => {
+        fetchAptitudeScores();
+        toast.info("Checking for test completion...");
+      }, 500);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -238,6 +476,23 @@ const AptitudeTest = () => {
     return 'Needs Improvement';
   };
 
+  // Calculate additional stats from grouped tests
+  const overallStats = useMemo(() => {
+    if (!testScores.length) return null;
+    
+    // Get unique test names
+    const testNames = Object.keys(groupedTests);
+    
+    return {
+      testNames,
+      totalDifferentTests: testNames.length,
+      mostAttemptedTest: testNames.reduce((most, current) => {
+        return groupedTests[current].totalAttempts > groupedTests[most]?.totalAttempts ? current : most;
+      }, testNames[0]),
+      highestScoreAmongAll: Math.max(...Object.values(groupedTests).map(g => g.highestScore))
+    };
+  }, [groupedTests, testScores]);
+
   // If test is active and iframe is connected, show fullscreen iframe
   if (testStatus === "active" && testUrl) {
     return (
@@ -256,6 +511,24 @@ const AptitudeTest = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Manual Check Button */}
+              <button
+                onClick={manualCheckResults}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Check Results
+              </button>
+              
+              {/* Test Complete Button */}
+              <button
+                onClick={handleTestFinished}
+                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4" />
+                I've Finished
+              </button>
+              
               <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg">
                 <Loader className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-medium">Live</span>
@@ -321,13 +594,15 @@ const AptitudeTest = () => {
             </div>
           ) : (
             <iframe
+              ref={iframeRef}
               src={testUrl}
               className="w-full h-full"
               title="Aptitude Test"
               onLoad={handleIframeLoad}
               onError={handleIframeError}
               allow="fullscreen"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+              allowFullScreen
               style={{ border: 'none' }}
             />
           )}
@@ -342,11 +617,14 @@ const AptitudeTest = () => {
                 <span>Connected to test platform</span>
               </div>
               <div className="hidden md:block">•</div>
-              <div className="hidden md:block">Your responses are being saved automatically</div>
+              <div className="hidden md:flex items-center gap-2">
+                <span className="text-blue-600 font-medium">Auto-check active:</span>
+                <span>Results will appear automatically when test completes</span>
+              </div>
             </div>
             <div className="text-sm text-gray-500">
               <Clock className="w-4 h-4 inline mr-1" />
-              Time remaining: --
+              <span>Auto-close in: 3:00</span>
             </div>
           </div>
         </div>
@@ -354,7 +632,6 @@ const AptitudeTest = () => {
     );
   }
 
-  // Normal dashboard view when test is not active
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
@@ -367,7 +644,6 @@ const AptitudeTest = () => {
           className="mb-8"
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Aptitude Assessment</h1>
               <p className="text-gray-600 mt-2">Evaluate cognitive abilities and problem-solving skills</p>
@@ -381,7 +657,7 @@ const AptitudeTest = () => {
             </div>
           </div>
 
-          {/* Stats Cards */}
+          {/* Overall Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
               {
@@ -391,7 +667,7 @@ const AptitudeTest = () => {
                 icon: BarChart3,
                 iconColor: "text-blue-500",
                 bgColor: "bg-blue-50",
-                trend: "Your performance trend"
+                trend: "Across all tests"
               },
               {
                 label: "Best Score",
@@ -400,10 +676,10 @@ const AptitudeTest = () => {
                 icon: Trophy,
                 iconColor: "text-emerald-500",
                 bgColor: "bg-emerald-50",
-                trend: "Your highest achievement"
+                trend: "Highest among all"
               },
               {
-                label: "Tests Completed",
+                label: "Total Tests",
                 value: stats.totalTests,
                 suffix: "",
                 icon: Users,
@@ -412,13 +688,13 @@ const AptitudeTest = () => {
                 trend: "Total attempts made"
               },
               {
-                label: "Completion Rate",
-                value: stats.completionRate,
-                suffix: "%",
-                icon: Clock,
+                label: "Test Types",
+                value: overallStats?.totalDifferentTests || 0,
+                suffix: "",
+                icon: FolderOpen,
                 iconColor: "text-amber-500",
                 bgColor: "bg-amber-50",
-                trend: "Tests completed successfully"
+                trend: "Different test categories"
               }
             ].map((stat, index) => (
               <motion.div
@@ -448,6 +724,78 @@ const AptitudeTest = () => {
               </motion.div>
             ))}
           </div>
+
+          {/* Test Type Statistics */}
+          {Object.keys(groupedTests).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Test Performance by Category</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(groupedTests).map(([testName, data], index) => (
+                  <motion.div
+                    key={testName}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Hash className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">{testName}</h3>
+                          <p className="text-sm text-gray-500">{data.totalAttempts} attempt(s)</p>
+                        </div>
+                      </div>
+                      {data.bestAttempt && (
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreBgColor(data.highestScore)}`}>
+                          <span className={`font-bold ${getScoreColor(data.highestScore)}`}>
+                            {data.highestScore}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Highest Score:</span>
+                        <span className={`font-semibold ${getScoreColor(data.highestScore)}`}>
+                          {data.highestScore}/100
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Average Score:</span>
+                        <span className="font-semibold text-gray-900">
+                          {data.averageScore}/100
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Latest Score:</span>
+                        <span className="font-semibold text-gray-900">
+                          {data.latestAttempt?.score || 'N/A'}/100
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {data.bestAttempt && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Award className="w-4 h-4 text-amber-500" />
+                            <span>Best attempt: {formatDate(data.bestAttempt.receivedAt)}</span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {getPerformanceLevel(data.highestScore)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -518,7 +866,7 @@ const AptitudeTest = () => {
                               </li>
                               <li className="flex items-start gap-2">
                                 <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                <span>You can retake the test to improve your score</span>
+                                <span>If the test doesn't close automatically, click "I've Finished" button</span>
                               </li>
                             </ul>
                           </div>
@@ -553,6 +901,11 @@ const AptitudeTest = () => {
                             </>
                           )}
                         </button>
+                        
+                        <div className="text-xs text-gray-500 pt-4 border-t border-gray-100">
+                          <p>💡 <strong>Note:</strong> After completing the test, the window will close automatically.</p>
+                          <p>If it doesn't close, use the "I've Finished" button in the test window.</p>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -573,7 +926,7 @@ const AptitudeTest = () => {
                     </motion.div>
                   )}
 
-                  {testStatus === 'completed' && (
+                  {testStatus === 'completed' && testScores.length > 0 && (
                     <motion.div
                       key="completed"
                       initial={{ opacity: 0 }}
@@ -582,12 +935,12 @@ const AptitudeTest = () => {
                       className="space-y-8"
                     >
                       {/* Latest Score */}
-                      {testScores.length > 0 && (
+                      {testScores[0] && (
                         <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-6 border border-emerald-100">
                           <div className="flex items-center justify-between mb-6">
                             <div>
                               <h3 className="font-bold text-gray-900 text-lg">Latest Test Result</h3>
-                              <p className="text-gray-600">Your most recent aptitude assessment</p>
+                              <p className="text-gray-600">{testScores[0].testName || 'Aptitude Test'}</p>
                             </div>
                             <div className="p-3 bg-white rounded-lg shadow-sm">
                               <Trophy className="w-6 h-6 text-emerald-500" />
@@ -603,7 +956,7 @@ const AptitudeTest = () => {
                             </div>
                             <div className="text-center">
                               <div className="text-4xl font-bold text-gray-900 mb-1">
-                                {testScores[0].timeTaken || '--'}
+                                {Math.floor(testScores[0].timeTaken / 60) || '--'}
                               </div>
                               <p className="text-sm text-gray-500">Minutes</p>
                             </div>
@@ -618,7 +971,9 @@ const AptitudeTest = () => {
                           <div className="mt-6 pt-6 border-t border-emerald-100">
                             <div className="flex items-center justify-center gap-2 text-emerald-600">
                               <CheckCircle className="w-4 h-4" />
-                              <span className="text-sm font-medium">Successfully completed and saved</span>
+                              <span className="text-sm font-medium">
+                                Completed {formatDate(testScores[0].receivedAt)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -643,7 +998,7 @@ const AptitudeTest = () => {
             </div>
           </motion.div>
 
-          {/* Right Column - Information (Only shown when test is not active) */}
+          {/* Right Column - Information */}
           {testStatus !== 'active' && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -663,7 +1018,7 @@ const AptitudeTest = () => {
                       { number: 1, title: "Start Test", description: "Click 'Start Aptitude Test' to initiate the assessment" },
                       { number: 2, title: "Take Test", description: "Complete the cognitive aptitude test on our secure platform" },
                       { number: 3, title: "Receive Score", description: "Your score is automatically sent to our callback URL" },
-                      { number: 4, title: "View Results", description: "Results are stored and displayed in your dashboard" }
+                      { number: 4, title: "Auto-Close", description: "Test window closes automatically when results are received" }
                     ].map((step) => (
                       <div key={step.number} className="flex items-start gap-4">
                         <div className="flex-shrink-0">
@@ -722,7 +1077,7 @@ const AptitudeTest = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-white rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-sm">Review your answers before submitting</span>
+                    <span className="text-sm">If test doesn't close, use "I've Finished" button</span>
                   </li>
                 </ul>
               </div>

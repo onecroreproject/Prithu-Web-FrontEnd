@@ -1,156 +1,137 @@
 /* ✅ src/components/serviceSection.jsx */
 import { motion } from "framer-motion";
-import { ExternalLink, Github, Link2, Calendar } from "lucide-react";
-import React from "react";
+import { ExternalLink, Github, Calendar, Code } from "lucide-react";
 
-export default function ServicesSection({ user }) {
-  const projects = user?.projects?.slice(0, 3) || [];
+export default function ServicesSection({ profileSettings, curriculum, projects }) {
+  const summary = profileSettings?.profileSummary || 
+                  profileSettings?.bio || 
+                  curriculum?.professionalSummary || 
+                  curriculum?.about || 
+                  "I'm a passionate professional focused on delivering innovative and scalable digital solutions.";
+
+  const displayProjects = projects?.slice(0, 3) || [];
 
   return (
-    <section id="projects" className="mb-16">
-      {/* 🧩 Section Header */}
-      <div className="mb-10 text-center">
-        <motion.h2
-          className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white"
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          Profile Summary
-        </motion.h2>
-
-        <motion.p
-          className="max-w-3xl mx-auto mt-4 text-gray-600 dark:text-gray-300 leading-relaxed text-base sm:text-lg"
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {user?.profileSummary ||
-            user?.bio ||
-            "I’m a passionate developer focused on creating clean, efficient, and visually engaging digital experiences. My goal is to merge functionality with creativity, delivering products that make an impact."}
-        </motion.p>
-      </div>
-
-      {/* 🧩 Project Section */}
-      <motion.h2
-        className="text-2xl sm:text-3xl font-bold mb-8 text-gray-900 dark:text-white text-center"
-        initial={{ opacity: 0, y: 10 }}
+    <section className="space-y-8">
+      {/* 🧩 Profile Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        viewport={{ once: true }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8"
       >
-        My Projects
-      </motion.h2>
-
-      {projects.length === 0 ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">
-          No projects available.
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          Profile Summary
+        </h2>
+        <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+          {summary}
         </p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project, index) => (
-            <motion.div
-              key={project._id || index}
-              className="relative group w-full h-[300px] perspective"
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-            >
-              {/* 🧠 Card Flip Container */}
-              <div className="relative w-full h-full transition-transform duration-700 transform-style-preserve-3d group-hover:rotate-y-180">
-                {/* 🔹 Front Side */}
-                <div className="absolute inset-0 bg-white dark:bg-[#2d2d3a] rounded-2xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700 backface-hidden">
+      </motion.div>
+
+      {/* 🧩 Projects Section */}
+      {displayProjects.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+              <Code className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Recent Projects
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayProjects.map((project, index) => (
+              <motion.div
+                key={project._id || index}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="group bg-gray-50 dark:bg-gray-700/50 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300"
+              >
+                {/* Project Image */}
+                <div className="h-40 overflow-hidden">
                   <img
                     src={project.projectImage}
                     alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-100 flex flex-col justify-end p-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      {project.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-gray-300 text-xs mt-1">
-                      <Calendar size={12} />
-                      <span>
-                        {project.isOngoing
-                          ? "Ongoing"
-                          : project.endDate
-                          ? new Date(project.endDate).toLocaleDateString("en-IN", {
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "Completed"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 🔹 Back Side */}
-                <div className="absolute inset-0 bg-white dark:bg-[#2d2d3a] rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-700 rotate-y-180 backface-hidden flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                      {project.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-4">
-                      {project.description || "No description available."}
-                    </p>
-
-                    {/* 🔹 Tech Stack */}
-                    {project.technologies?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {project.technologies.map((tech, i) => (
-                          <span
-                            key={i}
-                            className="text-xs bg-[#ffc107]/10 text-[#ffc107] px-2 py-1 rounded-full font-medium"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 🔗 Links */}
-                  <div className="flex justify-end gap-4 mt-5">
+                  <div className="absolute top-3 right-3">
                     {project.githubLink && (
                       <a
                         href={project.githubLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-[#ffc107] transition"
-                        title="GitHub"
+                        className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-lg backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 transition"
                       >
-                        <Github size={18} />
-                      </a>
-                    )}
-                    {project.liveDemoLink && (
-                      <a
-                        href={project.liveDemoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-[#ffc107] transition"
-                        title="Live Demo"
-                      >
-                        <ExternalLink size={18} />
-                      </a>
-                    )}
-                    {project.projectLink && (
-                      <a
-                        href={project.projectLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-[#ffc107] transition"
-                        title="Project Link"
-                      >
-                        <Link2 size={18} />
+                        <Github className="w-4 h-4" />
                       </a>
                     )}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+
+                {/* Project Content */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                      {project.title}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
+                    {project.description}
+                  </p>
+
+                  {/* Technologies */}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {project.technologies.slice(0, 3).map((tech, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                      {project.technologies.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
+                          +{project.technologies.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Timeline */}
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>
+                        {new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <span>→</span>
+                    <div>
+                      {project.isOngoing ? (
+                        <span className="text-green-600">Ongoing</span>
+                      ) : (
+                        <span>
+                          {new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       )}
     </section>
   );

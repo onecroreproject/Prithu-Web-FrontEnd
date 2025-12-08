@@ -142,8 +142,9 @@ export default function Header() {
   };
 
   const handlePortfolioClick = () => {
-    navigate(`/portfolio/${user?.userName || ""}`);
-  };
+  window.open(`/portfolio/${user?.userName || ""}`, "_blank", "noopener,noreferrer");
+};
+
 
   const handleCommunityClick = () => {
     // Show "Coming Soon" toast for community

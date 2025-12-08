@@ -23,7 +23,7 @@ const SingleUserProfilelayout = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("Activity");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visibility, setVisibility] = useState(null);
@@ -128,53 +128,41 @@ const SingleUserProfilelayout = () => {
   };
 
   // 🔥 Follow User
-  const handleFollowUser = async () => {
-    if (!id || !currentUserId || isOwnProfile) return;
-    
-    setFollowingLoading(true);
-    
-    try {
-      const res = await api.post('/api/user/follow/creator', {
-        userId: id,
-      });
-      
-      if (res.data.success) {
-        // Immediately update UI
-        setIsFollowing(true);
-        
-        // Update follower count
-        setProfileStats(prev => ({
+const handleFollowUser = async () => {
+  if (!id || !currentUserId || isOwnProfile) return;
+  
+  setFollowingLoading(true);
+  
+  try {
+    const res = await api.post('/api/user/follow/creator', { userId: id });
+
+    if (res.data.success) {
+      setIsFollowing(true);
+
+      setProfileStats(prev => ({
+        ...prev,
+        followersCount: prev.followersCount + 1
+      }));
+
+      if (userData) {
+        setUserData(prev => ({
           ...prev,
-          followersCount: prev.followersCount + 1
+          followerCount: prev.followerCount + 1
         }));
-        
-        // Update userData if it has followerCount
-        if (userData) {
-          setUserData(prev => ({
-            ...prev,
-            followerCount: prev.followerCount + 1
-          }));
-        }
-        
-        // Close the modal
-        setShowFollowModal(false);
-        shouldShowModal.current = false; // Prevent modal from showing again
-        
-        // Show success toast
-        toast.success(`You are now following ${userData?.displayName || userData?.userName || "this user"}!`);
-        
-        // 🔥 Refresh all data to show now-accessible content
-        setTimeout(() => {
-          refreshAllData();
-        }, 300);
       }
-    } catch (err) {
-      console.error("Error following user:", err);
-      toast.error("Failed to follow user");
-    } finally {
-      setFollowingLoading(false);
+
+      toast.success(`You are now following ${userData?.displayName || userData?.userName}!`);
     }
-  };
+  } catch (err) {
+    console.error("Error following user:", err);
+    toast.error("Failed to follow user");
+  } finally {
+    setFollowingLoading(false);
+  }
+};
+
+
+
 
   // 🔥 Unfollow User
   const handleUnfollowUser = async () => {
@@ -229,14 +217,27 @@ const SingleUserProfilelayout = () => {
   };
 
   // 🔥 Handle follow from modal
-  const handleFollowFromModal = async () => {
-    try {
-      await handleFollowUser();
-      // Modal will close automatically via handleFollowUser's setShowFollowModal(false)
-    } catch (error) {
-      console.error("Error in follow action:", error);
-    }
-  };
+const handleFollowFromModal = async () => {
+  try {
+    // Step 1: instantly unlock UI
+    setIsFollowing(true);
+    setShowFollowModal(false);
+    shouldShowModal.current = false;
+
+    // Step 2: call follow API
+    await handleFollowUser();
+
+    // Step 3: refresh quietly after UI unlock
+    setTimeout(() => {
+      refreshAllData();
+    }, 100);
+
+  } catch (error) {
+    console.error("Error in follow action:", error);
+  }
+};
+
+
 
   const fetchVisibilitySettings = async () => {
     try {
