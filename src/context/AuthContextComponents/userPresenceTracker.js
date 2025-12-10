@@ -1,131 +1,145 @@
-// ✅ src/context/AuthContextComponents/usePresenceTracker.js
 import { useEffect, useRef } from "react";
+import axios from "axios";
 
-export const usePresenceTracker = ({ token, sessionId, user, socket }) => {
+export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAccessToken }) => {
   const heartbeatIntervalRef = useRef(null);
 
   useEffect(() => {
-    console.log(`🔄 usePresenceTracker hook initialized for user: ${user?.userName || 'undefined'}`);
-    console.log(`📡 Integrated into the AuthContext via usePresenceTracker hook`);
+    if (!token || !sessionId || !user?._id || !socket) return;
 
-    if (!token || !sessionId || !user || !user._id || !socket) {
-      console.log(`⚠️ usePresenceTracker: Missing required parameters (token: ${!!token}, sessionId: ${!!sessionId}, user: ${!!user}, user._id: ${user?._id}, socket: ${!!socket}), skipping initialization`);
-      return;
-    }
+    const backendUrl = import.meta.env.VITE_API_URL ;
 
-    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-    console.log(`🌐 Backend URL: ${backendUrl}`);
-
-    // Function to update presence via API
-    const updatePresence = async (isOnline) => {
-      console.log(`📡 Calling updatePresence(${isOnline}) for user: ${user.userName}`);
+    // -----------------------------------------------------
+    // 1️⃣ Heartbeat Sender (AXIOS)
+    // -----------------------------------------------------
+    const sendHeartbeat = async () => {
       try {
-        const response = await fetch(`${backendUrl}/api/user/session/presence`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ sessionId, isOnline })
-        });
-        if (!response.ok) {
-          console.warn('Presence update failed:', response.status);
-        } else {
-          console.log(`✅ Presence updated successfully: ${isOnline ? 'Online' : 'Offline'}`);
+        const res = await axios.post(
+          `${backendUrl}/api/heartbeat`,
+          { sessionId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.status === 200) {
+          console.log("💓 Heartbeat OK");
         }
+
       } catch (err) {
-        console.warn('Presence update error:', err.message);
+        if (err.response?.status === 401) {
+          console.warn("⛔ Heartbeat unauthorized → refreshing token...");
+
+          const newToken = await refreshAccessToken();
+
+          if (newToken) {
+            console.log("🔄 Retrying heartbeat with new token...");
+            await axios.post(
+              `${backendUrl}/api/heartbeat`,
+              { sessionId },
+              { headers: { Authorization: `Bearer ${newToken}` } }
+            );
+          } else {
+            console.warn("❌ Token refresh failed — stopping heartbeat");
+            stopHeartbeat();
+          }
+        } else {
+          console.warn("Heartbeat error:", err.message);
+        }
       }
     };
 
-    // Start heartbeat when socket connects
+    // -----------------------------------------------------
+    // 2️⃣ Start Heartbeat
+    // -----------------------------------------------------
     const startHeartbeat = () => {
-      console.log(`🔄 startHeartbeat called for user: ${user.userName}`);
-      if (heartbeatIntervalRef.current) {
-        console.log(`⚠️ Heartbeat already running for ${user.userName}, skipping duplicate start`);
-        return; // prevent duplicate
-      }
+      if (heartbeatIntervalRef.current) return;
 
       heartbeatIntervalRef.current = setInterval(() => {
-        if (socket && socket.connected) {
-          console.log(`💓 Sending heartbeat for ${user.userName}`);
-          // Send heartbeat to backend to update presence
-          fetch(`${backendUrl}/api/heartbeat`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ sessionId })
-          }).catch(err => console.warn('Heartbeat failed:', err.message));
-        } else {
-          console.log(`⚠️ Socket not connected, skipping heartbeat for ${user.userName}`);
+        if (socket.connected) {
+          sendHeartbeat();
         }
-      }, 30000); // Every 30 seconds
+      }, 30000);
 
-      console.log(`💓 Heartbeat started for ${user.userName} (interval: 30s)`);
+      console.log("💓 Heartbeat started (every 30s)");
     };
 
-    // Stop heartbeat
+    // -----------------------------------------------------
+    // 3️⃣ Stop Heartbeat
+    // -----------------------------------------------------
     const stopHeartbeat = () => {
-      console.log(`🔄 stopHeartbeat called for user: ${user.userName}`);
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
-        console.log(`🛑 Heartbeat stopped for ${user.userName}`);
-      } else {
-        console.log(`⚠️ No heartbeat to stop for ${user.userName}`);
+        console.log("🛑 Heartbeat stopped");
       }
     };
 
-    // Handle tab visibility changes
-    const handleVisibilityChange = () => {
-      console.log(`🔄 visibilitychange event triggered for user: ${user.userName}`);
-      console.log(`📊 document.hidden: ${document.hidden}, document.visibilityState: ${document.visibilityState}`);
+    // -----------------------------------------------------
+    // 4️⃣ Update presence (AXIOS)
+    // -----------------------------------------------------
+    const updatePresence = async (isOnline) => {
+      try {
+        await axios.post(
+          `${backendUrl}/api/user/session/presence`,
+          { sessionId, isOnline },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
+        console.log(`📡 Presence updated → ${isOnline ? "Online" : "Offline"}`);
+
+      } catch (err) {
+        if (err.response?.status === 401) {
+          console.warn("⛔ Presence unauthorized → refreshing token...");
+
+          const newToken = await refreshAccessToken();
+
+          if (newToken) {
+            await axios.post(
+              `${backendUrl}/api/user/session/presence`,
+              { sessionId, isOnline },
+              { headers: { Authorization: `Bearer ${newToken}` } }
+            );
+          }
+        }
+      }
+    };
+
+    // -----------------------------------------------------
+    // 5️⃣ Visibility Change Logic
+    // -----------------------------------------------------
+    const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Tab is hidden - mark offline
-        console.log(`👁️ Tab hidden - marking ${user.userName} offline`);
-        console.log(`📡 Calling updatePresence(false) and stopping heartbeat`);
         updatePresence(false);
         stopHeartbeat();
       } else {
-        // Tab is visible - mark online
-        console.log(`👁️ Tab visible - marking ${user.userName} online`);
-        console.log(`📡 Calling updatePresence(true) and starting heartbeat`);
         updatePresence(true);
         startHeartbeat();
       }
     };
 
-    // Listen for socket connection status
+    // -----------------------------------------------------
+    // 6️⃣ Socket Events
+    // -----------------------------------------------------
     const handleConnect = () => {
-      console.log(`🟢 Socket connected - starting presence tracking for ${user.userName}`);
-      // Only start heartbeat if tab is visible
-      if (!document.hidden) {
-        startHeartbeat();
-      }
+      if (!document.hidden) startHeartbeat();
     };
 
     const handleDisconnect = () => {
-      console.log(`🔴 Socket disconnected - stopping presence tracking for ${user.userName}`);
       stopHeartbeat();
     };
 
-    // Set up listeners
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // If already connected, start heartbeat if tab is visible
+    // Start if already connected
     if (socket.connected && !document.hidden) {
       startHeartbeat();
     }
 
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopHeartbeat();
     };
   }, [token, sessionId, user?._id, socket]);

@@ -98,8 +98,8 @@ const AptitudeTest = () => {
       });
       
       // Accept messages from test server (allow both with and without trailing slash)
-      if (event.origin === "http://192.168.1.11:8000" || 
-          event.origin === "http://192.168.1.11:8000/") {
+      if (event.origin === "http://192.168.1.16:8000" || 
+          event.origin === "http://192.168.1.16:8000/") {
         console.log("✅ Valid message from test server");
         
         // Handle different message types

@@ -45,6 +45,44 @@ export const AuthProvider = ({ children }) => {
     ? { ...user, _id: user._id || user.userId }
     : null;
 
+
+    // -----------------------------------------------------------
+// 🔄 Refresh Access Token (Used by AutoLogin + PresenceTracker)
+// -----------------------------------------------------------
+const refreshAccessToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    const deviceId = localStorage.getItem("deviceId");
+    const sessionId = localStorage.getItem("sessionId");
+
+    if (!refreshToken || !deviceId) return null;
+
+    const { data } = await api.post("/api/refresh-token", {
+      refreshToken,
+      deviceId,
+      sessionId,
+    });
+
+    if (data?.accessToken) {
+      localStorage.setItem("token", data.accessToken);
+      setToken(data.accessToken);
+
+      if (data.sessionId) {
+        localStorage.setItem("sessionId", data.sessionId);
+        setSessionId(data.sessionId);
+      }
+
+      return data.accessToken;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("⚠️ refreshAccessToken failed:", err.message);
+    return null;
+  }
+};
+
+
   // ---------------------------------------------------------------------------
   // 🚀 AutoLogin Hook
   // ---------------------------------------------------------------------------
@@ -55,10 +93,11 @@ export const AuthProvider = ({ children }) => {
   // ❗ React-safe: top-level conditional hook call
   // ---------------------------------------------------------------------------
   usePresenceTracker({
-  token,
+   token,
   sessionId,
   user: normalizedUser,
-  socket
+  socket,
+  refreshAccessToken
 });
 
 
