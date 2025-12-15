@@ -1,6 +1,6 @@
 /* ✅ src/components/profileLayout.jsx */
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Briefcase,
@@ -22,6 +22,11 @@ import {
   Instagram,
   Youtube,
   Globe,
+  Eye,
+  EyeOff,
+  Lock,
+  Globe as GlobeIcon,
+  Users
 } from "lucide-react";
 import api from "../../api/axios";
 
@@ -34,23 +39,43 @@ import PortfolioUnderConstruction from "../../UnderConstructionPages/portfolioUn
 
 export default function PortfolioLayout() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+
+  // Check token in localStorage
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchPortfolio = async () => {
       try {
         const { data } = await api.get(`/api/user/portfolio/${username}`);
-        setPortfolioData(data.data);
+        
+        if (data.success) {
+          setPortfolioData(data.data);
+          setIsPublished(data.data?.profileSettings?.isPublished || false);
+          
+          // Check if user is authorized (has token OR portfolio is published)
+          if (token || data.data?.profileSettings?.isPublished) {
+            setIsAuthorized(true);
+          } else {
+            setIsAuthorized(false);
+          }
+        } else {
+          setIsAuthorized(false);
+        }
       } catch (err) {
         console.error("❌ Failed to fetch portfolio:", err);
+        setIsAuthorized(false);
       } finally {
         setLoading(false);
       }
     };
 
     if (username) fetchPortfolio();
-  }, [username]);
+  }, [username, token]);
 
   // Process aptitude tests to show only highest score per test
   const processedAptitudeTests = useMemo(() => {
@@ -78,7 +103,117 @@ export default function PortfolioLayout() {
       </div>
     );
 
-  // ✅ Not Found State
+  // ✅ Not Authorized State (No token and not published)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="max-w-md w-full"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+            {/* Icon */}
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full flex items-center justify-center">
+              {isPublished ? (
+                <Eye className="w-10 h-10 text-blue-500 dark:text-blue-400" />
+              ) : (
+                <Lock className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+              )}
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              {isPublished 
+                ? "Portfolio Preview Restricted" 
+                : "Portfolio Under Construction"}
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              {isPublished 
+                ? token 
+                  ? "Loading your portfolio..." 
+                  : "This portfolio is currently private. Please log in to view it."
+                : "This portfolio is not yet published. The owner is still working on it."}
+            </p>
+
+            {/* Creative Messages */}
+            <div className="space-y-4 mb-8">
+              {isPublished && !token ? (
+                <>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    "Great things are not done by impulse, but by a series of small things brought together."
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <GlobeIcon className="w-4 h-4 inline mr-2" />
+                    This creator prefers to share their work privately.
+                  </div>
+                </>
+              ) : !isPublished ? (
+                <>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                    "Every masterpiece was once a work in progress. Something amazing is being crafted here."
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <Users className="w-4 h-4 inline mr-2" />
+                    Check back soon to see the finished creation!
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {isPublished && !token ? (
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
+                  >
+                    Sign In to View
+                  </button>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="w-full py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Create Your Own Portfolio
+                  </button>
+                </>
+              ) : !isPublished ? (
+                <>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
+                  >
+                    Explore Other Portfolios
+                  </button>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="w-full py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Start Building Yours
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            {/* Footer Note */}
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {isPublished 
+                  ? "Want to share your work privately? Create your portfolio on Prithu."
+                  : "Build your professional portfolio with Prithu - Showcase your skills and achievements"}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ✅ Not Found State (Authorized but no data)
   if (!portfolioData)
     return (
       <PortfolioUnderConstruction username={username} />
@@ -88,12 +223,28 @@ export default function PortfolioLayout() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+      {/* Private Badge for unpublished but owner viewing */}
+      {!isPublished && token && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-full px-4 py-2 shadow-lg">
+            <div className="flex items-center gap-2">
+              <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                Draft Preview - Not Published
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 🎨 Hero Section */}
       <HeroSection 
         user={user} 
         profileSettings={profileSettings}
         curriculum={curriculum}
         shareableLink={profileSettings?.shareableLink}
+        isPublished={isPublished}
+        isOwner={!!token}
       />
 
       {/* Main Content */}
@@ -106,6 +257,7 @@ export default function PortfolioLayout() {
               profileSettings={profileSettings} 
               curriculum={curriculum}
               shareableLink={profileSettings?.shareableLink}
+              isPublished={isPublished}
             />
           </div>
 
@@ -117,6 +269,7 @@ export default function PortfolioLayout() {
               projects={curriculum?.projects || []}
               skills={curriculum?.skills || []}
               certifications={curriculum?.certifications || []}
+              isPublished={isPublished}
             />
 
             {/* Profile Summary Section */}
@@ -124,6 +277,7 @@ export default function PortfolioLayout() {
               profileSettings={profileSettings}
               curriculum={curriculum}
               projects={curriculum?.projects || []}
+              isPublished={isPublished}
             />
 
             {/* Aptitude Tests Section */}
@@ -183,7 +337,10 @@ export default function PortfolioLayout() {
             )}
 
             {/* Skills Section */}
-            <SkillSetSection skills={curriculum?.skills || []} />
+            <SkillSetSection 
+              skills={curriculum?.skills || []} 
+              isPublished={isPublished}
+            />
 
             {/* Skills Visualization Section */}
             {curriculum?.skills && curriculum.skills.length > 0 && (

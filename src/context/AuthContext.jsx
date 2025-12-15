@@ -24,20 +24,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+  const [refreshToken, setRefreshToken] = useState(
+    localStorage.getItem("refreshToken") || null
+  );
 
   const [user, setUser] = useState(null);
-  const [sessionId, setSessionId] = useState(localStorage.getItem("sessionId") || null);
+  const [sessionId, setSessionId] = useState(
+    localStorage.getItem("sessionId") || null
+  );
 
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [socketConnected, setSocketConnected] = useState(false);
   const [socket, setSocket] = useState(null);
 
   const [resetEmail, setResetEmail] = useState(null);
-
-  // Presence Tracker Controller
-  const [canStartPresence, setCanStartPresence] = useState(false);
-
   // ---------------------------------------------------------------------------
   // 👤 Normalize User (_id / userId compatibility)
   // ---------------------------------------------------------------------------
@@ -49,57 +49,56 @@ export const AuthProvider = ({ children }) => {
     // -----------------------------------------------------------
 // 🔄 Refresh Access Token (Used by AutoLogin + PresenceTracker)
 // -----------------------------------------------------------
-const refreshAccessToken = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refreshToken");
-    const deviceId = localStorage.getItem("deviceId");
-    const sessionId = localStorage.getItem("sessionId");
+  const refreshAccessToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      const deviceId = localStorage.getItem("deviceId");
+      const storedSessionId = localStorage.getItem("sessionId");
 
-    if (!refreshToken || !deviceId) return null;
+      if (!refreshToken || !deviceId) return null;
 
-    const { data } = await api.post("/api/refresh-token", {
-      refreshToken,
-      deviceId,
-      sessionId,
-    });
+      const { data } = await api.post("/api/refresh-token", {
+        refreshToken,
+        deviceId,
+        sessionId: storedSessionId,
+      });
 
-    if (data?.accessToken) {
-      localStorage.setItem("token", data.accessToken);
-      setToken(data.accessToken);
+      if (data?.accessToken) {
+        localStorage.setItem("token", data.accessToken);
+        setToken(data.accessToken);
 
-      if (data.sessionId) {
-        localStorage.setItem("sessionId", data.sessionId);
-        setSessionId(data.sessionId);
+        if (data.sessionId) {
+          localStorage.setItem("sessionId", data.sessionId);
+          setSessionId(data.sessionId);
+        }
+
+        return data.accessToken;
       }
 
-      return data.accessToken;
+      return null;
+    } catch (err) {
+      console.warn("⚠️ refreshAccessToken failed:", err.message);
+      return null;
     }
-
-    return null;
-  } catch (err) {
-    console.warn("⚠️ refreshAccessToken failed:", err.message);
-    return null;
-  }
-};
+  };
 
 
   // ---------------------------------------------------------------------------
   // 🚀 AutoLogin Hook
   // ---------------------------------------------------------------------------
-  useAutoLogin({ setToken, setUser, setSessionId, navigate });
+    useAutoLogin({ setToken, setUser, setSessionId, navigate });
 
   // ---------------------------------------------------------------------------
   // ❤️ Presence Tracker (Runs *only after* socket + user + session ready)
   // ❗ React-safe: top-level conditional hook call
   // ---------------------------------------------------------------------------
   usePresenceTracker({
-   token,
-  sessionId,
-  user: normalizedUser,
-  socket,
-  refreshAccessToken
-});
-
+    token,
+    sessionId,
+    user: normalizedUser,
+    socket,
+    refreshAccessToken,
+  });
 
   // ---------------------------------------------------------------------------
   // ⚡ SOCKET CONNECTION HANDLING
@@ -110,29 +109,18 @@ const refreshAccessToken = async () => {
     const newSocket = connectSocket(token, sessionId);
     setSocket(newSocket);
 
-    // 🔵 On Connect
     newSocket.on("connect", () => {
       console.log("🟢 SOCKET CONNECTED:", newSocket.id);
       setSocketConnected(true);
-
       newSocket.emit("userOnline", { userId: normalizedUser._id });
-
-      // Allow presence tracker to start
-      setCanStartPresence(true);
     });
 
-    // 🔴 On Disconnect
-    newSocket.on("disconnect", (reason) => {
-      console.warn("🔴 SOCKET DISCONNECTED:", reason);
+    newSocket.on("disconnect", () => {
+      console.warn("🔴 SOCKET DISCONNECTED");
       setSocketConnected(false);
-
       newSocket.emit("userOffline", { userId: normalizedUser._id });
-
-      // Stop presence tracking
-      setCanStartPresence(false);
     });
 
-    // 👥 Track Online Users
     newSocket.on("userOnline", ({ userId }) =>
       setOnlineUsers((prev) => new Set([...prev, userId]))
     );
@@ -150,9 +138,7 @@ const refreshAccessToken = async () => {
       disconnectSocket();
       setSocket(null);
       setSocketConnected(false);
-      setCanStartPresence(false);
     };
-
   }, [token, sessionId, normalizedUser?._id]);
 
   // ---------------------------------------------------------------------------
@@ -366,7 +352,7 @@ const refreshAccessToken = async () => {
     sendOtpForReset,
     verifyOtpForReset,
     resetPassword,
-
+ refreshAccessToken,
     fetchUserProfile,
   };
 

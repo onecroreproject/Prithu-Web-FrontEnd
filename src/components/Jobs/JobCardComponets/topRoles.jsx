@@ -23,11 +23,11 @@ export default function JobTopRolesCard() {
   });
 
   const topRoles = jobs.slice(0, 5);
-  console.log("Top roles:", topRoles);
+ 
 
   // Fixed: Enhanced handleRoleClick function
   const handleRoleClick = (role) => {
-    console.log("Selected role:", role);
+    
     
     // Prepare query parameters
     const queryParams = new URLSearchParams();

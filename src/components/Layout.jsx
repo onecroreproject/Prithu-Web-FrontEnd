@@ -1,5 +1,5 @@
 // ✅ src/app/Layout.jsx
-import Header from "./Header";
+import Header from "./homeHeader";
 import Feed from "../pages/Feed";
 import Birthdays from "./Birthdays";
 import { Outlet, useLocation, useParams } from "react-router-dom";
@@ -23,65 +23,54 @@ export default function Layout() {
   const notifyfeedid = params.notifyfeedid || null;
 
   // full-width pages (no side columns)
-  const fullWidthPaths = ["/search", "/profile", "/reels"];
-  const isFullWidth = fullWidthPaths.includes(location.pathname);
+  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/events", "/community", "/aptitude", "/activity", "/settings"];
+  const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
 
   // Home page or hashtag page or retrivefeed page
   const isRetrieveFeed = location.pathname.startsWith("/retrivefeed");
   const isHashtagPage = location.pathname.startsWith("/hashtag/");
   const isHome = location.pathname === "/" || isRetrieveFeed || isHashtagPage;
 
-  const showColumns = !isFullWidth && isHome;
+  const showRightColumn = !isFullWidth && isHome;
 
-
-    const handleBackClick = () => {
-    navigate("/"); // Go back to previous page
+  const handleBackClick = () => {
+    navigate("/");
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#121212]">
       <Header />
           
-                {/* ⭐ HASHTAG HEADER SECTION */}
-                {isHashtagPage && (
-                  <div className="sticky top-16 z-10000 bg-white h-20 shadow-sm rounded-xl mb-6 p-4">
-                    <div className="flex items-center gap-3">
-                      <IconButton 
-                        onClick={handleBackClick} 
-                        className="hover:bg-gray-100"
-                        size="small"
-                      >
-                        <ArrowBackIcon />
-                      </IconButton>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-50 rounded-full">
-                          <TagIcon className="text-blue-600" />
-                        </div>
-                        <div>
-                          <h1 className="text-xl font-bold text-gray-900">
-                            #{tagname}
-                          </h1>
-                         
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-      
+      {/* ⭐ HASHTAG HEADER SECTION */}
+      {isHashtagPage && (
+        <div className="sticky top-0 lg:top-0 lg:left-[280px] z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 ml-0 lg:ml-[280px]">
+          <div className="flex items-center gap-3">
+            <IconButton 
+              onClick={handleBackClick} 
+              className="hover:bg-gray-100"
+              size="small"
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-50 rounded-full">
+                <TagIcon className="text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  #{tagname}
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <main className="flex-1 pt-20 px-4 w-full max-w-[1400px] mx-auto">
-        <div className="flex gap-3 pb-20 lg:pb-0">
-
-          {/* LEFT COLUMN */}
-          {showColumns && (
-            <aside className="hidden lg:flex w-[280px] flex-shrink-0 mt-3">
-              <LeftColumn />
-            </aside>
-          )}
-
+      <main className="flex-1 pt-0 lg:pt-0  w-full">
+        <div className="flex pb-20 lg:pb-0 lg:ml-[280px]">
           {/* CENTER FEED */}
-          <section className="flex-1 min-w-0">
+          <section className="flex-1 min-w-0 px-2 lg:px-6">
             {isHashtagPage ? (
               <Feed tagname={tagname} />
             ) : isRetrieveFeed ? (
@@ -93,10 +82,13 @@ export default function Layout() {
             )}
           </section>
 
-          {/* RIGHT COLUMN */}
-          {showColumns && (
-            <aside className="hidden xl:flex w-[280px] flex-shrink-0 mt-3">
+          {/* RIGHT COLUMN - Now includes LeftColumn at the top */}
+          {showRightColumn && (
+            <aside className="hidden xl:flex w-[280px] mt-2 flex-shrink-0 mr-4"> {/* Added mr-4 for right margin */}
               <div className="flex flex-col gap-4 w-full">
+                {/* LeftColumn moved here - above Birthdays */}
+                <LeftColumn />
+                
                 {/* Hide Birthdays on hashtag pages */}
                 {!isHashtagPage && <Birthdays />}
                 <JobTopRolesCard />

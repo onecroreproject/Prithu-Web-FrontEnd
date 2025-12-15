@@ -27,7 +27,7 @@ const JobCard = ({ jobData }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [visible, setVisible] = useState(false);
   const cardRef = useRef(null);
-console.log(jobData)
+
   const {
     _id,
     title = "Software Engineer",

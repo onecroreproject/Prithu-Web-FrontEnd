@@ -43,8 +43,7 @@ const PostCommentsModal = ({
   const postCreatorId = post?.userId;
 
   const authUser =localStorage.getItem("userId");
-console.log(authUser)
-console.log("post",postCreatorId)
+
   /* ------------------------ Check Follow Status ------------------------ */
   const checkFollowStatus = async () => {
     if (!postCreatorId || !authUser) return;

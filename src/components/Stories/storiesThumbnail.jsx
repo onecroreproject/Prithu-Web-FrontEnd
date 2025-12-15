@@ -1,5 +1,5 @@
-import React from 'react';
-import { FiPlay,FiChevronRight,FiChevronLeft  } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { FiPlay, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
 
 const StoriesThumbnails = ({
   feeds,
@@ -16,9 +16,33 @@ const StoriesThumbnails = ({
   setShowLeftArrow,
   setShowRightArrow,
 }) => {
+  const [needsScroll, setNeedsScroll] = useState(false);
+
+  // Check if content overflows the container
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (!scrollContainerRef.current) return;
+      
+      const container = scrollContainerRef.current;
+      const hasOverflow = container.scrollWidth > container.clientWidth;
+      setNeedsScroll(hasOverflow);
+      
+      // If no overflow, hide arrows
+      if (!hasOverflow) {
+        setShowLeftArrow(false);
+        setShowRightArrow(false);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [feeds, loading, scrollContainerRef, setShowLeftArrow, setShowRightArrow]);
+
   return (
     <>
-      {showLeftArrow && (
+      {showLeftArrow && needsScroll && (
         <button
           onClick={() => {
             if (scrollContainerRef.current)
@@ -32,7 +56,7 @@ const StoriesThumbnails = ({
         </button>
       )}
 
-      {showRightArrow && (
+      {showRightArrow && needsScroll && (
         <button
           onClick={() => {
             if (scrollContainerRef.current)
@@ -52,7 +76,8 @@ const StoriesThumbnails = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         onScroll={() => {
           const el = scrollContainerRef.current;
-          if (!el) return;
+          if (!el || !needsScroll) return;
+          
           setShowLeftArrow(el.scrollLeft > 0);
           setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
         }}
@@ -65,50 +90,57 @@ const StoriesThumbnails = ({
                   <div className="mt-2 h-4 bg-gray-200 rounded w-3/4 mx-auto animate-pulse" />
                 </div>
               ))
-            : feeds.map((feed, index) => (
-                <div
-                  key={feed._id}
-                  className="flex-shrink-0 w-32 cursor-pointer"
-                  onClick={() => {
-                    setSelectedFeedIndex(index);
-                    setProgress(0);
-                    setShowComments(false);
-                    fetchComments(feed._id);
-                  }}
-                >
-                  <div className="relative rounded-xl overflow-hidden h-40 w-30 bg-gray-200 flex items-center justify-center">
-                    {feed.type === 'video' ? (
-                      <>
+            : feeds.length === 0 ? (
+                // Show empty state when no feeds
+                <div className="flex-shrink-0 w-full text-center py-10 text-gray-500">
+                  No stories available
+                </div>
+              ) : (
+                feeds.map((feed, index) => (
+                  <div
+                    key={feed._id}
+                    className="flex-shrink-0 w-32 cursor-pointer"
+                    onClick={() => {
+                      setSelectedFeedIndex(index);
+                      setProgress(0);
+                      setShowComments(false);
+                      fetchComments(feed._id);
+                    }}
+                  >
+                    <div className="relative rounded-xl overflow-hidden h-40 w-30 bg-gray-200 flex items-center justify-center">
+                      {feed.type === 'video' ? (
+                        <>
+                          <img
+                            src={thumbnails[feed._id] || feed.thumbnail}
+                            alt="video"
+                            className="object-cover h-full w-full"
+                          />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <FiPlay className="text-white text-3xl" />
+                          </div>
+                        </>
+                      ) : (
                         <img
-                          src={thumbnails[feed._id] || feed.thumbnail}
-                          alt="video"
+                          src={feed.contentUrl}
+                          alt={feed.caption || 'Feed'}
                           className="object-cover h-full w-full"
                         />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <FiPlay className="text-white text-3xl" />
-                        </div>
-                      </>
-                    ) : (
+                      )}
                       <img
-                        src={feed.contentUrl}
-                        alt={feed.caption || 'Feed'}
-                        className="object-cover h-full w-full"
+                        src={
+                          feed.createdByProfile?.profileAvatar ||
+                          'https://default-avatar.example.com/default.png'
+                        }
+                        alt="avatar"
+                        className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-white object-cover"
                       />
-                    )}
-                    <img
-                      src={
-                        feed.createdByProfile?.profileAvatar ||
-                        'https://default-avatar.example.com/default.png'
-                      }
-                      alt="avatar"
-                      className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-white object-cover"
-                    />
+                    </div>
+                    <div className="mt-2 text-center text-[15px] font-medium truncate">
+                      {feed.createdByProfile?.userName || 'Unknown User'}
+                    </div>
                   </div>
-                  <div className="mt-2 text-center text-[15px] font-medium truncate">
-                    {feed.createdByProfile?.userName || 'Unknown User'}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
         </div>
       </div>
     </>
