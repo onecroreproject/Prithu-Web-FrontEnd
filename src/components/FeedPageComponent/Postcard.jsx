@@ -229,7 +229,7 @@ function Postcard({
           title: "Check this post",
           url: shareUrl,
         });
-        toast.success("Shared successfully");
+
         return;
       } catch {}
     }
@@ -257,7 +257,7 @@ const handleDownload = () => {
 
           const a = document.createElement("a");
           a.href = blobUrl;
-          a.download = downloadLink.split("/").pop();
+          a.download = downloadLink.split("/home").pop();
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

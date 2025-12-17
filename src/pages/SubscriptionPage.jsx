@@ -252,7 +252,7 @@ const ReferralUnderConstruction = () => {
         <p className="text-lg leading-relaxed mb-6">
           Invite your friends and earn exciting rewards! 🚀 <br />
           We’re setting up your <strong>referral system</strong> — stay tuned!
-          <button onClick={navigate("/")} className="underline text-blue-500 cursor-pointer">Go to Home Page</button>
+          <button onClick={navigate("/home")} className="underline text-blue-500 cursor-pointer">Go to Home Page</button>
         </p>
 
         <motion.div

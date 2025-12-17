@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import PrithuLogo from "../../assets/prithu_logo.webp";
 import { 
   Search,
   ArrowRight,
@@ -181,6 +182,10 @@ const SearchResultsScreen = () => {
     }
   };
 
+  const handleHome=()=>{
+    navigate("/home")
+  }
+
   const handleSuggestionClick = (suggestion) => handleSearchSubmit(suggestion);
   const handleInputFocus = () => setShowSuggestions(true);
   const handleClearSearch = () => {
@@ -203,9 +208,23 @@ const SearchResultsScreen = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       {/* Header - Fixed with higher z-index */}
       <div className="bg-white/95 backdrop-blur-lg border-b border-gray-200/60 fixed top-0 left-0 right-0 z-50 shadow-sm">
+    
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Search Bar */}
+<div className="flex gap-4 items-center">
+   <div>
+                 <motion.div
+                   onClick={handleHome}
+                  whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
+              <img 
+                src={PrithuLogo} 
+              
+                alt="Prithu Logo" 
+                className="w-16 h-15 transition-transform duration-200 hover:scale-105" 
+              />
+            </motion.div>
+            </div>
             <div className="flex-1 max-w-2xl">
               <div className="relative" ref={suggestionsRef}>
                 <div className="relative flex items-center">
@@ -281,6 +300,8 @@ const SearchResultsScreen = () => {
                 </AnimatePresence>
               </div>
             </div>
+</div>
+           
 
             {/* Back Button */}
             <div className="ml-6">

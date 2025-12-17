@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import jobData from "../../../../../JsonFile/jobSelection.json";
 import { createOrUpdateJobPost, getDraftJobById } from "../../../../../Service/jobservices";
+import  {locationService}  from "../locationService"; // Import location service
 import {
   FiArrowLeft,
   FiSave,
@@ -42,91 +43,111 @@ import SalaryBenefitsTab from "./components/tabs/SalaryBenefitsTab";
 
 const JobPostingForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // Get job ID from URL params
+  const { id } = useParams();
   const location = useLocation();
- const [formData, setFormData] = useState({
-  // Basic Job Info
-  jobTitle: '',
-  jobRole: '',
-  jobCategory: '',
-  jobSubCategory: '',
-  employmentType: '',
-  workMode: '',
-  shiftType: '',
-  openingsCount: 1,
-  urgencyLevel: '',
 
-  // Location
-  city: '',
-  state: '',
-  country: '',
-  pincode: '',
-  fullAddress: '',
-  remoteEligibility: false,
-  latitude: '',
-  longitude: '',
+  // Location data states
+  const [locationData, setLocationData] = useState({
+    countries: [],
+    states: [],
+    cities: [],
+    areas: [],
+    pincodes: []
+  });
 
-  // Job Description
-  jobDescription: '',
-  responsibilities: [], // Changed from [''] to []
-  dailyTasks: [], // Changed from [''] to []
-  keyDuties: [], // Changed from [''] to []
+  const [locationLoading, setLocationLoading] = useState({
+    countries: false,
+    states: false,
+    cities: false,
+    areas: false,
+    pincodes: false
+  });
 
-  // Skills
-  requiredSkills: [], // Changed from [''] to []
-  preferredSkills: [], // Changed from [''] to []
-  technicalSkills: [], // Changed from [''] to []
-  softSkills: [], // Changed from [''] to []
-  toolsAndTechnologies: [], // Changed from [''] to []
+  // Form data state
+  const [formData, setFormData] = useState({
+    // Basic Job Info
+    jobTitle: '',
+    jobRole: '',
+    jobCategory: '',
+    jobSubCategory: '',
+    employmentType: '',
+    workMode: '',
+    shiftType: '',
+    openingsCount: 1,
+    urgencyLevel: '',
 
-  // Qualification
-  educationLevel: '',
-  degreeRequired: '',
-  certificationRequired: [], // Changed from [''] to []
-  minimumExperience: 0,
-  maximumExperience: 0,
-  freshersAllowed: false,
+    // Location (updated with area field)
+    city: '',
+    state: '',
+    country: '',
+    area: '',
+    pincode: '',
+    fullAddress: '',
+    remoteEligibility: false,
+    latitude: '',
+    longitude: '',
 
-  // Salary
-  salaryType: 'monthly',
-  salaryMin: 0,
-  salaryMax: 0,
-  salaryCurrency: 'INR',
-  salaryVisibility: 'public',
-  benefits: [], // Changed from [''] to []
-  perks: [], // Changed from [''] to []
-  incentives: '',
-  bonuses: '',
+    // Job Description
+    jobDescription: '',
+    responsibilities: [],
+    dailyTasks: [],
+    keyDuties: [],
 
-  // Hiring Information
-  hiringManagerName: '',
-  hiringManagerEmail: '',
-  hiringManagerPhone: '',
-  interviewMode: '',
-  interviewLocation: '',
-  interviewRounds: [], // Changed from [''] to []
-  hiringProcess: [], // Changed from [''] to []
-  interviewInstructions: '',
+    // Skills
+    requiredSkills: [],
+    preferredSkills: [],
+    technicalSkills: [],
+    softSkills: [],
+    toolsAndTechnologies: [],
 
-  // Timing & Duration
-  startDate: '',
-  endDate: '',
-  contractDuration: '',
-  jobTimings: '',
-  workingHours: '',
-  workingDays: '',
-  holidaysType: '',
+    // Qualification
+    educationLevel: '',
+    degreeRequired: '',
+    certificationRequired: [],
+    minimumExperience: 0,
+    maximumExperience: 0,
+    freshersAllowed: false,
 
-  // Documents Required
-  resumeRequired: true,
-  coverLetterRequired: false,
-  documentsRequired: [], // Changed from [''] to []
+    // Salary
+    salaryType: 'monthly',
+    salaryMin: 0,
+    salaryMax: 0,
+    salaryCurrency: 'INR',
+    salaryVisibility: 'public',
+    benefits: [],
+    perks: [],
+    incentives: '',
+    bonuses: '',
 
-  // SEO & Keywords
-  tags: [], // Changed from [''] to []
-  skillKeywords: [], // Changed from [''] to []
-  keywordSearch: [], // Changed from [''] to []
-});
+    // Hiring Information
+    hiringManagerName: '',
+    hiringManagerEmail: '',
+    hiringManagerPhone: '',
+    interviewMode: '',
+    interviewLocation: '',
+    interviewRounds: [],
+    hiringProcess: [],
+    interviewInstructions: '',
+
+    // Timing & Duration
+    startDate: '',
+    endDate: '',
+    contractDuration: '',
+    jobTimings: '',
+    workingHours: '',
+    workingDays: '',
+    holidaysType: '',
+
+    // Documents Required
+    resumeRequired: true,
+    coverLetterRequired: false,
+    documentsRequired: [],
+
+    // SEO & Keywords
+    tags: [],
+    skillKeywords: [],
+    keywordSearch: [],
+  });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,9 +173,6 @@ const JobPostingForm = () => {
   const allCategories = jobData.mainCategories.flatMap(category => category.items);
   const jobRoles = jobData.jobRoles;
 
-
-  
-
   // Filter categories and roles based on search
   const filteredCategories = allCategories.filter(category =>
     category.toLowerCase().includes(categorySearch.toLowerCase())
@@ -170,13 +188,17 @@ const JobPostingForm = () => {
       }))
   );
 
+  // Load countries on component mount
+  useEffect(() => {
+    loadCountries();
+  }, []);
+
   // Initialize form with job data if editing
   useEffect(() => {
     if (id) {
       setIsEditMode(true);
       fetchJobData(id);
     } else if (location.state?.jobData) {
-      // If job data is passed via state (for editing)
       setIsEditMode(true);
       setFormData(location.state.jobData);
       if (location.state.jobData.jobImage) {
@@ -184,8 +206,6 @@ const JobPostingForm = () => {
       }
     }
   }, [id, location.state]);
-
-  console.log(isEditMode)
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -202,140 +222,313 @@ const JobPostingForm = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-const fetchJobData = async (jobId) => {
-  setIsLoading(true);
-  try {
-    const response = await getDraftJobById(jobId);
-    console.log("API Response:", response.data);
-
-    if (response.data.success && response.data.draft) {
-      const jobData = response.data.draft;
-     
-
-      // Helper function to parse array fields
-      const parseArrayField = (field) => {
-        if (!field) return [''];
-        if (Array.isArray(field)) return field.length > 0 ? field : [''];
-        if (typeof field === 'string') {
-          try {
-            const parsed = JSON.parse(field);
-            return Array.isArray(parsed) && parsed.length > 0 ? parsed : [''];
-          } catch {
-            const items = field.split(',').map(item => item.trim()).filter(item => item);
-            return items.length > 0 ? items : [''];
-          }
-        }
-        return [''];
-      };
-
-      // Set existing image if available
-      if (jobData.jobImage) {
-        setExistingImage(jobData.jobImage);
-      }
-
-      const updatedFormData = {
-        // Basic Job Info
-        jobTitle: jobData.jobTitle || '',
-        jobRole: jobData.jobRole || '',
-        jobCategory: jobData.jobCategory || '',
-        jobSubCategory: jobData.jobSubCategory || '',
-        employmentType: jobData.employmentType || '',
-        workMode: jobData.workMode || '',
-        shiftType: jobData.shiftType || '',
-        openingsCount: jobData.openingsCount || 1,
-        urgencyLevel: jobData.urgencyLevel || '',
-
-        // Location
-        city: jobData.city || '',
-        state: jobData.state || '',
-        country: jobData.country || '',
-        pincode: jobData.pincode || '',
-        fullAddress: jobData.fullAddress || '',
-        remoteEligibility: jobData.remoteEligibility || false,
-        latitude: jobData.googleLocation?.coordinates?.[1] || '',
-        longitude: jobData.googleLocation?.coordinates?.[0] || '',
-
-        // Job Description
-        jobDescription: jobData.jobDescription || '',
-        responsibilities: parseArrayField(jobData.responsibilities),
-        dailyTasks: parseArrayField(jobData.dailyTasks),
-        keyDuties: parseArrayField(jobData.keyDuties),
-
-        // Skills
-        requiredSkills: parseArrayField(jobData.requiredSkills),
-        preferredSkills: parseArrayField(jobData.preferredSkills),
-        technicalSkills: parseArrayField(jobData.technicalSkills),
-        softSkills: parseArrayField(jobData.softSkills),
-        toolsAndTechnologies: parseArrayField(jobData.toolsAndTechnologies),
-
-        // Qualification
-        educationLevel: jobData.educationLevel || '',
-        degreeRequired: jobData.degreeRequired || '',
-        certificationRequired: parseArrayField(jobData.certificationRequired),
-        minimumExperience: jobData.minimumExperience || 0,
-        maximumExperience: jobData.maximumExperience || 0,
-        freshersAllowed: jobData.freshersAllowed || false,
-
-        // Salary
-        salaryType: jobData.salaryType || 'monthly',
-        salaryMin: jobData.salaryMin || 0,
-        salaryMax: jobData.salaryMax || 0,
-        salaryCurrency: jobData.salaryCurrency || 'INR',
-        salaryVisibility: jobData.salaryVisibility || 'public',
-        benefits: parseArrayField(jobData.benefits),
-        perks: parseArrayField(jobData.perks),
-        incentives: jobData.incentives || '',
-        bonuses: jobData.bonuses || '',
-
-        // Hiring Information
-        hiringManagerName: jobData.hiringManagerName || '',
-        hiringManagerEmail: jobData.hiringManagerEmail || '',
-        hiringManagerPhone: jobData.hiringManagerPhone || '',
-        interviewMode: jobData.interviewMode || '',
-        interviewLocation: jobData.interviewLocation || '',
-        interviewRounds: parseArrayField(jobData.interviewRounds),
-        hiringProcess: parseArrayField(jobData.hiringProcess),
-        interviewInstructions: jobData.interviewInstructions || '',
-
-        // Timing & Duration
-        startDate: jobData.startDate ? new Date(jobData.startDate).toISOString().split('T')[0] : '',
-        endDate: jobData.endDate ? new Date(jobData.endDate).toISOString().split('T')[0] : '',
-        contractDuration: jobData.contractDuration || '',
-        jobTimings: jobData.jobTimings || '',
-        workingHours: jobData.workingHours || '',
-        workingDays: jobData.workingDays || '',
-        holidaysType: jobData.holidaysType || '',
-
-        // Documents Required
-        resumeRequired: jobData.resumeRequired ?? true,
-        coverLetterRequired: jobData.coverLetterRequired || false,
-        documentsRequired: parseArrayField(jobData.documentsRequired),
-
-        // SEO & Keywords
-        tags: parseArrayField(jobData.tags),
-        skillKeywords: parseArrayField(jobData.skillKeywords),
-        keywordSearch: parseArrayField(jobData.keywordSearch),
-
-  
-      };
-
-      setFormData(updatedFormData);
+  // Location service functions
+  const loadCountries = async () => {
+    setLocationLoading(prev => ({ ...prev, countries: true }));
+    try {
+      const countries = await locationService.getCountries();
+      setLocationData(prev => ({ ...prev, countries }));
+    } catch (error) {
+      console.error('Failed to load countries:', error);
+    } finally {
+      setLocationLoading(prev => ({ ...prev, countries: false }));
     }
+  };
+
+  const fetchStates = async (country) => {
+    if (!country) return;
+    
+    setLocationLoading(prev => ({ ...prev, states: true }));
+    try {
+      const states = await locationService.getStates(country);
+      setLocationData(prev => ({ 
+        ...prev, 
+        states,
+        cities: [],
+        areas: [],
+        pincodes: []
+      }));
+    } catch (error) {
+      console.error('Failed to load states:', error);
+    } finally {
+      setLocationLoading(prev => ({ ...prev, states: false }));
+    }
+  };
+
+  const fetchCities = async (country, state) => {
+    if (!country || !state) return;
+    
+    setLocationLoading(prev => ({ ...prev, cities: true }));
+    try {
+      const cities = await locationService.getCities(country, state);
+      setLocationData(prev => ({ 
+        ...prev, 
+        cities,
+        areas: [],
+        pincodes: []
+      }));
+    } catch (error) {
+      console.error('Failed to load cities:', error);
+    } finally {
+      setLocationLoading(prev => ({ ...prev, cities: false }));
+    }
+  };
+
+ const fetchAreas = async (country, state, city) => {
+  if (!country || !state || !city) return;
+
+  setLocationLoading(prev => ({ ...prev, areas: true }));
+  try {
+    const areas = await locationService.getAreas({
+      country,
+      state,
+      city
+    });
+
+    setLocationData(prev => ({
+      ...prev,
+      areas,
+      pincodes: []
+    }));
   } catch (error) {
-    console.error('Error fetching job data:', error);
-    alert('Failed to load job data. Please try again.');
+    console.error("Failed to load areas:", error);
   } finally {
-    setIsLoading(false);
+    setLocationLoading(prev => ({ ...prev, areas: false }));
   }
 };
 
 
+  const fetchPincodes = async (area) => {
+    if (!area || formData.country !== 'India') return;
+    
+    setLocationLoading(prev => ({ ...prev, pincodes: true }));
+    try {
+      const pincodes = await locationService.getPincodes({
+  country: formData.country,
+  area
+});
+    } catch (error) {
+      console.error('Failed to load pincodes:', error);
+    } finally {
+      setLocationLoading(prev => ({ ...prev, pincodes: false }));
+    }
+  };
+
+  // Fetch job data for editing
+  const fetchJobData = async (jobId) => {
+    setIsLoading(true);
+    try {
+      const response = await getDraftJobById(jobId);
+      console.log("API Response:", response.data);
+
+      if (response.data.success && response.data.draft) {
+        const jobData = response.data.draft;
+
+        // Helper function to parse array fields
+        const parseArrayField = (field) => {
+          if (!field) return [];
+          if (Array.isArray(field)) {
+            const filtered = field.filter(item => item && item.toString().trim() !== '');
+            return filtered.length > 0 ? filtered : [];
+          }
+          if (typeof field === 'string') {
+            try {
+              const parsed = JSON.parse(field);
+              if (Array.isArray(parsed)) {
+                const filtered = parsed.filter(item => item && item.toString().trim() !== '');
+                return filtered.length > 0 ? filtered : [];
+              }
+            } catch {
+              const items = field.split(',').map(item => item.trim()).filter(item => item);
+              return items.length > 0 ? items : [];
+            }
+          }
+          return [];
+        };
+
+        // Set existing image if available
+        if (jobData.jobImage) {
+          setExistingImage(jobData.jobImage);
+        }
+
+        const updatedFormData = {
+          // Basic Job Info
+          jobTitle: jobData.jobTitle || '',
+          jobRole: jobData.jobRole || '',
+          jobCategory: jobData.jobCategory || '',
+          jobSubCategory: jobData.jobSubCategory || '',
+          employmentType: jobData.employmentType || '',
+          workMode: jobData.workMode || '',
+          shiftType: jobData.shiftType || '',
+          openingsCount: jobData.openingsCount || 1,
+          urgencyLevel: jobData.urgencyLevel || '',
+
+          // Location
+          city: jobData.city || '',
+          state: jobData.state || '',
+          country: jobData.country || '',
+          area: jobData.area || '', // Add area field
+          pincode: jobData.pincode || '',
+          fullAddress: jobData.fullAddress || '',
+          remoteEligibility: jobData.remoteEligibility || false,
+          latitude: jobData.googleLocation?.coordinates?.[1] || '',
+          longitude: jobData.googleLocation?.coordinates?.[0] || '',
+
+          // Job Description
+          jobDescription: jobData.jobDescription || '',
+          responsibilities: parseArrayField(jobData.responsibilities),
+          dailyTasks: parseArrayField(jobData.dailyTasks),
+          keyDuties: parseArrayField(jobData.keyDuties),
+
+          // Skills
+          requiredSkills: parseArrayField(jobData.requiredSkills),
+          preferredSkills: parseArrayField(jobData.preferredSkills),
+          technicalSkills: parseArrayField(jobData.technicalSkills),
+          softSkills: parseArrayField(jobData.softSkills),
+          toolsAndTechnologies: parseArrayField(jobData.toolsAndTechnologies),
+
+          // Qualification
+          educationLevel: jobData.educationLevel || '',
+          degreeRequired: jobData.degreeRequired || '',
+          certificationRequired: parseArrayField(jobData.certificationRequired),
+          minimumExperience: jobData.minimumExperience || 0,
+          maximumExperience: jobData.maximumExperience || 0,
+          freshersAllowed: jobData.freshersAllowed || false,
+
+          // Salary
+          salaryType: jobData.salaryType || 'monthly',
+          salaryMin: jobData.salaryMin || 0,
+          salaryMax: jobData.salaryMax || 0,
+          salaryCurrency: jobData.salaryCurrency || 'INR',
+          salaryVisibility: jobData.salaryVisibility || 'public',
+          benefits: parseArrayField(jobData.benefits),
+          perks: parseArrayField(jobData.perks),
+          incentives: jobData.incentives || '',
+          bonuses: jobData.bonuses || '',
+
+          // Hiring Information
+          hiringManagerName: jobData.hiringManagerName || '',
+          hiringManagerEmail: jobData.hiringManagerEmail || '',
+          hiringManagerPhone: jobData.hiringManagerPhone || '',
+          interviewMode: jobData.interviewMode || '',
+          interviewLocation: jobData.interviewLocation || '',
+          interviewRounds: parseArrayField(jobData.interviewRounds),
+          hiringProcess: parseArrayField(jobData.hiringProcess),
+          interviewInstructions: jobData.interviewInstructions || '',
+
+          // Timing & Duration
+          startDate: jobData.startDate ? new Date(jobData.startDate).toISOString().split('T')[0] : '',
+          endDate: jobData.endDate ? new Date(jobData.endDate).toISOString().split('T')[0] : '',
+          contractDuration: jobData.contractDuration || '',
+          jobTimings: jobData.jobTimings || '',
+          workingHours: jobData.workingHours || '',
+          workingDays: jobData.workingDays || '',
+          holidaysType: jobData.holidaysType || '',
+
+          // Documents Required
+          resumeRequired: jobData.resumeRequired ?? true,
+          coverLetterRequired: jobData.coverLetterRequired || false,
+          documentsRequired: parseArrayField(jobData.documentsRequired),
+
+          // SEO & Keywords
+          tags: parseArrayField(jobData.tags),
+          skillKeywords: parseArrayField(jobData.skillKeywords),
+          keywordSearch: parseArrayField(jobData.keywordSearch),
+        };
+
+        setFormData(updatedFormData);
+        
+        // Load dependent location data if country/state/city exists
+        if (updatedFormData.country) {
+          fetchStates(updatedFormData.country);
+          if (updatedFormData.state) {
+            // Use setTimeout to ensure states are loaded before fetching cities
+            setTimeout(() => {
+              fetchCities(updatedFormData.country, updatedFormData.state);
+            }, 500);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching job data:', error);
+      alert('Failed to load job data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle input change with location cascading logic
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    const newFormData = { ...formData };
+    newFormData[name] = type === 'checkbox' ? checked : value;
+    
+    // Handle location cascading logic
+    if (name === 'country') {
+      // Reset dependent fields when country changes
+      newFormData.state = '';
+      newFormData.city = '';
+      newFormData.area = '';
+      newFormData.pincode = '';
+      
+      // Fetch states for the new country
+      if (value) {
+        fetchStates(value);
+      } else {
+        setLocationData(prev => ({ 
+          ...prev, 
+          states: [],
+          cities: [],
+          areas: [],
+          pincodes: []
+        }));
+      }
+    } else if (name === 'state') {
+      // Reset dependent fields when state changes
+      newFormData.city = '';
+      newFormData.area = '';
+      newFormData.pincode = '';
+      
+      // Fetch cities for the new state
+      if (value && formData.country) {
+        fetchCities(formData.country, value);
+      } else {
+        setLocationData(prev => ({ 
+          ...prev, 
+          cities: [],
+          areas: [],
+          pincodes: []
+        }));
+      }
+    } else if (name === 'city') {
+      // Reset dependent fields when city changes
+      newFormData.area = '';
+      newFormData.pincode = '';
+      
+      // For India, fetch areas for the new city
+      if (value && formData.country && formData.state) {
+  fetchAreas(formData.country, formData.state, value);
+} else {
+        setLocationData(prev => ({ 
+          ...prev, 
+          areas: [],
+          pincodes: []
+        }));
+      }
+    } else if (name === 'area') {
+      // Reset pincode when area changes
+      newFormData.pincode = '';
+      
+      // For India, fetch pincodes for the new area
+      if (value && formData.country === 'India') {
+        fetchPincodes(value);
+      }
+    }
+    
+    setFormData(newFormData);
+    
+    // Clear error if exists
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -350,11 +543,11 @@ const fetchJobData = async (jobId) => {
   };
 
   const addArrayField = (field) => {
-  setFormData(prev => ({
-    ...prev,
-    [field]: [...prev[field], ''] // Keep adding empty string for new field
-  }));
-};
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field], '']
+    }));
+  };
 
   const removeArrayField = (index, field) => {
     setFormData(prev => ({
@@ -375,7 +568,7 @@ const fetchJobData = async (jobId) => {
         return;
       }
       setJobImage(file);
-      setExistingImage(null); // Clear existing image when new one is uploaded
+      setExistingImage(null);
       if (errors.jobImage) {
         setErrors(prev => ({ ...prev, jobImage: '' }));
       }
@@ -402,203 +595,164 @@ const fetchJobData = async (jobId) => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Validate required fields for final submission
-  if (!validateForm()) {
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    const submissionData = new FormData();
-
-    // Append job ID if in edit mode
-    if (isEditMode && id) {
-      submissionData.append('id', id);
+    if (!validateForm()) {
+      return;
     }
 
-    // Helper function to clean and append form data
-    const appendFormField = (key, value) => {
-      if (value === null || value === undefined || value === '') {
-        return false;
-      }
-      
-      if (Array.isArray(value)) {
-        const filteredArray = value.filter(item => item && item.toString().trim() !== '');
-        if (filteredArray.length > 0) {
-          filteredArray.forEach((item, index) => {
-            submissionData.append(`${key}[${index}]`, item);
-          });
-          return true;
-        }
-        return false;
-      }
-      
-      if (typeof value === 'boolean') {
-        submissionData.append(key, value.toString());
-        return true;
-      }
-      
-      if (typeof value === 'number') {
-        submissionData.append(key, value.toString());
-        return true;
-      }
-      
-      if (typeof value === 'string' && value.trim() !== '') {
-        submissionData.append(key, value.trim());
-        return true;
-      }
-      
-      return false;
-    };
-
-    // Append all non-empty form fields
-    Object.entries(formData).forEach(([key, value]) => {
-      appendFormField(key, value);
-    });
-
-    // Always set status to 'submit' for final submission
-    submissionData.append('status', 'submit');
-
-    // Append job image if exists
-    if (jobImage) {
-      submissionData.append('jobImage', jobImage);
-    }
-
-    // If existing image has been removed during edit, add flag
-    if (existingImage === null && isEditMode) {
-      submissionData.append('removeExistingImage', 'true');
-    }
-
-    // Log the data being sent for debugging
-    console.log("Form data being submitted:");
-    for (let [key, value] of submissionData.entries()) {
-      console.log(key, value);
-    }
-
-    const apiRes = await createOrUpdateJobPost(submissionData);
-    const result = apiRes?.data ?? apiRes;
-
-    if (result && result.success) {
-      alert(isEditMode ? 'Job submitted successfully!' : 'Job created successfully!');
-      navigate('/company/home');
-    } else {
-      throw new Error(result?.message || 'Submission failed');
-    }
-  } catch (error) {
-    console.error('Error submitting job:', error);
-    alert(`Failed to ${isEditMode ? 'update' : 'create'} job. ${error?.message ? error.message : ''}`);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-// Also update the initial formData to ensure all array fields have at least one non-empty item
-// In your fetchJobData function, update the parseArrayField helper:
-const parseArrayField = (field) => {
-  if (!field) return [];
-  if (Array.isArray(field)) {
-    const filtered = field.filter(item => item && item.toString().trim() !== '');
-    return filtered.length > 0 ? filtered : [];
-  }
-  if (typeof field === 'string') {
-    try {
-      const parsed = JSON.parse(field);
-      if (Array.isArray(parsed)) {
-        const filtered = parsed.filter(item => item && item.toString().trim() !== '');
-        return filtered.length > 0 ? filtered : [];
-      }
-    } catch {
-      const items = field.split(',').map(item => item.trim()).filter(item => item);
-      return items.length > 0 ? items : [];
-    }
-  }
-  return [];
-};
-
-
-const handleSaveDraft = async () => {
-  try {
     setIsSubmitting(true);
-    const draftData = new FormData();
 
-    // Append job ID if in edit mode
-    if (isEditMode && id) {
-      draftData.append('id', id);
-    }
+    try {
+      const submissionData = new FormData();
 
-    // Helper function to clean and append form data
-    const appendFormField = (key, value) => {
-      if (value === null || value === undefined || value === '') {
-        return false;
+      if (isEditMode && id) {
+        submissionData.append('id', id);
       }
-      
-      if (Array.isArray(value)) {
-        const filteredArray = value.filter(item => item && item.toString().trim() !== '');
-        if (filteredArray.length > 0) {
-          filteredArray.forEach((item, index) => {
-            draftData.append(`${key}[${index}]`, item);
-          });
+
+      const appendFormField = (key, value) => {
+        if (value === null || value === undefined || value === '') {
+          return false;
+        }
+        
+        if (Array.isArray(value)) {
+          const filteredArray = value.filter(item => item && item.toString().trim() !== '');
+          if (filteredArray.length > 0) {
+            filteredArray.forEach((item, index) => {
+              submissionData.append(`${key}[${index}]`, item);
+            });
+            return true;
+          }
+          return false;
+        }
+        
+        if (typeof value === 'boolean') {
+          submissionData.append(key, value.toString());
           return true;
         }
+        
+        if (typeof value === 'number') {
+          submissionData.append(key, value.toString());
+          return true;
+        }
+        
+        if (typeof value === 'string' && value.trim() !== '') {
+          submissionData.append(key, value.trim());
+          return true;
+        }
+        
         return false;
-      }
-      
-      if (typeof value === 'boolean') {
-        draftData.append(key, value.toString());
-        return true;
-      }
-      
-      if (typeof value === 'number') {
-        draftData.append(key, value.toString());
-        return true;
-      }
-      
-      if (typeof value === 'string' && value.trim() !== '') {
-        draftData.append(key, value.trim());
-        return true;
-      }
-      
-      return false;
-    };
+      };
 
-    // Append all non-empty form fields
-    Object.entries(formData).forEach(([key, value]) => {
-      appendFormField(key, value);
-    });
+      Object.entries(formData).forEach(([key, value]) => {
+        appendFormField(key, value);
+      });
 
-    // Always set status to 'draft' for draft saves
-    draftData.append('status', 'draft');
+      submissionData.append('status', 'submit');
 
-    // Append job image if exists
-    if (jobImage) {
-      draftData.append('jobImage', jobImage);
+      if (jobImage) {
+        submissionData.append('jobImage', jobImage);
+      }
+
+      if (existingImage === null && isEditMode) {
+        submissionData.append('removeExistingImage', 'true');
+      }
+
+      console.log("Form data being submitted:");
+      for (let [key, value] of submissionData.entries()) {
+        console.log(key, value);
+      }
+
+      const apiRes = await createOrUpdateJobPost(submissionData);
+      const result = apiRes?.data ?? apiRes;
+
+      if (result && result.success) {
+        alert(isEditMode ? 'Job submitted successfully!' : 'Job created successfully!');
+        navigate('/company/home');
+      } else {
+        throw new Error(result?.message || 'Submission failed');
+      }
+    } catch (error) {
+      console.error('Error submitting job:', error);
+      alert(`Failed to ${isEditMode ? 'update' : 'create'} job. ${error?.message ? error.message : ''}`);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    console.log("Draft data being sent:");
-    for (let [key, value] of draftData.entries()) {
-      console.log(key, value);
+  const handleSaveDraft = async () => {
+    try {
+      setIsSubmitting(true);
+      const draftData = new FormData();
+
+      if (isEditMode && id) {
+        draftData.append('id', id);
+      }
+
+      const appendFormField = (key, value) => {
+        if (value === null || value === undefined || value === '') {
+          return false;
+        }
+        
+        if (Array.isArray(value)) {
+          const filteredArray = value.filter(item => item && item.toString().trim() !== '');
+          if (filteredArray.length > 0) {
+            filteredArray.forEach((item, index) => {
+              draftData.append(`${key}[${index}]`, item);
+            });
+            return true;
+          }
+          return false;
+        }
+        
+        if (typeof value === 'boolean') {
+          draftData.append(key, value.toString());
+          return true;
+        }
+        
+        if (typeof value === 'number') {
+          draftData.append(key, value.toString());
+          return true;
+        }
+        
+        if (typeof value === 'string' && value.trim() !== '') {
+          draftData.append(key, value.trim());
+          return true;
+        }
+        
+        return false;
+      };
+
+      Object.entries(formData).forEach(([key, value]) => {
+        appendFormField(key, value);
+      });
+
+      draftData.append('status', 'draft');
+
+      if (jobImage) {
+        draftData.append('jobImage', jobImage);
+      }
+
+      console.log("Draft data being sent:");
+      for (let [key, value] of draftData.entries()) {
+        console.log(key, value);
+      }
+
+      const response = await createOrUpdateJobPost(draftData);
+
+      console.log("Draft Saved:", response);
+
+      setSavedDraft(true);
+      setTimeout(() => setSavedDraft(false), 3000);
+
+    } catch (err) {
+      console.error("Save draft failed:", err);
+      alert('Failed to save draft. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const response = await createOrUpdateJobPost(draftData);
-
-    console.log("Draft Saved:", response);
-
-    setSavedDraft(true);
-    setTimeout(() => setSavedDraft(false), 3000);
-
-  } catch (err) {
-    console.error("Save draft failed:", err);
-    alert('Failed to save draft. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
+  };
 
   // Constants for dropdowns
   const employmentTypes = ["full-time", "part-time", "contract", "internship", "freelance"];
@@ -649,7 +803,6 @@ const handleSaveDraft = async () => {
         </div>
       </h3>
       
-      {/* Existing Image Preview */}
       {existingImage && !jobImage && (
         <div className="mb-6">
           <p className="text-sm text-gray-600 mb-2">Current Image:</p>
@@ -671,7 +824,6 @@ const handleSaveDraft = async () => {
         </div>
       )}
       
-      {/* New Image Upload */}
       {(!existingImage || jobImage) && (
         <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
           <input
@@ -691,7 +843,6 @@ const handleSaveDraft = async () => {
         </div>
       )}
       
-      {/* New Image Preview */}
       {jobImage && (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between">
@@ -751,6 +902,14 @@ const handleSaveDraft = async () => {
             workModes={workModes}
             shiftTypes={shiftTypes}
             urgencyLevels={urgencyLevels}
+            countries={locationData.countries}
+            states={locationData.states}
+            cities={locationData.cities}
+            areas={locationData.areas}
+            pincodes={locationData.pincodes}
+            loading={locationLoading}
+            categoryRef={categoryRef}
+            roleRef={roleRef}
           />
         );
 
@@ -1593,8 +1752,6 @@ const handleSaveDraft = async () => {
 
             {/* Job Image Upload */}
             <JobImageUpload />
-
-           
           </div>
         );
 
@@ -1622,7 +1779,6 @@ const handleSaveDraft = async () => {
           </div>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
             <div className="space-y-6">
-              {/* Job Image in Preview */}
               {(jobImage || existingImage) && (
                 <div>
                   <img 
@@ -1862,7 +2018,7 @@ const handleSaveDraft = async () => {
           {/* Form Content */}
           <div className="flex-1">
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <form onSubmit={(e) => handleSubmit(e, false)}>
+              <form onSubmit={handleSubmit}>
                 <div className="p-6 sm:p-8">
                   {renderTabContent()}
                 </div>
@@ -1903,27 +2059,25 @@ const handleSaveDraft = async () => {
                         {activeTab === 'additional' ? 'Review' : 'Next Step'}
                       </button>
                       
-                     {activeTab === 'additional' && (
-  <button
-    type="submit"
-    disabled={isSubmitting}
-    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
-  >
-    {isSubmitting ? (
-      <span className="flex items-center gap-2">
-        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        {isEditMode ? 'Updating...' : 'Publishing...'}
-      </span>
-    ) : (
-      // Changed from "Update Job" to "Submit for Review"
-      isEditMode ? 'Submit for Review' : 'Submit for Review'
-    )}
-  </button>
-)}
-
+                      {activeTab === 'additional' && (
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                        >
+                          {isSubmitting ? (
+                            <span className="flex items-center gap-2">
+                              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              {isEditMode ? 'Updating...' : 'Publishing...'}
+                            </span>
+                          ) : (
+                            isEditMode ? 'Submit for Review' : 'Submit for Review'
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

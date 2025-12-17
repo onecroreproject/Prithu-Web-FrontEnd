@@ -72,7 +72,7 @@ const CloseAccountSettings = () => {
       alert("Account permanently deleted successfully.");
       handleCloseModal();
       // Redirect to home or login page
-      window.location.href = "/";
+      window.location.href = "/home";
     } catch (error) {
       console.error("Deletion error:", error);
       alert("Failed to delete account. Please try again.");

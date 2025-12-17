@@ -73,7 +73,7 @@ export default function Header() {
 
   // Enhanced navItems with icons
   const navItems = [
-    { to: "/", label: "Home", Icon: Home, desc: "Your feed" },
+    { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
     { to: "/profile", label: "Profile", Icon: User, desc: "View your profile" },
     { to: "/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
     { to: "/subscriptions", label: "Subscriptions", Icon: BellRing, desc: "Manage subscriptions" },
@@ -131,7 +131,7 @@ const handleReelClick = () => {
   setIsReelsActive(nextState);
 
   // 1️⃣ Navigate to home
-  navigate("/");
+  navigate("/home");
 
   // 2️⃣ Then trigger reels state AFTER home loads
   setTimeout(() => {
@@ -347,11 +347,11 @@ const handleReelClick = () => {
           {/* Logo */}
           <div
             onClick={() => {
-              if (window.location.pathname === "/") {
+              if (window.location.pathname === "/home") {
                 localStorage.setItem("scrollToFeed", "true");
                 window.location.reload();
               } else {
-                navigate("/");
+                navigate("/home");
               }
             }}
             className="flex items-center gap-2 cursor-pointer group shrink-0"

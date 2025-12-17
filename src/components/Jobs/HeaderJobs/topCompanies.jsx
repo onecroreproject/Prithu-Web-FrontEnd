@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-
+import { useNavigate } from "react-router-dom";
 const TopCompanies = ({ jobs = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-
+const navigate=useNavigate();
   // Extract top companies from jobs data
-  const companiesFromJobs = useMemo(() => {
+  const companies = useMemo(() => {
     if (!jobs || jobs.length === 0) return [];
     
     // Group jobs by company and count openings
     const companyMap = {};
-    
+
     jobs.forEach(job => {
       if (job.companyName) {
         if (!companyMap[job.companyName]) {
@@ -18,7 +18,7 @@ const TopCompanies = ({ jobs = [] }) => {
             name: job.companyName,
             location: job.city || job.country || "Multiple Locations",
             openings: 0,
-            logo: null,
+            logo:job.companyLogo|| null,
             companyId: job.companyId
           };
         }
@@ -31,60 +31,6 @@ const TopCompanies = ({ jobs = [] }) => {
       .sort((a, b) => b.openings - a.openings)
       .slice(0, 8);
   }, [jobs]);
-
-  // Use actual companies or fallback to sample data
-  const companies = companiesFromJobs.length > 0 
-    ? companiesFromJobs
-    : [
-        {
-          name: "Akshay INC.",
-          location: "New York",
-          openings: 3,
-          logo: "https://upload.wikimedia.org/wikipedia/commons/6/61/Wordpress_logo.png",
-        },
-        {
-          name: "Pay Walt",
-          location: "Ohio",
-          openings: 2,
-          logo: "https://cdn-icons-png.flaticon.com/512/5968/5968523.png",
-        },
-        {
-          name: "Apus Inc.",
-          location: "New York",
-          openings: 1,
-          logo: "https://cdn-icons-png.flaticon.com/512/889/889123.png",
-        },
-        {
-          name: "Envato Inc.",
-          location: "India",
-          openings: 2,
-          logo: "https://upload.wikimedia.org/wikipedia/commons/9/99/Magento.svg",
-        },
-        {
-          name: "TechNova Pvt Ltd",
-          location: "Chennai",
-          openings: 4,
-          logo: "https://cdn-icons-png.flaticon.com/512/732/732212.png",
-        },
-        {
-          name: "DesignHive Studio",
-          location: "Bangalore",
-          openings: 3,
-          logo: "https://cdn-icons-png.flaticon.com/512/5968/5968705.png",
-        },
-        {
-          name: "MediaSpark",
-          location: "Delhi",
-          openings: 2,
-          logo: "https://cdn-icons-png.flaticon.com/512/732/732200.png",
-        },
-        {
-          name: "NextGen Systems",
-          location: "Hyderabad",
-          openings: 5,
-          logo: "https://cdn-icons-png.flaticon.com/512/919/919825.png",
-        },
-      ];
 
   // Get initials for company avatar
   const getInitials = (companyName) => {
@@ -122,16 +68,54 @@ const TopCompanies = ({ jobs = [] }) => {
     }
   };
 
-  const handleCompanyClick = (companyName, companyId) => {
-    // Navigate to company page or filter by company
-    if (companyId) {
-      // Navigate to company details page
-      console.log(`Navigate to company: ${companyName}, ID: ${companyId}`);
-    } else {
-      // Filter jobs by company name
-      console.log(`Filter jobs by company: ${companyName}`);
+  const handleCompanyClick = (company) => {
+    console.log(company)
+  if (company.companyId) {
+    navigate(`/jobs?company=${company.companyId._id}`);
+  } else {
+    const slug = company.name.toLowerCase().replace(/\s+/g, "-");
+    navigate(`/jobs?company=${slug}`);
+  }
+  };
+
+
+  
+  const handleClickCompany =(company) => {
+ 
+    if (company) {
+      navigate(`/company/${(company.companyId._id)}`);
     }
   };
+
+
+  // If no companies, show not available
+  if (companies.length === 0) {
+    return (
+      <div className="w-full max-w-6xl mx-auto bg-white p-4 md:p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">
+            TOP HIRING COMPANIES
+          </h2>
+        </div>
+
+        {/* Blue Underline */}
+        <div className="w-10 h-[2px] bg-cyan-400 mt-1 mb-4"></div>
+
+        {/* Not Available Message */}
+        <div className="text-center py-6">
+          <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+            <FiChevronLeft size={18} className="text-gray-400" />
+            <FiChevronRight size={18} className="text-gray-400" />
+          </div>
+          <p className="text-gray-500 text-sm">Not Available</p>
+          <p className="text-gray-400 text-xs mt-1">
+            Companies will appear here as jobs are posted
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto bg-white p-4 md:p-6">
@@ -171,18 +155,24 @@ const TopCompanies = ({ jobs = [] }) => {
           <div
             key={`${company.name}-${index}`}
             className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 bg-white p-4 text-center hover:border-cyan-300 cursor-pointer"
-            onClick={() => handleCompanyClick(company.name, company.companyId)}
+           
           >
             {/* Company Logo/Initials */}
-            <div className="flex justify-center mb-3">
+            <div 
+            
+            className="flex justify-center mb-3"
+            >
               {company.logo ? (
                 <img
                   src={company.logo}
                   alt={company.name}
                   className="w-14 h-14 object-contain"
+                  onClick={()=>handleClickCompany(company)}
                 />
               ) : (
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                <div 
+                onClick={()=>handleClickCompany(company)}
+                className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                   {getInitials(company.name)}
                 </div>
               )}
@@ -205,6 +195,7 @@ const TopCompanies = ({ jobs = [] }) => {
 
             {/* Opening Button */}
             <button
+          
               className="
                 bg-cyan-600 text-white text-xs py-1.5 px-4 rounded-md 
                 transition-all duration-300 
@@ -213,7 +204,7 @@ const TopCompanies = ({ jobs = [] }) => {
               "
               onClick={(e) => {
                 e.stopPropagation();
-                handleCompanyClick(company.name, company.companyId);
+                handleCompanyClick(company);
               }}
             >
               VIEW JOBS
@@ -237,18 +228,6 @@ const TopCompanies = ({ jobs = [] }) => {
               aria-label={`Go to page ${idx + 1}`}
             />
           ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {companies.length === 0 && (
-        <div className="text-center py-6">
-          <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-            <FiChevronLeft size={18} className="text-gray-400" />
-            <FiChevronRight size={18} className="text-gray-400" />
-          </div>
-          <p className="text-gray-500 text-sm">No company data available</p>
-          <p className="text-gray-400 text-xs mt-1">Companies will appear here as jobs are posted</p>
         </div>
       )}
     </div>

@@ -211,7 +211,7 @@ export const AuthProvider = ({ children }) => {
 
       const redirectParam = new URLSearchParams(window.location.search).get("redirect");
 
-      navigate(redirectParam ? decodeURIComponent(redirectParam) : "/", { replace: true });
+      navigate(redirectParam ? decodeURIComponent(redirectParam) : "/home", { replace: true });
 
       return true;
 
@@ -313,7 +313,7 @@ export const AuthProvider = ({ children }) => {
       if (socket) socket.emit("userOffline", { userId: normalizedUser?._id });
 
       disconnectSocket();
-      setCanStartPresence(false);
+
 
       const preservedDeviceId = localStorage.getItem("deviceId");
       localStorage.clear();
@@ -326,7 +326,7 @@ export const AuthProvider = ({ children }) => {
       setSocket(null);
       setSocketConnected(false);
 
-      toast.success("👋 Logged out successfully");
+
       navigate("/login");
     }
   };

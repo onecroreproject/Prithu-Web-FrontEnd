@@ -91,10 +91,7 @@ const StoriesThumbnails = ({
                 </div>
               ))
             : feeds.length === 0 ? (
-                // Show empty state when no feeds
-                <div className="flex-shrink-0 w-full text-center py-10 text-gray-500">
-                  No stories available
-                </div>
+               ""
               ) : (
                 feeds.map((feed, index) => (
                   <div

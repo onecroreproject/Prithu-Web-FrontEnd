@@ -1,21 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiMapPin, FiHeart, FiTag, FiDollarSign, FiBriefcase, FiClock } from "react-icons/fi";
 
-export default function JobCards({ jobs = [], filterDomain = null }) {
-  const [currentJobIndex, setCurrentJobIndex] = useState(0);
-  const [selectedJob, setSelectedJob] = useState(null); // Added missing state
+const JobCards = ({ jobs = [] }) => {
   const navigate = useNavigate();
+  const [savedJobs, setSavedJobs] = useState({});
 
-  // Filter jobs by domain if provided
-  const filteredJobs = filterDomain
-    ? jobs.filter((job) => job.domain === filterDomain)
-    : jobs;
-
-  const handleJobClick = (job, index) => {
-    const sameRoleJobs = filteredJobs.filter(
-      (j) => j.jobRole === job.jobRole
-    );
-
+  const handleJobClick = (job) => {
+    const sameRoleJobs = jobs.filter((j) => j.jobRole === job.jobRole);
     const currentIndexInRole = sameRoleJobs.findIndex((j) => j._id === job._id);
 
     navigate(`/job/${job._id}`, {
@@ -27,20 +19,19 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
     });
   };
 
-  const handleNext = () => {
-    if (currentJobIndex < filteredJobs.length - 1) {
-      const nextJob = filteredJobs[currentJobIndex + 1];
-      setCurrentJobIndex((prev) => prev + 1);
-      setSelectedJob(nextJob);
+  const handleClickCompany = (companyId) => (e) => {
+    e.stopPropagation();
+    if (companyId) {
+      navigate(`/company/${companyId._id}`);
     }
   };
 
-  const handlePrevious = () => {
-    if (currentJobIndex > 0) {
-      const prevJob = filteredJobs[currentJobIndex - 1];
-      setCurrentJobIndex((prev) => prev - 1);
-      setSelectedJob(prevJob);
-    }
+  const toggleSaveJob = (jobId) => (e) => {
+    e.stopPropagation();
+    setSavedJobs(prev => ({
+      ...prev,
+      [jobId]: !prev[jobId]
+    }));
   };
 
   // Format salary range
@@ -70,16 +61,18 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
     return locationParts.length > 0 ? locationParts.join(', ') : 'Location not specified';
   };
 
-  // Get employment type display text
+  // Get employment type display text and color
   const getEmploymentType = (type) => {
     const typeMap = {
-      'full-time': 'Full Time',
-      'part-time': 'Part Time',
-      'contract': 'Contract',
-      'internship': 'Internship',
-      'freelance': 'Freelance'
+      'full-time': { label: 'FULL TIME', color: 'bg-blue-600' },
+      'part-time': { label: 'PART TIME', color: 'bg-orange-500' },
+      'contract': { label: 'CONTRACT', color: 'bg-purple-600' },
+      'internship': { label: 'INTERNSHIP', color: 'bg-green-600' },
+      'freelance': { label: 'FREELANCE', color: 'bg-purple-600' },
+      'temporary': { label: 'TEMPORARY', color: 'bg-red-500' }
     };
-    return typeMap[type] || type;
+    
+    return typeMap[type] || { label: type?.toUpperCase() || 'JOB', color: 'bg-gray-600' };
   };
 
   // Get initials for avatar
@@ -109,97 +102,134 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
     return "Experience not specified";
   };
 
-  const handleClickCompany = (companyId) => (e) => {
-    e.stopPropagation(); // Prevent triggering job click
-    if (companyId) {
-      navigate(`/company/${companyId}`);
-    }
-  };
-
   // Generate a unique key for each job
   const getJobKey = (job, idx) => {
     return job._id || `job-${job.jobTitle}-${job.companyName}-${idx}`;
   };
 
+  if (jobs.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">No jobs found matching your criteria.</p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredJobs.map((job, idx) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+      {jobs.map((job, idx) => {
+        const employmentType = getEmploymentType(job.employmentType);
+        
+        return (
           <div
             key={getJobKey(job, idx)}
-            className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer hover:border-blue-300 hover:transform hover:-translate-y-1"
+            className="border border-gray-300 rounded-lg p-6 hover:shadow-xl transition-all duration-300 bg-white hover:border-cyan-300 cursor-pointer"
+            onClick={() => handleJobClick(job)}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div
+            {/* Logo + Title */}
+            <div className="flex items-start gap-4">
+              <div 
                 onClick={handleClickCompany(job.companyId)}
-                className="flex items-center gap-3 cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                className="cursor-pointer"
+              >{job.companyLogo?  <img className="w-16 h-16 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm"
+                  src={job.companyLogo}>
+                </img>:  <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                   {getInitials(job.companyName)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                </div>}
+              
+              </div>
+
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 line-clamp-1">
+                  {job.jobTitle || "Untitled Position"}
+                </h2>
+                <div 
+                  onClick={handleClickCompany(job.companyId)}
+                  className="cursor-pointer"
+                >
+                  <p className="text-cyan-600 font-medium text-sm mt-1 hover:text-cyan-700 transition-colors">
                     {job.companyName || "Unknown Company"}
-                  </h3>
-                  <div className="flex items-center text-gray-500 text-xs mt-1">
-                    <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    </svg>
-                    <span className="line-clamp-1">{getLocationText(job)}</span>
-                  </div>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 text-gray-700 font-medium mt-2">
+                  <FiDollarSign className="text-green-600" />
+                  <span className="text-sm">{formatSalary(job)}</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-gray-600 mt-1">
+                  <FiMapPin />
+                  <span className="text-sm">{getLocationText(job)}</span>
                 </div>
               </div>
-              <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap">
-                {getEmploymentType(job.employmentType)}
-              </span>
             </div>
 
-            {/* Job Title */}
-            <h2 className="font-bold text-gray-900 text-lg mb-3 line-clamp-2 leading-tight">
-              {job.jobTitle || "Untitled Position"}
-            </h2>
+            {/* Buttons */}
+            <div className="flex items-center gap-3 mt-4">
+              <button 
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleJobClick(job);
+                }}
+              >
+                APPLY
+              </button>
 
-            {/* Job Description */}
-            <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
+              <button
+                className={`text-white px-4 py-2 rounded-md text-sm font-medium ${employmentType.color}`}
+              >
+                {employmentType.label}
+              </button>
+
+              <button 
+                className={`p-2 border rounded-md hover:border-red-300 transition-colors ${
+                  savedJobs[job._id] 
+                    ? 'text-red-500 border-red-300' 
+                    : 'text-gray-500 border-gray-300'
+                }`}
+                onClick={toggleSaveJob(job._id)}
+              >
+                <FiHeart />
+              </button>
+            </div>
+
+            {/* Job Description
+            <p className="text-gray-600 text-sm mt-4 line-clamp-3 leading-relaxed">
               {job.jobDescription || "No description available"}
-            </p>
+            </p> */}
 
             {/* Key Details */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2 mt-4">
               <div className="flex items-center text-sm text-gray-600">
-                <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-                <span>{formatSalary(job)}</span>
-              </div>
-              
-              <div className="flex items-center text-sm text-gray-600">
-                <svg className="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+                <FiBriefcase className="w-4 h-4 mr-2 text-purple-600" />
                 <span>{formatExperience(job)}</span>
               </div>
-
+              
               {job.requiredSkills && job.requiredSkills.length > 0 && (
-                <div className="flex items-start text-sm text-gray-600">
-                  <svg className="w-4 h-4 mr-2 text-orange-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span className="line-clamp-1">
-                    Skills: {job.requiredSkills.slice(0, 2).join(', ')}
-                    {job.requiredSkills.length > 2 && ` +${job.requiredSkills.length - 2} more`}
-                  </span>
+                <div className="flex items-center text-sm text-gray-600">
+                  <FiTag className="w-4 h-4 mr-2 text-cyan-500" />
+                  <span className="font-medium">Tags:</span>
+                  <div className="ml-2 flex flex-wrap gap-1">
+                    {job.requiredSkills.slice(0, 3).map((skill, i) => (
+                      <span key={i} className="text-cyan-600 text-xs">
+                        {skill},
+                      </span>
+                    ))}
+                    {job.requiredSkills.length > 3 && (
+                      <span className="text-cyan-600 text-xs">
+                        +{job.requiredSkills.length - 3} more
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-xs text-gray-500 flex items-center">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
+              <div className="flex items-center text-xs text-gray-500">
+                <FiClock className="w-3 h-3 mr-1" />
                 {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Date not available"}
               </div>
               
@@ -207,17 +237,11 @@ export default function JobCards({ jobs = [], filterDomain = null }) {
                 {(job.openingsCount || 0)} opening{(job.openingsCount || 0) > 1 ? 's' : ''}
               </div>
             </div>
-
-            {/* Quick Apply Button */}
-            <button 
-              onClick={() => handleJobClick(job, idx)}
-              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
-            >
-              Quick Apply
-            </button>
           </div>
-        ))}
-      </div>
-    </>
+        );
+      })}
+    </div>
   );
-}
+};
+
+export default JobCards;

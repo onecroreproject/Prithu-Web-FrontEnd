@@ -11,6 +11,7 @@ import JobTopRolesCard from "./Jobs/JobCardComponets/topRoles";
 import JobLatestOpeningsCard from "./Jobs/JobCardComponets/latestOpenings";
 import JobFeaturedCompaniesCard from "./Jobs/JobCardComponets/featureCompanies";
 import { useNavigate } from "react-router-dom";
+import TopAptitudePerformace from "./topAptitudePerformace";
 
 export default function Layout() {
   const location = useLocation();
@@ -29,12 +30,12 @@ export default function Layout() {
   // Home page or hashtag page or retrivefeed page
   const isRetrieveFeed = location.pathname.startsWith("/retrivefeed");
   const isHashtagPage = location.pathname.startsWith("/hashtag/");
-  const isHome = location.pathname === "/" || isRetrieveFeed || isHashtagPage;
+  const isHome = location.pathname === "/home" || isRetrieveFeed || isHashtagPage;
 
   const showRightColumn = !isFullWidth && isHome;
 
   const handleBackClick = () => {
-    navigate("/");
+    navigate("/home");
   };
 
   return (
@@ -75,7 +76,7 @@ export default function Layout() {
               <Feed tagname={tagname} />
             ) : isRetrieveFeed ? (
               <Feed notifyfeedid={notifyfeedid} />
-            ) : location.pathname === "/" ? (
+            ) : location.pathname === "/home" ? (
               <Feed />
             ) : (
               <Outlet />
@@ -94,6 +95,7 @@ export default function Layout() {
                 <JobTopRolesCard />
                 <JobLatestOpeningsCard />
                 <JobFeaturedCompaniesCard />
+                <TopAptitudePerformace/>
               </div>
             </aside>
           )}

@@ -61,7 +61,7 @@ export const getAllJobs = async (params = {}, token) => {
 
     // Call backend with full query string
     const response = await api.get(`/job/user/get/all?${queryString}`, config);
-
+    console.log(response.data)
     return response.data?.jobs || [];
   } catch (error) {
     console.error("❌ Error fetching all jobs:", error.response?.data || error.message);

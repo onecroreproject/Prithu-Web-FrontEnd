@@ -152,7 +152,7 @@ export default function MobileSearchBar({
                               })
                             );
 
-                            navigate("/");   // go to Feed
+                            navigate("/home");   // go to Feed
                             setMobileSearchOpen(false);  // close search
                           }}
                           className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
@@ -188,7 +188,7 @@ export default function MobileSearchBar({
                               detail: { categoryId: c._id }
                             })
                           );
-                          navigate("/");
+                          navigate("/home");
                           setMobileSearchOpen(false);
                         }}
                         className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"

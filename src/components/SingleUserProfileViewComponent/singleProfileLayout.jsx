@@ -212,7 +212,7 @@ const handleFollowUser = async () => {
     shouldShowModal.current = false; // Prevent modal from showing again
     // Navigate to home after a small delay
     setTimeout(() => {
-      navigate("/");
+      navigate("/home");
     }, 300);
   };
 

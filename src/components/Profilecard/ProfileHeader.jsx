@@ -134,7 +134,7 @@ export default function ProfileHeader({ id }) {
         { userId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      navigate("/")
+      navigate("/home")
       toast.success("Unfollowed successfully!");
       await refetch();
     } catch (err) {

@@ -5,7 +5,8 @@ import {
   FiSearch,
   FiX,
   FiChevronDown,
-  FiChevronUp
+  FiChevronUp,
+  FiLoader
 } from "react-icons/fi";
 import { MdWork } from "react-icons/md";
 
@@ -24,13 +25,23 @@ const BasicInfoTab = ({
   filteredCategories,
   filteredRoles,
   categoryRef,
-  roleRef
+  roleRef,
+  employmentTypes,
+  workModes,
+  shiftTypes,
+  urgencyLevels,
+  countries = [],
+  states = [],
+  cities = [],
+  areas = [],
+  pincodes = [],
+  loading = {
+    states: false,
+    cities: false,
+    areas: false,
+    pincodes: false
+  }
 }) => {
-  const employmentTypes = ["full-time", "part-time", "contract", "internship", "freelance"];
-  const workModes = ["onsite", "remote", "hybrid"];
-  const shiftTypes = ["day", "night", "rotational", "flexible"];
-  const urgencyLevels = ["immediate", "15 days", "30 days"];
-
   return (
     <div className="space-y-8">
       <div>
@@ -39,6 +50,7 @@ const BasicInfoTab = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* LEFT COLUMN */}
         <div className="space-y-6">
           {/* Job Title */}
           <div>
@@ -95,7 +107,6 @@ const BasicInfoTab = ({
                 </button>
               </div>
               
-              {/* Category Dropdown */}
               {showCategoryDropdown && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {filteredCategories.length > 0 ? (
@@ -176,7 +187,6 @@ const BasicInfoTab = ({
                 </button>
               </div>
               
-              {/* Role Dropdown */}
               {showRoleDropdown && (
                 <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {filteredRoles.length > 0 ? (
@@ -322,8 +332,8 @@ const BasicInfoTab = ({
           </div>
         </div>
 
+        {/* RIGHT COLUMN - Location Selector */}
         <div className="space-y-6">
-          {/* Location Information */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">
               <div className="flex items-center gap-2">
@@ -332,55 +342,214 @@ const BasicInfoTab = ({
               </div>
             </label>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
+              {/* Country */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country *
+                </label>
+                <div className="relative">
+                  <select
+                    name="country"
+                    value={formData.country || ''}
+                    onChange={handleInputChange}
+                    required
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none ${
+                      errors.country ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">Select Country</option>
+                    {countries.map((country) => (
+                      <option key={country.iso3 || country.name} value={country.name}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <FiChevronDown />
+                  </div>
+                </div>
+                {errors.country && <p className="text-red-500 text-sm mt-2">{errors.country}</p>}
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State/Province *
+                </label>
+                <div className="relative">
+                  <select
+                    name="state"
+                    value={formData.state || ''}
+                    onChange={handleInputChange}
+                    required
+                    disabled={!formData.country || loading.states}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none ${
+                      !formData.country ? 'bg-gray-100 cursor-not-allowed' : errors.state ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">
+                      {loading.states ? 'Loading states...' : formData.country ? 'Select State' : 'Select country first'}
+                    </option>
+                    {states.map((state) => (
+                      <option key={state.iso2 || state.name} value={state.name}>
+                        {state.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    {loading.states ? (
+                      <FiLoader className="animate-spin" />
+                    ) : (
+                      <FiChevronDown />
+                    )}
+                  </div>
+                </div>
+                {errors.state && <p className="text-red-500 text-sm mt-2">{errors.state}</p>}
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City *
+                </label>
+                <div className="relative">
+                  <select
+                    name="city"
+                    value={formData.city || ''}
+                    onChange={handleInputChange}
+                    required
+                    disabled={!formData.state || loading.cities}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none ${
+                      !formData.state ? 'bg-gray-100 cursor-not-allowed' : errors.city ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <option value="">
+                      {loading.cities ? 'Loading cities...' : formData.state ? 'Select City' : 'Select state first'}
+                    </option>
+                    {cities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    {loading.cities ? (
+                      <FiLoader className="animate-spin" />
+                    ) : (
+                      <FiChevronDown />
+                    )}
+                  </div>
+                </div>
+                {errors.city && <p className="text-red-500 text-sm mt-2">{errors.city}</p>}
+              </div>
+
+              {/* Area/Village (India specific) */}
+              {formData.country === 'India' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Area/Village
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="area"
+                      value={formData.area || ''}
+                      onChange={handleInputChange}
+                      disabled={!formData.city || loading.areas}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none ${
+                        !formData.city ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">
+                        {loading.areas ? 'Loading areas...' : formData.city ? 'Select Area' : 'Select city first'}
+                      </option>
+                      {areas.map((area) => (
+                        <option key={area} value={area}>
+                          {area}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                      {loading.areas ? (
+                        <FiLoader className="animate-spin" />
+                      ) : (
+                        <FiChevronDown />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pincode */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pincode/ZIP Code *
+                </label>
+                {formData.country === 'India' ? (
+                  <div className="relative">
+                    <select
+                      name="pincode"
+                      value={formData.pincode || ''}
+                      onChange={handleInputChange}
+                      required
+                      disabled={loading.pincodes}
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none ${
+                        errors.pincode ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">
+                        {loading.pincodes ? 'Loading pincodes...' : 'Select Pincode'}
+                      </option>
+                      {pincodes.map((pincode) => (
+                        <option key={pincode} value={pincode}>
+                          {pincode}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                      {loading.pincodes ? (
+                        <FiLoader className="animate-spin" />
+                      ) : (
+                        <FiChevronDown />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode || ''}
+                    onChange={handleInputChange}
+                    required
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                      errors.pincode ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter ZIP/Pincode"
+                  />
+                )}
+                {errors.pincode && <p className="text-red-500 text-sm mt-2">{errors.pincode}</p>}
+              </div>
+
+              {/* Full Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Address
+                </label>
+                <textarea
+                  name="fullAddress"
+                  value={formData.fullAddress || ''}
                   onChange={handleInputChange}
-                  placeholder="City"
-                  className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                />
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleInputChange}
-                  placeholder="State"
-                  className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  rows={2}
+                  placeholder="Street address, building, landmark, etc."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  placeholder="Country"
-                  className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                />
-                <input
-                  type="text"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleInputChange}
-                  placeholder="Pincode"
-                  className="px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-              <textarea
-                name="fullAddress"
-                value={formData.fullAddress}
-                onChange={handleInputChange}
-                rows={3}
-                placeholder="Full Address"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
-              />
-              <div className="flex items-center">
+
+              {/* Remote Eligibility */}
+              <div className="flex items-center pt-2">
                 <input
                   type="checkbox"
                   name="remoteEligibility"
-                  checked={formData.remoteEligibility}
+                  checked={formData.remoteEligibility || false}
                   onChange={handleInputChange}
                   className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   id="remoteEligibility"
@@ -399,7 +568,7 @@ const BasicInfoTab = ({
             </label>
             <select
               name="urgencyLevel"
-              value={formData.urgencyLevel}
+              value={formData.urgencyLevel || ''}
               onChange={handleInputChange}
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             >

@@ -4,7 +4,7 @@
 // import { AuthContext } from "../../context/AuthContext";
 
 // const navItems = [
-//   { to: "/", label: "Home", Icon: Home },
+//   { to: "/home", label: "Home", Icon: Home },
 //   { to: "/search", label: "Search", Icon: Search },
 //   { to: "/reels", label: "Reels", Icon: Video },
 //   { to: "/subscriptions", label: "Subscriptions", Icon: BellRing },

@@ -162,7 +162,7 @@ export default function CreatePostModal({ open, onClose }) {
 
       const res = await uploadCreatorFeed(formData, token);
       toast.success(res.message || "Feed uploaded successfully");
-      navigate("/")
+      navigate("/home")
       resetAll();
       onClose?.();
     } catch (err) {

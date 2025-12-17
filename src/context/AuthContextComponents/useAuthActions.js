@@ -54,7 +54,7 @@ export const useAuthActions = ({
       await fetchUserProfile(accessToken);
       connectSocket(accessToken, sessionId);
       toast.success("✅ Logged in successfully!");
-      navigate("/");
+      navigate("/home");
     } catch (err) {
       toast.error(err.response?.data?.error || "Login failed ❌");
     } finally {

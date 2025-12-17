@@ -10,11 +10,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase, Activity, Users, Brain, GraduationCap, BookOpen
+  Calendar, Briefcase, Activity, Users, Brain, GraduationCap, BookOpen,
+  MessageCircle, Heart, UserPlus, Eye
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
-import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import api from "../api/axios";
 import CreatePostModal from "../components/CreatePostModal";
 import { useAuth } from "../context/AuthContext";
@@ -29,6 +29,11 @@ import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 import CommunityComingSoon from "../UnderConstructionPages/commmunity";
 import LearningComingSoon from "../UnderConstructionPages/learning";
 import EventsComingSoon from "../UnderConstructionPages/event";
+import Referral from "../UnderConstructionPages/referralCommigSoon";
+import Subscription from "../UnderConstructionPages/subcriptionCommingSoon"; // NEW: Import Subscription
+
+// Import the existing NotificationDropdown for mobile
+import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
@@ -51,6 +56,11 @@ export default function Header() {
   const [showCommunityPopup, setShowCommunityPopup] = useState(false);
   const [showLearningPopup, setShowLearningPopup] = useState(false);
   const [showEventsPopup, setShowEventsPopup] = useState(false);
+  const [showReferralPopup, setShowReferralPopup] = useState(false); // NEW
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false); // NEW
+  
+  // Notification states
+  const [notifications, setNotifications] = useState([]);
   
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,46 +77,55 @@ export default function Header() {
   const mobileMenuRef = useRef(null);
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
+  const notifPanelRef = useRef(null);
+  
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
-  // Main menu items to show directly in sidebar (NO dropdown needed)
+  // Main menu items to show directly in sidebar
   const mainMenuItems = [
-
+    { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
     { to: "/search", label: "Search", Icon: Search, desc: "Search content" },
-    // { to: "/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
- 
+    { to: "/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
   ];
 
-  // Profile menu items (shown directly in sidebar)
+  // Profile menu items
   const profileMenuItems = [
-    { to: "/profile", label: "Profile", Icon: User, desc: "View your profile" },
-    { to: "/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
-   {
-  to: `/portfolio/${user?.userName || "user"}`,
-  label: "Portfolio",
-  Icon: Briefcase,
-  desc: "Your portfolio",
-  onClick: (e) => {
-    e.preventDefault();
-
-    if (user?.userName) {
-      window.open(`/portfolio/${user.userName}`, "_blank"); 
-      // "_blank" ensures new tab
-    } else {
-      toast.error("Username not found");
+    { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
+    { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
+    {
+      to: `/portfolio/${user?.userName || "user"}`,
+      label: "Portfolio",
+      Icon: Briefcase,
+      desc: "Your portfolio",
     }
-  }
-}
-
   ];
 
-  // Settings menu items
+  // Settings menu items - UPDATED with onClick handlers
   const settingsMenuItems = [
     { to: "/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
-    { to: "/subscriptions", label: "Subscriptions", Icon: BellRing, desc: "Manage subscriptions" },
-    { to: "/referral", label: "Referral", Icon: Gift, desc: "Referral program" },
+    { 
+      to: "/subscriptions", 
+      label: "Subscriptions", 
+      Icon: BellRing, 
+      desc: "Manage subscriptions",
+      onClick: (e) => {
+        e.preventDefault(); // Prevent navigation
+        setShowSubscriptionPopup(true);
+      }
+    },
+    { 
+      to: "/referral", 
+      label: "Referral", 
+      Icon: Gift, 
+      desc: "Referral program",
+      onClick: (e) => {
+        e.preventDefault(); // Prevent navigation
+        setShowReferralPopup(true);
+      }
+    },
   ];
 
-  // Feature items (Quick Access) - Updated with popup handlers
+  // Feature items
   const featureItems = [
     { 
       Icon: Briefcase, 
@@ -139,33 +158,188 @@ export default function Header() {
     if (token) fetchUserProfile();
   }, [token]);
 
-  // Real-time notification updates
-  useEffect(() => {
-    const handleNewNotif = e => {
-      const notif = e.detail;
-      console.log("🔔 New notification received:", notif);
+  // ✅ Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await api.get("/api/get/user/all/notification", authHeader);
+      const list = res.data?.notifications || [];
+      setNotifications(list);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+    }
+  }, [token]);
 
+  // ✅ Live socket updates
+  useEffect(() => {
+    const handleNewNotif = (e) => {
+      const notif = e.detail;
+      setNotifications((prev) => [notif, ...prev]);
+      refreshNotifications();
+      
       toast.success(`🔔 ${notif.title || "New notification!"}`, {
         duration: 4000,
         position: "top-right",
       });
-
-      refreshNotifications();
-    };
-
-    const handleNotifRead = () => {
-      console.log("📨 Notifications marked as read");
-      refreshNotifications();
     };
 
     document.addEventListener("socket:newNotification", handleNewNotif);
-    document.addEventListener("socket:notificationRead", handleNotifRead);
-
-    return () => {
-      document.removeEventListener("socket:newNotification", handleNewNotif);
-      document.removeEventListener("socket:notificationRead", handleNotifRead);
-    };
+    return () => document.removeEventListener("socket:newNotification", handleNewNotif);
   }, [refreshNotifications]);
+
+  // ✅ Fetch when notification panel opens
+  useEffect(() => {
+    if (notifOpen) fetchNotifications();
+  }, [notifOpen, fetchNotifications]);
+
+  // ✅ Mark all as read
+  const markAllAsRead = async () => {
+    try {
+      await api.put("/api/mark/all/notification/read", {}, authHeader);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      refreshNotifications();
+      toast.success("All notifications marked as read!");
+    } catch (err) {
+      toast.error("Failed to mark notifications as read");
+    }
+  };
+
+  // ✅ Delete all notifications
+  const handleDeleteAllNotifications = async () => {
+    try {
+      await api.delete("/api/user/delete/all/notification", authHeader);
+      setNotifications([]);
+      refreshNotifications();
+      toast.success("All notifications deleted");
+    } catch (err) {
+      console.error("❌ Delete all error:", err);
+      toast.error("Failed to delete all notifications");
+    }
+  };
+
+  // ✅ Mark single notification as read
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      try {
+        await api.put("/api/user/read", { notificationId: notif._id }, authHeader);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n._id === notif._id ? { ...n, isRead: true } : n
+          )
+        );
+        refreshNotifications();
+      } catch (err) {
+        console.error("❌ Mark read error:", err);
+      }
+    }
+  };
+
+  // ✅ Delete individual notification
+  const handleDeleteNotification = async (notifId) => {
+    try {
+      await api.delete("/api/user/delete/notification", {
+        ...authHeader,
+        data: { notificationId: notifId },
+      });
+      setNotifications((prev) => prev.filter((n) => n._id !== notifId));
+      refreshNotifications();
+      toast.success("Notification deleted successfully");
+    } catch (err) {
+      console.error("❌ Delete error:", err);
+      toast.error("Failed to delete notification");
+    }
+  };
+
+  // ✅ Close notification panel when clicking outside
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Helper function to get notification icon
+  const getNotificationIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'like':
+        return <Heart className="w-4 h-4 text-pink-500" />;
+      case 'comment':
+      case 'reply':
+        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      case 'follow':
+        return <UserPlus className="w-4 h-4 text-green-500" />;
+      case 'story_like':
+        return <Heart className="w-4 h-4 text-purple-500" />;
+      case 'story_view':
+        return <Eye className="w-4 h-4 text-blue-400" />;
+      default:
+        return <BellRing className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "Just now";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString();
+  };
+
+  // Group notifications by time
+  const groupedNotifications = useMemo(() => {
+    const groups = {
+      Today: [],
+      Yesterday: [],
+      "This Week": [],
+      "This Month": [],
+      Older: []
+    };
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(todayStart);
+    monthStart.setDate(monthStart.getDate() - 30);
+
+    notifications.forEach(notif => {
+      const notifDate = new Date(notif.createdAt || notif.timestamp || now);
+      
+      if (notifDate >= todayStart) {
+        groups.Today.push(notif);
+      } else if (notifDate >= yesterdayStart) {
+        groups.Yesterday.push(notif);
+      } else if (notifDate >= weekStart) {
+        groups["This Week"].push(notif);
+      } else if (notifDate >= monthStart) {
+        groups["This Month"].push(notif);
+      } else {
+        groups.Older.push(notif);
+      }
+    });
+
+    // Remove empty groups
+    Object.keys(groups).forEach(key => {
+      if (groups[key].length === 0) delete groups[key];
+    });
+
+    return groups;
+  }, [notifications]);
 
   // Outside click handlers
   useEffect(() => {
@@ -190,11 +364,12 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
-  // Close all popups when clicking outside or on mobile menu close
   const closeAllPopups = () => {
     setShowCommunityPopup(false);
     setShowLearningPopup(false);
     setShowEventsPopup(false);
+    setShowReferralPopup(false);
+    setShowSubscriptionPopup(false);
   };
 
   // Search helpers
@@ -298,7 +473,7 @@ export default function Header() {
       navigate(`/user/profile/${payload.userName}`);
     } else if (type === "categories") {
       navigate(`/category/${payload._id}`);
-     } else if (type === "profile") {
+    } else if (type === "profile") {
       navigate(`/category/${payload._id}`);
     } else if (type === "jobs") {
       navigate(`/job/view/${payload._id}`);
@@ -351,13 +526,11 @@ export default function Header() {
     }
   };
 
-  // Handle mobile menu close with popups
   const handleMobileMenuClose = () => {
     setMobileMenuOpen(false);
     closeAllPopups();
   };
 
-  // Handle portfolio navigation
   const handlePortfolioClick = (e) => {
     e.preventDefault();
     if (user?.userName) {
@@ -371,200 +544,362 @@ export default function Header() {
     <Fragment>
       {/* DESKTOP SIDEBAR */}
       <motion.aside
-  className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-100 z-50"
-  initial={{ x: -100, opacity: 0 }}
-  animate={{ x: 0, opacity: 1 }}
-  transition={{ duration: 0.3, ease: "easeOut" }}
->
-  {/* Logo Section with Notification */}
-  <div className="flex items-center justify-between border-b border-gray-100">
-    <div
-      onClick={() => {
-        if (window.location.pathname === "/") {
-          localStorage.setItem("scrollToFeed", "true");
-          window.location.reload();
-        } else {
-          navigate("/");
-        }
-      }}
-      className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded-lg"
-    >
-      <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
-        <img 
-          src={PrithuLogo} 
-          alt="Prithu Logo" 
-          className="w-9 h-9 transition-transform duration-200 hover:scale-105" 
-        />
-      </motion.div>
-      <motion.h1 
-        className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
-        whileHover={{ scale: 1.05 }}
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-100 z-50"
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        PRITHU
-      </motion.h1>
-    </div>
-    
-    {/* Notification Icon in Header */}
-    <div className="relative">
-      <button
-        onClick={handleBellClick}
-        className={`p-2.5 rounded-lg transition-all duration-200 ${
-          notifOpen 
-            ? "bg-blue-100 ring-2 ring-blue-200" 
-            : "hover:bg-gray-100"
-        }`}
-      >
-        <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
-        {notifCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-            {notifCount > 99 ? '99+' : notifCount}
-          </span>
-        )}
-      </button>
-    </div>
-     
-  </div>
-
-  
-
-  {/* Sidebar Navigation */}
-  <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-  
-    {/* Main Navigation */}
-    <div className="mb-2">
-
-
-
-       {mainMenuItems.map(({ to, label, Icon, desc, badge }) => (
-    <NavLink
-      key={to}
-      to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-2 px-3 py-2 rounded-lg transition-all w-full text-left ${
-          isActive
-            ? "bg-blue-50 text-blue-700 font-semibold"
-            : "text-gray-700 hover:bg-gray-50"
-        }`
-      }
-      onClick={label === "Reels" ? handleReelClick : undefined}
-    >
-      <Icon className={`w-5 h-5 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
-      <span className="text-sm">{label}</span>
-      {badge && (
-        <span className="ml-auto bg-red-500 text-white text-xs rounded-full min-w-[18px] h-4 flex items-center justify-center px-1">
-          {badge}
-        </span>
-      )}
-    </NavLink>
-  ))}
-  {/* Create Post Button */}
-  <div className="mb-2">
-    <button
-      onClick={() => setIsCreatePostOpen(true)}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700"
-    >
-      <div className="w-4 h-4 flex items-center justify-center">
-        <Plus className="w-5 h-5" />
-      </div>
-      <span className="text-sm">Create Post</span>
-    </button>
-  </div>
-  
- 
-</div>
-
-
-    {/* Feature Items */}
-    <div className="mb-4">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Features</h3>
-      {featureItems.map((item) => (
-        <button
-          key={item.label}
-          onClick={() => {
-            item.onClick();
-            setMobileMenuOpen(false);
-          }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 group"
-        >
-          <item.Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-sm">{item.label}</span>
-        </button>
-      ))}
-    </div>
-
-    {/* Profile Section */}
-    <div className="mb-4">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Profile</h3>
-      {profileMenuItems.map((item) => {
-        if (item.label === "Portfolio") {
-          return (
-            <button
-              key={item.label}
-              onClick={handlePortfolioClick}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
-            >
-              <item.Icon className="w-5 h-5" />
-              <div className="flex-1">
-                <span className="text-sm">{item.label}</span>
-  
-              </div>
-            </button>
-          );
-        }
-        
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
-                isActive
-                  ? "bg-blue-50 text-blue-700 font-semibold"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`
-            }
+        {/* Logo Section with Notification */}
+        <div className="flex items-center justify-between border-b border-gray-100">
+          <div
+            onClick={() => {
+              if (window.location.pathname === "/") {
+                localStorage.setItem("scrollToFeed", "true");
+                window.location.reload();
+              } else {
+                navigate("/");
+              }
+            }}
+            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded-lg"
           >
-            <item.Icon className="w-5 h-5" />
-            <div className="flex-1">
-              <span className="text-sm">{item.label}</span>
-            </div>
-          </NavLink>
-        );
-      })}
-    </div>
-
-    {/* Settings Section */}
-    <div className="mt-auto pt-4 border-t border-gray-100">
-      {settingsMenuItems.map(({ to, label, Icon, desc }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
-              isActive
-                ? "bg-blue-50 text-blue-700 font-semibold"
-                : "text-gray-700 hover:bg-gray-50"
-            }`
-          }
-        >
-          <Icon className="w-5 h-5" />
-          <div className="flex-1">
-            <span className="text-sm">{label}</span>
+            <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
+              <img 
+                src={PrithuLogo} 
+                alt="Prithu Logo" 
+                className="w-9 h-9 transition-transform duration-200 hover:scale-105" 
+              />
+            </motion.div>
+            <motion.h1 
+              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+              whileHover={{ scale: 1.05 }}
+            >
+              PRITHU
+            </motion.h1>
           </div>
-        </NavLink>
-      ))}
-      
-      {/* Logout Button */}
-      <button
-        onClick={logout}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 mt-2"
-      >
-        <LogOut className="w-5 h-5" />
-        <span className="text-sm">Logout</span>
-      </button>
-    </div>
-  </nav>
-</motion.aside>
+          
+          {/* Notification Icon in Header */}
+          <div className="relative" ref={notificationRef}>
+            <button
+              onClick={handleBellClick}
+              className={`p-2.5 rounded-lg transition-all duration-200 ${
+                notifOpen 
+                  ? "bg-blue-100 ring-2 ring-blue-200" 
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                  {notifCount > 99 ? '99+' : notifCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Instagram-like Left Sidebar Notification Panel (Desktop Only) */}
+        <AnimatePresence>
+          {notifOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/30 z-40"
+                onClick={() => setNotifOpen(false)}
+              />
+              
+              {/* Notification Panel */}
+              <motion.div
+                ref={notifPanelRef}
+                initial={{ x: -320 }}
+                animate={{ x: 0 }}
+                exit={{ x: -320 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="fixed left-0 top-0 h-screen w-[320px] bg-white shadow-2xl z-50 border-r border-gray-200"
+              >
+                {/* Panel Header */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
+                    <button
+                      onClick={() => setNotifOpen(false)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      onClick={markAllAsRead}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      Mark all as read
+                    </button>
+                    <button
+                      onClick={handleDeleteAllNotifications}
+                      className="flex-1 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notification List */}
+                <div className="h-[calc(100vh-120px)] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <BellRing className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
+                      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
+                        <div key={groupName} className="py-2">
+                          {/* Group Header */}
+                          <div className="px-4 py-2">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                              {groupName}
+                            </h3>
+                          </div>
+                          
+                          {/* Group Notifications */}
+                          {groupNotifications.map((notif) => (
+                            <motion.div
+                              key={notif._id || notif.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                                !notif.isRead ? "bg-blue-50/50" : ""
+                              }`}
+                              onClick={() => handleNotificationClick(notif)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Avatar */}
+                                <div className="relative">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                                    {notif.senderAvatar ? (
+                                      <img
+                                        src={notif.senderAvatar}
+                                        alt=""
+                                        className="w-10 h-10 rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-blue-600 font-semibold">
+                                        {(notif.senderName?.[0] || "U").toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Notification Type Icon */}
+                                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                                    {getNotificationIcon(notif.type)}
+                                  </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {notif.senderName || "User"}
+                                      </p>
+                                      <p className="text-sm text-gray-600 mt-0.5">
+                                        {notif.message || notif.title || "New notification"}
+                                      </p>
+                                    </div>
+                                    {!notif.isRead && (
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Time and Actions */}
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="text-xs text-gray-500">
+                                      {formatTime(notif.createdAt)}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteNotification(notif._id);
+                                      }}
+                                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* View All Button */}
+                {notifications.length > 0 && (
+                  <div className="border-t border-gray-200 p-4">
+                    <button
+                      onClick={() => {
+                        navigate("/notifications");
+                        setNotifOpen(false);
+                      }}
+                      className="w-full py-2.5 text-center text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      View all notifications
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {/* Main Navigation */}
+          <div className="mb-2">
+            {mainMenuItems.map(({ to, label, Icon, desc }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-all w-full text-left ${
+                    isActive
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`
+                }
+                onClick={label === "Reels" ? handleReelClick : undefined}
+              >
+                <Icon className={`w-5 h-5 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
+                <span className="text-sm">{label}</span>
+              </NavLink>
+            ))}
+            
+            {/* Create Post Button */}
+            <div className="mb-2">
+              <button
+                onClick={() => setIsCreatePostOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700"
+              >
+                <div className="w-4 h-4 flex items-center justify-center">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <span className="text-sm">Create Post</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Feature Items */}
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Features</h3>
+            {featureItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  item.onClick();
+                }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 group"
+              >
+                <item.Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Profile Section */}
+          <div className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Profile</h3>
+            {profileMenuItems.map((item) => {
+              if (item.label === "Portfolio") {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={handlePortfolioClick}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                  >
+                    <item.Icon className="w-5 h-5" />
+                    <div className="flex-1">
+                      <span className="text-sm">{item.label}</span>
+                    </div>
+                  </button>
+                );
+              }
+              
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700 font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`
+                  }
+                >
+                  <item.Icon className="w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-sm">{item.label}</span>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
+
+          {/* Settings Section */}
+          <div className="mt-auto pt-4 border-t border-gray-100">
+            {settingsMenuItems.map(({ to, label, Icon, onClick }) => (
+              onClick ? (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                >
+                  <Icon className="w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-sm">{label}</span>
+                  </div>
+                </button>
+              ) : (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700 font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`
+                  }
+                >
+                  <Icon className="w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-sm">{label}</span>
+                  </div>
+                </NavLink>
+              )
+            ))}
+            
+            {/* Logout Button */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 mt-2"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-sm">Logout</span>
+            </button>
+          </div>
+        </nav>
+      </motion.aside>
 
       {/* MOBILE HEADER */}
       <motion.header
@@ -637,57 +972,9 @@ export default function Header() {
             <Search className="w-5 h-5 text-blue-600" />
           </button>
 
-          {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-2">
-           
-
-            {/* Reels */}
-            <motion.button
-              onClick={handleReelClick}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${isReelsActive 
-                ? "bg-blue-100 text-blue-700 border border-blue-200" 
-                : "hover:bg-gray-100 text-gray-700"
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Video className={`w-5 h-5 ${isReelsActive ? "text-blue-600" : "text-gray-600"}`} />
-              <span className="text-sm font-medium">Reels</span>
-            </motion.button>
-
-            {/* Notification */}
-            <div ref={notificationRef} className="relative">
-              <motion.button
-                onClick={handleBellClick}
-                className={`relative p-2.5 rounded-lg transition-all duration-200 ${notifOpen 
-                  ? "bg-blue-100 ring-2 ring-blue-200" 
-                  : "hover:bg-gray-100"
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
-                {notifCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow"
-                  >
-                    {notifCount > 99 ? '99+' : notifCount}
-                  </motion.span>
-                )}
-              </motion.button>
-              <NotificationDropdown
-                isOpen={notifOpen}
-                onClose={() => setNotifOpen(false)}
-                onUpdateCount={refreshNotifications}
-              />
-            </div>
-          </div>
-
           {/* Mobile Menu Button */}
           <div className="flex lg:hidden items-center gap-2">
-            {/* Notification for mobile */}
+            {/* Notification for mobile - Use the existing dropdown */}
             <div ref={notificationRef} className="relative">
               <motion.button
                 onClick={handleBellClick}
@@ -703,6 +990,13 @@ export default function Header() {
                   </span>
                 )}
               </motion.button>
+              
+              {/* Use existing NotificationDropdown for mobile */}
+              <NotificationDropdown
+                isOpen={notifOpen}
+                onClose={() => setNotifOpen(false)}
+                onUpdateCount={refreshNotifications}
+              />
             </div>
 
             {/* Hamburger Menu */}
@@ -780,7 +1074,7 @@ export default function Header() {
 
               {/* Main Navigation Links */}
               <div className="space-y-1 mb-4">
-                {mainMenuItems.map(({ to, label, Icon, desc, badge }) => (
+                {mainMenuItems.map(({ to, label, Icon, desc }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -799,11 +1093,6 @@ export default function Header() {
                       <p className="font-medium">{label}</p>
                       <p className="text-xs text-gray-500">{desc}</p>
                     </div>
-                    {badge && (
-                      <span className="bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-                        {badge}
-                      </span>
-                    )}
                   </NavLink>
                 ))}
               </div>
@@ -873,7 +1162,6 @@ export default function Header() {
                     >
                       <item.Icon className="w-5 h-5 text-gray-600 mb-1 group-hover:scale-110 transition-transform" />
                       <span className="text-xs text-gray-700 font-medium">{item.label}</span>
-                     
                     </button>
                   ))}
                 </div>
@@ -883,29 +1171,46 @@ export default function Header() {
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Settings</h3>
                 <div className="space-y-1">
-                  {settingsMenuItems.map(({ to, label, Icon, desc }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      onClick={handleMobileMenuClose}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                          ? "bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-700 hover:bg-gray-50"
-                        }`
-                      }
-                    >
-                      <div className={`p-2 rounded-lg bg-gray-100`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{label}</p>
-                      </div>
-                    </NavLink>
+                  {settingsMenuItems.map(({ to, label, Icon, desc, onClick }) => (
+                    onClick ? (
+                      <button
+                        key={label}
+                        onClick={() => {
+                          onClick({ preventDefault: () => {} });
+                          handleMobileMenuClose();
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                      >
+                        <div className={`p-2 rounded-lg bg-gray-100`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{label}</p>
+                        </div>
+                      </button>
+                    ) : (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        onClick={handleMobileMenuClose}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                            ? "bg-blue-50 text-blue-700 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                          }`
+                        }
+                      >
+                        <div className={`p-2 rounded-lg bg-gray-100`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{label}</p>
+                        </div>
+                      </NavLink>
+                    )
                   ))}
                 </div>
               </div>
-              
 
               {/* Logout */}
               <button
@@ -968,6 +1273,18 @@ export default function Header() {
       <EventsComingSoon
         isOpen={showEventsPopup}
         onClose={() => setShowEventsPopup(false)}
+      />
+
+      {/* NEW: Referral Popup */}
+      <Referral
+        isOpen={showReferralPopup}
+        onClose={() => setShowReferralPopup(false)}
+      />
+
+      {/* NEW: Subscription Popup */}
+      <Subscription
+        isOpen={showSubscriptionPopup}
+        onClose={() => setShowSubscriptionPopup(false)}
       />
 
       {/* Create Post Modal */}

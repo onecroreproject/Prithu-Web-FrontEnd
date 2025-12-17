@@ -17,12 +17,12 @@ const FollowModal = ({
   if (!isOpen || isOwnProfile) return null;
 
   const handleSkip = () => {
-    navigate("/");
+    navigate("/home");
     onClose();
   };
 
   const handleClose = () => {
-    navigate("/");
+    navigate("/home");
     onClose();
   };
 
