@@ -27,10 +27,12 @@ import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/us
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 
-// Import Popup Components
+// Import Popup Components - FIXED IMPORT NAMES
 import CommunityPopup from "../UnderConstructionPages/commmunity";
 import LearningPopup from "../UnderConstructionPages/learning";
 import EventsPopup from "../UnderConstructionPages/commmunity";
+import ReferralPopup from "../UnderConstructionPages/referralCommigSoon";
+import SubscriptionPopup from "../UnderConstructionPages/subcriptionCommingSoon";  
 
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
@@ -53,6 +55,8 @@ export default function Header() {
   const [showCommunityPopup, setShowCommunityPopup] = useState(false);
   const [showLearningPopup, setShowLearningPopup] = useState(false);
   const [showEventsPopup, setShowEventsPopup] = useState(false);
+  const [showReferralPopup, setShowReferralPopup] = useState(false); // NEW
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false); // NEW
   
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,14 +75,36 @@ export default function Header() {
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Enhanced navItems with icons
+  // Enhanced navItems with icons - UPDATED WITH onClick HANDLERS
   const navItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
-    { to: "/profile", label: "Profile", Icon: User, desc: "View your profile" },
-    { to: "/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
-    { to: "/subscriptions", label: "Subscriptions", Icon: BellRing, desc: "Manage subscriptions" },
-    { to: "/referral", label: "Referral", Icon: Gift, desc: "Referral program" },
-    { to: "/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" }
+    { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
+    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
+    { 
+      to: "/home/subscriptions", 
+      label: "Subscriptions", 
+      Icon: BellRing, 
+      desc: "Manage subscriptions",
+      onClick: (e) => {
+        e.preventDefault(); // Prevent navigation
+        console.log("Subscriptions clicked - opening popup");
+        setShowSubscriptionPopup(true);
+        closeAll();
+      }
+    },
+    { 
+      to: "/home/referral", 
+      label: "Referral", 
+      Icon: Gift, 
+      desc: "Referral program",
+      onClick: (e) => {
+        e.preventDefault(); // Prevent navigation
+        console.log("Referral clicked - opening popup");
+        setShowReferralPopup(true);
+        closeAll();
+      }
+    },
+    { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" }
   ];
 
   useEffect(() => {
@@ -126,21 +152,20 @@ export default function Header() {
   }, []);
 
   // Navigation handlers
-const handleReelClick = () => {
-  const nextState = !isReelsActive;
-  setIsReelsActive(nextState);
+  const handleReelClick = () => {
+    const nextState = !isReelsActive;
+    setIsReelsActive(nextState);
 
-  // 1️⃣ Navigate to home
-  navigate("/home");
+    // 1️⃣ Navigate to home
+    navigate("/home");
 
-  // 2️⃣ Then trigger reels state AFTER home loads
-  setTimeout(() => {
-    window.dispatchEvent(
-      new CustomEvent("toggleReels", { detail: { isActive: nextState } })
-    );
-  }, 50); // small delay is enough
-};
-
+    // 2️⃣ Then trigger reels state AFTER home loads
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("toggleReels", { detail: { isActive: nextState } })
+      );
+    }, 50); // small delay is enough
+  };
 
   const handleEventsClick = () => {
     setShowEventsPopup(true);
@@ -333,6 +358,16 @@ const handleReelClick = () => {
     }
   };
 
+  // Handle nav item clicks
+  const handleNavItemClick = (item, e) => {
+    if (item.onClick) {
+      item.onClick(e);
+    } else {
+      navigate(item.to);
+    }
+    closeAll();
+  };
+
   return (
     <Fragment>
       {/* MAIN HEADER */}
@@ -441,7 +476,6 @@ const handleReelClick = () => {
                 <span className="text-xs mt-1 text-gray-600 group-hover:text-blue-700 font-medium transition-colors">
                   {item.label}
                 </span>
-               
               </div>
             </motion.button>
           ))}
@@ -469,20 +503,6 @@ const handleReelClick = () => {
             >
               <Plus className="w-4 h-4" />
             </motion.button>
-
-            {/* Reels */}
-            {/* <motion.button
-              onClick={handleReelClick}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${isReelsActive 
-                ? "bg-blue-100 text-blue-700 border border-blue-200" 
-                : "hover:bg-gray-100 text-gray-700"
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Video className={`w-5 h-5 ${isReelsActive ? "text-blue-600" : "text-gray-600"}`} />
-              <span className="text-sm font-medium">Reels</span>
-            </motion.button> */}
 
             {/* Notification */}
             <div ref={notificationRef} className="relative">
@@ -567,26 +587,42 @@ const handleReelClick = () => {
 
                     {/* Navigation Links */}
                     <div className="p-2 space-y-1">
-                      {navItems.map(({ to, label, Icon, desc }) => (
-                        <NavLink
-                          key={to}
-                          to={to}
-                          onClick={closeAll}
-                          className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-700 hover:bg-gray-50"
-                            }`
-                          }
-                        >
-                          <div className={`p-1.5 rounded-lg bg-gray-100`}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{label}</p>
-                            <p className="text-xs text-gray-500 truncate">{desc}</p>
-                          </div>
-                        </NavLink>
+                      {navItems.map((item) => (
+                        item.onClick ? (
+                          <button
+                            key={item.label}
+                            onClick={(e) => handleNavItemClick(item, e)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                          >
+                            <div className="p-1.5 rounded-lg bg-gray-100">
+                              <item.Icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.label}</p>
+                              <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                            </div>
+                          </button>
+                        ) : (
+                          <NavLink
+                            key={item.to}
+                            to={item.to}
+                            onClick={closeAll}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-700 hover:bg-gray-50"
+                              }`
+                            }
+                          >
+                            <div className="p-1.5 rounded-lg bg-gray-100">
+                              <item.Icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.label}</p>
+                              <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                            </div>
+                          </NavLink>
+                        )
                       ))}
                     </div>
 
@@ -684,43 +720,49 @@ const handleReelClick = () => {
                   <Plus className="w-5 h-5" />
                   <span className="text-sm">Create Post</span>
                 </button>
-                {/* <button
-                  onClick={() => {
-                    handleReelClick();
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl font-medium transition-all ${isReelsActive
-                    ? "bg-blue-100 text-blue-700 border border-blue-300"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <Video className="w-5 h-5" />
-                  <span className="text-sm">Reels</span>
-                </button> */}
               </div>
 
               {/* Navigation Links */}
               <div className="space-y-1 mb-4">
-                {navItems.map(({ to, label, Icon, desc }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
-                      }`
-                    }
-                  >
-                    <div className={`p-2 rounded-lg bg-gray-100`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{label}</p>
-                      <p className="text-xs text-gray-500">{desc}</p>
-                    </div>
-                  </NavLink>
+                {navItems.map((item) => (
+                  item.onClick ? (
+                    <button
+                      key={item.label}
+                      onClick={(e) => {
+                        item.onClick(e);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                    >
+                      <div className="p-2 rounded-lg bg-gray-100">
+                        <item.Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{item.label}</p>
+                        <p className="text-xs text-gray-500">{item.desc}</p>
+                      </div>
+                    </button>
+                  ) : (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-700 hover:bg-gray-50"
+                        }`
+                      }
+                    >
+                      <div className="p-2 rounded-lg bg-gray-100">
+                        <item.Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{item.label}</p>
+                        <p className="text-xs text-gray-500">{item.desc}</p>
+                      </div>
+                    </NavLink>
+                  )
                 ))}
               </div>
 
@@ -765,7 +807,6 @@ const handleReelClick = () => {
                     >
                       <item.Icon className="w-5 h-5 text-gray-600 mb-1" />
                       <span className="text-xs text-gray-700 font-medium">{item.label}</span>
-                    
                     </button>
                   ))}
                 </div>
@@ -824,21 +865,43 @@ const handleReelClick = () => {
         onClose={() => setIsCreatePostOpen(false)}
       />
 
-      {/* Popup Components */}
-      <CommunityPopup
-        isOpen={showCommunityPopup}
-        onClose={() => setShowCommunityPopup(false)}
-      />
-      
-      <LearningPopup
-        isOpen={showLearningPopup}
-        onClose={() => setShowLearningPopup(false)}
-      />
-      
-      <EventsPopup
-        isOpen={showEventsPopup}
-        onClose={() => setShowEventsPopup(false)}
-      />
+      {/* Popup Components - CONDITIONALLY RENDERED */}
+      {showCommunityPopup && (
+        <CommunityPopup
+          isOpen={showCommunityPopup}
+          onClose={() => setShowCommunityPopup(false)}
+        />
+      )}
+
+      {showLearningPopup && (
+        <LearningPopup
+          isOpen={showLearningPopup}
+          onClose={() => setShowLearningPopup(false)}
+        />
+      )}
+
+      {showEventsPopup && (
+        <EventsPopup
+          isOpen={showEventsPopup}
+          onClose={() => setShowEventsPopup(false)}
+        />
+      )}
+
+      {/* Referral Popup */}
+      {showReferralPopup && (
+        <ReferralPopup
+          isOpen={showReferralPopup}
+          onClose={() => setShowReferralPopup(false)}
+        />
+      )}
+
+      {/* Subscription Popup */}
+      {showSubscriptionPopup && (
+        <SubscriptionPopup
+          isOpen={showSubscriptionPopup}
+          onClose={() => setShowSubscriptionPopup(false)}
+        />
+      )}
     </Fragment>
   );
 }

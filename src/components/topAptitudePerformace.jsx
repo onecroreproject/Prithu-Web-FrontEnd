@@ -6,10 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, TrendingUp, AlertCircle, RefreshCw, Star, Clock, User, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-/* --------------------------- 🔹 Lazy-loaded components --------------------------- */
-const TopPerformersList = lazy(() => import("./topAptitudePerformarComponent/topPerformerList"));
-const PerformanceStats = lazy(() => import("./topAptitudePerformarComponent/performanceStatus"));
-
 /* --------------------------- 🔹 Service Function --------------------------- */
 const fetchTopAptitudePerformers = async () => {
   try {
@@ -154,21 +150,14 @@ function TopAptitudePerformersCard() {
         </div>
         <div>
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight">
-            Performance of the Week
+            Aptitude Performance of the Week
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Top 10 aptitude performers
           </p>
         </div>
       </div>
-      <button
-        onClick={handleManualRefresh}
-        disabled={isLoading}
-        className="p-1.5 rounded-md bg-gray-50 dark:bg-[#202024] hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
-        title="Refresh data"
-      >
-        <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-      </button>
+  
     </div>
   ));
 
@@ -285,7 +274,6 @@ function TopAptitudePerformersCard() {
                 />
               ))}
             </div>
-      
           </div>
         )}
       </div>
@@ -326,6 +314,31 @@ const PerformersSection = memo(({ performers, onViewProfile }) => {
                 {index + 1}
               </div>
 
+              {/* Profile Avatar */}
+              <div className="flex-shrink-0 relative">
+                {performer.user.profileAvatar ? (
+                  <>
+                    <img 
+                      src={performer.user.profileAvatar} 
+                      alt={`${performer.user.name || "User"} avatar`}
+                      className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        const fallback = e.target.parentElement.querySelector('.avatar-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    <div className="avatar-fallback hidden w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 items-center justify-center text-white font-semibold text-sm">
+                      {(performer.user.name?.[0] || performer.user.userName?.[0] || "U").toUpperCase()}
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                    {(performer.user.name?.[0] || performer.user.userName?.[0] || "U").toUpperCase()}
+                  </div>
+                )}
+              </div>
+
               {/* User Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1 mb-0.5">
@@ -333,7 +346,7 @@ const PerformersSection = memo(({ performers, onViewProfile }) => {
                   <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate leading-tight">
                     {performer.user.name ? 
                       `${performer.user.name} ${performer.user.lastName || ""}`.trim() : 
-                      "Anonymous User"}
+                      performer.user.userName || "Anonymous User"}
                   </span>
                 </div>
                 
@@ -432,10 +445,33 @@ const StatsSection = memo(({ performers, recentPerformers }) => {
             {recentPerformers.slice(0, 3).map((performer) => (
               <div key={performer._id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50/50 dark:bg-[#202024]/50">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400" />
+                  {/* Profile Avatar */}
+                  <div className="relative">
+                    {performer.user.profileAvatar ? (
+                      <>
+                        <img 
+                          src={performer.user.profileAvatar} 
+                          alt={`${performer.user.name || "User"} avatar`}
+                          className="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const fallback = e.target.parentElement.querySelector('.recent-avatar-fallback');
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="recent-avatar-fallback hidden w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 items-center justify-center text-white font-semibold text-xs">
+                          {(performer.user.name?.[0] || performer.user.userName?.[0] || "U").toUpperCase()}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white font-semibold text-xs">
+                        {(performer.user.name?.[0] || performer.user.userName?.[0] || "U").toUpperCase()}
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[120px]">
-                      {performer.user.name?.substring(0, 12) || "User"}
+                      {performer.user.name?.substring(0, 12) || performer.user.userName?.substring(0, 12) || "User"}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">scored {performer.score}%</p>
                   </div>

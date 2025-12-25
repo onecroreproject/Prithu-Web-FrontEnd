@@ -21,6 +21,7 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get("/api/get/user/all/notification", authHeader);
+      console.log(res.data)
       const list = res.data?.notifications || [];
       setNotifications(list);
     } catch (err) {
@@ -97,7 +98,7 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
         ...authHeader,
         data: { notificationId: notifId },
       });
- 
+
       setNotifications((prev) => prev.filter((n) => n._id !== notifId));
       onUpdateCount?.();
       toast.success("Notification deleted successfully");

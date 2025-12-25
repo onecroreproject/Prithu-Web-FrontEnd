@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 
 const Sidebar = ({ activeTab, setActiveTab, onMobileItemClick, companyInfo }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: MdDashboard },
     { id: 'createJob', label: 'Create Job', icon: FiBriefcase },
@@ -95,7 +95,7 @@ const Sidebar = ({ activeTab, setActiveTab, onMobileItemClick, companyInfo }) =>
            companyInfo.profile?.companyName || 
            'Company Name';
   };
-console.log(companyInfo)
+
   const getCompanyEmail = () => {
     if (!companyInfo) return 'loading...';
     
@@ -108,28 +108,31 @@ console.log(companyInfo)
   const getCompanyLogo = () => {
     if (!companyInfo) return defaultLogo;
     
-    // Check different possible locations for logo
-    return companyInfo.company?.logo || 
-           companyInfo.logo || 
-           companyInfo.profile?.logo || 
-           companyInfo.companyLogo || 
-           defaultLogo;
+    // Check for logo in profile
+    const logo = companyInfo.profile?.logo;
+    console.log(logo)
+    // Return logo if it exists and is a valid URL, otherwise return default logo
+    if (logo && logo !== '' && logo !== 'undefined') {
+      return logo;
+    }
+    
+    return defaultLogo;
   };
 
-  // Get initials for avatar
+  // Get HR/contact person initials for avatar
   const getInitials = () => {
-    const name = getCompanyName();
+    const name = companyInfo?.company?.name || 'HR';
     if (name === 'Loading...' || name === 'Company Name') return 'C';
     return name.charAt(0).toUpperCase();
   };
-
+console.log("Profile Logo:", companyInfo?.profile?.logo);
   return (
     <>
       <div className="h-full flex flex-col bg-white border-r border-gray-200">
         {/* Company Header */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-xl overflow-hidden mb-4 shadow-sm border-2 border-white">
+            <div className="w-16 h-16 rounded-xl overflow-hidden mb-4 shadow-sm border-2 border-white bg-gray-100">
               <img
                 src={getCompanyLogo()}
                 alt="Company Logo"
@@ -146,9 +149,9 @@ console.log(companyInfo)
             <p className="text-sm text-gray-500 mt-1 truncate w-full">
               {getCompanyEmail()}
             </p>
-            {companyInfo?.businessCategory && (
+            {companyInfo?.profile?.businessCategory && companyInfo.profile.businessCategory !== '' && (
               <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full mt-2">
-                {companyInfo.businessCategory}
+                {companyInfo.profile.businessCategory}
               </p>
             )}
           </div>
@@ -226,10 +229,10 @@ console.log(companyInfo)
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {companyInfo?.company.position || 'HR Manager'}
+                {companyInfo?.company?.position || companyInfo?.company?.name || 'HR Manager'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {companyInfo?.company.email || 'hr@company.com'}
+                {companyInfo?.company?.email || companyInfo?.company?.companyEmail || 'hr@company.com'}
               </p>
             </div>
           </div>

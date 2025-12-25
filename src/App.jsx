@@ -81,7 +81,7 @@ function AppRoutes() {
       <Route path="/r/:username" element={<PublicResume />} />
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
-      <Route path="/user/profile/:id" element={<SingleUserProfilelayout />} />
+      <Route path="/home/user/profile/:id" element={<SingleUserProfilelayout />} />
       <Route path="/job/view/:id" element={<SearchJobDetailsPopup />} />
       <Route path="/create/account" element={<RegisterForm />} />
       <Route path="/search" element={<SearchResultsScreen />} />
@@ -108,8 +108,8 @@ function AppRoutes() {
       >
         {/* Home Feed */}
         <Route index element={<Feed />} />
-        <Route path="retrivefeed/:notifyfeedid" element={<Feed />} />
-        <Route path="hashtag/:tagname" element={<Feed />} />
+        <Route path="/home/retrivefeed/:notifyfeedid" element={<Feed />} />
+        <Route path="/home/hashtag/:tagname" element={<Feed />} />
 
         {/* Profile & Activity */}
         <Route path="profile" element={<Profilelayout />} />

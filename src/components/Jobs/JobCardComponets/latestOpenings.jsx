@@ -1,7 +1,7 @@
 import React, { useState, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRankedJobs } from "../../../Service/jobservices";
-import { Flame, MapPin, AlertCircle, RefreshCw } from "lucide-react";
+import { Flame, MapPin, AlertCircle, RefreshCw, IndianRupee, Briefcase } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +19,8 @@ export default function JobLatestOpeningsCard() {
     refetchOnWindowFocus: false,
   });
 
+  console.log("Job Data:", jobs); // Debug log to check data structure
+
   const latestOpenings = jobs
     .slice()
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -27,7 +29,7 @@ export default function JobLatestOpeningsCard() {
   const navigate = useNavigate();
 
   const handleJobOpen = (jobId) => {
-   const currentParams = new URLSearchParams(window.location.search);
+    const currentParams = new URLSearchParams(window.location.search);
     currentParams.set("jobId", jobId);
     
     navigate(`/jobs?${currentParams.toString()}`);
@@ -37,7 +39,7 @@ export default function JobLatestOpeningsCard() {
     <div className="bg-white dark:bg-[#1b1b1f] rounded-xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-green-100 dark:hover:shadow-green-900/20 transition-all duration-300">
       <LatestOpenings 
         openings={latestOpenings} 
-        onOpeningSelect={handleJobOpen} // Pass navigation function
+        onOpeningSelect={handleJobOpen}
         isLoading={isLoading}
         isError={isError}
         error={error}
@@ -52,7 +54,7 @@ export default function JobLatestOpeningsCard() {
    ============================================================================ */
 const LatestOpenings = memo(function LatestOpenings({ 
   openings = [], 
-  onOpeningSelect, // This now receives jobId for navigation
+  onOpeningSelect,
   isLoading,
   isError,
   error,
@@ -74,6 +76,104 @@ const LatestOpenings = memo(function LatestOpenings({
         staggerChildren: 0.08
       }
     }
+  };
+
+  // Enhanced format salary display with better validation
+  const formatSalary = (job) => {
+    // Debug log to see what's in the job object
+    console.log("Job salary data:", {
+      id: job._id,
+      title: job.jobTitle,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      salaryType: job.salaryType,
+      hasMin: job.salaryMin !== undefined,
+      hasMax: job.salaryMax !== undefined,
+      minIsZero: job.salaryMin === 0,
+      maxIsZero: job.salaryMax === 0,
+      minIsNull: job.salaryMin === null,
+      maxIsNull: job.salaryMax === null
+    });
+
+    // Check if salary fields don't exist at all
+    if (job.salaryMin === undefined && job.salaryMax === undefined) {
+      return null;
+    }
+
+    // Check if both are explicitly null
+    if (job.salaryMin === null && job.salaryMax === null) {
+      return null;
+    }
+
+    // Parse values safely
+    const min = typeof job.salaryMin === 'number' ? job.salaryMin : 
+                job.salaryMin ? parseInt(job.salaryMin) : 0;
+    const max = typeof job.salaryMax === 'number' ? job.salaryMax : 
+                job.salaryMax ? parseInt(job.salaryMax) : 0;
+
+    // Check if both are 0
+    if (min === 0 && max === 0) {
+      return null;
+    }
+
+    // Check if only min is 0 and max doesn't exist or is also 0
+    if (min === 0 && (!max || max === 0)) {
+      return null;
+    }
+
+    // Check if only max is 0 and min doesn't exist or is also 0
+    if (max === 0 && (!min || min === 0)) {
+      return null;
+    }
+
+    // Now format based on valid values
+    if (min > 0 && max > 0) {
+      if (min === max) {
+        return `₹${min.toLocaleString()}`;
+      }
+      return `₹${min.toLocaleString()} - ₹${max.toLocaleString()}`;
+    } else if (min > 0 && max <= 0) {
+      return `From ₹${min.toLocaleString()}`;
+    } else if (max > 0 && min <= 0) {
+      return `Up to ₹${max.toLocaleString()}`;
+    }
+
+    return null;
+  };
+
+  // Format salary type display
+  const formatSalaryType = (job) => {
+    if (!job.salaryType) return null;
+    
+    const typeMap = {
+      'annual': '/year',
+      'monthly': '/month',
+      'hourly': '/hour',
+      'weekly': '/week',
+      'project': 'project based',
+      'yearly': '/year'
+    };
+    
+    return typeMap[job.salaryType.toLowerCase()] || `/${job.salaryType}`;
+  };
+
+  // Check if job has any compensation info
+  const hasCompensation = (job) => {
+    const min = job.salaryMin;
+    const max = job.salaryMax;
+    const type = job.salaryType;
+    
+    // Has valid salary values
+    if ((min && min > 0) || (max && max > 0)) {
+      return true;
+    }
+    
+    // Has salary type but no values (might be "Not Disclosed" or "Negotiable")
+    if (type && (type.toLowerCase().includes('not') || type.toLowerCase().includes('nego'))) {
+      return true;
+    }
+    
+    return false;
   };
 
   // Loading State
@@ -148,51 +248,90 @@ const LatestOpenings = memo(function LatestOpenings({
           animate="visible"
           className="grid gap-1.5"
         >
-          {openings.map((job, i) => (
-            <motion.li
-              key={job._id || i}
-              variants={fade}
-              onClick={() => onOpeningSelect(job._id)} // Pass job ID to navigation function
-              className="p-2.5 rounded-lg bg-gray-50/70 dark:bg-[#202024]/70 
-                         hover:bg-green-50 dark:hover:bg-green-900/20 
-                         border border-transparent hover:border-green-200 dark:hover:border-green-800/50
-                         hover:shadow-sm transition-all duration-200 cursor-pointer group"
-            >
-              {/* Job Title */}
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:bg-green-600 transition-colors" />
-                <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate leading-tight">
-                  {job.jobTitle || "Untitled Opening"}
-                </span>
-              </div>
+          {openings.map((job, i) => {
+            const formattedSalary = formatSalary(job);
+            const salaryType = formatSalaryType(job);
+            const hasValidCompensation = hasCompensation(job);
+            
+            // Debug: Log job details
+            console.log(`Job ${i}:`, {
+              title: job.jobTitle,
+              salaryMin: job.salaryMin,
+              salaryMax: job.salaryMax,
+              formattedSalary,
+              hasValidCompensation
+            });
 
-              {/* Company Name */}
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 truncate">
-                {job.companyName || job.postedBy?.companyName || "Company"}
-              </div>
-
-              {/* Location */}
-              {(job.city || job.state || job.country) && (
-                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                  <MapPin className="w-3 h-3 text-green-500 flex-shrink-0" />
-                  <span className="truncate">
-                    {[job.city, job.state, job.country]
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .join(", ")}
+            return (
+              <motion.li
+                key={job._id || i}
+                variants={fade}
+                onClick={() => onOpeningSelect(job._id)}
+                className="p-2.5 rounded-lg bg-gray-50/70 dark:bg-[#202024]/70 
+                           hover:bg-green-50 dark:hover:bg-green-900/20 
+                           border border-transparent hover:border-green-200 dark:hover:border-green-800/50
+                           hover:shadow-sm transition-all duration-200 cursor-pointer group"
+              >
+                {/* Job Title */}
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 group-hover:bg-green-600 transition-colors" />
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate leading-tight">
+                    {job.jobTitle || "Untitled Opening"}
                   </span>
                 </div>
-              )}
 
-              {/* Salary info if available */}
-              {(job.salaryMin || job.salaryMax) && (
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  ₹{job.salaryMin?.toLocaleString() || ""}
-                  {job.salaryMax && ` - ₹${job.salaryMax.toLocaleString()}`}
+                {/* Company Name */}
+                <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 truncate">
+                  {job.companyName || job.postedBy?.companyName || "Company"}
                 </div>
-              )}
-            </motion.li>
-          ))}
+
+                {/* Location */}
+                {(job.city || job.state || job.country) && (
+                  <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs mt-0.5">
+                    <MapPin className="w-3 h-3 text-green-500 flex-shrink-0" />
+                    <span className="truncate">
+                      {[job.city, job.state, job.country]
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join(", ")}
+                    </span>
+                  </div>
+                )}
+
+                {/* Salary info - only show if valid */}
+                {formattedSalary && (
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <IndianRupee className="w-3 h-3 text-green-600 flex-shrink-0" />
+                    <span className="font-medium">{formattedSalary}</span>
+                    {salaryType && (
+                      <span className="text-gray-500 dark:text-gray-500 ml-1">
+                        {salaryType}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Show "Negotiable" or "Not Disclosed" if salary type indicates it */}
+                {!formattedSalary && job.salaryType && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    <Briefcase className="w-3 h-3 text-gray-400" />
+                    <span className="italic">
+                      {job.salaryType === 'negotiable' ? 'Salary negotiable' : 
+                       job.salaryType === 'not disclosed' ? 'Salary not disclosed' : 
+                       'Compensation details available'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Show nothing if no compensation info at all */}
+                {!formattedSalary && !job.salaryType && (
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                    {/* Intentionally left blank - no compensation info */}
+                  </div>
+                )}
+              </motion.li>
+            );
+          })}
         </motion.ul>
       ) : (
         <motion.div

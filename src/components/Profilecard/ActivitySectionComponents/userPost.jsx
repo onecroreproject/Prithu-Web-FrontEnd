@@ -238,19 +238,7 @@ const UserPosts = ({ authUser, token, id }) => {
                   <span>Delete</span>
                 </button>
               )}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/retrivefeed/${post._id}`);
-                  setMenuOpen(null);
-                  alert("Post link copied to clipboard!");
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <span>Copy Link</span>
-              </button>
+             
             </motion.div>
           )}
         </AnimatePresence>
@@ -430,7 +418,7 @@ const UserPosts = ({ authUser, token, id }) => {
                   key={post._id}
                   className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 cursor-pointer"
                   whileHover={{ scale: 1.02 }}
-                  onClick={() => navigate(`/retrivefeed/${post._id}${id ? '?creator=true' : ''}`)}
+                 
                 >
                   {/* Three dots menu */}
                   {renderMenuButton(post)}
@@ -439,6 +427,7 @@ const UserPosts = ({ authUser, token, id }) => {
                   {post.type === "image" ? (
                     <div className="aspect-[4/3]">
                       <img
+                        onClick={() => navigate(`/home/retrivefeed/${post._id}${id ? '?creator=true' : ''}`)}
                         src={post.contentUrl}
                         alt="User post"
                         className="w-full h-full object-cover"

@@ -1,11 +1,13 @@
+// ✅ src/components/FeedPageComponent/postCardComponent/postsActions.jsx
 import React, { useState, useEffect } from "react";
 import {
-  FavoriteOutlined,
-  ThumbUpOutlined,
-  ThumbUp,
-  ChatBubbleOutlineOutlined,
-  ShareOutlined,
-  DownloadOutlined,
+  FavoriteBorder,
+  Favorite,
+  ChatBubbleOutline,
+  SendOutlined,
+  BookmarkBorder,
+  Bookmark,
+  Download,
 } from "@mui/icons-material";
 
 const PostActions = ({
@@ -14,25 +16,26 @@ const PostActions = ({
   shareCount = 0,
   handleLikeFeed,
   handleShare,
+  handleSave,
   handleDownload,
   post,
   commentCount,
   onCommentsClick,
+  caption = "",
+  userName = "",
+  isSaved = false,
 }) => {
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
-
-  const [localSharesCount, setLocalSharesCount] = useState(post.shareCount || 0);
-  const [localDownloadsCount, setLocalDownloadsCount] = useState(
-    post.downloadsCount || 0
-  );
+  const [localSharesCount, setLocalSharesCount] = useState(shareCount);
+  const [localSaved, setLocalSaved] = useState(isSaved);
 
   useEffect(() => {
     setLocalLiked(isLiked);
     setLocalLikesCount(likesCount);
-    setLocalSharesCount(post.shareCount || 0);
-    setLocalDownloadsCount(post.downloadsCount || 0);
-  }, [isLiked, likesCount, post.sharesCount, post.downloadsCount]);
+    setLocalSharesCount(shareCount);
+    setLocalSaved(isSaved);
+  }, [isLiked, likesCount, shareCount, isSaved]);
 
   const instantLike = async () => {
     const optimistic = !localLiked;
@@ -51,94 +54,155 @@ const PostActions = ({
   };
 
   const instantShare = async () => {
-    setLocalSharesCount((p) => p + 1);
+    const currentCount = localSharesCount;
+    // Optimistically update UI immediately
+    setLocalSharesCount(currentCount + 1);
+    
     try {
+      // Call the actual share handler
       await handleShare();
     } catch {
-      setLocalSharesCount((p) => Math.max(p - 1, 0));
+      // Revert if the API call fails
+      setLocalSharesCount(currentCount);
+    }
+  };
+
+  const instantSave = async () => {
+    const optimistic = !localSaved;
+    setLocalSaved(optimistic);
+    try {
+      await handleSave();
+    } catch {
+      setLocalSaved(!optimistic);
     }
   };
 
   const instantDownload = async () => {
-    setLocalDownloadsCount((p) => p + 1);
     try {
       await handleDownload();
-    } catch {
-      setLocalDownloadsCount((p) => Math.max(p - 1, 0));
+    } catch (error) {
+      console.error("Download failed:", error);
     }
   };
 
   return (
-    <div className="bg-white rounded-b-lg border-t border-gray-200 pb-3">
+    <div className="px-4 py-3">
+      {/* Action Buttons Row */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-4">
+          {/* Like Button */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={instantLike}
+              className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+              aria-label={localLiked ? "Unlike" : "Like"}
+            >
+              {localLiked ? (
+                <Favorite className="text-red-500" style={{ fontSize: 26 }} />
+              ) : (
+                <FavoriteBorder style={{ fontSize: 26 }} />
+              )}
+            </button>
+            {localLikesCount > 0 && (
+              <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
+                {localLikesCount > 999 
+                  ? `${(localLikesCount / 1000).toFixed(1)}k` 
+                  : localLikesCount}
+              </span>
+            )}
+          </div>
 
-      {/* Top Stats Row */}
-      <div className="flex justify-between items-center px-4 py-2">
+          {/* Comment Button */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onCommentsClick}
+              className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+              aria-label="Comment"
+            >
+              <ChatBubbleOutline style={{ fontSize: 24 }} />
+            </button>
+            {commentCount > 0 && (
+              <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
+                {commentCount > 999 
+                  ? `${(commentCount / 1000).toFixed(1)}k` 
+                  : commentCount}
+              </span>
+            )}
+          </div>
 
-        {/* Likes */}
-        <div className="flex items-center space-x-1">
-          <FavoriteOutlined className="text-red-500" style={{ fontSize: 16 }} />
-          <span className="text-sm text-gray-600">
-            {localLikesCount.toLocaleString()}
-          </span>
+          {/* Share Button */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={instantShare}
+              className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+              aria-label="Share"
+            >
+              <SendOutlined style={{ fontSize: 24 }} />
+            </button>
+            {localSharesCount > 0 && (
+              <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
+                {localSharesCount > 999 
+                  ? `${(localSharesCount / 1000).toFixed(1)}k` 
+                  : localSharesCount}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Comments / Shares / Downloads */}
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
-          <span>{commentCount} comments</span>
-          <span>{localSharesCount} shares</span>
-          <span>{localDownloadsCount} downloads</span>
+        {/* Right side: Save Button (Instagram style) */}
+        <div className="flex items-center gap-3">
+          {/* Download Button (Optional - Instagram doesn't have this, but you can keep it) */}
+          <button
+            onClick={instantDownload}
+            className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+            aria-label="Download"
+            title="Download"
+          >
+            <Download style={{ fontSize: 22 }} />
+          </button>
+          
+          {/* Save Button */}
+          <button
+            onClick={instantSave}
+            className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+            aria-label={localSaved ? "Unsave" : "Save"}
+          >
+            {localSaved ? (
+              <Bookmark className="text-black" style={{ fontSize: 24 }} />
+            ) : (
+              <BookmarkBorder style={{ fontSize: 24 }} />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-around items-center py-1">
+      {/* Caption Section */}
+      {caption && (
+        <div className="mb-2">
+          <p className="text-sm text-gray-900">
+            <span className="font-semibold mr-2">{userName}</span>
+            {caption}
+          </p>
+        </div>
+      )}
 
-        {/* LIKE */}
-        <button
-          onClick={instantLike}
-          className={`flex items-center justify-center flex-1 py-2 transition duration-200 ${
-            localLiked ? "text-[#1877F2]" : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          {localLiked ? (
-            <ThumbUp className="mr-0 sm:mr-2" style={{ fontSize: 22 }} />
-          ) : (
-            <ThumbUpOutlined className="mr-0 sm:mr-2" style={{ fontSize: 22 }} />
-          )}
-
-          {/* Show label only on sm+ screens */}
-          <span className="hidden sm:inline text-sm font-bold">Like</span>
-        </button>
-
-        {/* COMMENT */}
+      {/* View Comments */}
+      {commentCount > 0 && (
         <button
           onClick={onCommentsClick}
-          className="flex items-center justify-center flex-1 py-2 text-gray-600 hover:bg-gray-100 transition duration-200"
+          className="mb-2"
         >
-          <ChatBubbleOutlineOutlined
-            className="mr-0 sm:mr-2"
-            style={{ fontSize: 22 }}
-          />
-          <span className="hidden sm:inline text-sm font-bold">Comment</span>
+          <span className="text-sm text-gray-500">
+            View all {commentCount} comments
+          </span>
         </button>
+      )}
 
-        {/* SHARE */}
-        <button
-          onClick={instantShare}
-          className="flex items-center justify-center flex-1 py-2 text-gray-600 hover:bg-gray-100 transition duration-200"
-        >
-          <ShareOutlined className="mr-0 sm:mr-2" style={{ fontSize: 22 }} />
-          <span className="hidden sm:inline text-sm font-bold">Share</span>
-        </button>
-
-        {/* DOWNLOAD */}
-        <button
-          onClick={instantDownload}
-          className="flex items-center justify-center flex-1 py-2 text-gray-600 hover:bg-gray-100 transition duration-200"
-        >
-          <DownloadOutlined className="mr-0 sm:mr-2" style={{ fontSize: 22 }} />
-          <span className="hidden sm:inline text-sm font-bold">Download</span>
-        </button>
+      {/* Time ago */}
+      <div className="mt-2">
+        <span className="text-xs text-gray-400 uppercase">
+          {post.timeAgo || "Recently"}
+        </span>
       </div>
     </div>
   );

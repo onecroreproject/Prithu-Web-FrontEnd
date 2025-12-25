@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+// ✅ src/components/FeedPageComponent/postCardComponent/postHeader.jsx
+import React from "react";
 import PostOptionsMenu from "../PostOptionsMenu";
-import api from "../../../api/axios";
-import { Bookmark, BookmarkCheck } from "lucide-react";
-import ModernPostHeader from "../postModelPostHeader";
+import { MoreVertical } from "lucide-react";
 
 const PostHeader = ({
   userId,
@@ -13,32 +12,23 @@ const PostHeader = ({
   navigate,
   feedId,
   tempUser,
-  toggleSaved,
-  dec,
   token,
-  onHidePost,
   onHideFromUI,
   onNotInterested,
   isFollowing: initialFollowState,
   onFollow,
   onUnfollow,
-  onCommentsClick
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(initialFollowState);
-  const [isSaved, setIsSaved] = useState(toggleSaved);
-
-  const descRef = useRef(null);
+  const [isFollowing, setIsFollowing] = React.useState(initialFollowState);
 
   const currentUser = localStorage.getItem("userId");
-  const isOwner = currentUser === userId;  // ✔ user is the owner
+  const isOwner = currentUser === userId;
 
   /* ------------------------------------------------------------
       FOLLOW/UNFOLLOW
   ------------------------------------------------------------ */
   const handleToggleFollow = async () => {
-    if (isOwner) return; // prevent own follow
+    if (isOwner) return;
 
     const optimistic = !isFollowing;
     setIsFollowing(optimistic);
@@ -50,96 +40,82 @@ const PostHeader = ({
     }
   };
 
-  /* ------------------------------------------------------------
-      SAVE/UNSAVE — NOT ALLOWED FOR OWN POST
-  ------------------------------------------------------------ */
-  const handleToggleSave = async () => {
-    if (isOwner) return;
-
-    const optimistic = !isSaved;
-    setIsSaved(optimistic);
-
-    try {
-      await api.post(
-        "/api/user/feed/save",
-        { feedId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (err) {
-      setIsSaved(!optimistic);
-    }
-  };
-
-  /* ------------------------------------------------------------
-      DESCRIPTION COLLAPSE LOGIC
-  ------------------------------------------------------------ */
-  useEffect(() => {
-    if (descRef.current) {
-      const maxHeight = 20 * 4;
-      if (descRef.current.scrollHeight > maxHeight) {
-        setIsOverflowing(true);
-      }
-    }
-  }, [dec]);
-
   return (
-    <div 
-    className="flex flex-col border-b border-gray-200  p-2">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        
-        {/* Avatar + Name */}
-       
-        <ModernPostHeader post={post}/>
-
-        {/* Right Buttons */}
-        <div className="flex items-center gap-3">
-
-          {/* ✔ SAVE BUTTON hidden for own post */}
-          {!isOwner && (
-            <button
-              onClick={handleToggleSave}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-              title={isSaved ? "Unsave" : "Save"}
-            >
-              {isSaved ? (
-                <BookmarkCheck className="w-5 h-5 text-blue-600" />
-              ) : (
-                <Bookmark className="w-5 h-5 text-gray-700" />
-              )}
-            </button>
-          )}
-
-          {/* ✔ FOLLOW BUTTON hidden for own post */}
-          {!isOwner && (
-            <button
-              onClick={handleToggleFollow}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
-                isFollowing
-                  ? "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
-                  : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isFollowing ? "Unfollow" : "Follow"}
-            </button>
-          )}
-
-          {/* ❌ OPTIONS MENU removed for owner */}
-          {!isOwner && (
-            <PostOptionsMenu
-              feedId={feedId}
-              authUserId={tempUser._id}
-              token={token}
-              onHidePost={onHidePost}
-              onHideFromUI={onHideFromUI}
-              onNotInterested={onNotInterested}
+    <div className="flex items-center justify-between px-4 py-3">
+      {/* Left side: User info - Instagram exact style */}
+      <div className="flex items-center gap-3">
+        {/* Avatar - Instagram exact circle (32px) */}
+        <div 
+          onClick={() => navigate(`/home/user/profile/${userId}`)}
+          className="w-8 h-8 rounded-full overflow-hidden cursor-pointer"
+        >
+          {profileAvatar ? (
+            <img 
+              src={profileAvatar} 
+              alt={userName} 
+              className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+              <span className="text-xs font-semibold text-white">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+            </div>
           )}
         </div>
+        
+        {/* Username and time - Instagram exact style */}
+        <div className="flex flex-col">
+          <button 
+            onClick={() => navigate(`/home/user/profile/${userId}`)}
+            className="text-sm font-semibold text-gray-900 hover:opacity-80 transition-opacity text-left"
+          >
+            {userName}
+          </button>
+          {timeAgo && (
+            <span className="text-xs text-gray-400">{timeAgo}</span>
+          )}
+        </div>
+        
+        {/* Instagram-style Follow button for non-owners */}
+        {!isOwner && (
+          <div className="ml-2">
+            {isFollowing ? (
+              // Following button style (Instagram design)
+              <button
+                onClick={handleToggleFollow}
+                className="text-xs font-semibold text-gray-900 bg-transparent hover:bg-gray-100 border border-gray-300 rounded px-3 py-1.5 transition-all duration-200"
+              >
+                Following
+              </button>
+            ) : (
+              // Follow button style (Instagram design)
+              <button
+                onClick={handleToggleFollow}
+                className="text-xs font-semibold text-white bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 rounded px-3 py-1.5 transition-all duration-200 shadow-sm"
+              >
+                Follow
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-     
+      {/* Right side: Options menu */}
+      <div className="flex items-center">
+        <PostOptionsMenu
+          feedId={feedId}
+          authUserId={tempUser._id}
+          token={token}
+          onHideFromUI={onHideFromUI}
+          onNotInterested={onNotInterested}
+          trigger={
+            <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+              <MoreVertical className="w-5 h-5 text-gray-700" />
+            </button>
+          }
+        />
+      </div>
     </div>
   );
 };

@@ -1,0 +1,91 @@
+{
+  "educationLevels": [
+    {
+      "level": "Any",
+      "courses": [
+        "Any Qualification"
+      ]
+    },
+
+    {
+      "level": "SSLC (10th)",
+      "courses": []
+    },
+
+    {
+      "level": "HSC (12th)",
+      "courses": []
+      
+    },
+
+    {
+      "level": "ITI",
+      "courses": [
+        "Any ITI",
+        "ITI Technical Trades",
+        "ITI Non-Technical Trades"
+      ]
+    },
+
+    {
+      "level": "Diploma",
+      "courses": [
+        "Any Diploma",
+        "Diploma in Engineering",
+        "Diploma in Medical",
+        "Diploma in Management"
+      ]
+    },
+
+    {
+      "level": "Undergraduate",
+      "courses": [
+        "Any Undergraduate",
+        "BA",
+        "BSc",
+        "BCom",
+        "BCA",
+        "BE / BTech",
+        "Medical & Law"
+      ]
+    },
+
+    {
+      "level": "Postgraduate",
+      "courses": [
+        "Any Postgraduate",
+        "MA",
+        "MSc",
+        "MCA",
+        "MBA",
+        "ME / MTech"
+      ]
+    },
+
+    {
+      "level": "Doctorate",
+      "courses": [
+        "Any Doctorate",
+        "PhD"
+      ]
+    },
+
+    {
+      "level": "Professional Certification",
+      "courses": [
+        "Any Professional Certification",
+        "IT & Software",
+        "Business & Finance"
+      ]
+    },
+
+    {
+      "level": "Vocational / Skill-Based",
+      "courses": [
+        "Any Vocational Skill",
+        "Construction & Technical",
+        "Service & Creative"
+      ]
+    }
+  ]
+}

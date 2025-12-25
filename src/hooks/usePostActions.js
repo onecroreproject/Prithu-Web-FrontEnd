@@ -26,7 +26,6 @@ export function useSavePost(feedId) {
     mutationFn: async () => api.post('/api/user/feed/save', { feedId }),
     onSuccess: (response) => {
       const saved = response.data.savedFeeds?.some((f) => f.feedId === feedId);
-      toast.success(saved ? 'Saved!' : 'Removed!');
       queryClient.invalidateQueries({ queryKey: ['feeds'] });
       queryClient.invalidateQueries({ queryKey: ['savedFeeds'] });
     },

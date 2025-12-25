@@ -1,3 +1,4 @@
+// src/components/Header.jsx
 import React, {
   useState,
   useRef,
@@ -17,6 +18,7 @@ import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
 import api from "../api/axios";
 import CreatePostModal from "../components/CreatePostModal";
+import CasualInterestPopup from "../components/intrestedPop-up"; // ADDED
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
@@ -30,7 +32,7 @@ import CommunityComingSoon from "../UnderConstructionPages/commmunity";
 import LearningComingSoon from "../UnderConstructionPages/learning";
 import EventsComingSoon from "../UnderConstructionPages/event";
 import Referral from "../UnderConstructionPages/referralCommigSoon";
-import Subscription from "../UnderConstructionPages/subcriptionCommingSoon"; // NEW: Import Subscription
+import Subscription from "../UnderConstructionPages/subcriptionCommingSoon";
 
 // Import the existing NotificationDropdown for mobile
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
@@ -52,15 +54,21 @@ export default function Header() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
   
+  // ADDED: Posting permission states
+  const [postStatus, setPostStatus] = useState(null); // "allow", "interest", "notallow", or null
+  const [loadingPostStatus, setLoadingPostStatus] = useState(false);
+  const [interestModalOpen, setInterestModalOpen] = useState(false);
+  
   // Coming Soon Popup States
   const [showCommunityPopup, setShowCommunityPopup] = useState(false);
   const [showLearningPopup, setShowLearningPopup] = useState(false);
   const [showEventsPopup, setShowEventsPopup] = useState(false);
-  const [showReferralPopup, setShowReferralPopup] = useState(false); // NEW
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false); // NEW
+  const [showReferralPopup, setShowReferralPopup] = useState(false);
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   
   // Notification states
   const [notifications, setNotifications] = useState([]);
+  const [selectedNotif, setSelectedNotif] = useState(null);
   
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,11 +89,90 @@ export default function Header() {
   
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
+  // Check posting status on component mount
+  useEffect(() => {
+    checkPostStatus();
+  }, []);
+
+  const checkPostStatus = async () => {
+    try {
+      setLoadingPostStatus(true);
+      const token = localStorage.getItem('token');
+      const response = await api.get('/api/post/allowed/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setPostStatus(response.data.status);
+      }
+    } catch (error) {
+      console.error("Error checking post status:", error);
+      setPostStatus("notallow");
+    } finally {
+      setLoadingPostStatus(false);
+    }
+  };
+
+  // ADDED: Handle Create Post Click with permission check
+  const handleCreatePostClick = useCallback(async () => {
+    if (loadingPostStatus) return;
+    
+    // Check if user is allowed to post
+    if (postStatus === "allow") {
+      // User is allowed, open post modal directly
+      setIsCreatePostOpen(true);
+    } else if (postStatus === "interest") {
+      // User has already requested, show interest modal
+      setInterestModalOpen(true);
+    } else if (postStatus === "notallow") {
+      // User hasn't requested yet or not allowed
+      setInterestModalOpen(true);
+    } else {
+      // Status unknown, check first
+      await checkPostStatus();
+      setInterestModalOpen(true);
+    }
+    
+    // Close mobile menu if open
+    setMobileMenuOpen(false);
+  }, [postStatus, loadingPostStatus]);
+
+  // ADDED: Handle interest modal response
+  const handleInterestsSelected = useCallback((status) => {
+    console.log("Interest status:", status);
+    
+    if (status === "allow") {
+      // User is now allowed to post
+      setPostStatus("allow");
+      setIsCreatePostOpen(true);
+      toast.success("You can now create posts! 🎉");
+    } else if (status === "interest") {
+      // User just submitted interest
+      setPostStatus("interest");
+      toast.success("Interest submitted! Admin will review your request.");
+      // Refresh status after some time
+      setTimeout(() => {
+        checkPostStatus();
+      }, 2000);
+    } else if (status === "skip") {
+      // User skipped
+      toast.info("You can request posting access anytime");
+    }
+    
+    setInterestModalOpen(false);
+  }, []);
+
+const handleCloseInterestModal = useCallback(() => {
+  console.log("Closing interest modal");
+  setInterestModalOpen(false);
+}, []);
+  const handleCloseModal = useCallback(() => setIsCreatePostOpen(false), []);
+
   // Main menu items to show directly in sidebar
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
     { to: "/search", label: "Search", Icon: Search, desc: "Search content" },
-    { to: "/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
+    { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
   ];
 
   // Profile menu items
@@ -102,7 +189,7 @@ export default function Header() {
 
   // Settings menu items - UPDATED with onClick handlers
   const settingsMenuItems = [
-    { to: "/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
+    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
     { 
       to: "/subscriptions", 
       label: "Subscriptions", 
@@ -218,6 +305,8 @@ export default function Header() {
 
   // ✅ Mark single notification as read
   const handleNotificationClick = async (notif) => {
+    setSelectedNotif({ ...notif });
+
     if (!notif.isRead) {
       try {
         await api.put("/api/user/read", { notificationId: notif._id }, authHeader);
@@ -266,6 +355,7 @@ export default function Header() {
   const getNotificationIcon = (type) => {
     switch (type?.toLowerCase()) {
       case 'like':
+      case 'like_post':
         return <Heart className="w-4 h-4 text-pink-500" />;
       case 'comment':
       case 'reply':
@@ -341,19 +431,12 @@ export default function Header() {
     return groups;
   }, [notifications]);
 
-  // Outside click handlers
-  useEffect(() => {
-    const handleOutsideClick = e => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) setNotifOpen(false);
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSearchDropdown(false);
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
-
   // Navigation handlers
-  const handleReelClick = () => {
+  const handleReelClick = (e) => {
+    // If we're on the home page, prevent navigation and just toggle reels filter
+    if (location.pathname === "/home" || location.pathname === "/") {
+      e.preventDefault();
+    }
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
     window.dispatchEvent(new CustomEvent("toggleReels", { detail: { isActive: nextState } }));
@@ -540,6 +623,40 @@ export default function Header() {
     }
   };
 
+  // Post status badge for Create Post button
+  const getPostStatusBadge = () => {
+    if (loadingPostStatus) {
+      return (
+        <span className="text-xs text-gray-500 ml-2">
+          Checking...
+        </span>
+      );
+    }
+    
+    switch(postStatus) {
+      case "allow":
+        return (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">
+            ✓ Ready
+          </span>
+        );
+      case "interest":
+        return (
+          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full ml-2">
+            ⏳ Pending
+          </span>
+        );
+      case "notallow":
+        return (
+          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2">
+            🔒 Request access
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Fragment>
       {/* DESKTOP SIDEBAR */}
@@ -597,7 +714,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Instagram-like Left Sidebar Notification Panel (Desktop Only) */}
+        {/* Instagram-like Left Sidebar Notification Panel (Desktop Only) - FIXED */}
         <AnimatePresence>
           {notifOpen && (
             <>
@@ -632,23 +749,23 @@ export default function Header() {
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center justify-start gap-2 mt-3">
                     <button
                       onClick={markAllAsRead}
                       className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       Mark all as read
                     </button>
-                    <button
+                    {/* <button
                       onClick={handleDeleteAllNotifications}
                       className="flex-1 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       Clear all
-                    </button>
+                    </button> */}
                   </div>
                 </div>
 
-                {/* Notification List */}
+                {/* Notification List - FIXED WITH PROPER DATA */}
                 <div className="h-[calc(100vh-120px)] overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -669,74 +786,107 @@ export default function Header() {
                             </h3>
                           </div>
                           
-                          {/* Group Notifications */}
-                          {groupNotifications.map((notif) => (
-                            <motion.div
-                              key={notif._id || notif.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                                !notif.isRead ? "bg-blue-50/50" : ""
-                              }`}
-                              onClick={() => handleNotificationClick(notif)}
-                            >
-                              <div className="flex items-start gap-3">
-                                {/* Avatar */}
-                                <div className="relative">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                                    {notif.senderAvatar ? (
-                                      <img
-                                        src={notif.senderAvatar}
-                                        alt=""
-                                        className="w-10 h-10 rounded-full object-cover"
-                                      />
-                                    ) : (
-                                      <span className="text-blue-600 font-semibold">
-                                        {(notif.senderName?.[0] || "U").toUpperCase()}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {/* Notification Type Icon */}
-                                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                                    {getNotificationIcon(notif.type)}
-                                  </div>
-                                </div>
+                          {/* Group Notifications - FIXED DATA EXTRACTION */}
+                          {groupNotifications.map((notif) => {
+                            const sender = notif.sender || {};
+                            const feed = notif.feedInfo || {};
+                            const senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
+                            const senderAvatar = sender.profileAvatar || sender.avatar;
+                            const feedImage = feed.contentUrl || notif.image;
+                            const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
+                            const isFollow = notif.type?.toLowerCase()?.includes("follow");
+                            const isComment = notif.type?.toLowerCase()?.includes("comment");
+                            
+                            // Determine message based on type
+                            let actionText = notif.message || notif.title || "New notification";
+                            if (isLike) actionText = "liked your post";
+                            if (isFollow) actionText = "started following you";
+                            if (isComment) actionText = "commented on your post";
 
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900">
-                                        {notif.senderName || "User"}
-                                      </p>
-                                      <p className="text-sm text-gray-600 mt-0.5">
-                                        {notif.message || notif.title || "New notification"}
-                                      </p>
+                            return (
+                              <motion.div
+                                key={notif._id || notif.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                                  !notif.isRead ? "bg-blue-50/50" : ""
+                                }`}
+                                onClick={() => handleNotificationClick(notif)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  {/* Avatar - FIXED */}
+                                  <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
+                                      {senderAvatar ? (
+                                        <img
+                                          src={senderAvatar}
+                                          alt={senderName}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span className="text-blue-600 font-semibold">
+                                          {(senderName[0] || "U").toUpperCase()}
+                                        </span>
+                                      )}
                                     </div>
-                                    {!notif.isRead && (
-                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    )}
+                                    {/* Notification Type Icon */}
+                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                                      {getNotificationIcon(notif.type)}
+                                    </div>
                                   </div>
-                                  
-                                  {/* Time and Actions */}
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-xs text-gray-500">
-                                      {formatTime(notif.createdAt)}
-                                    </span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteNotification(notif._id);
-                                      }}
-                                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                      ×
-                                    </button>
+
+                                  {/* Content - FIXED */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between">
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900">
+                                          {senderName}
+                                        </p>
+                                        <p className="text-sm text-gray-600 mt-0.5">
+                                          {actionText}
+                                          {feed.dec && (isLike || isComment) && (
+                                            <span className="text-gray-500 ml-1">"{feed.dec.substring(0, 30)}..."</span>
+                                          )}
+                                        </p>
+                                      </div>
+                                      {!notif.isRead && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Time and Actions */}
+                                    <div className="flex items-center justify-between mt-2">
+                                      <span className="text-xs text-gray-500">
+                                        {formatTime(notif.createdAt)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteNotification(notif._id);
+                                        }}
+                                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
                                   </div>
+
+                                  {/* Feed Preview Image - FIXED */}
+                                  {feedImage && (
+                                    <div className="flex-shrink-0 ml-2">
+                                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                        <img
+                                          src={feedImage}
+                                          alt="Post"
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            </motion.div>
-                          ))}
+                              </motion.div>
+                            );
+                          })}
                         </div>
                       ))}
                     </div>
@@ -784,16 +934,19 @@ export default function Header() {
               </NavLink>
             ))}
             
-            {/* Create Post Button */}
+            {/* Create Post Button - UPDATED */}
             <div className="mb-2">
               <button
-                onClick={() => setIsCreatePostOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700"
+                onClick={handleCreatePostClick}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700 relative group"
               >
                 <div className="w-4 h-4 flex items-center justify-center">
                   <Plus className="w-5 h-5" />
                 </div>
-                <span className="text-sm">Create Post</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Create Post</span>
+                  {getPostStatusBadge()}
+                </div>
               </button>
             </div>
           </div>
@@ -1048,14 +1201,16 @@ export default function Header() {
               {/* Quick Actions */}
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
-                  onClick={() => {
-                    setIsCreatePostOpen(true);
-                    handleMobileMenuClose();
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all"
+                  onClick={handleCreatePostClick}
+                  className="flex flex-col items-center gap-2 p-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all relative"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="text-sm">Create Post</span>
+                  {postStatus === "interest" && (
+                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                      ⏳
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => {
@@ -1275,13 +1430,13 @@ export default function Header() {
         onClose={() => setShowEventsPopup(false)}
       />
 
-      {/* NEW: Referral Popup */}
+      {/* Referral Popup */}
       <Referral
         isOpen={showReferralPopup}
         onClose={() => setShowReferralPopup(false)}
       />
 
-      {/* NEW: Subscription Popup */}
+      {/* Subscription Popup */}
       <Subscription
         isOpen={showSubscriptionPopup}
         onClose={() => setShowSubscriptionPopup(false)}
@@ -1289,9 +1444,26 @@ export default function Header() {
 
       {/* Create Post Modal */}
       <CreatePostModal
-        open={isCreatePostOpen}
-        onClose={() => setIsCreatePostOpen(false)}
+        open={isCreatePostOpen && postStatus === "allow"}
+        onClose={handleCloseModal}
       />
+
+      {/* Interest Popup */}
+      {interestModalOpen && (
+       <CasualInterestPopup
+  open={interestModalOpen}
+  onClose={handleCloseInterestModal}
+  onInterestsSelected={handleInterestsSelected}
+/>
+      )}
+
+      {/* Desktop Notification Popup */}
+      {selectedNotif && (
+        <NotificationPopup
+          notification={selectedNotif}
+          onClose={() => setSelectedNotif(null)}
+        />
+      )}
     </Fragment>
   );
 }

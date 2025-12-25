@@ -87,6 +87,8 @@ const AptitudeTest = () => {
   const fetchTestSchedules = async () => {
     try {
       const response = await api.get('/api/aptitude/schedule');
+
+      console.log(response.data)
       
       if (response.data.success) {
         const allTests = [
@@ -174,6 +176,57 @@ const AptitudeTest = () => {
       console.error('Failed to fetch interested data:', error);
     }
   };
+
+
+const formatLocalDateTime = (utcDate) => {
+  if (!utcDate) return "--";
+  
+  try {
+    // Create date object from UTC string
+    const date = new Date(utcDate);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "--";
+    
+    // Format for Indian timezone (IST)
+    return date.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "--";
+  }
+};
+
+const formatLocalTime = (utcDate) => {
+  if (!utcDate) return "--";
+  
+  try {
+    const date = new Date(utcDate);
+    
+    if (isNaN(date.getTime())) return "--";
+    
+    return date.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "--";
+  }
+};
+
+// For the countdown timer, you need to convert server UTC time to local time
+
+
 
   // Handle interested button click
   const handleInterestedClick = () => {
@@ -299,8 +352,8 @@ const AptitudeTest = () => {
       console.log("📨 Message received from iframe:", event.data);
       
       // Accept messages from test server
-      if (event.origin === "http://aptitude.1croreprojects.com/" || 
-          event.origin === "http://aptitude.1croreprojects.com" ||
+      if (event.origin === "https://aptitude.1croreprojects.com/" || 
+          event.origin === "https://aptitude.1croreprojects.com" ||
           event.origin === "http://192.168.1.24:8000" ||
           event.origin === "http://192.168.1.24:8000/") {
         
@@ -395,10 +448,22 @@ const AptitudeTest = () => {
   };
 
   // Calculate time left until test starts
-  const calculateTimeLeft = (startTime) => {
+const calculateTimeLeft = (startTimeUTC) => {
+  if (!startTimeUTC) {
+    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+    return;
+  }
+  
+  try {
+    // Convert UTC time to local time
+    const serverDate = new Date(startTimeUTC);
+    
+    // If server time is already in local format, use it directly
+    // If it's UTC, we need to convert to local
+    const startTime = serverDate;
+    
     const now = new Date();
-    const start = new Date(startTime);
-    const diff = start - now;
+    const diff = startTime - now;
     
     if (diff <= 0) {
       setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -411,7 +476,11 @@ const AptitudeTest = () => {
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
     setTimeLeft({ days, hours, minutes, seconds });
-  };
+  } catch (error) {
+    console.error("Error calculating time left:", error);
+    setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  }
+};
 
   // Get status badge
   const getStatusConfig = (status) => {
@@ -1528,18 +1597,13 @@ const AptitudeTest = () => {
                                       <div className="flex items-center justify-between">
                                         <div className="text-sm text-gray-600">
                                           <Calendar className="w-3 h-3 inline mr-1" />
-                                          {new Date(schedule.startTime).toLocaleDateString('en-US', {
-                                            month: 'short',
-                                            day: 'numeric'
-                                          })}
+                                          {formatLocalDateTime(schedule.startTime).split(',')[0]}
+
                                         </div>
-                                        <div className="text-sm text-gray-600">
-                                          <Clock className="w-3 h-3 inline mr-1" />
-                                          {new Date(schedule.startTime).toLocaleTimeString('en-US', {
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                        </div>
+                                       <div className="text-sm text-gray-600">
+  <Clock className="w-3 h-3 inline mr-1" />
+  {formatLocalTime(schedule.startTime)}
+</div>
                                       </div>
                                     </motion.div>
                                   )}
@@ -1635,14 +1699,9 @@ const AptitudeTest = () => {
                                 <Calendar className="w-4 h-4 text-violet-500" />
                                 <span className="text-sm font-medium text-gray-700">Start Time</span>
                               </div>
-                              <div className="text-sm font-bold text-gray-900">
-                                {new Date(selectedSchedule.startTime).toLocaleString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </div>
+                             <div className="text-sm font-bold text-gray-900">
+  {formatLocalDateTime(selectedSchedule.startTime)}
+</div>
                             </div>
                           </div>
                           

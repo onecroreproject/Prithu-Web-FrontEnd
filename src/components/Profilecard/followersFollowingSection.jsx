@@ -2,12 +2,17 @@ import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { UserCheck, UserPlus, X, ShieldBan, Calendar, User, Mail, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
- 
-export default function FriendsSection({ onFollowDataUpdate, id }) {
-  const [activeSubTab, setActiveSubTab] = useState("followers");
+
+export default function FriendsSection({ onFollowDataUpdate, id, initialView = "followers" }) {
+  const [activeSubTab, setActiveSubTab] = useState(initialView === "followers" ? "followers" : "followings");
   const [followers, setFollowers] = useState([]);
   const [followings, setFollowings] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Update activeSubTab when initialView changes
+  useEffect(() => {
+    setActiveSubTab(initialView === "followers" ? "followers" : "followings");
+  }, [initialView]);
 
   const fetchFollowData = async () => {
     setLoading(true);
@@ -47,11 +52,11 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => {
     fetchFollowData();
   }, [id]); // Added id as dependency to refetch when id changes
- 
+
   const handleUnfollow = async (userId) => {
     try {
       const token = localStorage.getItem("token");
@@ -60,7 +65,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
         { userId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
- 
+
       if (res.status === 200) {
         await fetchFollowData();
         console.log("Unfollowed:", userId);
@@ -69,7 +74,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
       console.error("Unfollow error:", err.response?.data || err.message);
     }
   };
- 
+
   const handleBlock = async (userId) => {
     try {
       const token = localStorage.getItem("token");
@@ -78,7 +83,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
         { userId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
- 
+
       if (res.status === 200) {
         console.log("Blocked user:", userId);
         await fetchFollowData();
@@ -88,7 +93,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
       await fetchFollowData();
     }
   };
- 
+
   const handleRemove = async (userId) => {
     try {
       const token = localStorage.getItem("token");
@@ -99,7 +104,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
- 
+
       if (res.status === 200) {
         console.log("Removed follower:", userId);
         await fetchFollowData();
@@ -114,7 +119,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
     const navigate = useNavigate();
     navigate(`/chat/${userId}`);
   };
- 
+
   const subTabs = [
     {
       id: "followers",
@@ -129,7 +134,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
       count: followings.length,
     },
   ];
- 
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Tabs */}
@@ -162,7 +167,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
           })}
         </div>
       </div>
- 
+
       {/* Content */}
       <div className="p-4 sm:p-6">
         {loading ? (
@@ -189,7 +194,7 @@ export default function FriendsSection({ onFollowDataUpdate, id }) {
     </div>
   );
 }
- 
+
 /* ---------------- Followers Tab ---------------- */
 function FollowersTab({ followers, onRemove, onBlock, onMessage, id }) {
   if (!followers.length) {
@@ -207,7 +212,7 @@ function FollowersTab({ followers, onRemove, onBlock, onMessage, id }) {
       </div>
     );
   }
- 
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
@@ -225,7 +230,7 @@ function FollowersTab({ followers, onRemove, onBlock, onMessage, id }) {
     </div>
   );
 }
- 
+
 /* ---------------- Followings Tab ---------------- */
 function FollowingsTab({ followings, onUnfollow, onMessage, id }) {
   if (!followings.length) {
@@ -243,7 +248,7 @@ function FollowingsTab({ followings, onUnfollow, onMessage, id }) {
       </div>
     );
   }
- 
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
@@ -260,7 +265,7 @@ function FollowingsTab({ followings, onUnfollow, onMessage, id }) {
     </div>
   );
 }
- 
+
 /* ---------------- Follower Card Component ---------------- */
 function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
   const navigate = useNavigate();
@@ -270,18 +275,24 @@ function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
     navigate(`/chat/${follower.userId}`);
   };
 
+  // Default avatar image
+  const defaultAvatar = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
       <div
-        onClick={() => navigate(`/user/profile/${follower.userId}`)}
+        onClick={() => navigate(`/home/user/profile/${follower.userId}`)}
         className="flex flex-col items-center text-center cursor-pointer"
       >
         {/* Avatar */}
         <div className="relative mb-3">
           <img
-            src={follower.profileAvatar}
-            className="w-14 h-14 rounded-full object-cover"
+            src={follower.profileAvatar || defaultAvatar}
+            className="w-14 h-14 rounded-full object-cover bg-gray-200"
             alt="avatar"
+            onError={(e) => {
+              e.target.src = defaultAvatar;
+            }}
           />
         </div>
 
@@ -318,7 +329,7 @@ function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
     </div>
   );
 }
- 
+
 /* ---------------- Following Card Component ---------------- */
 function FollowingCard({ following, onUnfollow, onMessage, id }) {
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
@@ -329,6 +340,9 @@ function FollowingCard({ following, onUnfollow, onMessage, id }) {
     navigate(`/chat/${following.userId}`);
   };
 
+  // Default avatar image
+  const defaultAvatar = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-all duration-200">
       <div
@@ -338,9 +352,12 @@ function FollowingCard({ following, onUnfollow, onMessage, id }) {
         {/* Avatar */}
         <div className="relative mb-3">
           <img
-            src={following.profileAvatar}
-            className="w-14 h-14 rounded-full object-cover"
+            src={following.profileAvatar || defaultAvatar}
+            className="w-14 h-14 rounded-full object-cover bg-gray-200"
             alt="avatar"
+            onError={(e) => {
+              e.target.src = defaultAvatar;
+            }}
           />
         </div>
 

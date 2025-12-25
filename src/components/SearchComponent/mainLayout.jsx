@@ -620,7 +620,7 @@ const PersonCard = ({ person }) => {
 
   const handleClick = () => {
     if (!person?._id) return;
-    navigate(`/user/profile/${person.userId}`);
+    navigate(`/home/user/profile/${person.userId}`);
   };
 
   return (
@@ -687,7 +687,7 @@ const CategoryCard = ({ category }) => {
 
   const handleClick = () => {
     const clean = (category.tag || "").replace(/^#+/, "");
-    navigate(`/hashtag/${clean}`);
+    navigate(`/home/hashtag/${clean}`);
   };
 
   return (

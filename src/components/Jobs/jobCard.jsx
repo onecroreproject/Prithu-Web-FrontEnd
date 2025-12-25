@@ -189,8 +189,8 @@ const JobCard = ({ jobData }) => {
 
   return (
     <>
-      <div ref={cardRef} className={`${FEED_CARD_STYLE} hover:shadow-lg transition-all duration-300 border border-gray-200`}>
-        <div className="flex flex-col sm:flex-row">
+      <div ref={cardRef} className={`w-[480px] hover:shadow-lg transition-all duration-300 border border-gray-200`}>
+        <div className=" flex flex-col sm:flex-row">
           {/* LEFT - Company Image */}
           <div className="sm:w-1/4 p-3 flex items-center justify-center bg-gray-50 rounded-l-lg">
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-white border border-gray-200">

@@ -71,7 +71,7 @@ export default function Layout() {
       <main className="flex-1 pt-0 lg:pt-0  w-full">
         <div className="flex pb-20 lg:pb-0 lg:ml-[280px]">
           {/* CENTER FEED */}
-          <section className="flex-1 min-w-0 px-2 lg:px-6">
+          <section className="flex-1 min-w-0 px-2 ">
             {isHashtagPage ? (
               <Feed tagname={tagname} />
             ) : isRetrieveFeed ? (
@@ -85,8 +85,8 @@ export default function Layout() {
 
           {/* RIGHT COLUMN - Now includes LeftColumn at the top */}
           {showRightColumn && (
-            <aside className="hidden xl:flex w-[280px] mt-2 flex-shrink-0 mr-4"> {/* Added mr-4 for right margin */}
-              <div className="flex flex-col gap-4 w-full">
+            <aside className="hidden xl:flex w-[350px] mt-2 flex-shrink-0 mr-4"> {/* Added mr-4 for right margin */}
+              <div className="flex flex-col w-[350px] gap-4 ">
                 {/* LeftColumn moved here - above Birthdays */}
                 <LeftColumn />
                 

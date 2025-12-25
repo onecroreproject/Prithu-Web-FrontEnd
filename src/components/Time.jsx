@@ -142,7 +142,7 @@ export default function TimeWeather() {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className="relative w-[230px] h-[230px] sm:w-[280px] sm:h-[230px] rounded-[16px] overflow-hidden shadow-xl flex flex-col items-center justify-center text-white"
+      className="relative w-full  sm:w-[280px] sm:h-[230px] rounded-[16px] overflow-hidden shadow-xl flex flex-col items-center justify-center text-white"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",

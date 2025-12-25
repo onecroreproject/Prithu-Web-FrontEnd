@@ -5,7 +5,6 @@ import api from "../../../api/axios";
 
 export default function JobPageWrapper() {
   const { state } = useLocation();
-
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -16,9 +15,10 @@ export default function JobPageWrapper() {
   const [error, setError] = useState(null);
 
   /* ----------------------------------------------------------
-   * UNIFIED TRANSFORM FUNCTION FOR BOTH STATE FORMATS
+   * TRANSFORM FUNCTION FOR SCHEMA FORMAT
    * ---------------------------------------------------------- */
   const transformJobData = (apiJob) => {
+    console.log(apiJob)
     if (!apiJob) return null;
 
     // Helper function to get array safely
@@ -37,166 +37,138 @@ export default function JobPageWrapper() {
       return '';
     };
 
-    return {
-      /* ----------------------------------------------------------
-       * BASIC INFO
-       * ---------------------------------------------------------- */
-      _id: apiJob.jobId || apiJob._id,
-      companyId:apiJob.companyId,
-      jobTitle: apiJob.jobTitle,
-      jobRole: apiJob.jobRole,
-      jobCategory: apiJob.jobCategory,
-      jobSubCategory: apiJob.jobSubCategory,
-      employmentType: apiJob.employmentType,
-      workMode: apiJob.workMode,
-      shiftType: apiJob.shiftType,
-      openingsCount: apiJob.openingsCount,
-      urgencyLevel: apiJob.urgencyLevel,
-
-      /* ----------------------------------------------------------
-       * LOCATION
-       * ---------------------------------------------------------- */
-      country: apiJob.country,
-      state: apiJob.state,
-      city: apiJob.city,
-      pincode: apiJob.pincode,
-      fullAddress: apiJob.fullAddress,
-      remoteEligibility: apiJob.remoteEligibility,
-
-      /* ----------------------------------------------------------
-       * SALARY
-       * ---------------------------------------------------------- */
-      salaryMin: apiJob.salaryMin,
-      salaryMax: apiJob.salaryMax,
-      salaryType: apiJob.salaryType,
-      salaryCurrency: apiJob.salaryCurrency || 'INR',
-      salaryVisibility: apiJob.salaryVisibility || 'public',
-
-      /* ----------------------------------------------------------
-       * EXPERIENCE & QUALIFICATION
-       * ---------------------------------------------------------- */
-      minimumExperience: apiJob.minimumExperience || 0,
-      maximumExperience: apiJob.maximumExperience || 0,
-      freshersAllowed: apiJob.freshersAllowed || false,
-      educationLevel: apiJob.educationLevel,
-      degreeRequired: apiJob.degreeRequired,
-      certificationRequired: safeArray(apiJob.certificationRequired),
-
-      /* ----------------------------------------------------------
-       * DESCRIPTION
-       * ---------------------------------------------------------- */
-      jobDescription: apiJob.jobDescription,
-      responsibilities: safeArray(apiJob.responsibilities),
-      dailyTasks: safeArray(apiJob.dailyTasks),
-      keyDuties: safeArray(apiJob.keyDuties),
-
-      /* ----------------------------------------------------------
-       * SKILLS
-       * ---------------------------------------------------------- */
-      requiredSkills: safeArray(apiJob.requiredSkills),
-      preferredSkills: safeArray(apiJob.preferredSkills),
-      technicalSkills: safeArray(apiJob.technicalSkills),
-      softSkills: safeArray(apiJob.softSkills),
-      toolsAndTechnologies: safeArray(apiJob.toolsAndTechnologies),
-
-      /* ----------------------------------------------------------
-       * HIRING INFORMATION
-       * ---------------------------------------------------------- */
-      hiringManagerName: apiJob.hiringManagerName,
-      hiringManagerEmail: apiJob.hiringManagerEmail,
-      hiringManagerPhone: apiJob.hiringManagerPhone,
-      interviewMode: apiJob.interviewMode,
-      interviewLocation: apiJob.interviewLocation,
-      interviewRounds: safeArray(apiJob.interviewRounds),
-      hiringProcess: safeArray(apiJob.hiringProcess),
-      interviewInstructions: apiJob.interviewInstructions,
-
-      /* ----------------------------------------------------------
-       * TIMINGS
-       * ---------------------------------------------------------- */
-      startDate: apiJob.startDate,
-      endDate: apiJob.endDate,
-      jobTimings: apiJob.jobTimings,
-      workingDays: apiJob.workingDays,
-      workingHours: apiJob.workingHours,
-      holidaysType: apiJob.holidaysType,
-
-      /* ----------------------------------------------------------
-       * DOCUMENTS
-       * ---------------------------------------------------------- */
-      resumeRequired: apiJob.resumeRequired ?? true,
-      coverLetterRequired: apiJob.coverLetterRequired || false,
-      documentsRequired: safeArray(apiJob.documentsRequired),
-
-      /* ----------------------------------------------------------
-       * ENGAGEMENT COUNTS
-       * ---------------------------------------------------------- */
-      likeCount: apiJob.likeCount || apiJob.stats?.engagementScore || 0,
-      shareCount: apiJob.shareCount || 0,
-      saveCount: apiJob.saveCount || 0,
-      applyCount: apiJob.applyCount || apiJob.stats?.applications || 0,
-      viewCount: apiJob.viewCount || apiJob.stats?.views || 0,
-      engagementScore: apiJob.engagementScore || apiJob.stats?.engagementScore || 0,
-
-      /* ----------------------------------------------------------
-       * USER FLAGS
-       * ---------------------------------------------------------- */
-      isLiked: apiJob.isLiked || false,
-      isSaved: apiJob.isSaved || false,
-      isApplied: apiJob.isApplied || false,
-      isViewed: apiJob.isViewed || false,
-      isShared: apiJob.isShared || false,
-
-      /* ----------------------------------------------------------
-       * PAYMENT / PROMOTION
-       * ---------------------------------------------------------- */
-      paymentAmount: apiJob.paymentAmount,
-      boostLevel: apiJob.boostLevel,
-      isFeatured: apiJob.isFeatured,
-      isPromoted: apiJob.isPromoted,
-
-      /* ----------------------------------------------------------
-       * COMPANY INFO - HANDLE BOTH FORMATS
-       * ---------------------------------------------------------- */
-      companyName: apiJob.companyName || apiJob.postedBy?.companyName || '',
-      companyLogo: apiJob.logo,
-      companyIndustry: apiJob.companyIndustry,
-      companyWebsite: apiJob.companyWebsite,
-
-      /* ----------------------------------------------------------
-       * ADDITIONAL FIELDS (FROM FORMAT 1)
-       * ---------------------------------------------------------- */
-      benefits: safeArray(apiJob.benefits),
-      perks: safeArray(apiJob.perks),
-      bonuses: apiJob.bonuses,
-      incentives: apiJob.incentives,
-      tags: safeArray(apiJob.tags),
-      skillKeywords: safeArray(apiJob.skillKeywords),
-      keywordSearch: safeArray(apiJob.keywordSearch),
-      contractDuration: apiJob.contractDuration,
-      googleLocation: apiJob.googleLocation,
-      priorityScore: apiJob.priorityScore,
-
-      /* ----------------------------------------------------------
-       * STATUS
-       * ---------------------------------------------------------- */
-      status: apiJob.status || 'active',
-      isApproved: apiJob.isApproved,
-
-      /* ----------------------------------------------------------
-       * TIMESTAMPS
-       * ---------------------------------------------------------- */
-      createdAt: apiJob.createdAt,
-      updatedAt: apiJob.updatedAt,
+    // Extract qualifications
+    const extractQualifications = () => {
+  console.log(apiJob)
+      if (!apiJob.qualifications || !Array.isArray(apiJob.qualifications)) {
+        return [];
+      }
+      return apiJob.qualifications
+        .map(q => q.fullQualification || '')
+        .filter(q => q.trim() !== '');
     };
+
+    return {
+  /* ----------------------------------------------------------
+   * BASIC INFO
+   * ---------------------------------------------------------- */
+  _id: apiJob.jobId || apiJob._id, // ✅ backend sends jobId
+  companyId: apiJob.companyId,
+  jobTitle: apiJob.jobTitle,
+  jobRole: apiJob.jobRole ? safeArray(apiJob.jobRole).join(", ") : "",
+  jobCategory: apiJob.jobIndustry,
+  jobSubCategory: apiJob.area,
+  employmentType: apiJob.employmentType,
+  workMode: apiJob.workMode,
+  shiftType: apiJob.shiftType,
+  openingsCount: apiJob.openingsCount || 1,
+  urgencyLevel: apiJob.urgencyLevel,
+  companyName:apiJob.companyName,
+  companyLogo:apiJob.companyLogo || apiJob.companyProfile.logo,
+  //companyCoverImage:apiJob.CoverImage ||apiJob.companyProfile.coverImage,
+
+  /* ----------------------------------------------------------
+   * CONTRACT INFO
+   * ---------------------------------------------------------- */
+  contractDuration: apiJob.contractDuration,
+  contractDurationUnit: apiJob.contractDurationUnit,
+
+  /* ----------------------------------------------------------
+   * LOCATION
+   * ---------------------------------------------------------- */
+  country: apiJob.country,
+  state: apiJob.state,
+  city: apiJob.city,
+  area: apiJob.area,
+  pincode: apiJob.pincode,
+  fullAddress: apiJob.fullAddress,
+  remoteEligibility: apiJob.remoteEligibility || false,
+  latitude: apiJob.latitude,
+  longitude: apiJob.longitude,
+  googleLocation: apiJob.googleLocation,
+
+  /* ----------------------------------------------------------
+   * SALARY
+   * ---------------------------------------------------------- */
+  salaryMin: apiJob.salaryMin,
+  salaryMax: apiJob.salaryMax,
+  salaryType: apiJob.salaryType,
+  salaryCurrency: apiJob.salaryCurrency || "INR",
+  benefits: safeArray(apiJob.benefits),
+
+  /* ----------------------------------------------------------
+   * EXPERIENCE & QUALIFICATION
+   * ---------------------------------------------------------- */
+  minimumExperience: apiJob.minimumExperience || 0,
+  maximumExperience: apiJob.maximumExperience || 0,
+  freshersAllowed: apiJob.freshersAllowed || false,
+  degreeRequired: extractQualifications(),
+  certificationRequired: safeArray(apiJob.certificationRequired),
+  qualifications: apiJob.qualifications || [],
+
+  /* ----------------------------------------------------------
+   * DESCRIPTION & SKILLS
+   * ---------------------------------------------------------- */
+  jobDescription: apiJob.jobDescription,
+  requiredSkills: safeArray(apiJob.requiredSkills),
+
+  /* ----------------------------------------------------------
+   * ✅ HIRING INFORMATION (FROM CompanyLogin)
+   * ---------------------------------------------------------- */
+  hiringManagerName: apiJob.hiringInfo?.name || "",
+  hiringManagerPosition: apiJob.hiringInfo?.position || "",
+  hiringManagerEmail: apiJob.hiringInfo?.email || "",
+  hiringManagerPhone: apiJob.hiringInfo?.phone || "",
+  hiringManagerWhatsApp: apiJob.hiringInfo?.whatsAppNumber || "",
+
+  /* ----------------------------------------------------------
+   * TIMINGS
+   * ---------------------------------------------------------- */
+  startDate: apiJob.startDate,
+  endDate: apiJob.endDate,
+
+  /* ----------------------------------------------------------
+   * ENGAGEMENT COUNTS (DIRECT FROM API)
+   * ---------------------------------------------------------- */
+  likeCount: apiJob.likeCount || 0,
+  saveCount: apiJob.saveCount || 0,
+  applyCount: apiJob.applyCount || 0,
+  shareCount: apiJob.shareCount || 0,
+  viewCount: apiJob.viewCount || 0,
+
+  /* ----------------------------------------------------------
+   * USER FLAGS (DIRECT FROM API)
+   * ---------------------------------------------------------- */
+  isLiked: apiJob.isLiked || false,
+  isSaved: apiJob.isSaved || false,
+  isApplied: apiJob.isApplied || false,
+  isViewed: apiJob.isViewed || false,
+  isShared: apiJob.isShared || false,
+
+  /* ----------------------------------------------------------
+   * COMPANY INFO
+   * ---------------------------------------------------------- */
+  companyProfile: apiJob.companyProfile || null,
+
+  /* ----------------------------------------------------------
+   * MEDIA
+   * ---------------------------------------------------------- */
+  jobImage: apiJob.jobImage || "",
+
+  /* ----------------------------------------------------------
+   * STATUS
+   * ---------------------------------------------------------- */
+  status: apiJob.status,
+  createdAt: apiJob.createdAt,
+  updatedAt: apiJob.updatedAt,
+};
+
   };
 
   /* ----------------------------------------------------------
    * FETCH JOB BY ID FROM API
    * ---------------------------------------------------------- */
   useEffect(() => {
-  
-
     const fetchJobDetails = async () => {
       if (!id) {
         setError("No job ID provided");
@@ -206,13 +178,11 @@ export default function JobPageWrapper() {
 
       try {
         setLoading(true);
-  
         const response = await api.get(`/job/get/jobs/by/id/${id}`);
-
         
         if (response.data.success && response.data.job) {
           const transformedJob = transformJobData(response.data.job);
-         
+          console.log("Transformed job from API:", transformedJob);
           setJob(transformedJob);
           setJobs([transformedJob]);
           setCurrentIndex(0);
@@ -249,10 +219,6 @@ export default function JobPageWrapper() {
       }
       
       setLoading(false);
-      
-      // Optionally: Still fetch from API to get complete data
-      // Uncomment if you want to always get fresh data from API
-      // fetchJobDetails();
     } else {
       // No state provided, fetch from API
       console.log("No state provided, fetching from API");
@@ -333,8 +299,6 @@ export default function JobPageWrapper() {
       </div>
     );
   }
-
-  
 
   return (
     <JobPage

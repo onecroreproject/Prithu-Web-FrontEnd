@@ -108,7 +108,7 @@ export default function TrendingHashtags() {
       <h3 
         onClick={() => {
     const clean = hashtag.tag.replace(/^#+/, "");
-    navigate(`/hashtag/${clean}`);
+    navigate(`/home/hashtag/${clean}`);
   }}
       className="font-semibold text-gray-900 text-sm sm:text-lg hover:cursor-pointer hover:text-blue-400 hover:underline truncate">
         #{hashtag.tag}

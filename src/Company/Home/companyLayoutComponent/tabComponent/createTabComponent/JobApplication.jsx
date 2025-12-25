@@ -1,50 +1,123 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import jobData from "../../../../../JsonFile/jobSelection.json";
+import newJobData from "../../../../../JsonFile/jobSelection.json";
 import { createOrUpdateJobPost, getDraftJobById } from "../../../../../Service/jobservices";
-import  {locationService}  from "../locationService"; // Import location service
+import { locationService } from "../locationService";
+import { companyLocationService } from "../../../../../Service/companyService"; // NEW: Import company location service
 import {
   FiArrowLeft,
   FiSave,
   FiEye,
-  FiSearch,
-  FiChevronUp,
-  FiChevronDown,
-  FiX,
   FiCheckCircle,
+  FiMapPin,
   FiPlus,
-  FiImage,
-  FiBriefcase,
-  FiFileText,
-  FiUsers,
-  FiDollarSign,
-  FiTool,
-  FiPackage,
-  FiHeart,
-  FiAward,
-  FiClock,
-  FiFolder,
-  FiTag
+  FiTrash2,
+  FiEdit2,
+  FiCheck,
 } from "react-icons/fi";
-import {
-  MdBusiness,
-  MdSettings,
-  MdDescription,
-  MdSchool,
-  MdPerson,
-  MdLocationOn,
-  MdAccessTime
-} from "react-icons/md";
 
-// Import new components
-import BasicInfoTab from "./components/tabs/BasicInfoTab";
-import JobDetailsTab from "./components/tabs/JobDetailsTab";
-import SalaryBenefitsTab from "./components/tabs/SalaryBenefitsTab";
+// Import modular components
+import FormTabs from "./components/tabs/mainTabs";
+import ProgressSidebar from "./components/ProgressSidebar";
+import JobPreviewModal from "./components/JobPreviewModal";
 
 const JobPostingForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+
+  // Form data state - Updated to match backend schema
+  const [formData, setFormData] = useState({
+    // Basic Job Info
+    jobTitle: '',
+    degreeRequired: [],
+    jobRole: [], // Changed to array for multiple roles
+    jobIndustry: '', // Added this field to match backend
+    employmentType: '',
+    contractDuration: '',
+    contractDurationUnit: 'months',
+    workMode: '',
+    shiftType: '',
+    openingsCount: 1,
+    urgencyLevel: '',
+
+    // Posting Duration
+    startDate: '',
+    endDate: '',
+
+    // Location
+    city: '',
+    state: '',
+    country: '',
+    area: '',
+    pincode: '',
+    fullAddress: '',
+    remoteEligibility: false,
+    latitude: '',
+    longitude: '',
+
+    // Job Description
+    jobDescription: '',
+
+    // Skills
+    requiredSkills: [],
+
+    // Qualifications - Updated to match backend schema
+    qualifications: [
+      {
+        educationLevel: '',
+        course: '',
+        specialization: ''
+      }
+    ],
+    certificationRequired: [],
+    
+    // Experience
+    minimumExperience: 0,
+    maximumExperience: 0,
+    freshersAllowed: false,
+
+    // Salary
+    salaryType: 'monthly',
+    salaryMin: 0,
+    salaryMax: 0,
+    salaryCurrency: 'INR',
+    benefits: [],
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [jobImage, setJobImage] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
+  const [activeTab, setActiveTab] = useState('basic');
+  const [showPreview, setShowPreview] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isFormComplete, setIsFormComplete] = useState(false);
+  const [jobApproved, setJobApproved] = useState(false); // Track if job is already approved
+  const [companyLocationStatus, setCompanyLocationStatus] = useState({
+    isLocationUpdated: false,
+    coordinates: null,
+    isLoading: true
+  }); // NEW: Track company location status
+
+  // Search states for dropdowns
+  const [categorySearch, setCategorySearch] = useState('');
+  const [roleSearch, setRoleSearch] = useState('');
+  const [industrySearch, setIndustrySearch] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
+
+  // Refs for dropdowns
+  const categoryRef = useRef(null);
+  const roleRef = useRef(null);
+  const industryRef = useRef(null);
+
+  // Location states
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   // Location data states
   const [locationData, setLocationData] = useState({
@@ -63,151 +136,304 @@ const JobPostingForm = () => {
     pincodes: false
   });
 
-  // Form data state
-  const [formData, setFormData] = useState({
-    // Basic Job Info
-    jobTitle: '',
-    jobRole: '',
-    jobCategory: '',
-    jobSubCategory: '',
-    employmentType: '',
-    workMode: '',
-    shiftType: '',
-    openingsCount: 1,
-    urgencyLevel: '',
+  // Education levels for dropdown
+  const educationLevels = ["High School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD", "No Formal Education Required"];
 
-    // Location (updated with area field)
-    city: '',
-    state: '',
-    country: '',
-    area: '',
-    pincode: '',
-    fullAddress: '',
-    remoteEligibility: false,
-    latitude: '',
-    longitude: '',
+  // Set default dates on component mount
+  useEffect(() => {
+    if (!formData.startDate) {
+      const today = new Date();
+      const oneMonthLater = new Date(today);
+      oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 
-    // Job Description
-    jobDescription: '',
-    responsibilities: [],
-    dailyTasks: [],
-    keyDuties: [],
+      const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
+      };
 
-    // Skills
-    requiredSkills: [],
-    preferredSkills: [],
-    technicalSkills: [],
-    softSkills: [],
-    toolsAndTechnologies: [],
+      setFormData(prev => ({
+        ...prev,
+        startDate: formatDate(today),
+        endDate: formatDate(oneMonthLater)
+      }));
+    }
+  }, []);
 
-    // Qualification
-    educationLevel: '',
-    degreeRequired: '',
-    certificationRequired: [],
-    minimumExperience: 0,
-    maximumExperience: 0,
-    freshersAllowed: false,
+  // Check company location status on component mount
+  useEffect(() => {
+    checkCompanyLocationStatus();
+  }, []);
 
-    // Salary
-    salaryType: 'monthly',
-    salaryMin: 0,
-    salaryMax: 0,
-    salaryCurrency: 'INR',
-    salaryVisibility: 'public',
-    benefits: [],
-    perks: [],
-    incentives: '',
-    bonuses: '',
+  // NEW: Function to check company location status
+  const checkCompanyLocationStatus = async () => {
+    try {
+      setCompanyLocationStatus(prev => ({ ...prev, isLoading: true }));
+      
+      const response = await companyLocationService.checkLocationStatus();
+      
+      if (response.success) {
+        setCompanyLocationStatus({
+          isLocationUpdated: response.isLocationUpdated || false,
+          coordinates: response.coordinates || null,
+          isLoading: false
+        });
+        
+        // If company has coordinates, pre-fill them in form
+        if (response.coordinates) {
+          setFormData(prev => ({
+            ...prev,
+            latitude: response.coordinates.latitude.toString(),
+            longitude: response.coordinates.longitude.toString()
+          }));
+        }
+      } else {
+        setCompanyLocationStatus({
+          isLocationUpdated: false,
+          coordinates: null,
+          isLoading: false
+        });
+      }
+    } catch (error) {
+      console.error('Error checking company location:', error);
+      setCompanyLocationStatus({
+        isLocationUpdated: false,
+        coordinates: null,
+        isLoading: false
+      });
+    }
+  };
 
-    // Hiring Information
-    hiringManagerName: '',
-    hiringManagerEmail: '',
-    hiringManagerPhone: '',
-    interviewMode: '',
-    interviewLocation: '',
-    interviewRounds: [],
-    hiringProcess: [],
-    interviewInstructions: '',
+  // NEW: Function to update company location
+  const updateCompanyLocation = async (latitude, longitude) => {
+    try {
+      setIsGettingLocation(true);
+      setLocationError('');
+      
+      const response = await companyLocationService.updateLocation(latitude, longitude);
+      
+      if (response.success) {
+        // Update company location status
+        setCompanyLocationStatus({
+          isLocationUpdated: true,
+          coordinates: { latitude, longitude },
+          isLoading: false
+        });
+        
+        // Update form data with coordinates
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }));
+        
+        return true;
+      } else {
+        throw new Error(response.message || 'Failed to update company location');
+      }
+    } catch (error) {
+      console.error('Error updating company location:', error);
+      setLocationError(error.message || 'Failed to update location. Please try again.');
+      return false;
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
 
-    // Timing & Duration
-    startDate: '',
-    endDate: '',
-    contractDuration: '',
-    jobTimings: '',
-    workingHours: '',
-    workingDays: '',
-    holidaysType: '',
+  // NEW: Function to get current location and update company
+  const getAndUpdateCompanyLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser'));
+        return;
+      }
 
-    // Documents Required
-    resumeRequired: true,
-    coverLetterRequired: false,
-    documentsRequired: [],
+      setIsGettingLocation(true);
+      setLocationError('');
 
-    // SEO & Keywords
-    tags: [],
-    skillKeywords: [],
-    keywordSearch: [],
-  });
+      const options = {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000
+      };
 
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [jobImage, setJobImage] = useState(null);
-  const [existingImage, setExistingImage] = useState(null);
-  const [activeTab, setActiveTab] = useState('basic');
-  const [showPreview, setShowPreview] = useState(false);
-  const [savedDraft, setSavedDraft] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const success = await updateCompanyLocation(latitude, longitude);
+            
+            if (success) {
+              resolve({ latitude, longitude });
+            } else {
+              reject(new Error('Failed to save location to server'));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        },
+        (error) => {
+          setIsGettingLocation(false);
+          let errorMessage = '';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location permission denied. Please enable location permissions in your browser settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location unavailable. Please ensure location services are enabled on your device.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again.';
+              break;
+            default:
+              errorMessage = 'Unable to get location. Please try again.';
+              break;
+          }
+          
+          setLocationError(errorMessage);
+          reject(new Error(errorMessage));
+        },
+        options
+      );
+    });
+  };
 
-  // Search states for dropdowns
-  const [categorySearch, setCategorySearch] = useState('');
-  const [roleSearch, setRoleSearch] = useState('');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  // Check if form is complete whenever formData changes (but not in edit mode)
+  useEffect(() => {
+    // Don't auto-complete form in edit mode - let user control when to preview
+    if (isEditMode) return;
 
-  // Refs for dropdowns
-  const categoryRef = useRef(null);
-  const roleRef = useRef(null);
+    const checkFormCompletion = () => {
+      const basicComplete = formData.jobTitle &&
+                           formData.jobIndustry &&
+                           formData.jobRole &&
+                           formData.jobRole.length > 0 &&
+                           formData.employmentType &&
+                           formData.workMode &&
+                           formData.startDate &&
+                           formData.endDate;
 
-  // Get all categories from JSON
-  const allCategories = jobData.mainCategories.flatMap(category => category.items);
-  const jobRoles = jobData.jobRoles;
+      const salaryComplete = formData.jobDescription && formData.jobDescription.trim().length > 0;
 
-  // Filter categories and roles based on search
-  const filteredCategories = allCategories.filter(category =>
-    category.toLowerCase().includes(categorySearch.toLowerCase())
+      const additionalComplete = (formData.requiredSkills && formData.requiredSkills.length > 0) ||
+                                (formData.qualifications && formData.qualifications.some(q => q.educationLevel.trim() !== '')) ||
+                                formData.minimumExperience > 0;
+
+      return basicComplete && salaryComplete && additionalComplete;
+    };
+
+    setIsFormComplete(checkFormCompletion());
+  }, [formData, isEditMode]);
+
+  // =================== JOB DATA PROCESSING ===================
+  const allIndustries = newJobData.industries || [];
+  
+  const allRoles = allIndustries.flatMap(industry => 
+    industry.roles.map(role => ({
+      industry: industry.industryName,
+      value: role,
+      label: role
+    }))
   );
 
-  const filteredRoles = jobRoles.flatMap(roleCategory =>
-    roleCategory.jobrole
-      .filter(role => role.join(' ').toLowerCase().includes(roleSearch.toLowerCase()))
-      .map(role => ({
-        category: roleCategory.category,
-        value: role.join(' '),
-        label: role.join(' ')
-      }))
+  const filteredIndustries = allIndustries.filter(industry =>
+    industry.industryName.toLowerCase().includes(industrySearch.toLowerCase())
   );
 
-  // Load countries on component mount
+  const filteredRoles = allRoles.filter(role =>
+    role.label.toLowerCase().includes(roleSearch.toLowerCase())
+  );
+
+  const getRolesForIndustry = (industryName) => {
+    const industry = allIndustries.find(ind => ind.industryName === industryName);
+    return industry ? industry.roles.map(role => ({
+      industry: industry.industryName,
+      value: role,
+      label: role
+    })) : [];
+  };
+
+  const employmentTypes = ["full-time", "part-time", "contract", "internship", "freelance"];
+  const workModes = ["onsite", "remote", "hybrid"];
+  const shiftTypes = ["day", "night", "rotational", "flexible"];
+  const urgencyLevels = ["immediate", "15 days", "30 days"];
+  const salaryTypes = ["monthly", "yearly", "hourly"];
+  const salaryCurrencies = ["INR", "USD", "EUR", "GBP", "AUD", "CAD"];
+
+  const tabs = [
+    { id: 'basic', label: 'Basic Info', icon: '📝' },
+    { id: 'salary', label: 'Job Details & Salary', icon: '💰' },
+    { id: 'additional', label: 'Skills & Qualifications', icon: '🎯' },
+  ];
+
   useEffect(() => {
     loadCountries();
   }, []);
 
-  // Initialize form with job data if editing
   useEffect(() => {
     if (id) {
       setIsEditMode(true);
       fetchJobData(id);
     } else if (location.state?.jobData) {
       setIsEditMode(true);
-      setFormData(location.state.jobData);
+      const jobData = location.state.jobData;
+      
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+      };
+      
+      // Parse jobRole from backend - ensure it's an array
+      const parseJobRole = (jobRole) => {
+        if (!jobRole) return [];
+        if (Array.isArray(jobRole)) return jobRole;
+        if (typeof jobRole === 'string') {
+          try {
+            const parsed = JSON.parse(jobRole);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {
+            // If it's a comma-separated string
+            return jobRole.split(',').map(item => item.trim()).filter(item => item);
+          }
+        }
+        return [];
+      };
+      
+      // Parse qualifications from backend
+      const parseQualifications = (qualifications) => {
+        if (!qualifications) return [{ educationLevel: '', course: '', specialization: '' }];
+        if (Array.isArray(qualifications) && qualifications.length > 0) {
+          return qualifications.map(q => ({
+            educationLevel: q.educationLevel || '',
+            course: q.course || '',
+            specialization: q.specialization || ''
+          }));
+        }
+        return [{ educationLevel: '', course: '', specialization: '' }];
+      };
+      
+      setFormData({
+        ...formData,
+        jobTitle: jobData.jobTitle || '',
+        jobRole: parseJobRole(jobData.jobRole),
+        jobIndustry: jobData.jobIndustry || jobData.companyIndustry || '',
+        qualifications: parseQualifications(jobData.qualifications),
+        startDate: jobData.startDate ? formatDateForInput(jobData.startDate) : formData.startDate,
+        endDate: jobData.endDate ? formatDateForInput(jobData.endDate) : formData.endDate,
+        // Add other fields as needed
+      });
+      
+      // Check if job is already approved - Use isApproved from API
+      if (jobData.isApproved) {
+        setJobApproved(true);
+      }
+      
       if (location.state.jobData.jobImage) {
         setExistingImage(location.state.jobData.jobImage);
       }
     }
   }, [id, location.state]);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target)) {
@@ -216,13 +442,78 @@ const JobPostingForm = () => {
       if (roleRef.current && !roleRef.current.contains(event.target)) {
         setShowRoleDropdown(false);
       }
+      if (industryRef.current && !industryRef.current.contains(event.target)) {
+        setShowIndustryDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Location service functions
+  // NEW: Check if location is needed before action
+  const checkAndHandleLocation = async (action) => {
+    // If company already has location, proceed directly
+    if (companyLocationStatus.isLocationUpdated && companyLocationStatus.coordinates) {
+      action();
+      return;
+    }
+    
+    // If location check is still loading, wait
+    if (companyLocationStatus.isLoading) {
+      const waitForLocationCheck = () => {
+        return new Promise((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (!companyLocationStatus.isLoading) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+        });
+      };
+      
+      await waitForLocationCheck();
+      
+      // Re-check after loading completes
+      if (companyLocationStatus.isLocationUpdated) {
+        action();
+        return;
+      }
+    }
+    
+    // Ask user for location permission
+    const userConfirmed = window.confirm(
+      'To post jobs, we need your company location. Would you like to share your current location?\n\n' +
+      'This helps candidates find jobs near them and is required for job posting.'
+    );
+    
+    if (userConfirmed) {
+      try {
+        await getAndUpdateCompanyLocation();
+        action();
+      } catch (error) {
+        // If location fails, ask if user wants to proceed anyway
+        const proceedWithoutLocation = window.confirm(
+          'Unable to get your location. You can still proceed without location, ' +
+          'but this may affect job visibility. Continue without location?'
+        );
+        
+        if (proceedWithoutLocation) {
+          action();
+        }
+      }
+    } else {
+      // User declined location - ask if they want to proceed anyway
+      const proceedWithoutLocation = window.confirm(
+        'Location is required for optimal job visibility. Continue without location?'
+      );
+      
+      if (proceedWithoutLocation) {
+        action();
+      }
+    }
+  };
+
   const loadCountries = async () => {
     setLocationLoading(prev => ({ ...prev, countries: true }));
     try {
@@ -274,29 +565,28 @@ const JobPostingForm = () => {
     }
   };
 
- const fetchAreas = async (country, state, city) => {
-  if (!country || !state || !city) return;
+  const fetchAreas = async (country, state, city) => {
+    if (!country || !state || !city) return;
 
-  setLocationLoading(prev => ({ ...prev, areas: true }));
-  try {
-    const areas = await locationService.getAreas({
-      country,
-      state,
-      city
-    });
+    setLocationLoading(prev => ({ ...prev, areas: true }));
+    try {
+      const areas = await locationService.getAreas({
+        country,
+        state,
+        city
+      });
 
-    setLocationData(prev => ({
-      ...prev,
-      areas,
-      pincodes: []
-    }));
-  } catch (error) {
-    console.error("Failed to load areas:", error);
-  } finally {
-    setLocationLoading(prev => ({ ...prev, areas: false }));
-  }
-};
-
+      setLocationData(prev => ({
+        ...prev,
+        areas,
+        pincodes: []
+      }));
+    } catch (error) {
+      console.error("Failed to load areas:", error);
+    } finally {
+      setLocationLoading(prev => ({ ...prev, areas: false }));
+    }
+  };
 
   const fetchPincodes = async (area) => {
     if (!area || formData.country !== 'India') return;
@@ -304,9 +594,10 @@ const JobPostingForm = () => {
     setLocationLoading(prev => ({ ...prev, pincodes: true }));
     try {
       const pincodes = await locationService.getPincodes({
-  country: formData.country,
-  area
-});
+        country: formData.country,
+        area
+      });
+      setLocationData(prev => ({ ...prev, pincodes }));
     } catch (error) {
       console.error('Failed to load pincodes:', error);
     } finally {
@@ -314,165 +605,25 @@ const JobPostingForm = () => {
     }
   };
 
-  // Fetch job data for editing
-  const fetchJobData = async (jobId) => {
-    setIsLoading(true);
-    try {
-      const response = await getDraftJobById(jobId);
-      console.log("API Response:", response.data);
-
-      if (response.data.success && response.data.draft) {
-        const jobData = response.data.draft;
-
-        // Helper function to parse array fields
-        const parseArrayField = (field) => {
-          if (!field) return [];
-          if (Array.isArray(field)) {
-            const filtered = field.filter(item => item && item.toString().trim() !== '');
-            return filtered.length > 0 ? filtered : [];
-          }
-          if (typeof field === 'string') {
-            try {
-              const parsed = JSON.parse(field);
-              if (Array.isArray(parsed)) {
-                const filtered = parsed.filter(item => item && item.toString().trim() !== '');
-                return filtered.length > 0 ? filtered : [];
-              }
-            } catch {
-              const items = field.split(',').map(item => item.trim()).filter(item => item);
-              return items.length > 0 ? items : [];
-            }
-          }
-          return [];
-        };
-
-        // Set existing image if available
-        if (jobData.jobImage) {
-          setExistingImage(jobData.jobImage);
-        }
-
-        const updatedFormData = {
-          // Basic Job Info
-          jobTitle: jobData.jobTitle || '',
-          jobRole: jobData.jobRole || '',
-          jobCategory: jobData.jobCategory || '',
-          jobSubCategory: jobData.jobSubCategory || '',
-          employmentType: jobData.employmentType || '',
-          workMode: jobData.workMode || '',
-          shiftType: jobData.shiftType || '',
-          openingsCount: jobData.openingsCount || 1,
-          urgencyLevel: jobData.urgencyLevel || '',
-
-          // Location
-          city: jobData.city || '',
-          state: jobData.state || '',
-          country: jobData.country || '',
-          area: jobData.area || '', // Add area field
-          pincode: jobData.pincode || '',
-          fullAddress: jobData.fullAddress || '',
-          remoteEligibility: jobData.remoteEligibility || false,
-          latitude: jobData.googleLocation?.coordinates?.[1] || '',
-          longitude: jobData.googleLocation?.coordinates?.[0] || '',
-
-          // Job Description
-          jobDescription: jobData.jobDescription || '',
-          responsibilities: parseArrayField(jobData.responsibilities),
-          dailyTasks: parseArrayField(jobData.dailyTasks),
-          keyDuties: parseArrayField(jobData.keyDuties),
-
-          // Skills
-          requiredSkills: parseArrayField(jobData.requiredSkills),
-          preferredSkills: parseArrayField(jobData.preferredSkills),
-          technicalSkills: parseArrayField(jobData.technicalSkills),
-          softSkills: parseArrayField(jobData.softSkills),
-          toolsAndTechnologies: parseArrayField(jobData.toolsAndTechnologies),
-
-          // Qualification
-          educationLevel: jobData.educationLevel || '',
-          degreeRequired: jobData.degreeRequired || '',
-          certificationRequired: parseArrayField(jobData.certificationRequired),
-          minimumExperience: jobData.minimumExperience || 0,
-          maximumExperience: jobData.maximumExperience || 0,
-          freshersAllowed: jobData.freshersAllowed || false,
-
-          // Salary
-          salaryType: jobData.salaryType || 'monthly',
-          salaryMin: jobData.salaryMin || 0,
-          salaryMax: jobData.salaryMax || 0,
-          salaryCurrency: jobData.salaryCurrency || 'INR',
-          salaryVisibility: jobData.salaryVisibility || 'public',
-          benefits: parseArrayField(jobData.benefits),
-          perks: parseArrayField(jobData.perks),
-          incentives: jobData.incentives || '',
-          bonuses: jobData.bonuses || '',
-
-          // Hiring Information
-          hiringManagerName: jobData.hiringManagerName || '',
-          hiringManagerEmail: jobData.hiringManagerEmail || '',
-          hiringManagerPhone: jobData.hiringManagerPhone || '',
-          interviewMode: jobData.interviewMode || '',
-          interviewLocation: jobData.interviewLocation || '',
-          interviewRounds: parseArrayField(jobData.interviewRounds),
-          hiringProcess: parseArrayField(jobData.hiringProcess),
-          interviewInstructions: jobData.interviewInstructions || '',
-
-          // Timing & Duration
-          startDate: jobData.startDate ? new Date(jobData.startDate).toISOString().split('T')[0] : '',
-          endDate: jobData.endDate ? new Date(jobData.endDate).toISOString().split('T')[0] : '',
-          contractDuration: jobData.contractDuration || '',
-          jobTimings: jobData.jobTimings || '',
-          workingHours: jobData.workingHours || '',
-          workingDays: jobData.workingDays || '',
-          holidaysType: jobData.holidaysType || '',
-
-          // Documents Required
-          resumeRequired: jobData.resumeRequired ?? true,
-          coverLetterRequired: jobData.coverLetterRequired || false,
-          documentsRequired: parseArrayField(jobData.documentsRequired),
-
-          // SEO & Keywords
-          tags: parseArrayField(jobData.tags),
-          skillKeywords: parseArrayField(jobData.skillKeywords),
-          keywordSearch: parseArrayField(jobData.keywordSearch),
-        };
-
-        setFormData(updatedFormData);
-        
-        // Load dependent location data if country/state/city exists
-        if (updatedFormData.country) {
-          fetchStates(updatedFormData.country);
-          if (updatedFormData.state) {
-            // Use setTimeout to ensure states are loaded before fetching cities
-            setTimeout(() => {
-              fetchCities(updatedFormData.country, updatedFormData.state);
-            }, 500);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching job data:', error);
-      alert('Failed to load job data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle input change with location cascading logic
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
     const newFormData = { ...formData };
     newFormData[name] = type === 'checkbox' ? checked : value;
     
+    // Handle industry selection - clear roles if industry changes
+    if (name === 'jobIndustry') {
+      newFormData.jobRole = [];
+      setRoleSearch('');
+    }
+    
     // Handle location cascading logic
     if (name === 'country') {
-      // Reset dependent fields when country changes
       newFormData.state = '';
       newFormData.city = '';
       newFormData.area = '';
       newFormData.pincode = '';
       
-      // Fetch states for the new country
       if (value) {
         fetchStates(value);
       } else {
@@ -485,12 +636,10 @@ const JobPostingForm = () => {
         }));
       }
     } else if (name === 'state') {
-      // Reset dependent fields when state changes
       newFormData.city = '';
       newFormData.area = '';
       newFormData.pincode = '';
       
-      // Fetch cities for the new state
       if (value && formData.country) {
         fetchCities(formData.country, value);
       } else {
@@ -502,14 +651,12 @@ const JobPostingForm = () => {
         }));
       }
     } else if (name === 'city') {
-      // Reset dependent fields when city changes
       newFormData.area = '';
       newFormData.pincode = '';
       
-      // For India, fetch areas for the new city
       if (value && formData.country && formData.state) {
-  fetchAreas(formData.country, formData.state, value);
-} else {
+        fetchAreas(formData.country, formData.state, value);
+      } else {
         setLocationData(prev => ({ 
           ...prev, 
           areas: [],
@@ -517,10 +664,8 @@ const JobPostingForm = () => {
         }));
       }
     } else if (name === 'area') {
-      // Reset pincode when area changes
       newFormData.pincode = '';
       
-      // For India, fetch pincodes for the new area
       if (value && formData.country === 'India') {
         fetchPincodes(value);
       }
@@ -528,7 +673,6 @@ const JobPostingForm = () => {
     
     setFormData(newFormData);
     
-    // Clear error if exists
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -536,23 +680,53 @@ const JobPostingForm = () => {
 
   const handleArrayInputChange = (index, field, value) => {
     setFormData(prev => {
-      const newArray = [...prev[field]];
+      const currentArray = Array.isArray(prev[field]) ? prev[field] : [];
+      const newArray = [...currentArray];
       newArray[index] = value;
       return { ...prev, [field]: newArray };
     });
   };
 
+  // Handle qualifications array changes
+  const handleQualificationChange = (index, field, value) => {
+    setFormData(prev => {
+      const newQualifications = [...prev.qualifications];
+      newQualifications[index] = {
+        ...newQualifications[index],
+        [field]: value
+      };
+      return { ...prev, qualifications: newQualifications };
+    });
+  };
+
+  const addQualification = () => {
+    setFormData(prev => ({
+      ...prev,
+      qualifications: [
+        ...prev.qualifications,
+        { educationLevel: '', course: '', specialization: '' }
+      ]
+    }));
+  };
+
+  const removeQualification = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      qualifications: prev.qualifications.filter((_, i) => i !== index)
+    }));
+  };
+
   const addArrayField = (field) => {
     setFormData(prev => ({
       ...prev,
-      [field]: [...prev[field], '']
+      [field]: [...(Array.isArray(prev[field]) ? prev[field] : []), '']
     }));
   };
 
   const removeArrayField = (index, field) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: Array.isArray(prev[field]) ? prev[field].filter((_, i) => i !== index) : []
     }));
   };
 
@@ -583,1290 +757,627 @@ const JobPostingForm = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Required fields validation
     if (!formData.jobTitle?.trim()) newErrors.jobTitle = 'Job title is required';
-    if (!formData.jobCategory?.trim()) newErrors.jobCategory = 'Job category is required';
+    if (!formData.jobIndustry?.trim()) newErrors.jobIndustry = 'Job industry is required';
+    if (!Array.isArray(formData.jobRole) || formData.jobRole.length === 0) {
+      newErrors.jobRole = 'At least one job role is required';
+    }
     if (!formData.employmentType) newErrors.employmentType = 'Employment type is required';
     if (!formData.workMode) newErrors.workMode = 'Work mode is required';
-    if (!formData.jobDescription?.trim()) newErrors.jobDescription = 'Job description is required';
+    if (!formData.startDate) newErrors.startDate = 'Start date is required';
+    if (!formData.endDate) newErrors.endDate = 'End date is required';
     if (formData.openingsCount < 1) newErrors.openingsCount = 'At least 1 opening is required';
+
+    if (formData.startDate && formData.endDate) {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (startDate < today) {
+        newErrors.startDate = 'Start date cannot be in the past';
+      }
+
+      if (endDate < startDate) {
+        newErrors.endDate = 'End date must be after start date';
+      }
+    }
+
+    // Validate at least one qualification has education level
+    const hasQualification = formData.qualifications.some(q => q.educationLevel.trim() !== '');
+    if (!hasQualification) {
+      newErrors.qualifications = 'At least one education level is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const fetchJobData = async (jobId) => {
+  setIsLoading(true);
+  try {
+    const response = await getDraftJobById(jobId);
+    console.log("API Response:", response.data);
 
-    if (!validateForm()) {
-      return;
+    if (response.data.success && response.data.draft) {
+      const jobData = response.data.draft;
+
+      // Check if job is already approved - Use isApproved from API
+      if (jobData.isApproved) {
+        setJobApproved(true);
+        console.log("Job is approved:", jobData.isApproved);
+      }
+
+      // Helper function to parse array fields
+      const parseArrayField = (field) => {
+        if (!field) return [];
+        if (Array.isArray(field)) {
+          const filtered = field.filter(item => item !== null && item !== undefined && item.toString().trim() !== '');
+          return filtered.length > 0 ? filtered : [];
+        }
+        if (typeof field === 'string') {
+          try {
+            const parsed = JSON.parse(field);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter(item => item && item.toString().trim() !== '');
+              return filtered.length > 0 ? filtered : [];
+            }
+          } catch {
+            const items = field.split(',').map(item => item.trim()).filter(item => item);
+            return items.length > 0 ? items : [];
+          }
+        }
+        return [];
+      };
+
+      // Helper function to format dates for input
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split('T')[0];
+        } catch {
+          return '';
+        }
+      };
+
+      // Parse qualifications from API response
+      const parseQualifications = (qualifications, degreeRequired) => {
+        const quals = [];
+        
+        // First, add qualifications from the qualifications array
+        if (qualifications && Array.isArray(qualifications) && qualifications.length > 0) {
+          qualifications.forEach(q => {
+            if (q && q.educationLevel) {
+              quals.push({
+                educationLevel: q.educationLevel || '',
+                course: q.course || '',
+                specialization: q.specialization || ''
+              });
+            }
+          });
+        }
+        
+        // Then, add from degreeRequired array if no qualifications were found
+        if (quals.length === 0 && degreeRequired && Array.isArray(degreeRequired) && degreeRequired.length > 0) {
+          degreeRequired.forEach(degree => {
+            if (degree && degree.trim() !== '') {
+              quals.push({
+                educationLevel: degree,
+                course: '',
+                specialization: ''
+              });
+            }
+          });
+        }
+        
+        // If still no qualifications, return default structure
+        if (quals.length === 0) {
+          return [{ educationLevel: '', course: '', specialization: '' }];
+        }
+        
+        return quals;
+      };
+
+      // Set existing image if available
+      if (jobData.jobImage) {
+        setExistingImage(jobData.jobImage);
+      }
+
+      const updatedFormData = {
+        // Basic Job Info
+        jobTitle: jobData.jobTitle || '',
+        jobRole: parseArrayField(jobData.jobRole),
+        jobIndustry: jobData.jobIndustry || jobData.companyIndustry || '',
+        employmentType: jobData.employmentType || '',
+        contractDuration: jobData.contractDuration || '',
+        contractDurationUnit: jobData.contractDurationUnit || 'months',
+        workMode: jobData.workMode || '',
+        shiftType: jobData.shiftType || '',
+        openingsCount: jobData.openingsCount || 1,
+        urgencyLevel: jobData.urgencyLevel || '',
+        
+        // Posting Duration
+        startDate: formatDateForInput(jobData.startDate) || formData.startDate,
+        endDate: formatDateForInput(jobData.endDate) || formData.endDate,
+
+        // Location
+        city: jobData.city || '',
+        state: jobData.state || '',
+        country: jobData.country || '',
+        area: jobData.area || '',
+        pincode: jobData.pincode || '',
+        fullAddress: jobData.fullAddress || '',
+        remoteEligibility: jobData.remoteEligibility || false,
+        latitude: jobData.latitude || (jobData.googleLocation?.coordinates?.[1]?.toString() || ''),
+        longitude: jobData.longitude || (jobData.googleLocation?.coordinates?.[0]?.toString() || ''),
+
+        // Job Description
+        jobDescription: jobData.jobDescription || '',
+
+        // Skills
+        requiredSkills: parseArrayField(jobData.requiredSkills),
+
+        // Qualifications - Handle both qualifications and degreeRequired
+        qualifications: parseQualifications(jobData.qualifications, jobData.degreeRequired),
+        certificationRequired: parseArrayField(jobData.certificationRequired),
+
+        // Experience
+        minimumExperience: jobData.minimumExperience || 0,
+        maximumExperience: jobData.maximumExperience || 0,
+        freshersAllowed: jobData.freshersAllowed || false,
+
+        // Salary
+        salaryType: jobData.salaryType || 'monthly',
+        salaryMin: jobData.salaryMin || 0,
+        salaryMax: jobData.salaryMax || 0,
+        salaryCurrency: jobData.salaryCurrency || 'INR',
+        benefits: parseArrayField(jobData.benefits),
+      };
+
+      console.log("Updated Form Data:", updatedFormData);
+      console.log("Job approved status:", jobData.isApproved);
+      setFormData(updatedFormData);
+      
+      // Load dependent location data if country/state/city exists
+      if (updatedFormData.country) {
+        fetchStates(updatedFormData.country);
+        if (updatedFormData.state) {
+          setTimeout(() => {
+            fetchCities(updatedFormData.country, updatedFormData.state);
+          }, 500);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching job data:', error);
+    alert('Failed to load job data. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const prepareSubmissionData = (status, includeJobId = true) => {
+  const submissionData = new FormData();
+
+  // Only include job ID when updating an existing job (edit mode)
+  // AND when includeJobId is true (for updates, but not for creating new drafts)
+  if (isEditMode && id && includeJobId) {
+    submissionData.append('id', id);
+  }
+
+  const appendFormField = (formData, key, value) => {
+    if (value === null || value === undefined || value === '') {
+      return false;
     }
 
-    setIsSubmitting(true);
+    if (Array.isArray(value)) {
+      const filteredArray = value.filter(item => item !== null && item !== undefined);
 
+      // Handle qualifications array specially
+      if (key === 'qualifications') {
+        filteredArray.forEach((qual, index) => {
+          if (qual.educationLevel || qual.course || qual.specialization) {
+            if (qual.educationLevel && qual.educationLevel.trim() !== '') {
+              formData.append(`qualifications[${index}][educationLevel]`, qual.educationLevel.trim());
+            }
+            if (qual.course && qual.course.trim() !== '') {
+              formData.append(`qualifications[${index}][course]`, qual.course.trim());
+            }
+            if (qual.specialization && qual.specialization.trim() !== '') {
+              formData.append(`qualifications[${index}][specialization]`, qual.specialization.trim());
+            }
+          }
+        });
+        return filteredArray.length > 0;
+      }
+
+      // Handle other arrays
+      const nonEmptyItems = filteredArray.filter(item => {
+        if (typeof item === 'string') return item.trim() !== '';
+        if (typeof item === 'number') return true;
+        if (typeof item === 'boolean') return true;
+        if (typeof item === 'object') return Object.keys(item).length > 0;
+        return false;
+      });
+
+      if (nonEmptyItems.length > 0) {
+        nonEmptyItems.forEach((item, index) => {
+          if (typeof item === 'object') {
+            Object.entries(item).forEach(([subKey, subValue]) => {
+              if (subValue !== null && subValue !== undefined && subValue.toString().trim() !== '') {
+                formData.append(`${key}[${index}][${subKey}]`, subValue);
+              }
+            });
+          } else {
+            formData.append(`${key}[${index}]`, item);
+          }
+        });
+        return true;
+      }
+      return false;
+    }
+
+    if (typeof value === 'boolean') {
+      formData.append(key, value.toString());
+      return true;
+    }
+
+    if (typeof value === 'number') {
+      formData.append(key, value.toString());
+      return true;
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      formData.append(key, value.trim());
+      return true;
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      Object.entries(value).forEach(([subKey, subValue]) => {
+        if (subValue !== null && subValue !== undefined && subValue.toString().trim() !== '') {
+          appendFormField(formData, `${key}[${subKey}]`, subValue);
+        }
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  // Append all form fields
+  Object.entries(formData).forEach(([key, value]) => {
+    appendFormField(submissionData, key, value);
+  });
+
+  submissionData.append('status', status);
+
+  // Handle job image
+  if (jobImage) {
+    submissionData.append('jobImage', jobImage);
+  }
+
+  // Handle existing image removal
+  if (existingImage === null && isEditMode) {
+    submissionData.append('removeExistingImage', 'true');
+  }
+
+  // Log submission data for debugging
+  console.log("Submission Data - Status:", status, "Include Job ID:", includeJobId && isEditMode && id);
+  console.log("Submission Data entries:", Array.from(submissionData.entries()));
+
+  return submissionData;
+};
+
+const handleSaveDraft = async () => {
+  checkAndHandleLocation(async () => {
     try {
-      const submissionData = new FormData();
+      setIsSubmitting(true);
+      
+      // For saving draft:
+      // - If editing existing job: include job ID
+      // - If creating new job: DO NOT include job ID
+      const includeJobId = isEditMode && id;
+      const draftData = prepareSubmissionData('draft', includeJobId);
 
+      const response = await createOrUpdateJobPost(draftData);
+      console.log("Draft Saved Response:", response);
+
+      // Check if response exists and has the expected structure
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+
+      // Handle different possible response structures
+      const success = response.data?.success || response.success;
+      const jobId = response.data?.jobId || response.jobId;
+      const message = response.data?.message || response.message;
+
+      if (success) {
+        // If this was a new draft creation, update the URL with the new job ID
+        if (!isEditMode && jobId) {
+        // Update the browser URL without reloading
+          window.history.replaceState({}, '', `/jobs/edit/${jobId}`);
+          // Set edit mode for future saves
+          setIsEditMode(true);
+        }
+        
+        setSavedDraft(true);
+        setTimeout(() => setSavedDraft(false), 3000);
+        
+        // Show success message
+        console.log('Draft saved successfully:', message || 'Draft saved');
+      } else {
+        throw new Error(message || 'Failed to save draft');
+      }
+
+    } catch (err) {
+      console.error("Save draft failed:", err);
+      
+      // More detailed error message
+      let errorMessage = 'Failed to save draft. ';
+      if (err.message) {
+        errorMessage += err.message;
+      } else if (err.response?.data?.message) {
+        errorMessage += err.response.data.message;
+      } else if (err.response?.statusText) {
+        errorMessage += `HTTP ${err.response.status}: ${err.response.statusText}`;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  });
+};
+
+const handleSubmit = async (additionalData = null) => {
+  // additionalData can be FormData from preview capture or null for regular submit
+  
+  if (!validateForm()) {
+    return;
+  }
+
+  checkAndHandleLocation(async () => {
+    try {
+      setIsSubmitting(true);
+
+      const status = jobApproved ? 'update' : 'submit';
+      console.log("Submitting with status:", status, "Job approved:", jobApproved);
+
+      let submissionData;
+
+      if (additionalData) {
+        // If we have FormData from preview capture, use it as base
+        submissionData = additionalData;
+      } else {
+        // Create new FormData for regular submission
+        submissionData = new FormData();
+      }
+
+      // Append job ID if in edit mode
       if (isEditMode && id) {
         submissionData.append('id', id);
       }
 
-      const appendFormField = (key, value) => {
+      // Helper function to append form fields to FormData
+      const appendFormField = (formData, key, value) => {
         if (value === null || value === undefined || value === '') {
           return false;
         }
-        
+
         if (Array.isArray(value)) {
-          const filteredArray = value.filter(item => item && item.toString().trim() !== '');
-          if (filteredArray.length > 0) {
-            filteredArray.forEach((item, index) => {
-              submissionData.append(`${key}[${index}]`, item);
+          const filteredArray = value.filter(item => item !== null && item !== undefined);
+
+          // Handle qualifications array specially
+          if (key === 'qualifications') {
+            filteredArray.forEach((qual, index) => {
+              if (qual.educationLevel || qual.course || qual.specialization) {
+                if (qual.educationLevel && qual.educationLevel.trim() !== '') {
+                  formData.append(`qualifications[${index}][educationLevel]`, qual.educationLevel.trim());
+                }
+                if (qual.course && qual.course.trim() !== '') {
+                  formData.append(`qualifications[${index}][course]`, qual.course.trim());
+                }
+                if (qual.specialization && qual.specialization.trim() !== '') {
+                  formData.append(`qualifications[${index}][specialization]`, qual.specialization.trim());
+                }
+              }
+            });
+            return filteredArray.length > 0;
+          }
+
+          // Handle other arrays
+          const nonEmptyItems = filteredArray.filter(item => {
+            if (typeof item === 'string') return item.trim() !== '';
+            if (typeof item === 'number') return true;
+            if (typeof item === 'boolean') return true;
+            if (typeof item === 'object') return Object.keys(item).length > 0;
+            return false;
+          });
+
+          if (nonEmptyItems.length > 0) {
+            nonEmptyItems.forEach((item, index) => {
+              if (typeof item === 'object') {
+                Object.entries(item).forEach(([subKey, subValue]) => {
+                  if (subValue !== null && subValue !== undefined && subValue.toString().trim() !== '') {
+                    formData.append(`${key}[${index}][${subKey}]`, subValue);
+                  }
+                });
+              } else {
+                formData.append(`${key}[${index}]`, item);
+              }
             });
             return true;
           }
           return false;
         }
-        
+
         if (typeof value === 'boolean') {
-          submissionData.append(key, value.toString());
+          formData.append(key, value.toString());
           return true;
         }
-        
+
         if (typeof value === 'number') {
-          submissionData.append(key, value.toString());
+          formData.append(key, value.toString());
           return true;
         }
-        
+
         if (typeof value === 'string' && value.trim() !== '') {
-          submissionData.append(key, value.trim());
+          formData.append(key, value.trim());
           return true;
         }
-        
+
+        if (typeof value === 'object' && value !== null) {
+          Object.entries(value).forEach(([subKey, subValue]) => {
+            if (subValue !== null && subValue !== undefined && subValue.toString().trim() !== '') {
+              appendFormField(formData, `${key}[${subKey}]`, subValue);
+            }
+          });
+          return true;
+        }
+
         return false;
       };
 
+      // Always append all form fields, regardless of whether additionalData exists
       Object.entries(formData).forEach(([key, value]) => {
-        appendFormField(key, value);
+        appendFormField(submissionData, key, value);
       });
 
-      submissionData.append('status', 'submit');
+      // Append status
+      submissionData.append('status', status);
 
+      // Handle job image
       if (jobImage) {
         submissionData.append('jobImage', jobImage);
       }
 
+      // Handle existing image removal
       if (existingImage === null && isEditMode) {
         submissionData.append('removeExistingImage', 'true');
       }
 
-      console.log("Form data being submitted:");
+      console.log("Final submission data entries:");
       for (let [key, value] of submissionData.entries()) {
-        console.log(key, value);
+        console.log(key, value instanceof Blob ? `Blob: ${value.type}, ${value.size} bytes` : value);
       }
 
-      const apiRes = await createOrUpdateJobPost(submissionData);
-      const result = apiRes?.data ?? apiRes;
-
-      if (result && result.success) {
-        alert(isEditMode ? 'Job submitted successfully!' : 'Job created successfully!');
-        navigate('/company/home');
+      // Continue with the rest of your existing submit logic...
+      let apiRes;
+      if (isEditMode && id) {
+        // Editing existing job - can submit directly
+        apiRes = await createOrUpdateJobPost(submissionData);
       } else {
-        throw new Error(result?.message || 'Submission failed');
+        // Creating new job - need to follow backend rules
+        apiRes = await createOrUpdateJobPost(submissionData);
+      }
+console.log(apiRes)
+      // Check if submission was successful
+      if (apiRes && apiRes.success) {
+        // Navigate to viewJobs component after successful submission
+        navigate('/company/home', { state: { navigateToViewJobs: true } });
       }
     } catch (error) {
       console.error('Error submitting job:', error);
-      alert(`Failed to ${isEditMode ? 'update' : 'create'} job. ${error?.message ? error.message : ''}`);
+      let errorMessage = `Failed to ${jobApproved ? 'update' : 'submit'} job. `;
+      if (error.message) {
+        errorMessage += error.message;
+      }
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSaveDraft = async () => {
-    try {
-      setIsSubmitting(true);
-      const draftData = new FormData();
-
-      if (isEditMode && id) {
-        draftData.append('id', id);
-      }
-
-      const appendFormField = (key, value) => {
-        if (value === null || value === undefined || value === '') {
-          return false;
-        }
-        
-        if (Array.isArray(value)) {
-          const filteredArray = value.filter(item => item && item.toString().trim() !== '');
-          if (filteredArray.length > 0) {
-            filteredArray.forEach((item, index) => {
-              draftData.append(`${key}[${index}]`, item);
-            });
-            return true;
-          }
-          return false;
-        }
-        
-        if (typeof value === 'boolean') {
-          draftData.append(key, value.toString());
-          return true;
-        }
-        
-        if (typeof value === 'number') {
-          draftData.append(key, value.toString());
-          return true;
-        }
-        
-        if (typeof value === 'string' && value.trim() !== '') {
-          draftData.append(key, value.trim());
-          return true;
-        }
-        
-        return false;
-      };
-
-      Object.entries(formData).forEach(([key, value]) => {
-        appendFormField(key, value);
-      });
-
-      draftData.append('status', 'draft');
-
-      if (jobImage) {
-        draftData.append('jobImage', jobImage);
-      }
-
-      console.log("Draft data being sent:");
-      for (let [key, value] of draftData.entries()) {
-        console.log(key, value);
-      }
-
-      const response = await createOrUpdateJobPost(draftData);
-
-      console.log("Draft Saved:", response);
-
-      setSavedDraft(true);
-      setTimeout(() => setSavedDraft(false), 3000);
-
-    } catch (err) {
-      console.error("Save draft failed:", err);
-      alert('Failed to save draft. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Constants for dropdowns
-  const employmentTypes = ["full-time", "part-time", "contract", "internship", "freelance"];
-  const workModes = ["onsite", "remote", "hybrid"];
-  const shiftTypes = ["day", "night", "rotational", "flexible"];
-  const urgencyLevels = ["immediate", "15 days", "30 days"];
-  const salaryTypes = ["monthly", "yearly", "hourly"];
-  const salaryVisibilities = ["public", "private", "restricted"];
-  const interviewModes = ["online", "offline"];
-  const educationLevels = ["High School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD", "No Formal Education Required"];
-  const salaryCurrencies = ["INR", "USD", "EUR", "GBP", "AUD", "CAD"];
-
-  const tabs = [
-    { id: 'basic', label: 'Basic Info', icon: <FiBriefcase /> },
-    { id: 'details', label: 'Job Details', icon: <FiFileText /> },
-    { id: 'skills', label: 'Skills & Quals', icon: <FiUsers /> },
-    { id: 'salary', label: 'Salary & Benefits', icon: <FiDollarSign /> },
-    { id: 'hiring', label: 'HR Info', icon: <MdBusiness /> },
-    { id: 'additional', label: 'Additional', icon: <MdSettings /> },
-  ];
+  });
+};
 
   const getTabCompletion = (tabId) => {
     switch(tabId) {
       case 'basic':
-        return formData.jobTitle && formData.jobCategory && formData.employmentType;
-      case 'details':
-        return formData.jobDescription && formData.responsibilities.some(r => r.trim());
-      case 'skills':
-        return formData.requiredSkills.some(s => s.trim()) || formData.minimumExperience > 0;
+        return formData.jobTitle &&
+               formData.jobIndustry &&
+               formData.jobRole &&
+               formData.jobRole.length > 0 &&
+               formData.employmentType &&
+               formData.workMode &&
+               formData.startDate &&
+               formData.endDate;
       case 'salary':
-        return formData.salaryMin > 0 || formData.salaryMax > 0 || formData.benefits.some(b => b.trim());
-      case 'hiring':
-        return formData.hiringManagerName || formData.hiringManagerEmail;
+        return formData.jobDescription && formData.jobDescription.trim().length > 0;
       case 'additional':
-        return formData.startDate || formData.endDate || formData.workingHours;
+        return (formData.requiredSkills && formData.requiredSkills.length > 0) ||
+               (formData.qualifications && formData.qualifications.some(q => q.educationLevel.trim() !== '')) ||
+               formData.minimumExperience > 0;
       default:
         return false;
     }
   };
 
-  // Enhanced Job Image Upload component
-  const JobImageUpload = () => (
-    <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">
-        <div className="flex items-center gap-2">
-          <FiImage className="text-blue-600" />
-          Job Image
-        </div>
-      </h3>
-      
-      {existingImage && !jobImage && (
-        <div className="mb-6">
-          <p className="text-sm text-gray-600 mb-2">Current Image:</p>
-          <div className="relative">
-            <img 
-              src={existingImage} 
-              alt="Current job" 
-              className="w-64 h-48 object-cover rounded-lg border border-gray-300"
-            />
-            <button
-              type="button"
-              onClick={removeImage}
-              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-              title="Remove image"
-            >
-              <FiX className="text-sm" />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {(!existingImage || jobImage) && (
-        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors">
-          <input
-            type="file"
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-            id="job-image-upload"
-          />
-          <label htmlFor="job-image-upload" className="cursor-pointer block">
-            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-              <FiImage className="w-full h-full" />
-            </div>
-            <p className="text-gray-600 text-lg mb-1">Click to upload job image</p>
-            <p className="text-gray-400 text-sm">JPG, PNG (Max 5MB)</p>
-          </label>
-        </div>
-      )}
-      
-      {jobImage && (
-        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src={URL.createObjectURL(jobImage)} 
-                alt="Preview" 
-                className="w-12 h-12 object-cover rounded"
-              />
-              <div>
-                <p className="text-green-700 text-sm flex items-center gap-2">
-                  <FiCheckCircle />
-                  {jobImage.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {(jobImage.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={removeImage}
-              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-              title="Remove"
-            >
-              <FiX />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {errors.jobImage && (
-        <p className="text-red-500 text-sm mt-2">{errors.jobImage}</p>
-      )}
-    </div>
-  );
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'basic':
-        return (
-          <BasicInfoTab
-            formData={formData}
-            handleInputChange={handleInputChange}
-            errors={errors}
-            categorySearch={categorySearch}
-            setCategorySearch={setCategorySearch}
-            showCategoryDropdown={showCategoryDropdown}
-            setShowCategoryDropdown={setShowCategoryDropdown}
-            filteredCategories={filteredCategories}
-            roleSearch={roleSearch}
-            setRoleSearch={setRoleSearch}
-            showRoleDropdown={showRoleDropdown}
-            setShowRoleDropdown={setShowRoleDropdown}
-            filteredRoles={filteredRoles}
-            employmentTypes={employmentTypes}
-            workModes={workModes}
-            shiftTypes={shiftTypes}
-            urgencyLevels={urgencyLevels}
-            countries={locationData.countries}
-            states={locationData.states}
-            cities={locationData.cities}
-            areas={locationData.areas}
-            pincodes={locationData.pincodes}
-            loading={locationLoading}
-            categoryRef={categoryRef}
-            roleRef={roleRef}
-          />
-        );
-
-      case 'details':
-        return (
-          <JobDetailsTab
-            formData={formData}
-            errors={errors}
-            handleInputChange={handleInputChange}
-            handleArrayInputChange={handleArrayInputChange}
-            addArrayField={addArrayField}
-            removeArrayField={removeArrayField}
-          />
-        );
-
-      case 'skills':
-        return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Skills & Qualifications</h2>
-              <p className="text-gray-600">Define the required skills, qualifications, and experience for this position.</p>
-            </div>
-
-            {/* Required Skills */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiTool className="text-blue-600" />
-                    Required Skills
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('requiredSkills')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Skill
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.requiredSkills.map((skill, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={skill}
-                        onChange={(e) => handleArrayInputChange(index, 'requiredSkills', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a required skill"
-                      />
-                    </div>
-                    {formData.requiredSkills.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'requiredSkills')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Technical Skills */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiPackage className="text-blue-600" />
-                    Technical Skills
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('technicalSkills')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Technical Skill
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.technicalSkills.map((skill, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={skill}
-                        onChange={(e) => handleArrayInputChange(index, 'technicalSkills', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a technical skill"
-                      />
-                    </div>
-                    {formData.technicalSkills.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'technicalSkills')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Soft Skills */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiHeart className="text-blue-600" />
-                    Soft Skills
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('softSkills')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Soft Skill
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.softSkills.map((skill, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={skill}
-                        onChange={(e) => handleArrayInputChange(index, 'softSkills', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a soft skill (communication, teamwork, etc.)"
-                      />
-                    </div>
-                    {formData.softSkills.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'softSkills')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tools & Technologies */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiTool className="text-blue-600" />
-                    Tools & Technologies
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('toolsAndTechnologies')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Tool/Technology
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.toolsAndTechnologies.map((tool, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={tool}
-                        onChange={(e) => handleArrayInputChange(index, 'toolsAndTechnologies', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a tool or technology"
-                      />
-                    </div>
-                    {formData.toolsAndTechnologies.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'toolsAndTechnologies')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Qualifications */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <MdSchool className="text-blue-600" />
-                  Qualifications
-                </div>
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Education Level</label>
-                  <select
-                    name="educationLevel"
-                    value={formData.educationLevel}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  >
-                    <option value="">Select Education Level</option>
-                    {educationLevels.map(level => (
-                      <option key={level} value={level}>{level}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Degree Required</label>
-                  <input
-                    type="text"
-                    name="degreeRequired"
-                    value={formData.degreeRequired}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., Computer Science"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Minimum Experience (years)</label>
-                  <input
-                    type="number"
-                    name="minimumExperience"
-                    value={formData.minimumExperience}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Maximum Experience (years)</label>
-                  <input
-                    type="number"
-                    name="maximumExperience"
-                    value={formData.maximumExperience}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center mb-6">
-                <input
-                  type="checkbox"
-                  name="freshersAllowed"
-                  checked={formData.freshersAllowed}
-                  onChange={handleInputChange}
-                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  id="freshersAllowed"
-                />
-                <label htmlFor="freshersAllowed" className="ml-3 text-gray-700">
-                  Freshers Allowed
-                </label>
-              </div>
-
-              {/* Certifications Required */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-900">
-                    <div className="flex items-center gap-2">
-                      <FiAward className="text-blue-600" />
-                      Certifications Required
-                    </div>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('certificationRequired')}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <FiPlus />
-                    Add Certification
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.certificationRequired.map((cert, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={cert}
-                          onChange={(e) => handleArrayInputChange(index, 'certificationRequired', e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          placeholder="Enter a certification"
-                        />
-                      </div>
-                      {formData.certificationRequired.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index, 'certificationRequired')}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'salary':
-        return (
-          <SalaryBenefitsTab
-            formData={formData}
-            handleInputChange={handleInputChange}
-            handleArrayInputChange={handleArrayInputChange}
-            addArrayField={addArrayField}
-            removeArrayField={removeArrayField}
-          />
-        );
-
-      case 'hiring':
-        return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Hiring Information</h2>
-              <p className="text-gray-600">Define the hiring process and contact information.</p>
-            </div>
-
-            {/* Hiring Information */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <MdPerson className="text-blue-600" />
-                  Hiring Manager Details
-                </div>
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Hiring Manager Name</label>
-                  <input
-                    type="text"
-                    name="hiringManagerName"
-                    value={formData.hiringManagerName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Enter hiring manager name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Hiring Manager Email</label>
-                  <input
-                    type="email"
-                    name="hiringManagerEmail"
-                    value={formData.hiringManagerEmail}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="email@company.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Hiring Manager Phone</label>
-                  <input
-                    type="text"
-                    name="hiringManagerPhone"
-                    value={formData.hiringManagerPhone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="+91 9876543210"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Interview Mode</label>
-                  <select
-                    name="interviewMode"
-                    value={formData.interviewMode}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  >
-                    <option value="">Select Mode</option>
-                    {interviewModes.map(mode => (
-                      <option key={mode} value={mode} className="capitalize">
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  <div className="flex items-center gap-2">
-                    <MdLocationOn className="text-blue-600" />
-                    Interview Location
-                  </div>
-                </label>
-                <input
-                  type="text"
-                  name="interviewLocation"
-                  value={formData.interviewLocation}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  placeholder="Enter interview location"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">Interview Instructions</label>
-                <textarea
-                  name="interviewInstructions"
-                  value={formData.interviewInstructions}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
-                  placeholder="Provide specific instructions for candidates"
-                />
-              </div>
-            </div>
-
-            {/* Interview Rounds */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiClock className="text-blue-600" />
-                    Interview Rounds
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('interviewRounds')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Round
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.interviewRounds.map((round, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={round}
-                        onChange={(e) => handleArrayInputChange(index, 'interviewRounds', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter an interview round"
-                      />
-                    </div>
-                    {formData.interviewRounds.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'interviewRounds')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hiring Process */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <FiFolder className="text-blue-600" />
-                    Hiring Process Steps
-                  </div>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => addArrayField('hiringProcess')}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <FiPlus />
-                  Add Step
-                </button>
-              </div>
-              <div className="space-y-3">
-                {formData.hiringProcess.map((step, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={step}
-                        onChange={(e) => handleArrayInputChange(index, 'hiringProcess', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        placeholder="Enter a hiring process step"
-                      />
-                    </div>
-                    {formData.hiringProcess.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField(index, 'hiringProcess')}
-                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Remove"
-                      >
-                        <FiX />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'additional':
-        return (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Additional Details</h2>
-              <p className="text-gray-600">Define timing, documents, and other additional information.</p>
-            </div>
-
-            {/* Timing & Duration */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <MdAccessTime className="text-blue-600" />
-                  Timing & Duration
-                </div>
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Start Date</label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">End Date</label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Contract Duration</label>
-                  <input
-                    type="text"
-                    name="contractDuration"
-                    value={formData.contractDuration}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., 6 months"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Working Hours</label>
-                  <input
-                    type="text"
-                    name="workingHours"
-                    value={formData.workingHours}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., 9 AM - 6 PM"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Job Timings</label>
-                  <input
-                    type="text"
-                    name="jobTimings"
-                    value={formData.jobTimings}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., Flexible"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Working Days</label>
-                  <input
-                    type="text"
-                    name="workingDays"
-                    value={formData.workingDays}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="e.g., Monday to Friday"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Documents Required */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <FiFolder className="text-blue-600" />
-                  Documents Required
-                </div>
-              </h3>
-              
-              <div className="flex items-center space-x-6 mb-6">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="resumeRequired"
-                    checked={formData.resumeRequired}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    id="resumeRequired"
-                  />
-                  <label htmlFor="resumeRequired" className="ml-3 text-gray-700 font-medium">
-                    Resume Required
-                  </label>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="coverLetterRequired"
-                    checked={formData.coverLetterRequired}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    id="coverLetterRequired"
-                  />
-                  <label htmlFor="coverLetterRequired" className="ml-3 text-gray-700 font-medium">
-                    Cover Letter Required
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-900">
-                    Additional Documents
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('documentsRequired')}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <FiPlus />
-                    Add Document
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.documentsRequired.map((doc, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={doc}
-                          onChange={(e) => handleArrayInputChange(index, 'documentsRequired', e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          placeholder="Enter a required document"
-                        />
-                      </div>
-                      {formData.documentsRequired.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index, 'documentsRequired')}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* SEO & Keywords */}
-            <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                <div className="flex items-center gap-2">
-                  <FiTag className="text-blue-600" />
-                  SEO & Keywords
-                </div>
-              </h3>
-              
-              {/* Tags */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-900">Tags</label>
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('tags')}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <FiPlus />
-                    Add Tag
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.tags.map((tag, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={tag}
-                          onChange={(e) => handleArrayInputChange(index, 'tags', e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          placeholder="Enter a tag"
-                        />
-                      </div>
-                      {formData.tags.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index, 'tags')}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Skill Keywords */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-900">Skill Keywords</label>
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('skillKeywords')}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <FiPlus />
-                    Add Keyword
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.skillKeywords.map((keyword, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={keyword}
-                          onChange={(e) => handleArrayInputChange(index, 'skillKeywords', e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          placeholder="Enter a skill keyword"
-                        />
-                      </div>
-                      {formData.skillKeywords.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index, 'skillKeywords')}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Search Keywords */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold text-gray-900">Search Keywords</label>
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('keywordSearch')}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <FiPlus />
-                    Add Keyword
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {formData.keywordSearch.map((keyword, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={keyword}
-                          onChange={(e) => handleArrayInputChange(index, 'keywordSearch', e.target.value)}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          placeholder="Enter a search keyword"
-                        />
-                      </div>
-                      {formData.keywordSearch.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index, 'keywordSearch')}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove"
-                        >
-                          <FiX />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Job Image Upload */}
-            <JobImageUpload />
-          </div>
-        );
-
-      default:
-        return null;
-    }
+  // Update FormTabs props to include new qualifications handling
+  const formTabsProps = {
+    setErrors,
+    activeTab,
+    formData,
+    handleInputChange,
+    handleArrayInputChange,
+    addArrayField,
+    removeArrayField,
+    handleQualificationChange,
+    addQualification,
+    removeQualification,
+    errors,
+    industrySearch,
+    setIndustrySearch,
+    showIndustryDropdown,
+    setShowIndustryDropdown,
+    filteredIndustries,
+    roleSearch,
+    setRoleSearch,
+    showRoleDropdown,
+    setShowRoleDropdown,
+    filteredRoles: formData.jobIndustry 
+      ? getRolesForIndustry(formData.jobIndustry).filter(role =>
+          role.label.toLowerCase().includes(roleSearch.toLowerCase())
+        )
+      : filteredRoles,
+    employmentTypes,
+    workModes,
+    shiftTypes,
+    urgencyLevels,
+    locationData,
+    locationLoading,
+    industryRef,
+    roleRef,
+    educationLevels,
+    salaryTypes,
+    salaryCurrencies,
+    handleFileChange,
+    removeImage,
+    jobImage,
+    existingImage,
+    companyLocationStatus // NEW: Pass company location status to form tabs
   };
 
-  const renderPreview = () => {
-    if (!showPreview) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-bold text-gray-900">Job Preview</h3>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-              >
-                <FiX className="text-xl" />
-              </button>
-            </div>
-          </div>
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-            <div className="space-y-6">
-              {(jobImage || existingImage) && (
-                <div>
-                  <img 
-                    src={jobImage ? URL.createObjectURL(jobImage) : existingImage} 
-                    alt="Job preview" 
-                    className="w-full h-64 object-cover rounded-lg mb-4"
-                  />
-                </div>
-              )}
-              
-              <div>
-                <h4 className="text-2xl font-bold text-gray-900">{formData.jobTitle}</h4>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                    {formData.employmentType}
-                  </span>
-                  <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                    {formData.workMode}
-                  </span>
-                  <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                    {formData.jobCategory}
-                  </span>
-                  {formData.remoteEligibility && (
-                    <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                      Remote Eligible
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">Location</h5>
-                  <p className="text-gray-700">{formData.city}, {formData.state}, {formData.country}</p>
-                  {formData.fullAddress && (
-                    <p className="text-gray-600 text-sm mt-1">{formData.fullAddress}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">Openings</h5>
-                  <p className="text-gray-700">{formData.openingsCount} position(s) available</p>
-                </div>
-              </div>
-
-              <div>
-                <h5 className="font-semibold text-gray-900 mb-2">Job Description</h5>
-                <p className="text-gray-700 whitespace-pre-line">{formData.jobDescription}</p>
-              </div>
-
-              {formData.responsibilities.filter(r => r.trim()).length > 0 && (
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">Key Responsibilities</h5>
-                  <ul className="list-disc pl-5 space-y-2">
-                    {formData.responsibilities.filter(r => r.trim()).map((resp, index) => (
-                      <li key={index} className="text-gray-700">{resp}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {formData.requiredSkills.filter(s => s.trim()).length > 0 && (
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">Required Skills</h5>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.requiredSkills.filter(s => s.trim()).map((skill, index) => (
-                      <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {formData.salaryMin > 0 && (
-                <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">Salary</h5>
-                  <p className="text-gray-700">
-                    {formData.salaryCurrency} {formData.salaryMin} - {formData.salaryMax} per {formData.salaryType}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  const handleEditAgain = () => {
+    setIsFormComplete(false);
+    setActiveTab('basic');
   };
+
+  // Function to clean and render HTML content
+  const renderHTML = (htmlString) => {
+    if (!htmlString) return null;
+    
+    // Clean up the HTML for display
+    const cleanHTML = htmlString
+      .replace(/<div><br><\/div>/g, '<br>')
+      .replace(/<div>(.*?)<\/div>/g, '<p>$1</p>')
+      .replace(/<p><br><\/p>/g, '<br>')
+      .replace(/<br>\s*<br>/g, '<br><br>'); // Handle multiple line breaks
+    
+    return { __html: cleanHTML };
+  };
+
+ 
 
   if (isLoading) {
     return (
@@ -1881,7 +1392,7 @@ const JobPostingForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Navigation Header */}
+      {/* Navigation Header - UPDATED: Hide Save Draft in header for approved jobs */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -1895,29 +1406,60 @@ const JobPostingForm = () => {
               </button>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  {isEditMode ? 'Edit Job Posting' : 'Create New Job'}
+                  {isEditMode 
+                    ? jobApproved 
+                      ? 'Update Approved Job' 
+                      : 'Edit Job Posting' 
+                    : 'Create New Job'}
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base">
-                  {isEditMode ? 'Update your job posting' : 'Step-by-step job creation wizard'}
+                  {isEditMode 
+                    ? jobApproved 
+                      ? 'Update your active job posting (requires re-approval)' 
+                      : 'Update your job posting' 
+                    : 'Step-by-step job creation wizard'}
                 </p>
+                {/* Show approved job badge */}
+                {jobApproved && (
+                  <div className="inline-flex items-center gap-1 px-2 py-1 mt-1 bg-green-100 text-green-700 rounded-md text-xs">
+                    <FiCheckCircle className="text-xs" />
+                    <span>Active & Approved</span>
+                  </div>
+                )}
+                {/* Show location status */}
+                <div className={`inline-flex items-center gap-1 px-2 py-1 mt-1 ${companyLocationStatus.isLocationUpdated ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'} rounded-md text-xs`}>
+                  <FiMapPin className="text-xs" />
+                  <span>
+                    {companyLocationStatus.isLocationUpdated 
+                      ? 'Location set' 
+                      : companyLocationStatus.isLoading
+                        ? 'Checking location...'
+                        : 'Location needed'}
+                  </span>
+                </div>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowPreview(true)}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <FiEye />
-                <span className="hidden sm:inline">Preview</span>
-              </button>
-              <button
-                onClick={handleSaveDraft}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                <FiSave />
-                <span className="hidden sm:inline">Save Draft</span>
-              </button>
+              <div className="text-sm text-gray-600">
+                {savedDraft && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <FiCheckCircle />
+                    Draft saved successfully
+                  </div>
+                )}
+              </div>
+              
+              {/* Only show Save Draft button in header when form is not complete AND job is NOT approved */}
+              {!isFormComplete && !jobApproved && (
+                <button
+                  onClick={handleSaveDraft}
+                  className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  <FiSave />
+                  <span className="hidden sm:inline">Save Draft</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1927,168 +1469,141 @@ const JobPostingForm = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Progress Steps Sidebar */}
-          <div className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 sticky top-24">
-              <h3 className="font-semibold text-gray-900 mb-6">
-                {isEditMode ? 'Edit Job Steps' : 'Job Creation Steps'}
-              </h3>
-              <div className="space-y-2">
-                {tabs.map((tab) => {
-                  const isCompleted = getTabCompletion(tab.id);
-                  const isActive = activeTab === tab.id;
-                  
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-3 w-full p-3 rounded-xl text-left transition-all ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className={`p-2 rounded-lg ${
-                        isActive ? 'bg-blue-100' : 'bg-gray-100'
-                      }`}>
-                        {React.cloneElement(tab.icon, {
-                          className: `text-lg ${isActive ? 'text-blue-600' : 'text-gray-500'}`
-                        })}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{tab.label}</div>
-                        <div className="text-xs mt-1">
-                          {isCompleted ? (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <FiCheckCircle className="text-sm" />
-                              Completed
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Pending</span>
-                          )}
-                        </div>
-                      </div>
-                      {isActive && (
-                        <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Progress Stats */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Completion</span>
-                      <span className="font-medium text-gray-900">
-                        {Math.round((tabs.filter(t => getTabCompletion(t.id)).length / tabs.length) * 100)}%
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-600 rounded-full transition-all duration-300"
-                        style={{ width: `${(tabs.filter(t => getTabCompletion(t.id)).length / tabs.length) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-gray-600">
-                    <p className="mb-1">Tips:</p>
-                    <ul className="space-y-1 text-xs">
-                      <li className="flex items-start gap-2">
-                        <FiCheckCircle className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Complete all required fields (*)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <FiCheckCircle className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Save draft regularly</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <FiCheckCircle className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Preview before publishing</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {!isFormComplete && (
+            <ProgressSidebar
+              tabs={tabs}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              getTabCompletion={getTabCompletion}
+              isEditMode={isEditMode}
+            />
+          )}
 
           {/* Form Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <form onSubmit={handleSubmit}>
-                <div className="p-6 sm:p-8">
-                  {renderTabContent()}
-                </div>
+          <div className={`${!isFormComplete ? 'flex-1' : 'w-full'}`}>
+            {/* Show form when not complete, show preview when complete */}
+            {!isFormComplete ? (
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <form onSubmit={handleSubmit}>
+                  <div className="p-6 sm:p-8 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                    <FormTabs {...formTabsProps} />
+                  </div>
 
-                {/* Form Actions */}
-                <div className="border-t border-gray-200 p-6 bg-gray-50">
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-sm text-gray-600">
-                      {savedDraft && (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <FiCheckCircle />
-                          Draft saved successfully
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab(prev => {
-                          const currentIndex = tabs.findIndex(t => t.id === prev);
-                          return tabs[currentIndex - 1]?.id || 'basic';
-                        })}
-                        disabled={activeTab === 'basic'}
-                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab(prev => {
-                          const currentIndex = tabs.findIndex(t => t.id === prev);
-                          return tabs[currentIndex + 1]?.id || 'additional';
-                        })}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        {activeTab === 'additional' ? 'Review' : 'Next Step'}
-                      </button>
-                      
-                      {activeTab === 'additional' && (
+                  {/* Form Actions - Updated: Show appropriate button text based on jobApproved status */}
+                  <div className="border-t border-gray-200 p-6 bg-gray-50">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+                          type="button"
+                          onClick={() => setActiveTab(prev => {
+                            const currentIndex = tabs.findIndex(t => t.id === prev);
+                            return tabs[currentIndex - 1]?.id || 'basic';
+                          })}
+                          disabled={activeTab === 'basic'}
+                          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isSubmitting ? (
-                            <span className="flex items-center gap-2">
-                              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              {isEditMode ? 'Updating...' : 'Publishing...'}
-                            </span>
-                          ) : (
-                            isEditMode ? 'Submit for Review' : 'Submit for Review'
-                          )}
+                          Previous
                         </button>
-                      )}
+                        
+                        {activeTab !== "additional" && 
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab(prev => {
+                              const currentIndex = tabs.findIndex(t => t.id === prev);
+                              return tabs[currentIndex + 1]?.id || 'additional';
+                            })}
+                            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                          >
+                            Next
+                          </button>
+                        }
+                        
+                        {activeTab === 'additional' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (validateForm()) {
+                                setIsFormComplete(true);
+                              }
+                            }}
+                            className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
+                          >
+                            Preview Job
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </form>
-            </div>
+                </form>
+              </div>
+            ) : (
+              <JobPreviewModal
+                showPreview={isFormComplete}
+                setShowPreview={setIsFormComplete}
+                formData={formData}
+                jobImage={jobImage}
+                existingImage={existingImage}
+                onSaveDraft={handleSaveDraft}
+                onEditAgain={handleEditAgain}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                isEditMode={isEditMode}
+                jobApproved={jobApproved}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Preview Modal */}
-      {renderPreview()}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #888 #f1f1f1;
+        }
+        
+        .prose {
+          line-height: 1.75;
+        }
+        
+        .prose p {
+          margin-bottom: 1rem;
+        }
+        
+        .prose ul, .prose ol {
+          margin-bottom: 1rem;
+          padding-left: 1.5rem;
+        }
+        
+        .prose li {
+          margin-bottom: 0.5rem;
+        }
+        
+        .prose strong {
+          font-weight: 600;
+        }
+        
+        .prose em {
+          font-style: italic;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,36 +1,51 @@
 import React, { useState, useMemo } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+
 const TopCompanies = ({ jobs = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-const navigate=useNavigate();
+  const navigate = useNavigate();
+
   // Extract top companies from jobs data
-  const companies = useMemo(() => {
-    if (!jobs || jobs.length === 0) return [];
-    
-    // Group jobs by company and count openings
-    const companyMap = {};
+const companies = useMemo(() => {
+  if (!jobs || jobs.length === 0) return [];
+  
+  const companyMap = {};
 
-    jobs.forEach(job => {
-      if (job.companyName) {
-        if (!companyMap[job.companyName]) {
-          companyMap[job.companyName] = {
-            name: job.companyName,
-            location: job.city || job.country || "Multiple Locations",
-            openings: 0,
-            logo:job.companyLogo|| null,
-            companyId: job.companyId
-          };
-        }
-        companyMap[job.companyName].openings += (job.openingsCount || 1);
+  jobs.forEach(job => {
+    const companyId = job.companyId;
+    if (companyId) {
+      if (!companyMap[companyId]) {
+        companyMap[companyId] = {
+          id: companyId,
+          name: job.companyName,
+          location: `${job.city}, ${job.state}` || job.country || "Multiple Locations",
+          positions: 0, // Renamed from openings to positions
+          logo: job.companyLogo || null,
+          uniqueJobTitles: new Set()
+        };
       }
-    });
+      
+      // Add job title to set
+      if (job.jobTitle) {
+        const beforeSize = companyMap[companyId].uniqueJobTitles.size;
+        companyMap[companyId].uniqueJobTitles.add(job.jobTitle);
+        const afterSize = companyMap[companyId].uniqueJobTitles.size;
+        
+        // Only increment positions count if we added a new unique job title
+        if (afterSize > beforeSize) {
+          companyMap[companyId].positions += 1;
+        }
+      }
+    }
+  });
 
-    // Convert to array and sort by openings
-    return Object.values(companyMap)
-      .sort((a, b) => b.openings - a.openings)
-      .slice(0, 8);
-  }, [jobs]);
+  // Convert to array, filter companies with multiple unique job titles
+  return Object.values(companyMap)
+    .filter(company => company.uniqueJobTitles.size >= 2) // Only show companies with 2+ different job roles
+    .sort((a, b) => b.positions - a.positions) // Sort by number of positions
+    .slice(0, 8);
+}, [jobs]);
 
   // Get initials for company avatar
   const getInitials = (companyName) => {
@@ -68,24 +83,18 @@ const navigate=useNavigate();
     }
   };
 
-  const handleCompanyClick = (company) => {
-    console.log(company)
-  if (company.companyId) {
-    navigate(`/jobs?company=${company.companyId._id}`);
-  } else {
-    const slug = company.name.toLowerCase().replace(/\s+/g, "-");
-    navigate(`/jobs?company=${slug}`);
-  }
-  };
-
-
-  
-  const handleClickCompany =(company) => {
- 
+  const handleClickCompany = (company) => {
+    
     if (company) {
-      navigate(`/company/${(company.companyId._id)}`);
+      navigate(`/company/${(company.id)}`);
     }
   };
+
+  const handleViewAllJobs =(company) =>{
+    if(company){
+      navigate(`?company=${company.id}`)
+    }
+  }
 
 
   // If no companies, show not available
@@ -100,16 +109,12 @@ const navigate=useNavigate();
         </div>
 
         {/* Blue Underline */}
-        <div className="w-10 h-[2px] bg-cyan-400 mt-1 mb-4"></div>
+        <div className="w-10 h-[2px] bg-cyan-400 mt-1 mb-6"></div>
 
-        {/* Not Available Message */}
-        <div className="text-center py-6">
-          <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-            <FiChevronLeft size={18} className="text-gray-400" />
-            <FiChevronRight size={18} className="text-gray-400" />
-          </div>
-          <p className="text-gray-500 text-sm">Not Available</p>
-          <p className="text-gray-400 text-xs mt-1">
+        {/* Not Available Message - Updated without icon */}
+        <div className="text-center py-4">
+          <p className="text-gray-600 text-base font-medium mb-1">Not Available</p>
+          <p className="text-gray-500 text-sm">
             Companies will appear here as jobs are posted
           </p>
         </div>
@@ -155,24 +160,23 @@ const navigate=useNavigate();
           <div
             key={`${company.name}-${index}`}
             className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 bg-white p-4 text-center hover:border-cyan-300 cursor-pointer"
-           
           >
             {/* Company Logo/Initials */}
             <div 
-            
-            className="flex justify-center mb-3"
+              className="flex justify-center mb-3"
             >
-              {company.logo ? (
+              {company.logo? (
                 <img
                   src={company.logo}
                   alt={company.name}
                   className="w-14 h-14 object-contain"
-                  onClick={()=>handleClickCompany(company)}
+                  onClick={() => handleClickCompany(company)}
                 />
               ) : (
                 <div 
-                onClick={()=>handleClickCompany(company)}
-                className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                  onClick={() => handleClickCompany(company)}
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm"
+                >
                   {getInitials(company.name)}
                 </div>
               )}
@@ -187,15 +191,13 @@ const navigate=useNavigate();
             <p className="text-gray-600 text-xs mb-2 line-clamp-1">
               {company.location}
             </p>
-
-            {/* Opening Count */}
-            <div className="text-xs text-gray-500 mb-3">
-              {company.openings === 1 ? "1 OPENING" : `${company.openings} OPENINGS`}
-            </div>
+{/* Opening Count */}
+<div className="text-xs text-gray-500 mb-3">
+  {company.positions === 1 ? "1 Openings" : `${company.positions} Openings`}
+</div>
 
             {/* Opening Button */}
             <button
-          
               className="
                 bg-cyan-600 text-white text-xs py-1.5 px-4 rounded-md 
                 transition-all duration-300 
@@ -203,8 +205,7 @@ const navigate=useNavigate();
                 font-medium w-full
               "
               onClick={(e) => {
-                e.stopPropagation();
-                handleCompanyClick(company);
+              handleViewAllJobs(company)
               }}
             >
               VIEW JOBS

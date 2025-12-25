@@ -18,7 +18,7 @@ const StoriesModal = ({
   likesCount,
   isLikedState,
   totalViews,
-                totalShare,
+   totalShare,
 
   // Comments props
   comments,

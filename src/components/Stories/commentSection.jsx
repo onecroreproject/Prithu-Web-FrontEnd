@@ -694,41 +694,43 @@ const CommentsSection = ({ feed }) => {
   return (
     <div className="flex flex-col w-full sm:w-[400px] h-full bg-white">
       {/* HEADER */}
-      <div className="flex items-center p-4 bg-white">
-        <img
-          src={feed.createdByProfile?.profileAvatar || defaultAvater}
-          alt="avatar"
-          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover mr-3"
-        />
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm sm:text-base truncate">
-            {feed.createdByProfile?.userName || "Unknown User"}
-          </div>
-          <div className="text-xs text-gray-500 truncate">{feed.location || "Unknown place"}</div>
-          
-          {/* Follow status indicator */}
-          {!isOwnPost && !checkingFollow && !isFollowing && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-amber-600 font-medium">Follow to comment</span>
-              <button
-                onClick={handleFollowUser}
-                disabled={followingLoading}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center gap-1 transition-colors disabled:opacity-70"
-              >
-                {followingLoading ? (
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <FiUserPlus size={10} />
-                    <span>Follow</span>
-                  </>
-                )}
-              </button>
-            </div>
+     <div className="flex items-center p-4 bg-white">
+  <img
+    src={feed.createdByProfile?.profileAvatar || defaultAvater}
+    alt="avatar"
+    className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover mr-3"
+  />
+  <div className="flex-1 min-w-0">
+    <div className="font-semibold text-sm sm:text-base truncate">
+      {feed.createdByProfile?.userName || "Unknown User"}
+    </div>
+
+    {/* location removed intentionally */}
+    
+    {!isOwnPost && !checkingFollow && !isFollowing && (
+      <div className="flex items-center gap-2 mt-1">
+        <span className="text-xs text-amber-600 font-medium">
+          Follow to comment
+        </span>
+        <button
+          onClick={handleFollowUser}
+          disabled={followingLoading}
+          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded flex items-center gap-1 transition-colors disabled:opacity-70"
+        >
+          {followingLoading ? (
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <FiUserPlus size={10} />
+              <span>Follow</span>
+            </>
           )}
-          
-        </div>
+        </button>
       </div>
+    )}
+  </div>
+</div>
+
 
       {/* COMMENTS LIST */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

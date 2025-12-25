@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './companyLayoutComponent/sideTabs';
 import CreateJob from './companyLayoutComponent/tabComponent/createJob';
 import ViewJobs from './companyLayoutComponent/tabComponent/viewJobs';
-import { FiMenu, FiX, FiFileText } from 'react-icons/fi';
+import { FiMenu, FiX, FiFileText, FiMapPin } from 'react-icons/fi';
 import companyApi from '../../api/companyApi';
 import { toast } from 'react-toastify';
 import SettingsPage from './companyLayoutComponent/tabComponent/settings';
@@ -11,12 +12,16 @@ import Applicants from './companyLayoutComponent/tabComponent/appicatns';
 
 const CompanyDashboard = () => {
   const [companyProfile, setCompanyProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState('createJob');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentDrafts, setRecentDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [selectedDraft, setSelectedDraft] = useState(null);
   const [draftModalOpen, setDraftModalOpen] = useState(false);
+  
+  // Location states (simplified)
+  const [locationUpdated, setLocationUpdated] = useState(false);
+  const [shouldShowCreateJob, setShouldShowCreateJob] = useState(true); // Default to true since no location check
 
   // Fetch company profile
   useEffect(() => {
@@ -25,6 +30,11 @@ const CompanyDashboard = () => {
         const res = await companyApi.get("/job/get/company/profile");
         console.log("Company Profile Response:", res.data);
         setCompanyProfile(res.data);
+        
+        // Check if location is already set in profile
+        if (res.data.location && res.data.location.latitude && res.data.location.longitude) {
+          setLocationUpdated(true);
+        }
       } catch (error) {
         console.error("Error fetching company profile:", error);
         toast.error("Failed to load company profile");
@@ -57,12 +67,15 @@ const CompanyDashboard = () => {
     }
   };
 
-  // Load drafts when component mounts or when createJob tab is active
+  // Load drafts when createJob tab is active
   useEffect(() => {
-    if (activeTab === 'createJob') {
+    if (activeTab === 'createJob' && shouldShowCreateJob) {
       fetchRecentDrafts();
     }
-  }, [activeTab]);
+  }, [activeTab, shouldShowCreateJob]);
+
+
+ 
 
   // Handle draft selection
   const handleDraftSelect = (draft) => {
@@ -70,9 +83,16 @@ const CompanyDashboard = () => {
     setSidebarOpen(false);
   };
 
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'createJob':
+        // Always show CreateJob since location check is removed
         return (
           <CreateJob 
             selectedDraft={selectedDraft}
@@ -87,19 +107,19 @@ const CompanyDashboard = () => {
       case 'dashboard':
         return <HrDashboard />;
       case 'settings':
-        return <SettingsPage companyProfile={companyProfile} />;
+        return <SettingsPage 
+          companyProfile={companyProfile} 
+          onProfileUpdate={() => {
+            // Refresh company profile when settings are updated
+            companyApi.get("/job/get/company/profile")
+              .then(res => setCompanyProfile(res.data))
+              .catch(err => console.error("Error refreshing profile:", err));
+          }} 
+        />;
       case 'viewJobs':
         return <ViewJobs />;
       default:
-        return (
-          <CreateJob 
-            selectedDraft={selectedDraft}
-            onDraftSaved={fetchRecentDrafts}
-            onClearDraft={() => setSelectedDraft(null)}
-            recentDrafts={recentDrafts}
-            loadingDrafts={loadingDrafts}
-          />
-        );
+        return <HrDashboard />;
     }
   };
 
@@ -154,13 +174,11 @@ const CompanyDashboard = () => {
         `}>
           <Sidebar 
             activeTab={activeTab} 
-            setActiveTab={(tab) => {
-              setActiveTab(tab);
-              setSidebarOpen(false);
-            }}
+            setActiveTab={handleTabChange}
             onMobileItemClick={() => setSidebarOpen(false)}
             recentDraftsCount={recentDrafts.length}
             companyInfo={companyProfile}
+            locationUpdated={locationUpdated}
           />
         </div>
 
@@ -205,8 +223,11 @@ const CompanyDashboard = () => {
                     <div className="text-lg font-semibold text-gray-900">
                       {companyProfile.companyName}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 flex items-center justify-end gap-1">
                       {companyProfile.companyEmail}
+                      {locationUpdated && (
+                        <FiMapPin className="text-green-500" title="Location set" />
+                      )}
                     </div>
                   </div>
                 )}
@@ -232,7 +253,7 @@ const CompanyDashboard = () => {
             {/* Mobile Floating Action Button */}
             <div className="lg:hidden fixed bottom-6 right-6 z-30">
               <button
-                onClick={() => setActiveTab('createJob')}
+                onClick={() => handleTabChange('createJob')}
                 className="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all hover:scale-105"
                 aria-label="Create job"
               >

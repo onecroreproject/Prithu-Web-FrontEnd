@@ -67,7 +67,7 @@ const ViewJobs = () => {
   // Handle Edit Job
   const handleEditJob = (job) => {
     // Navigate to edit page with job ID
-    navigate(`/jobs/edit/${job._id}`);
+    navigate(`/jobs/edit/${job._id}`, { state: { jobData: job } });
   };
 
   // Handle View Job Details
@@ -153,7 +153,6 @@ const ViewJobs = () => {
       active: jobs.filter(job => job.status === 'active').length,
       draft: jobs.filter(job => job.status === 'draft').length,
       expired: jobs.filter(job => job.status === 'expired').length,
-      closed: jobs.filter(job => job.status === 'closed').length,
       inactive: jobs.filter(job => job.status === 'inactive').length,
     };
     return counts;
@@ -187,17 +186,12 @@ const ViewJobs = () => {
     submit: { 
       color: 'bg-blue-100 text-blue-700 border border-blue-200', 
       icon: MdPendingActions,
-      label: 'Submitted'
+      label: 'Submit'
     },
     expired: { 
       color: 'bg-red-100 text-red-700 border border-red-200', 
       icon: MdCancel,
       label: 'Expired'
-    },
-    closed: { 
-      color: 'bg-gray-100 text-gray-700 border border-gray-200', 
-      icon: MdCheckCircle,
-      label: 'Closed'
     },
     inactive: { 
       color: 'bg-gray-100 text-gray-500 border border-gray-200', 
@@ -331,7 +325,7 @@ const ViewJobs = () => {
           </div>
         </div>
         {/* Search Input */}
-          <div className=" relative mt-3">
+          {/* <div className=" relative mt-3">
             <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -340,7 +334,7 @@ const ViewJobs = () => {
               placeholder="Search jobs by title, role, or category..."
               className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             />
-          </div>
+          </div> */}
 
           {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-3 md:mb-8">
@@ -575,13 +569,13 @@ const ViewJobs = () => {
                 {/* Actions */}
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <button 
+                    {/* <button 
                       onClick={() => handleViewJob(job)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200 hover:border-blue-300"
                       title="View Details"
                     >
                       <FiEye />
-                    </button>
+                    </button> */}
                     <button 
                       onClick={() => handleEditJob(job)}
                       className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200 hover:border-emerald-300"

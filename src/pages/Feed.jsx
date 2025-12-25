@@ -803,14 +803,14 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   return (
     <>
       <div id="feedTop">
-        <div className={`mx-auto px-3 sm:px-4 md:px-6 py-5 max-w-3xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
+        <div className={` px-3 sm:px-4 md:px-6 py-5 max-w-2xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
       
           {/* ⭐ REGULAR HOME PAGE COMPONENTS (only show when NOT in hashtag mode) */}
           {!isHashtagMode && (
             <>
               <Stories />
               
-              <div className="mt-4 mb-6">
+              <div className="mt- flex items-center flex-col mb-6">
                 <Createpost authUser={authUser} token={tokenRef.current || token}  />
               </div>
             </>
@@ -834,7 +834,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
           {/* Feeds/Jobs content */}
           <AnimatePresence>
-            <div className="flex flex-col gap-5">
+            <div className="flex items-center  flex-col gap-5">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
               ) : mixed.length > 0 ? (
