@@ -144,7 +144,6 @@ export default function Header() {
     const handleOutsideClick = e => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) setNotifOpen(false);
       if (searchRef.current && !searchRef.current.contains(e.target)) setShowSearchDropdown(false);
     };
     document.addEventListener("mousedown", handleOutsideClick);
@@ -508,8 +507,8 @@ export default function Header() {
             <div ref={notificationRef} className="relative">
               <motion.button
                 onClick={handleBellClick}
-                className={`relative p-2.5 rounded-lg transition-all duration-200 ${notifOpen 
-                  ? "bg-blue-100 ring-2 ring-blue-200" 
+                className={`relative p-2.5 rounded-lg transition-all duration-200 ${notifOpen
+                  ? "bg-blue-100 ring-2 ring-blue-200"
                   : "hover:bg-gray-100"
                 }`}
                 whileHover={{ scale: 1.05 }}
@@ -526,11 +525,6 @@ export default function Header() {
                   </motion.span>
                 )}
               </motion.button>
-              <NotificationDropdown
-                isOpen={notifOpen}
-                onClose={() => setNotifOpen(false)}
-                onUpdateCount={refreshNotifications}
-              />
             </div>
 
             {/* Profile Dropdown */}
@@ -677,6 +671,13 @@ export default function Header() {
           </div>
         </div>
       </motion.header>
+
+      {/* Notification Dropdown - Always rendered for both desktop and mobile */}
+      <NotificationDropdown
+        isOpen={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onUpdateCount={refreshNotifications}
+      />
 
       {/* MOBILE MENU */}
       <AnimatePresence>

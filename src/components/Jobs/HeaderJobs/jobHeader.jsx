@@ -88,11 +88,11 @@ const JobHeader = ({
         </p>
 
         {/* Combined Search and Location Section */}
-        <div className="bg-transparent rounded-xl p-6 md:p-6 mt-12 relative">
-          <div className="flex items-center justify-center gap-5">
-            
+        <div className="bg-transparent rounded-xl p-4 md:p-6 mt-8 md:mt-12 relative">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-5">
+
             {/* Job Title Search */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left w-full md:w-auto md:min-w-[200px]">
               <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
                 <Search className="w-4 h-4 text-emerald-600" />
                 Job Title
@@ -102,27 +102,12 @@ const JobHeader = ({
                 placeholder="Software Engineer, Designer, etc..."
                 value={localJobTitle}
                 onChange={handleJobTitleChange}
-                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg"
+                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg text-sm md:text-base"
               />
             </div>
 
-            {/* Keywords/Skills Search */}
-            {/* <div className="flex flex-col text-left">
-              <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
-                <Search className="w-4 h-4 text-emerald-600" />
-                Skills/Keywords
-              </label>
-              <input
-                type="text"
-                placeholder="React, Python, Marketing, etc..."
-                value={localSearch}
-                onChange={handleSearch}
-                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg"
-              />
-            </div> */}
-
             {/* Location */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left w-full md:w-auto md:min-w-[180px]">
               <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
                 <FiMapPin className="w-4 h-4 text-emerald-600" />
                 Location
@@ -132,12 +117,12 @@ const JobHeader = ({
                 placeholder="Enter city..."
                 value={selectedCity}
                 onChange={(e) => onCityChange(e.target.value)}
-                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg"
+                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg text-sm md:text-base"
               />
             </div>
 
             {/* Category */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left w-full md:w-auto md:min-w-[180px]">
               <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
                 <FiBriefcase className="w-4 h-4 text-emerald-600" />
                 Category
@@ -147,12 +132,12 @@ const JobHeader = ({
                 placeholder="Enter job category..."
                 value={selectedCategory !== "All" ? selectedCategory : ""}
                 onChange={(e) => onCategoryChange(e.target.value || "All")}
-                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg"
+                className="w-full rounded-lg px-4 py-3 bg-white/90 backdrop-blur-sm text-gray-900 outline-none border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 shadow-lg text-sm md:text-base"
               />
             </div>
 
             {/* Current Location */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left w-full md:w-auto md:min-w-[200px]">
               <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
                 <Target className="w-4 h-4 text-emerald-600" />
                 Current Location
@@ -162,7 +147,7 @@ const JobHeader = ({
                   <button
                     onClick={getUserLocation}
                     disabled={locationLoading}
-                    className="w-full rounded-lg px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-medium hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                    className="w-full rounded-lg px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-medium hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm md:text-base"
                   >
                     {locationLoading ? (
                       <>
@@ -182,7 +167,7 @@ const JobHeader = ({
                       <div className="flex-1">
                         <button
                           onClick={() => toggleDropdown('distance')}
-                          className="w-full px-3 py-2.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-800 border border-emerald-200 hover:border-emerald-300 hover:shadow-md transition-all flex items-center justify-between shadow-lg"
+                          className="w-full px-3 py-2.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-800 border border-emerald-200 hover:border-emerald-300 hover:shadow-md transition-all flex items-center justify-between shadow-lg text-sm md:text-base"
                         >
                           <div className="flex items-center gap-2">
                             <Navigation className="w-4 h-4 text-emerald-600" />
@@ -203,10 +188,10 @@ const JobHeader = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Distance Dropdown */}
                 {dropdownOpen.distance && userLocation && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-emerald-200 rounded-lg shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-sm">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-emerald-200 rounded-lg shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-sm max-h-60 overflow-y-auto">
                     <div className="p-2 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50">
                       <p className="text-sm text-gray-700 font-medium">Select distance radius from your location</p>
                     </div>
@@ -214,7 +199,7 @@ const JobHeader = ({
                       <button
                         key={option.value}
                         onClick={() => handleDistanceSelect(option.value)}
-                        className={`w-full px-3 py-2.5 text-left hover:bg-emerald-50 text-gray-800 flex items-center justify-between border-b border-emerald-100 last:border-b-0 ${
+                        className={`w-full px-3 py-2.5 text-left hover:bg-emerald-50 text-gray-800 flex items-center justify-between border-b border-emerald-100 last:border-b-0 text-sm md:text-base ${
                           distanceRadius === option.value ? "bg-gradient-to-r from-emerald-100 to-green-100" : ""
                         }`}
                       >

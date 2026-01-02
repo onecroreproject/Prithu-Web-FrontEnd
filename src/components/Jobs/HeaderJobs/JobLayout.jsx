@@ -696,14 +696,14 @@ const JobLayout = () => {
       />
       
       {/* Mobile Filters Button */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-40">
+      <div className="lg:hidden fixed bottom-4 right-4 z-40">
         <button
           onClick={() => setShowMobileFilters(!showMobileFilters)}
-          className="relative bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          className="relative bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
         >
-          <Filter className="w-6 h-6" />
+          <Filter className="w-5 h-5" />
           {activeFiltersCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
               {activeFiltersCount}
             </span>
           )}
