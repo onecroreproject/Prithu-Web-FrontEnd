@@ -88,12 +88,16 @@ export default function PostMedia({
   /* --------------------------------------------------------------
       BLURRED BACKGROUND
   -------------------------------------------------------------- */
-  const ColorBackground = () => (
+  const ColorBackground = ({ isImage, contentUrl }) => (
     <div
       className="absolute inset-0 z-0"
       style={{
-        background: `radial-gradient(circle, ${dominantColor}55, ${dominantColor}EE)`,
-        filter: "blur(40px)",
+        background: isImage
+          ? `url(${contentUrl})`
+          : `radial-gradient(circle, ${dominantColor}55, ${dominantColor}EE)`,
+        backgroundSize: isImage ? 'cover' : undefined,
+        backgroundPosition: isImage ? 'center' : undefined,
+        filter: isImage ? "blur(50px)" : "blur(40px)",
         transform: "scale(1.25)",
       }}
     />
@@ -112,7 +116,7 @@ export default function PostMedia({
             className="relative w-full flex items-center object-cover justify-center overflow-hidden"
             style={{ height: "min(75.5vh, 520px)" }}
           >
-            <ColorBackground />
+            <ColorBackground isImage={true} contentUrl={contentUrl} />
             <img
               src={contentUrl}
               className="absolute inset-0 w-full h-full object-contain z-10"

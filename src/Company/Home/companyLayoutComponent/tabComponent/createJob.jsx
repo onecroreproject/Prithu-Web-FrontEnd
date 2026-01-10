@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const CreateJob = ({ selectedDraft, onDraftSaved, onClearDraft, recentDrafts, loadingDrafts }) => {
+const CreateJob = ({ selectedDraft, onDraftSaved, onClearDraft, recentDrafts, loadingDrafts, onSwitchToSettings }) => {
   const [showJobForm, setShowJobForm] = useState(false);
   const [jobToEdit, setJobToEdit] = useState(null);
   const navigate = useNavigate();
@@ -136,10 +136,11 @@ const CreateJob = ({ selectedDraft, onDraftSaved, onClearDraft, recentDrafts, lo
       {/* Show JobPostingForm Modal */}
       {showJobForm && (
         <div className="fixed inset-0 z-50">
-          <JobPostingForm 
+          <JobPostingForm
             job={jobToEdit}
             onClose={handleCloseForm}
             onSave={handleSaveJob}
+            onSwitchToSettings={onSwitchToSettings}
           />
         </div>
       )}

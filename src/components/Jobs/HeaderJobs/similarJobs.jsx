@@ -174,9 +174,9 @@ export default function SimilarJobsSection({ jobId }) {
       {/* Logo + Title */}
       <div className="flex items-start gap-4">
         <div className="cursor-pointer flex-shrink-0">
-          {job.companyProfile? (
+          {job.companyProfile && job.companyProfile.logo && job.companyProfile.logo.trim() !== "" ? (
             <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-600">
-              <img 
+              <img
                 src={job.companyProfile.logo}
                 alt={job.companyName}
                 className="w-full h-full object-cover"
@@ -186,7 +186,7 @@ export default function SimilarJobsSection({ jobId }) {
                   const parent = e.target.parentElement;
                   const fallback = document.createElement('div');
                   fallback.className = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-lg';
-                  fallback.textContent = job.companyName 
+                  fallback.textContent = job.companyName
                     ? job.companyName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
                     : 'JD';
                   parent.appendChild(fallback);
@@ -195,7 +195,7 @@ export default function SimilarJobsSection({ jobId }) {
             </div>
           ) : (
             <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-              {job.company.companyName 
+              {job.company.companyName
                 ? job.company.companyName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
                 : 'JD'}
             </div>
@@ -254,46 +254,7 @@ export default function SimilarJobsSection({ jobId }) {
         </button>
       </div>
 
-      {/* Key Details */}
-      <div className="space-y-2 mt-4">
-        <div className="flex items-center text-sm text-gray-600">
-          <span>
-            {job.freshersAllowed ? "Freshers welcome" :
-             job.minimumExperience || job.maximumExperience 
-               ? `${job.minimumExperience || 0} - ${job.maximumExperience || 0} years`
-               : "Experience not specified"}
-          </span>
-        </div>
-        
-        {job.requiredSkills && job.requiredSkills.length > 0 && (
-          <div className="flex items-center text-sm text-gray-600">
-            <span className="font-medium mr-2">Skills:</span>
-            <div className="flex flex-wrap gap-1">
-              {job.requiredSkills.slice(0, 3).map((skill, i) => (
-                <span key={i} className="text-cyan-600 text-xs">
-                  {skill},
-                </span>
-              ))}
-              {job.requiredSkills.length > 3 && (
-                <span className="text-cyan-600 text-xs">
-                  +{job.requiredSkills.length - 3} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
-        <div className="flex items-center text-xs text-gray-500">
-          {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Date not available"}
-        </div>
-        
-        <div className="text-xs text-gray-500">
-          {(job.openingsCount || 0)} opening{(job.openingsCount || 0) > 1 ? 's' : ''}
-        </div>
-      </div>
+     
     </div>
   );
 

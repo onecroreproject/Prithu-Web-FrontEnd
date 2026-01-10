@@ -51,7 +51,7 @@ const JobRightSide = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8 w-full">
       <FeaturedEmployers />
       <DiversityConsciousEmployers />
       <JobCourses />

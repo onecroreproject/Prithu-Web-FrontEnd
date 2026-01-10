@@ -18,7 +18,7 @@ export default function JobPageWrapper() {
    * TRANSFORM FUNCTION FOR SCHEMA FORMAT
    * ---------------------------------------------------------- */
   const transformJobData = (apiJob) => {
-    console.log(apiJob)
+
     if (!apiJob) return null;
 
     // Helper function to get array safely
@@ -39,7 +39,7 @@ export default function JobPageWrapper() {
 
     // Extract qualifications
     const extractQualifications = () => {
-  console.log(apiJob)
+
       if (!apiJob.qualifications || !Array.isArray(apiJob.qualifications)) {
         return [];
       }
@@ -64,7 +64,10 @@ export default function JobPageWrapper() {
   openingsCount: apiJob.openingsCount || 1,
   urgencyLevel: apiJob.urgencyLevel,
   companyName:apiJob.companyName,
-  companyLogo:apiJob.companyLogo || apiJob.companyProfile.logo,
+companyLogo:
+  apiJob.companyLogo ||
+  apiJob.companyProfile?.logo ||
+  "",
   //companyCoverImage:apiJob.CoverImage ||apiJob.companyProfile.coverImage,
 
   /* ----------------------------------------------------------
@@ -182,7 +185,7 @@ export default function JobPageWrapper() {
         
         if (response.data.success && response.data.job) {
           const transformedJob = transformJobData(response.data.job);
-          console.log("Transformed job from API:", transformedJob);
+
           setJob(transformedJob);
           setJobs([transformedJob]);
           setCurrentIndex(0);
@@ -199,11 +202,11 @@ export default function JobPageWrapper() {
 
     // Check if we have state with job data
     if (state && state.job) {
-      console.log("Using job data from state");
+       console.log("Using job data from state");
       
       // Transform the job from state
       const transformedJob = transformJobData(state.job);
-      console.log("Transformed job from state:", transformedJob);
+       console.log("Transformed job from state:", transformedJob);
       
       setJob(transformedJob);
       

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import PrithuLogo from "../../assets/prithu_logo.webp";
-import { 
+import {
   Search,
   ArrowRight,
   Users,
@@ -16,7 +16,7 @@ import {
   Video,
   MapPin,
   Building,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import api from "../../api/axios";
 import Postcard from "../FeedPageComponent/Postcard";
@@ -32,12 +32,12 @@ const SearchResultsScreen = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
-  const [results, setResults] = useState({ 
-    categories: [], 
-    people: [], 
-    jobs: [], 
+  const [results, setResults] = useState({
+    categories: [],
+    people: [],
+    jobs: [],
     feeds: [],
-    all: [] 
+    all: [],
   });
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +61,9 @@ const SearchResultsScreen = () => {
   // Filter suggestions based on search query
   useEffect(() => {
     if (searchQuery && recentSearches.length > 0) {
-      const filtered = recentSearches.filter((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
+      const filtered = recentSearches.filter((s) =>
+        s.toLowerCase().includes(searchQuery.toLowerCase())
+      );
       setFilteredSuggestions(filtered);
     } else {
       setFilteredSuggestions(recentSearches);
@@ -114,42 +116,67 @@ const SearchResultsScreen = () => {
   useEffect(() => {
     const performSearch = async () => {
       if (!searchQuery.trim()) {
-        setResults({ categories: [], people: [], jobs: [], feeds: [], all: [] });
+        setResults({
+          categories: [],
+          people: [],
+          jobs: [],
+          feeds: [],
+          all: [],
+        });
         return;
       }
 
       setLoading(true);
       try {
-        const response = await api.get(`/api/global/search?q=${encodeURIComponent(searchQuery)}`);
+        const response = await api.get(
+          `/api/global/search?q=${encodeURIComponent(searchQuery)}`
+        );
         console.log("Search API Response:", response.data);
 
         if (response.data?.success) {
-          const { categories = [], people = [], jobs = [], feeds = [] } = response.data;
+          const {
+            categories = [],
+            people = [],
+            jobs = [],
+            feeds = [],
+          } = response.data;
 
           // Combine into "all" for the All tab
           const allCombined = [
-            ...categories.map((c) => ({ ...c, __type: 'category' })),
-            ...people.map((p) => ({ ...p, __type: 'person' })),
-            ...jobs.map((j) => ({ ...j, __type: 'job' })),
-            ...feeds.map((f) => ({ ...f, __type: 'feed' })),
+            ...categories.map((c) => ({ ...c, __type: "category" })),
+            ...people.map((p) => ({ ...p, __type: "person" })),
+            ...jobs.map((j) => ({ ...j, __type: "job" })),
+            ...feeds.map((f) => ({ ...f, __type: "feed" })),
           ];
 
-          setResults({ 
-            categories, 
-            people, 
-            jobs, 
+          setResults({
+            categories,
+            people,
+            jobs,
             feeds,
-            all: allCombined 
+            all: allCombined,
           });
 
           // Save query to recent searches
           saveToRecentSearches(searchQuery);
         } else {
-          setResults({ categories: [], people: [], jobs: [], feeds: [], all: [] });
+          setResults({
+            categories: [],
+            people: [],
+            jobs: [],
+            feeds: [],
+            all: [],
+          });
         }
       } catch (error) {
         console.error("Search error:", error);
-        setResults({ categories: [], people: [], jobs: [], feeds: [], all: [] });
+        setResults({
+          categories: [],
+          people: [],
+          jobs: [],
+          feeds: [],
+          all: [],
+        });
       } finally {
         setLoading(false);
       }
@@ -161,7 +188,9 @@ const SearchResultsScreen = () => {
 
   // Update URL when tab changes or query changes
   useEffect(() => {
-    const newUrl = `/search?q=${encodeURIComponent(searchQuery)}&tab=${activeTab}`;
+    const newUrl = `/search?q=${encodeURIComponent(
+      searchQuery
+    )}&tab=${activeTab}`;
     window.history.replaceState(null, "", newUrl);
   }, [activeTab, searchQuery]);
 
@@ -182,9 +211,9 @@ const SearchResultsScreen = () => {
     }
   };
 
-  const handleHome=()=>{
-    navigate("/home")
-  }
+  const handleHome = () => {
+    navigate("/home");
+  };
 
   const handleSuggestionClick = (suggestion) => handleSearchSubmit(suggestion);
   const handleInputFocus = () => setShowSuggestions(true);
@@ -194,117 +223,175 @@ const SearchResultsScreen = () => {
   };
 
   const tabs = [
-    { id: 'all', label: 'All Results', icon: Search, count: results.all.length, color: 'green' },
-    { id: 'people', label: 'People', icon: Users, count: results.people.length, color: 'blue' },
-    { id: 'categories', label: 'Hashtags', icon: Hash, count: results.categories.length, color: 'purple' },
-    { id: 'jobs', label: 'Jobs', icon: Briefcase, count: results.jobs.length, color: 'orange' },
-    { id: 'feeds', label: 'Posts', icon: Folder, count: results.feeds.length, color: 'pink' },
+    {
+      id: "all",
+      label: "All Results",
+      icon: Search,
+      count: results.all.length,
+      color: "green",
+    },
+    {
+      id: "people",
+      label: "People",
+      icon: Users,
+      count: results.people.length,
+      color: "blue",
+    },
+    {
+      id: "categories",
+      label: "Hashtags",
+      icon: Hash,
+      count: results.categories.length,
+      color: "purple",
+    },
+    {
+      id: "jobs",
+      label: "Jobs",
+      icon: Briefcase,
+      count: results.jobs.length,
+      color: "orange",
+    },
+    {
+      id: "feeds",
+      label: "Posts",
+      icon: Folder,
+      count: results.feeds.length,
+      color: "pink",
+    },
   ];
 
   const hasResults = results.all.length > 0;
-  const showRecentSearches = showSuggestions && (recentSearches.length > 0 || filteredSuggestions.length > 0);
+  const showRecentSearches =
+    showSuggestions &&
+    (recentSearches.length > 0 || filteredSuggestions.length > 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       {/* Header - Fixed with higher z-index */}
       <div className="bg-white/95 backdrop-blur-lg border-b border-gray-200/60 fixed top-0 left-0 right-0 z-50 shadow-sm">
-    
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center ">
             {/* Search Bar */}
-<div className="flex gap-4 items-center">
-   <div>
-                 <motion.div
-                   onClick={handleHome}
-                  whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
-              <img 
-                src={PrithuLogo} 
-              
-                alt="Prithu Logo" 
-                className="w-16 h-15 transition-transform duration-200 hover:scale-105" 
-              />
-            </motion.div>
-            </div>
-            <div className="flex-1 max-w-2xl">
-              <div className="relative" ref={suggestionsRef}>
-                <div className="relative flex items-center">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 w-5 h-5" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={handleInputFocus}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Search people, hashtags, jobs, posts..."
-                    className="w-full pl-12 pr-12 py-3 border-2 border-green-300 rounded-2xl focus:ring-4 focus:ring-green-200 focus:border-green-500 bg-white/80 backdrop-blur-sm outline-none transition-all duration-300 text-lg shadow-sm hover:shadow-md"
+            <div className="flex gap-35 items-center justify-center">
+              <div className="flex items-center gap-2 ">
+              <div>
+                <motion.div
+                  onClick={handleHome}
+                  whileHover={{ rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <img
+                    src={PrithuLogo}
+                    alt="Prithu Logo"
+                    className="w-16 h-15 transition-transform duration-200 hover:scale-105"
                   />
 
-                  {searchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
+           
+                </motion.div>
+              </div>
+               <motion.h1 
+              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+              whileHover={{ scale: 1.05 }}
+            >
+              PRITHU
+            </motion.h1>
+              </div>
+              <div className="flex-1 max-w-8xl">
+                <div className="relative" ref={suggestionsRef}>
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 w-5 h-5" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={handleInputFocus}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Search people, hashtags, jobs, posts..."
+                      className="w-[700px] pl-12 pr-12 py-3 border-2 border-green-300 rounded-2xl focus:ring-4 focus:ring-green-200 focus:border-green-500 bg-white/80 backdrop-blur-sm outline-none transition-all duration-300 text-lg shadow-sm hover:shadow-md"
+                    />
 
-                {/* Suggestions Dropdown */}
-                <AnimatePresence>
-                  {showRecentSearches && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto"
-                    >
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                            <Clock className="w-4 h-4" />
-                            Recent Searches
+                    {searchQuery && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Suggestions Dropdown */}
+                  <AnimatePresence>
+                    {showRecentSearches && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto"
+                      >
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                              <Clock className="w-4 h-4" />
+                              Recent Searches
+                            </div>
+                            {recentSearches.length > 0 && (
+                              <button
+                                onClick={clearRecentSearches}
+                                className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
+                              >
+                                Clear all
+                              </button>
+                            )}
                           </div>
-                          {recentSearches.length > 0 && (
-                            <button onClick={clearRecentSearches} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors">Clear all</button>
+
+                          <div className="space-y-1">
+                            {(searchQuery
+                              ? filteredSuggestions
+                              : recentSearches
+                            ).map((search, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleSuggestionClick(search)}
+                                className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-green-50 text-gray-700 transition-all duration-200 group"
+                              >
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <Search className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                  <span className="text-left truncate">
+                                    {search}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(e) => removeRecentSearch(search, e)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-green-100 rounded-lg transition-all flex-shrink-0 ml-2"
+                                >
+                                  <X className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                                </button>
+                              </button>
+                            ))}
+                          </div>
+
+                          {recentSearches.length === 0 && (
+                            <div className="text-center py-4">
+                              <p className="text-gray-500 text-sm">
+                                No recent searches
+                              </p>
+                              <p className="text-gray-400 text-xs mt-1">
+                                Your search history will appear here
+                              </p>
+                            </div>
                           )}
                         </div>
-
-                        <div className="space-y-1">
-                          {(searchQuery ? filteredSuggestions : recentSearches).map((search, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleSuggestionClick(search)}
-                              className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-green-50 text-gray-700 transition-all duration-200 group"
-                            >
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <Search className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                <span className="text-left truncate">{search}</span>
-                              </div>
-                              <button onClick={(e) => removeRecentSearch(search, e)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-green-100 rounded-lg transition-all flex-shrink-0 ml-2">
-                                <X className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                              </button>
-                            </button>
-                          ))}
-                        </div>
-
-                        {recentSearches.length === 0 && (
-                          <div className="text-center py-4">
-                            <p className="text-gray-500 text-sm">No recent searches</p>
-                            <p className="text-gray-400 text-xs mt-1">Your search history will appear here</p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
-</div>
-           
 
             {/* Back Button */}
-            <div className="ml-6">
+            {/* <div className="ml-6">
               <button 
                 onClick={handleBack}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all duration-200"
@@ -312,22 +399,27 @@ const SearchResultsScreen = () => {
                 <span className="font-medium">Back</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
 
       {/* Main Content with proper spacing for fixed header */}
-      <div className="pt-24"> {/* Add padding top for fixed header */}
+      <div className="pt-24">
+        {" "}
+        {/* Add padding top for fixed header */}
         <div className="max-w-7xl mx-auto px-6">
           {/* Grid layout for sidebar and content */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
             {/* Left Sidebar - Fixed width, no scroll */}
             <div className="lg:col-span-1">
-              <div className="sticky top-28"> {/* Stick below header */}
+              <div className="sticky top-28">
+                {" "}
+                {/* Stick below header */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Results</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Filter Results
+                  </h3>
                   <div className="space-y-2">
                     {tabs.map((tab) => (
                       <button
@@ -349,10 +441,14 @@ const SearchResultsScreen = () => {
                           <tab.icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{tab.label}</div>
+                          <div className="font-medium text-gray-900">
+                            {tab.label}
+                          </div>
                           <div
                             className={`text-sm ${
-                              activeTab === tab.id ? "text-green-600" : "text-gray-500"
+                              activeTab === tab.id
+                                ? "text-green-600"
+                                : "text-gray-500"
                             }`}
                           >
                             {tab.count} results
@@ -373,23 +469,33 @@ const SearchResultsScreen = () => {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between text-gray-600">
                           <span>Total Results</span>
-                          <span className="font-medium">{results.all.length}</span>
+                          <span className="font-medium">
+                            {results.all.length}
+                          </span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>People</span>
-                          <span className="font-medium">{results.people.length}</span>
+                          <span className="font-medium">
+                            {results.people.length}
+                          </span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Hashtags</span>
-                          <span className="font-medium">{results.categories.length}</span>
+                          <span className="font-medium">
+                            {results.categories.length}
+                          </span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Jobs</span>
-                          <span className="font-medium">{results.jobs.length}</span>
+                          <span className="font-medium">
+                            {results.jobs.length}
+                          </span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Posts</span>
-                          <span className="font-medium">{results.feeds.length}</span>
+                          <span className="font-medium">
+                            {results.feeds.length}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -400,12 +506,19 @@ const SearchResultsScreen = () => {
 
             {/* Right Content - Scrollable independently */}
             <div className="lg:col-span-3">
-              <div ref={rightContentRef} className="h-[calc(100vh-140px)] overflow-y-auto">
+              <div
+                ref={rightContentRef}
+                className="h-[calc(100vh-140px)] overflow-y-auto"
+              >
                 {/* Header inside content */}
                 <div className="mb-8">
                   <h1 className="text-xl font-bold text-gray-900 mb-2">
                     Search Results
-                    {searchQuery && <span className="text-green-600 ml-2">"{searchQuery}"</span>}
+                    {searchQuery && (
+                      <span className="text-green-600 ml-2">
+                        "{searchQuery}"
+                      </span>
+                    )}
                   </h1>
                 </div>
 
@@ -418,7 +531,13 @@ const SearchResultsScreen = () => {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.25 }}
                   >
-                    {renderContent({ loading, hasResults, results, activeTab, searchQuery })}
+                    {renderContent({
+                      loading,
+                      hasResults,
+                      results,
+                      activeTab,
+                      searchQuery,
+                    })}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -431,7 +550,13 @@ const SearchResultsScreen = () => {
 };
 
 // Content renderer
-const renderContent = ({ loading, hasResults, results, activeTab, searchQuery }) => {
+const renderContent = ({
+  loading,
+  hasResults,
+  results,
+  activeTab,
+  searchQuery,
+}) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -449,8 +574,12 @@ const renderContent = ({ loading, hasResults, results, activeTab, searchQuery })
         <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <Search className="w-10 h-10 text-green-600" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-700 mb-3">Start Exploring</h3>
-        <p className="text-gray-500 text-lg max-w-md mx-auto">Enter a search term to discover people, hashtags, jobs, and posts</p>
+        <h3 className="text-2xl font-bold text-gray-700 mb-3">
+          Start Exploring
+        </h3>
+        <p className="text-gray-500 text-lg max-w-md mx-auto">
+          Enter a search term to discover people, hashtags, jobs, and posts
+        </p>
       </div>
     );
   }
@@ -461,8 +590,12 @@ const renderContent = ({ loading, hasResults, results, activeTab, searchQuery })
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Search className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">No results found for "{searchQuery}"</h3>
-        <p className="text-gray-500">Try different keywords or explore trending topics</p>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+          No results found for "{searchQuery}"
+        </h3>
+        <p className="text-gray-500">
+          Try different keywords or explore trending topics
+        </p>
       </div>
     );
   }
@@ -472,28 +605,40 @@ const renderContent = ({ loading, hasResults, results, activeTab, searchQuery })
     return (
       <div className="text-center py-20">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          {activeTab === 'people' && <Users className="w-6 h-6 text-gray-400" />}
-          {activeTab === 'categories' && <Hash className="w-6 h-6 text-gray-400" />}
-          {activeTab === 'jobs' && <Briefcase className="w-6 h-6 text-gray-400" />}
-          {activeTab === 'feeds' && <Folder className="w-6 h-6 text-gray-400" />}
-          {activeTab === 'all' && <Search className="w-6 h-6 text-gray-400" />}
+          {activeTab === "people" && (
+            <Users className="w-6 h-6 text-gray-400" />
+          )}
+          {activeTab === "categories" && (
+            <Hash className="w-6 h-6 text-gray-400" />
+          )}
+          {activeTab === "jobs" && (
+            <Briefcase className="w-6 h-6 text-gray-400" />
+          )}
+          {activeTab === "feeds" && (
+            <Folder className="w-6 h-6 text-gray-400" />
+          )}
+          {activeTab === "all" && <Search className="w-6 h-6 text-gray-400" />}
         </div>
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">No {activeTab} found</h3>
-        <p className="text-gray-500">Try a different search term or browse other categories</p>
+        <h3 className="text-lg font-semibold text-gray-600 mb-2">
+          No {activeTab} found
+        </h3>
+        <p className="text-gray-500">
+          Try a different search term or browse other categories
+        </p>
       </div>
     );
   }
 
   switch (activeTab) {
-    case 'all':
+    case "all":
       return <AllResults results={results} />;
-    case 'people':
+    case "people":
       return <PeopleResults results={currentResults} />;
-    case 'categories':
+    case "categories":
       return <CategoriesResults results={currentResults} />;
-    case 'jobs':
+    case "jobs":
       return <JobsResults results={currentResults} />;
-    case 'feeds':
+    case "feeds":
       return <FeedsResults results={currentResults} />;
     default:
       return <AllResults results={results} />;
@@ -524,12 +669,10 @@ const AllResults = ({ results }) => (
     {results.categories.length > 0 && (
       <section className="flex bg-white flex-col w-[80%] p-4 ">
         <div className="flex items-center gap-3 mb-6">
-    
-            <Hash className="w-6 h-6 text-purple-600" />
-         
+          <Hash className="w-6 h-6 text-purple-600" />
+
           <div>
             <h2 className="text-xl font-bold text-gray-900">Hashtags</h2>
-        
           </div>
         </div>
         <div className="flex flex-col gap-2">
@@ -543,12 +686,10 @@ const AllResults = ({ results }) => (
     {results.jobs.length > 0 && (
       <section className="flex bg-white flex-col w-[80%] p-4">
         <div className="flex items-center gap-3 mb-6">
-       
-            <Briefcase className="w-6 h-6 text-orange-600" />
-  
+          <Briefcase className="w-6 h-6 text-orange-600" />
+
           <div>
             <h2 className="text- font-bold text-gray-900">Jobs</h2>
-        
           </div>
         </div>
         <div className="flex flex-col gap-2">
@@ -562,12 +703,10 @@ const AllResults = ({ results }) => (
     {results.feeds.length > 0 && (
       <section className="flex flex-col  rounded-lg w-[80%] p-4">
         <div className="flex items-center gap-3 mb-6">
-         
-            <Folder className="w-6 h-6 text-pink-600" />
-       
+          <Folder className="w-6 h-6 text-pink-600" />
+
           <div>
             <h2 className="text-xl font-bold text-gray-900">Posts</h2>
-          
           </div>
         </div>
         <div className="space-y-6">
@@ -612,9 +751,6 @@ const FeedsResults = ({ results }) => (
   </div>
 );
 
-
-
-
 const PersonCard = ({ person }) => {
   const navigate = useNavigate();
 
@@ -630,7 +766,7 @@ const PersonCard = ({ person }) => {
       className="flex  items-center justify-between px-4 py-3  bg-white cursor-pointer transition group"
     >
       {/* Left Section - Avatar */}
-      <div className="flex items-center min-w-0 gap-4" >
+      <div className="flex items-center min-w-0 gap-4">
         <img
           src={person.profileAvatar || defaultAvater}
           alt={person.userName || person.name}
@@ -648,13 +784,15 @@ const PersonCard = ({ person }) => {
           {/* Location or subtitle */}
           {person.location && (
             <span className="text-gray-600 text-xs mt-0.5 truncate flex items-center gap-1">
-              <MapPin className="w-3 h-3" />{person.location}
+              <MapPin className="w-3 h-3" />
+              {person.location}
             </span>
           )}
           {/* Mutual friends */}
           {person.mutualFriends > 0 && (
             <span className="text-gray-600 text-xs mt-0.5 truncate">
-              {person.mutualFriends} mutual friend{person.mutualFriends !== 1 ? "s" : ""}
+              {person.mutualFriends} mutual friend
+              {person.mutualFriends !== 1 ? "s" : ""}
               {person.mutualFriendsNames && (
                 <> including {person.mutualFriendsNames.join(", ")}</>
               )}
@@ -663,7 +801,8 @@ const PersonCard = ({ person }) => {
           {/* Workplace */}
           {person.workplace && (
             <span className="text-gray-600 text-xs mt-0.5 truncate flex items-center gap-1">
-              <Briefcase className="w-3 h-3" />{person.workplace}
+              <Briefcase className="w-3 h-3" />
+              {person.workplace}
             </span>
           )}
           {/* Followers */}
@@ -674,12 +813,9 @@ const PersonCard = ({ person }) => {
           )}
         </div>
       </div>
-
-    
     </motion.div>
   );
 };
-
 
 // Updated CategoryCard as list item
 const CategoryCard = ({ category }) => {
@@ -697,13 +833,14 @@ const CategoryCard = ({ category }) => {
       className="bg-white  cursor-pointer group"
     >
       <div className="flex items-center">
-        
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 text-lg">#{category.tag}</h3>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>{category.count || 0} posts</span>
             {category.updatedAt && (
-              <span>• Updated {new Date(category.updatedAt).toLocaleDateString()}</span>
+              <span>
+                • Updated {new Date(category.updatedAt).toLocaleDateString()}
+              </span>
             )}
           </div>
         </div>
@@ -731,7 +868,7 @@ const JobCard = ({ job }) => {
     // Preserve other URL parameters if they exist
     const currentParams = new URLSearchParams(window.location.search);
     currentParams.set("jobId", jobId);
-    
+
     navigate(`/jobs?${currentParams.toString()}`);
   };
 
@@ -756,14 +893,17 @@ const JobCard = ({ job }) => {
 
           <div className="flex items-center gap-1 text-gray-500 text-sm mb-4">
             <MapPin className="w-4 h-4" />
-            <span>{job.city || job.location || job.country || "Location not set"}</span>
+            <span>
+              {job.city || job.location || job.country || "Location not set"}
+            </span>
           </div>
         </div>
-        
+
         <div className="text-right">
           {job.salaryMin && job.salaryMax && (
             <div className="text-lg font-semibold text-green-600">
-              ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}
+              ${job.salaryMin.toLocaleString()} - $
+              {job.salaryMax.toLocaleString()}
             </div>
           )}
           <div className="text-sm text-gray-500 mt-1">
@@ -771,7 +911,7 @@ const JobCard = ({ job }) => {
           </div>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">
@@ -785,7 +925,6 @@ const JobCard = ({ job }) => {
     </motion.div>
   );
 };
-
 
 // FeedCard with single column layout
 const FeedCard = ({ feed }) => {
@@ -803,7 +942,10 @@ const FeedCard = ({ feed }) => {
     avatarToUse: feed.avatarToUse || "",
     _id: feed._id || "",
     userName: feed.userName || "Unknown",
-    profileAvatar: feed.profileAvatar && feed.profileAvatar.trim() !== "" ? feed.profileAvatar : defaultAvater,
+    profileAvatar:
+      feed.profileAvatar && feed.profileAvatar.trim() !== ""
+        ? feed.profileAvatar
+        : defaultAvater,
     timeAgo: feed.timeAgo || "",
     likesCount: feed.likesCount || 0,
     commentsCount: feed.commentsCount || 0,
@@ -819,7 +961,8 @@ const FeedCard = ({ feed }) => {
       primary: feed.primary || "#262e39",
       secondary: feed.secondary || "#6e7782",
       accent: feed.accent || "#a7373a",
-      gradient: feed.gradient || "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
+      gradient:
+        feed.gradient || "linear-gradient(135deg, #262e39, #6e7782, #a7373a)",
       text: feed.text || "#FFFFFF",
     },
     images: feed.images || [],

@@ -108,7 +108,7 @@ const FeaturedEmployers = () => {
       </div>
       
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-5 sm:grid-cols-5 gap-2">
           {[...Array(6)].map((_, index) => (
             <div 
               key={index} 
@@ -117,7 +117,7 @@ const FeaturedEmployers = () => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-5 sm:grid-cols-5 gap-2">
           {companies.map((company, index) => (
             <div 
               key={company.id}
@@ -141,7 +141,7 @@ const FeaturedEmployers = () => {
                 transition-all duration-500 ease-out
                 hover:scale-110
                 hover:rotate-3
-                hover:shadow-xl
+                hover:shadow-sm
                 ${hoveredCompany === company.id ? 'ring-2 ring-blue-400 ring-offset-2' : ''}
               `}>
                 <img 

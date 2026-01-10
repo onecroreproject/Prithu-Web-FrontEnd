@@ -14,11 +14,8 @@ import {
   FiBookOpen,
   FiClock,
   FiDollarSign,
-  FiStar,
   FiGrid,
   FiList,
-  FiShare2,
-  FiHeart,
   FiArrowLeft,
   FiImage,
   FiChevronLeft,
@@ -71,8 +68,7 @@ const CompanyProfile = () => {
   const [error, setError] = useState(null);
   const [companyData, setCompanyData] = useState(null);
   const [activeTab, setActiveTab] = useState('Overview');
-  const [isSaved, setIsSaved] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+
   const [viewMode, setViewMode] = useState('card');
   const [coursesData, setCoursesData] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -327,23 +323,7 @@ const CompanyProfile = () => {
     }
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-  };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-  };
-
-  const handleShare = async () => {
-    try {
-      const shareUrl = `${window.location.origin}/company/${companyId}`;
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Link copied to clipboard!');
-    } catch (error) {
-      console.error("Failed to share company:", error);
-    }
-  };
 
   const handleBack = () => {
     navigate(-1);
@@ -839,19 +819,11 @@ const CompanyProfile = () => {
           {/* Cover Photo - Enhanced */}
           <div className="relative rounded-2xl overflow-hidden shadow-xl mb-6">
             <div className="relative h-48 md:h-64">
-              {companyData.coverImage ? (
+              {companyData.coverImage && companyData.coverImage.trim() !== "" ? (
                 <img
                   src={companyData.coverImage}
                   alt="Company Cover"
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.style.display = 'none';
-                    const parent = e.target.parentElement;
-                    parent.innerHTML = `
-                      <div class="w-full h-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
-                    `;
-                  }}
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
@@ -870,56 +842,18 @@ const CompanyProfile = () => {
                       <span className="font-medium">Back</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={handleShare}
-                        className="p-3 text-white hover:text-blue-100 transition-colors backdrop-blur-sm bg-white/10 rounded-xl"
-                        title="Share company"
-                      >
-                        <FiShare2 className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={handleLike}
-                        className={`p-3 transition-colors backdrop-blur-sm rounded-xl ${
-                          isLiked 
-                            ? 'bg-red-500/20 text-red-300' 
-                            : 'bg-white/10 text-white hover:text-red-300'
-                        }`}
-                      >
-                        <FiHeart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                      </button>
-                      <button 
-                        onClick={handleSave}
-                        className={`p-3 transition-colors backdrop-blur-sm rounded-xl ${
-                          isSaved 
-                            ? 'bg-yellow-500/20 text-yellow-300' 
-                            : 'bg-white/10 text-white hover:text-yellow-300'
-                        }`}
-                      >
-                        <FiStar className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
+
                   </div>
 
                   <div className="flex flex-col lg:flex-row items-start lg:items-end gap-6">
                     {/* Company Logo */}
                     <div className="relative">
                       <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-white border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden">
-                        {companyData.logo ? (
-                          <img 
-                            src={companyData.logo} 
+                        {companyData.logo && companyData.logo.trim() !== "" ? (
+                          <img
+                            src={companyData.logo}
                             alt={companyData.companyName}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.style.display = 'none';
-                              const parent = e.target.parentElement;
-                              parent.innerHTML = `
-                                <div class="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600">
-                                  <MdBusiness class="w-10 h-10 text-white" />
-                                </div>
-                              `;
-                            }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600">
@@ -1185,7 +1119,7 @@ const CompanyProfile = () => {
                         </div>
                       ) : (
                         <>
-                          {viewMode === 'card' ? <CardView /> : <ListView />}
+                          {viewMode === 'card' ? <CardView coursesData={coursesData} /> : <ListView coursesData={coursesData} />}
                           {coursesData.length > 6 && (
                             <div className="text-center pt-8">
                               <button
@@ -1286,7 +1220,7 @@ const CompanyProfile = () => {
 };
 
 // Card View for Courses
-const CardView = () => (
+const CardView = ({ coursesData }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
     {coursesData.map((course) => (
       <div key={course.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
@@ -1309,8 +1243,8 @@ const CardView = () => (
               </h3>
             </div>
             {course.logo && (
-              <img 
-                src={course.logo} 
+              <img
+                src={course.logo}
                 alt={course.company || 'Company'}
                 className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-md"
                 onError={(e) => {
@@ -1372,7 +1306,7 @@ const CardView = () => (
 );
 
 // List View for Courses
-const ListView = () => (
+const ListView = ({ coursesData }) => (
   <div className="space-y-4">
     {coursesData.map((course) => (
       <div key={course.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all">
@@ -1380,8 +1314,8 @@ const ListView = () => (
           <div className="lg:w-1/4">
             <div className="relative h-48 lg:h-32 rounded-xl overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 shadow-md">
               {course.logo ? (
-                <img 
-                  src={course.logo} 
+                <img
+                  src={course.logo}
                   alt={course.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {

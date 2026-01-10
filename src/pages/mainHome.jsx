@@ -301,15 +301,6 @@ const LandingPage = () => {
                     Register Your Company
                   </motion.button>
 
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate("/login")}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2 text-sm"
-                  >
-                    <FolderTree className="w-4 h-4" />
-                    Candidates
-                  </motion.button>
                 </div>
               </div>
 
@@ -424,7 +415,7 @@ const LandingPage = () => {
                 {/* Feature Dots */}
                 <div className="flex justify-center gap-2 mb-6">
                   {features.map((_, index) => (
-                    <button
+                    <p
                       key={index}
                       onClick={() => setActiveFeature(index)}
                       className={`w-3 h-3 rounded-full transition-all ${
@@ -437,28 +428,29 @@ const LandingPage = () => {
                 </div>
 
                 {/* Feature Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  {features.slice(0, 4).map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} bg-opacity-10 border border-white/10 backdrop-blur-sm cursor-pointer ${
-                        activeFeature === index ? 'ring-2 ring-blue-500' : ''
-                      }`}
-                      onClick={() => setActiveFeature(index)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-gradient-to-br ${feature.color}`}>
-                          <div className="text-white">{feature.icon}</div>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{feature.title}</h4>
-                          <p className="text-xs text-gray-600">{feature.stats}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+  {features.slice(0, 4).map((feature, index) => (
+    <motion.div
+      key={index}
+      className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} bg-opacity-10 border border-white/10 backdrop-blur-sm ${
+        activeFeature === index ? 'ring-2 ring-blue-500' : ''
+      }`}
+      // ❌ removed cursor-pointer
+      // ❌ removed onClick for view-only
+    >
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-lg bg-gradient-to-br ${feature.color}`}>
+          <div className="text-white">{feature.icon}</div>
+        </div>
+        <div>
+          <h4 className="font-semibold text-gray-900">{feature.title}</h4>
+          <p className="text-xs text-gray-600">{feature.stats}</p>
+        </div>
+      </div>
+    </motion.div>
+  ))}
+</div>
+
               </div>
 
               {/* Floating Elements */}
@@ -481,22 +473,6 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          style={{ opacity }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-        >
-          <div className="flex flex-col items-center">
-            <span className="text-sm text-gray-500 mb-2">Scroll to explore</span>
-            <div className="w-6 h-10 border-2 border-gray-300 rounded-full flex justify-center">
-              <motion.div
-                animate={{ y: [0, 16, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-                className="w-1 h-3 bg-gray-400 rounded-full mt-2"
-              />
-            </div>
-          </div>
-        </motion.div>
       </section>
 
       {/* Features Detail Section */}
@@ -656,9 +632,13 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
+      
+        
+          
+          <div className=" flex flex-col md:flex-row justify-between items-center">
+            
+            <div className="text-gray-400 mb-4 md:mb-0">
+                      <div>
               <div className="flex items-center gap-3 mb-6">
                 <img 
                   src={PrithuLogo} 
@@ -671,38 +651,6 @@ const LandingPage = () => {
                 The ultimate platform for career growth, community building, and professional development.
               </p>
             </div>
-            
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Jobs", "Community", "Learning", "Events"]
-              },
-              {
-                title: "Company",
-                links: ["About", "Careers", "Blog", "News", "Contact"]
-              },
-              {
-                title: "Resources",
-                links: ["Help Center", "Aptitude Tests", "Portfolio Guide", "FAQ", "API"]
-              }
-            ].map((column, index) => (
-              <div key={index}>
-                <h4 className="text-lg font-semibold mb-6">{column.title}</h4>
-                <ul className="space-y-3">
-                  {column.links.map((link, idx) => (
-                    <li key={idx}>
-                      <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          
-          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-400 mb-4 md:mb-0">
               © {new Date().getFullYear()} PRITHU. All rights reserved.
             </div>
             
@@ -714,7 +662,7 @@ const LandingPage = () => {
               ))}
             </div>
           </div>
-        </div>
+      
       </footer>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import JobHeader from "./jobHeader";
 import TopCompanies from "./topCompanies";
 import FilterSection from "./filterSection";
@@ -12,6 +12,8 @@ import { Briefcase, Filter, X } from "lucide-react";
 import Header from "../../Header";
 
 const JobLayout = () => {
+  const jobCardsRef = useRef(null);
+  const isFirstRender = useRef(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedState, setSelectedState] = useState("");
@@ -19,6 +21,7 @@ const JobLayout = () => {
   const [selectedArea, setSelectedArea] = useState("");
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [jobTitleSearch, setJobTitleSearch] = useState("");
   const [fadeOut, setFadeOut] = useState(false);
@@ -153,7 +156,7 @@ const JobLayout = () => {
     }
   };
 
-  // Calculate available filters
+  // Calculate available filters - only show states with trimmed lowercase matching
   const availableFilters = useMemo(() => {
     if (!jobs || jobs.length === 0) {
       return {
@@ -172,16 +175,21 @@ const JobLayout = () => {
     };
 
     jobs.forEach(job => {
-      if (job.city) locations.cities[job.city] = (locations.cities[job.city] || 0) + 1;
-      if (job.state) locations.states[job.state] = (locations.states[job.state] || 0) + 1;
-      if (job.country) locations.countries[job.country] = (locations.countries[job.country] || 0) + 1;
+      // Only collect states, trim and lowercase for matching
+      if (job.state) {
+        const stateKey = job.state.trim().toLowerCase();
+        locations.states[stateKey] = (locations.states[stateKey] || 0) + 1;
+      }
     });
 
     return {
       locations: {
-        cities: Object.entries(locations.cities).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-        states: Object.entries(locations.states).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
-        countries: Object.entries(locations.countries).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+        cities: [],
+        states: Object.entries(locations.states).map(([name, count]) => ({
+          name: name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+          count
+        })).sort((a, b) => b.count - a.count),
+        countries: []
       }
     };
   }, [jobs]);
@@ -370,122 +378,180 @@ const JobLayout = () => {
     });
   };
 
-  const fetchJobs = async () => {
-    console.log("fetchJobs called with filters:", filters);
-    setLoading(true);
-    setFadeOut(true);
+ const fetchJobs = async () => {
+  console.log("fetchJobs called with filters:", filters);
+  setLoading(true);
+  setFadeOut(true);
 
-    try {
-      const apiFilters = {};
+  try {
+    const apiFilters = {};
 
-      if (jobIdParam) {
-        apiFilters.jobId = jobIdParam;
-        const jobsFromApi = await getAllJobs(apiFilters);
-        setJobs(jobsFromApi);
-        setFadeOut(false);
-        return;
-      }
-
-      if (selectedCategory && selectedCategory !== "All")
-        apiFilters.category = selectedCategory;
-
-      // Add job title search to API filters
-      if (jobTitleSearch) {
-        apiFilters.jobTitle = jobTitleSearch;
-      }
-
-      if (selectedCity) apiFilters.city = selectedCity;
-      if (selectedState) apiFilters.state = selectedState;
-      if (selectedCountry) apiFilters.country = selectedCountry;
-
-      if (userLocation && distanceRadius) {
-        apiFilters.lat = userLocation.lat;
-        apiFilters.lng = userLocation.lng;
-        apiFilters.radius = distanceRadius;
-      }
-
-      if (searchText) apiFilters.search = searchText;
-      if (companyParam) apiFilters.companyId = companyParam;
-
-      // Apply employmentType filter - ensure proper formatting
-      if (filters.employmentType.length > 0) {
-        console.log("Adding employmentType filter:", filters.employmentType);
-        // Format the values to match database format
-        apiFilters.employmentType = filters.employmentType.map(type => 
-          type.toLowerCase().trim().replace(/\s+/g, '-')
-        );
-        console.log("Formatted employmentType:", apiFilters.employmentType);
-      }
-      
-      if (filters.workMode.length > 0) {
-        console.log("Adding workMode filter:", filters.workMode);
-        apiFilters.workMode = filters.workMode;
-      }
-      
-      if (filters.salaryRange) {
-        console.log("Adding salaryRange filter:", filters.salaryRange);
-        apiFilters.salaryRange = filters.salaryRange;
-      }
-      
-      if (filters.experience) {
-        console.log("Adding experience filter:", filters.experience);
-        apiFilters.experience = filters.experience;
-      }
-      
-      if (filters.education.length > 0) {
-        console.log("Adding education filter:", filters.education);
-        apiFilters.education = filters.education;
-      }
-      
-      if (filters.skills.length > 0) {
-        console.log("Adding skills filter:", filters.skills);
-        apiFilters.skills = filters.skills;
-      }
-      
-      if (filters.companyIndustry) {
-        console.log("Adding companyIndustry filter:", filters.companyIndustry);
-        apiFilters.companyIndustry = filters.companyIndustry;
-      }
-      
-      if (filters.jobFreshness) {
-        console.log("Adding jobFreshness filter:", filters.jobFreshness);
-        apiFilters.jobFreshness = filters.jobFreshness;
-      }
-
-      console.log("Final API filters being sent:", apiFilters);
-
+    if (jobIdParam) {
+      apiFilters.jobId = jobIdParam;
       const jobsFromApi = await getAllJobs(apiFilters);
-      
-      console.log("Jobs received from API:", jobsFromApi);
-      
-      // Apply client-side filtering as fallback
-      let filteredJobs = jobsFromApi;
-      
-      if (filters.employmentType.length > 0) {
-        console.log("Applying client-side employmentType filter");
-        filteredJobs = filteredJobs.filter(job => {
-          if (!job.employmentType) return false;
-          const jobType = job.employmentType.toLowerCase();
-          return filters.employmentType.some(type => 
-            jobType.includes(type.toLowerCase()) ||
-            jobType.includes(type.toLowerCase().replace('-', ' '))
-          );
-        });
-        console.log("After client-side filtering:", filteredJobs.length, "jobs");
-      }
-
-      setTimeout(() => {
-        setJobs(filteredJobs);
-        setFadeOut(false);
-      }, 200);
-    } catch (err) {
-      console.error("Error fetching jobs:", err);
-      setJobs([]);
+      setJobs(jobsFromApi);
       setFadeOut(false);
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    if (selectedCategory && selectedCategory !== "All")
+      apiFilters.category = selectedCategory;
+
+    // Add job title search to API filters
+    if (jobTitleSearch) {
+      apiFilters.jobTitle = jobTitleSearch;
+    }
+
+    if (selectedCity) apiFilters.city = selectedCity;
+    if (selectedState) apiFilters.state = selectedState;
+    if (selectedCountry) apiFilters.country = selectedCountry;
+
+    if (userLocation && distanceRadius) {
+      apiFilters.lat = userLocation.lat;
+      apiFilters.lng = userLocation.lng;
+      apiFilters.radius = distanceRadius;
+    }
+
+    if (searchText) apiFilters.search = searchText;
+    if (companyParam) apiFilters.companyId = companyParam;
+
+    // Apply employmentType filter - ensure proper formatting
+    if (filters.employmentType.length > 0) {
+      console.log("Adding employmentType filter:", filters.employmentType);
+      // Format the values to match database format
+      apiFilters.employmentType = filters.employmentType.map(type => 
+        type.toLowerCase().trim().replace(/\s+/g, '-')
+      );
+      console.log("Formatted employmentType:", apiFilters.employmentType);
+    }
+    
+    if (filters.workMode.length > 0) {
+      console.log("Adding workMode filter:", filters.workMode);
+      apiFilters.workMode = filters.workMode;
+    }
+    
+    if (filters.salaryRange) {
+      console.log("Adding salaryRange filter:", filters.salaryRange);
+      apiFilters.salaryRange = filters.salaryRange;
+    }
+    
+    // Send experience filter to backend if needed
+    if (filters.experience) {
+      console.log("Adding experience filter:", filters.experience);
+      apiFilters.experience = filters.experience;
+    }
+    
+    if (filters.education.length > 0) {
+      console.log("Adding education filter:", filters.education);
+      apiFilters.education = filters.education;
+    }
+    
+    if (filters.skills.length > 0) {
+      console.log("Adding skills filter:", filters.skills);
+      apiFilters.skills = filters.skills;
+    }
+    
+    if (filters.companyIndustry) {
+      console.log("Adding companyIndustry filter:", filters.companyIndustry);
+      apiFilters.companyIndustry = filters.companyIndustry;
+    }
+    
+    if (filters.jobFreshness) {
+      console.log("Adding jobFreshness filter:", filters.jobFreshness);
+      apiFilters.jobFreshness = filters.jobFreshness;
+    }
+
+    console.log("Final API filters being sent:", apiFilters);
+
+    const jobsFromApi = await getAllJobs(apiFilters);
+    
+    console.log("Jobs received from API:", jobsFromApi);
+    
+    // Apply client-side filtering as fallback
+    let filteredJobs = jobsFromApi;
+    
+    // Client-side experience filtering - MOVED HERE
+    if (filters.experience) {
+      console.log("Applying client-side experience filter:", filters.experience);
+      filteredJobs = filteredJobs.filter(job => {
+        // Get experience value from job
+        let expValue = 0;
+        
+        // First try to get experience from common fields
+        if (job.minimumExperience !== undefined && job.minimumExperience !== null) {
+          expValue = parseFloat(job.minimumExperience);
+        } else if (job.maximumExperience !== undefined && job.maximumExperience !== null) {
+          expValue = parseFloat(job.maximumExperience);
+        } else if (job.experience) {
+          // Try to parse from experience string
+          const expStr = job.experience.toString();
+          const numbers = expStr.match(/\d+(\.\d+)?/g);
+          if (numbers && numbers.length > 0) {
+            expValue = parseFloat(numbers[0]);
+          }
+        }
+        
+        // Handle NaN values
+        if (isNaN(expValue)) {
+          expValue = 0;
+        }
+        
+        // Special handling for fresher jobs
+        const isFresherJob = job.freshersAllowed === true || 
+                             (job.minimumExperience === 0 && job.maximumExperience === 0 && 
+                              (job.freshersAllowed === true || job.freshersAllowed === undefined));
+        
+        // Match the selected experience range
+        switch(filters.experience) {
+          case "0": // Fresher (0-1 yrs)
+            // Include jobs that allow freshers OR have 0-1 years experience
+            return isFresherJob || (expValue >= 0 && expValue <= 1);
+          case "1-3": // 1-3 years
+            // Exclude fresher-only jobs when looking for 1-3 years
+            if (isFresherJob && expValue === 0) return false;
+            return expValue >= 1 && expValue < 3;
+          case "3-5": // 3-5 years
+            if (isFresherJob && expValue === 0) return false;
+            return expValue >= 3 && expValue < 5;
+          case "5-8": // 5-8 years
+            if (isFresherJob && expValue === 0) return false;
+            return expValue >= 5 && expValue < 8;
+          case "8+": // 8+ years
+            if (isFresherJob && expValue === 0) return false;
+            return expValue >= 8;
+          default:
+            return true;
+        }
+      });
+      console.log(`After experience filtering (${filters.experience}):`, filteredJobs.length, "jobs");
+    }
+    
+    if (filters.employmentType.length > 0) {
+      console.log("Applying client-side employmentType filter");
+      filteredJobs = filteredJobs.filter(job => {
+        if (!job.employmentType) return false;
+        const jobType = job.employmentType.toLowerCase();
+        return filters.employmentType.some(type => 
+          jobType.includes(type.toLowerCase()) ||
+          jobType.includes(type.toLowerCase().replace('-', ' '))
+        );
+      });
+      console.log("After client-side filtering:", filteredJobs.length, "jobs");
+    }
+
+    setTimeout(() => {
+      setJobs(filteredJobs);
+      setFadeOut(false);
+    }, 200);
+  } catch (err) {
+    console.error("Error fetching jobs:", err);
+    setJobs([]);
+    setFadeOut(false);
+  } finally {
+    setLoading(false);
+    setHasAttemptedLoad(true);
+  }
+};
 
   // Debug: Monitor when fetchJobs should be called
   useEffect(() => {
@@ -514,11 +580,21 @@ const JobLayout = () => {
 
     return () => clearTimeout(timeoutId);
   }, [
-    selectedCategory, jobTitleSearch, selectedState, selectedCity, 
+    selectedCategory, jobTitleSearch, selectedState, selectedCity,
     selectedArea, selectedCountry, searchText, filters,
-    cityParam, countryParam, companyParam, jobIdParam, 
+    cityParam, countryParam, companyParam, jobIdParam,
     userLocation, distanceRadius
   ]);
+
+  // Scroll to job cards when filters appear or change
+  useEffect(() => {
+    if (!isFirstRender.current || activeFiltersCount > 0) {
+      jobCardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    }
+  }, [selectedCategory, jobTitleSearch, selectedState, selectedCity, selectedArea, selectedCountry, searchText, filters, userLocation, distanceRadius, activeFiltersCount]);
 
   const handleFilterChange = (key, value) => {
     console.log(`Filter change: ${key} =`, value);
@@ -622,7 +698,7 @@ const JobLayout = () => {
 
   const getExperienceLabel = (level) => {
     const labels = {
-      "0": "Fresher",
+      "0-1": "Fresher",
       "1-3": "1-3 yrs",
       "3-5": "3-5 yrs",
       "5-8": "5-8 yrs",
@@ -1017,7 +1093,7 @@ const JobLayout = () => {
         <div className="w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Filters - Desktop */}
-            <div className="hidden lg:block lg:col-span-3 pl-4">
+            <div className="hidden lg:block lg:col-span-2 pl-4">
               <div className="sticky top-24">
                 <FilterSection
                   selectedCategory={selectedCategory}
@@ -1043,9 +1119,9 @@ const JobLayout = () => {
             </div>
 
             {/* Job Cards - Center */}
-            <div className="lg:col-span-6 px-4 lg:px-0">
+            <div className="lg:col-span-7 px-4 lg:px-0">
               {/* Results Count */}
-              <div className="mb-6">
+              <div className="mb-6" ref={jobCardsRef}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">
@@ -1109,39 +1185,41 @@ const JobLayout = () => {
                     {jobs.length > 0 ? (
                       <JobCards jobs={jobs} showDistance={!!userLocation} />
                     ) : (
-                      <div className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                          <Briefcase className="w-10 h-10 text-gray-400" />
+                      hasAttemptedLoad ? (
+                        <div className="text-center py-16">
+                          <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Briefcase className="w-10 h-10 text-gray-400" />
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                            {isSingleJobView ? "Job not found" : "No jobs found"}
+                          </h3>
+                          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                            {isSingleJobView
+                              ? "The job you're looking for doesn't exist or has been removed."
+                              : jobTitleSearch || roleParam || selectedState || selectedCity || selectedArea || selectedCountry || userLocation
+                                ? `No jobs found ${jobTitleSearch ? `for "${jobTitleSearch}"` : ''}${
+                                    roleParam && !jobTitleSearch ? `for "${roleParam}"` : ''
+                                  }${
+                                    selectedCountry ? ` in ${selectedCountry}` : ''
+                                  }${selectedState ? `, ${selectedState}` : ''}${
+                                    selectedCity ? `, ${selectedCity}` : ''}${
+                                    selectedArea ? ` (${selectedArea})` : ''
+                                  }${
+                                    userLocation && distanceRadius ? ` within ${distanceRadius} km` : ''
+                                  }.`
+                                : "We couldn't find any jobs matching your criteria."
+                            }
+                          </p>
+                          {activeFiltersCount > 0 && (
+                            <button
+                              onClick={clearAllFilters}
+                              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                              Clear all filters
+                            </button>
+                          )}
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                          {isSingleJobView ? "Job not found" : "No jobs found"}
-                        </h3>
-                        <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                          {isSingleJobView 
-                            ? "The job you're looking for doesn't exist or has been removed."
-                            : jobTitleSearch || roleParam || selectedState || selectedCity || selectedArea || selectedCountry || userLocation
-                              ? `No jobs found ${jobTitleSearch ? `for "${jobTitleSearch}"` : ''}${
-                                  roleParam && !jobTitleSearch ? `for "${roleParam}"` : ''
-                                }${
-                                  selectedCountry ? ` in ${selectedCountry}` : ''
-                                }${selectedState ? `, ${selectedState}` : ''}${
-                                  selectedCity ? `, ${selectedCity}` : ''}${
-                                  selectedArea ? ` (${selectedArea})` : ''
-                                }${
-                                  userLocation && distanceRadius ? ` within ${distanceRadius} km` : ''
-                                }.`
-                              : "We couldn't find any jobs matching your criteria."
-                          }
-                        </p>
-                        {activeFiltersCount > 0 && (
-                          <button
-                            onClick={clearAllFilters}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                          >
-                            Clear all filters
-                          </button>
-                        )}
-                      </div>
+                      ) : null
                     )}
                   </div>
                 </>
@@ -1150,7 +1228,7 @@ const JobLayout = () => {
 
             {/* Right Sidebar */}
             <div className="hidden lg:block lg:col-span-3 pr-4">
-              <div className="sticky top-24 space-y-6">
+              <div className="sticky top-24  w-full">
                 <JobRightSide />
               </div>
             </div>

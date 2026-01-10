@@ -354,11 +354,17 @@ const PostCommentsModal = ({
                 <Typography variant="body2" fontWeight="medium">
                   No comments yet
                 </Typography>
-                <Typography variant="caption">
-                  {isCommentDisabled && !isOwnPost
-                    ? "Follow to comment"
-                    : "Be the first to comment"}
-                </Typography>
+     <Typography
+  variant="caption"
+  fontWeight="bold"
+  color="black"
+>
+  {isCommentDisabled && !isOwnPost
+    ? "Follow to comment"
+    : "Be the first to comment"}
+</Typography>
+
+
               </Box>
             ) : (
               <AnimatePresence>
@@ -404,35 +410,52 @@ const PostCommentsModal = ({
             {/* Input Box */}
             <Box sx={{ flex: 1, position: "relative" }}>
               <TextField
-                variant="standard"
-                placeholder={
-                  checkingFollow
-                    ? "Checking follow status..."
-                    : isCommentDisabled && !isOwnPost
-                    ? `Follow ${post?.userName || "this user"} to comment`
-                    : "Write a comment..."
-                }
-                value={newComment}
-                inputRef={inputRef}
-                onChange={(e) => setNewComment(e.target.value)}
-                fullWidth
-                InputProps={{ disableUnderline: true }}
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  newComment.trim() &&
-                  !isCommentDisabled &&
-                  handlePostComment()
-                }
-                sx={{
-                  pr: 5,
-                  opacity: isCommentDisabled ? 0.6 : 1,
-                  pointerEvents: isCommentDisabled ? "none" : "auto",
-                  "& .MuiInput-input": {
-                    cursor: isCommentDisabled ? "not-allowed" : "text",
-                  }
-                }}
-                disabled={isCommentDisabled}
-              />
+  variant="standard"
+  placeholder={
+    checkingFollow
+      ? "Checking follow status..."
+      : isCommentDisabled && !isOwnPost
+      ? `Follow ${post?.userName || "this user"} to comment`
+      : "Write a comment..."
+  }
+  value={newComment}
+  inputRef={inputRef}
+  onChange={(e) => setNewComment(e.target.value)}
+  fullWidth
+  InputProps={{ disableUnderline: true }}
+  onKeyDown={(e) =>
+    e.key === "Enter" &&
+    newComment.trim() &&
+    !isCommentDisabled &&
+    handlePostComment()
+  }
+  disabled={isCommentDisabled}
+  sx={{
+    pr: 5,
+    opacity: isCommentDisabled ? 0.6 : 1,
+    pointerEvents: isCommentDisabled ? "none" : "auto",
+
+    "& .MuiInput-input": {
+      cursor: isCommentDisabled ? "not-allowed" : "text",
+      fontWeight: 600,
+      color: "#000",
+    },
+
+    // 🔥 Placeholder styling
+    "& .MuiInput-input::placeholder": {
+      fontWeight: 700,
+      color: "#000",
+      opacity: 1, // important for Chrome
+    },
+
+    // 🔥 Disabled placeholder override
+    "& .MuiInput-input.Mui-disabled::placeholder": {
+      color: "#000",
+      opacity: 1,
+    },
+  }}
+/>
+
 
               {/* Emoji Picker Button */}
               {!isCommentDisabled && (

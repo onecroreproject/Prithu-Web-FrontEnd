@@ -94,12 +94,13 @@ const CompanyDashboard = () => {
       case 'createJob':
         // Always show CreateJob since location check is removed
         return (
-          <CreateJob 
+          <CreateJob
             selectedDraft={selectedDraft}
             onDraftSaved={fetchRecentDrafts}
             onClearDraft={() => setSelectedDraft(null)}
             recentDrafts={recentDrafts}
             loadingDrafts={loadingDrafts}
+            onSwitchToSettings={() => setActiveTab('settings')}
           />
         );
       case 'applicants':

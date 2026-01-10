@@ -803,8 +803,16 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   return (
     <>
       <div id="feedTop">
-        <div className={` px-3 sm:px-4 md:px-6 py-5 max-w-2xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
-      
+        <div className={`relative px-3 sm:px-4 md:px-6 py-5 max-w-2xl transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
+
+          {/* Hashtag name display in top right corner when in hashtag mode */}
+          {isHashtagMode && (
+            <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+              <TagIcon fontSize="w-2 h-2" />
+              {tagname}
+            </div>
+          )}
+
           {/* ⭐ REGULAR HOME PAGE COMPONENTS (only show when NOT in hashtag mode) */}
           {!isHashtagMode && (
             <>
@@ -860,7 +868,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                   </motion.div>
                 ))
               ) : (
-                <p className="text-center text-gray-500 py-8">
+                <p className="text-right text-gray-500 py-8">
                   {feedsError || jobsError ? "⚠️ Failed to load content." : 
                    feedCategory ? "No feeds found for this category." : 
                    showReels ? "No reels found 🎬" : 

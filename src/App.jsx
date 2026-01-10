@@ -46,6 +46,8 @@ import JobApplicationPage from "./components/Jobs/HeaderJobs/appliedPagePop-up.j
 import AptitudeTest from "./components/Aptitude/aptitudeMainLayout.jsx";
 import CompanyProfile from "./Company/Home/companyProfile.jsx";
 import LandingPage from "./pages/mainHome.jsx";
+import SharePostPage from "./components/FeedPageComponent/createOGTags.jsx";
+import AppliedJobs from "./pages/userJobApplication/userAppliedJobs.jsx";
 
 // React Query Client
 const queryClient = new QueryClient();
@@ -95,7 +97,11 @@ function AppRoutes() {
       <Route path="/jobs/edit/:id" element={<JobPostingForm />} />
       <Route path="/job/apply/:jobId" element={<JobApplicationPage />} />
       <Route path="/aptitude" element={<AptitudeTest />} />
+      <Route path="/post/:id" element={<PostDetails />} />
       <Route path="/company/:companyId" element={<CompanyProfile />} />
+      <Route path="/share/post/:feedId" element={<SharePostPage />} />
+      <Route path="/jobs/applied/jobs" element={<AppliedJobs/>} />
+      
 
       {/* ================= PROTECTED ROUTES ================= */}
       <Route

@@ -124,7 +124,7 @@ export default function ProfileStatus() {
  
   return (
     <div
-      onClick={() => navigate("/profile")}
+      onClick={() => navigate("/home/profile")}
       className="w-full bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer"
     >
       {/* HEADER */}

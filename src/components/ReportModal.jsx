@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import CloseIcon from "@mui/icons-material/Close";
 
 export default function ReportModal({ targetId, targetType, onClose }) {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ export default function ReportModal({ targetId, targetType, onClose }) {
 
   if (step === "selectType") {
     return (
-      <GlassModal title="Why are you reporting this?">
+      <GlassModal title="Why are you reporting this?" onClose={closeModal}>
         {types.map((t) => (
           <ModalButton key={t._id} label={t.name} onClick={() => handleSelectType(t._id)} />
         ))}
@@ -136,7 +137,7 @@ export default function ReportModal({ targetId, targetType, onClose }) {
 
   if (step === "questions") {
     return (
-      <GlassModal title={currentQuestion?.questionText || "Loading..."}>
+      <GlassModal title={currentQuestion?.questionText || "Loading..."} onClose={closeModal}>
         {currentQuestion?.options?.map((opt) => (
           <ModalButton key={opt._id} label={opt.text} onClick={() => handleSelectOption(opt)} />
         ))}
@@ -146,7 +147,7 @@ export default function ReportModal({ targetId, targetType, onClose }) {
 
   if (step === "preview") {
     return (
-      <GlassModal title="Review your report">
+      <GlassModal title="Review your report" onClose={closeModal}>
         <div className="p-4 space-y-3">
           {answers.map((ans, i) => (
             <div key={i} className="border border-gray-200/60 rounded-lg p-3 bg-gray-50/40">
@@ -168,7 +169,7 @@ export default function ReportModal({ targetId, targetType, onClose }) {
 
   if (step === "success") {
     return (
-      <GlassModal title="Report Submitted">
+      <GlassModal title="Report Submitted" onClose={closeModal}>
         <div className="text-center p-6">
           <p className="text-gray-700 mb-4">
             Thank you for helping keep our community safe.
@@ -190,7 +191,7 @@ export default function ReportModal({ targetId, targetType, onClose }) {
 // ====================================================================================
 // 🌟 BEAUTIFUL REUSABLE GLASS MODAL
 // ====================================================================================
-function GlassModal({ title, children }) {
+function GlassModal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[60]">
       {/* Blurred Grey Backdrop */}
@@ -198,8 +199,17 @@ function GlassModal({ title, children }) {
 
       <div className="relative w-full max-w-md mx-4 rounded-2xl bg-white/60 backdrop-blur-xl shadow-2xl border border-gray-300/30 overflow-hidden animate-fadeIn">
         {/* Header */}
-        <div className="p-4 border-b border-gray-300/40 bg-white/70 backdrop-blur-md">
+        <div className="flex items-center justify-between p-4 border-b border-gray-300/40 bg-white/70 backdrop-blur-md">
           <h2 className="font-semibold text-gray-900 text-lg">{title}</h2>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100/60 rounded-full transition-colors"
+              aria-label="Close modal"
+            >
+              <CloseIcon className="w-5 h-5 text-gray-600" />
+            </button>
+          )}
         </div>
 
         {/* Content */}

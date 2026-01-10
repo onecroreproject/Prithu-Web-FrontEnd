@@ -215,14 +215,38 @@ const TopJobRoles = memo(function TopJobRoles({
                 )}
 
                 {/* Salary Information - Added this section */}
-                {(role.salaryMin || role.salaryMax) && (
+                {(role.salaryMin !== undefined || role.salaryMax !== undefined) && (
                   <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs">
                     <Briefcase className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">
-                      {role.salaryCurrency === 'INR' ? '₹' : '$'}
-                      {role.salaryMin || 0} - {role.salaryCurrency === 'INR' ? '₹' : '$'}
-                      {role.salaryMax || 0}
-                      {role.salaryType ? ` per ${role.salaryType}` : ''}
+                      {(() => {
+                        const min = role.salaryMin;
+                        const max = role.salaryMax;
+                        const hasMin = min !== undefined && min !== null && min !== 0;
+                        const hasMax = max !== undefined && max !== null && max !== 0;
+
+                        if (!hasMin && !hasMax) {
+                          return "Attractive Salary";
+                        } else if (hasMin && hasMax) {
+                          return `₹${min} - ₹${max}`;
+                        } else if (hasMin) {
+                          return `₹${min}`;
+                        } else if (hasMax) {
+                          return `₹${max}`;
+                        }
+                        return "Attractive Salary";
+                      })()}
+                      {(() => {
+                        const min = role.salaryMin;
+                        const max = role.salaryMax;
+                        const hasMin = min !== undefined && min !== null && min !== 0;
+                        const hasMax = max !== undefined && max !== null && max !== 0;
+
+                        if ((hasMin || hasMax) && role.salaryType) {
+                          return ` per ${role.salaryType}`;
+                        }
+                        return '';
+                      })()}
                     </span>
                   </div>
                 )}

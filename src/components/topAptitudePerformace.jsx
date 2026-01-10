@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 const fetchTopAptitudePerformers = async () => {
   try {
     const { data } = await api.get("/api/top/aptitude/performers");
-    console.log(data);
     if (data.success) {
       return data.data || [];
     } else {
@@ -79,12 +78,12 @@ function TopAptitudePerformersCard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
-  const { 
-    data: performers = [], 
-    isLoading, 
-    isError, 
+  const {
+    data: performers = [],
+    isLoading,
+    isError,
     error,
-    refetch 
+    refetch
   } = useQuery({
     queryKey: ["topAptitudePerformers"],
     queryFn: fetchTopAptitudePerformers,
@@ -92,6 +91,8 @@ function TopAptitudePerformersCard() {
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchIntervalInBackground: true, // Continue polling even when tab is not active
   });
 
   // ✅ Prepare data for different sections

@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import newJobData from "../../../../../JsonFile/jobSelection.json";
 import { createOrUpdateJobPost, getDraftJobById } from "../../../../../Service/jobservices";
 import { locationService } from "../locationService";
-import { companyLocationService } from "../../../../../Service/companyService"; // NEW: Import company location service
+import { companyLocationService, companyProfileService } from "../../../../../Service/companyService"; // NEW: Import company location and profile services
 import {
   FiArrowLeft,
   FiSave,
@@ -21,7 +21,7 @@ import FormTabs from "./components/tabs/mainTabs";
 import ProgressSidebar from "./components/ProgressSidebar";
 import JobPreviewModal from "./components/JobPreviewModal";
 
-const JobPostingForm = () => {
+const JobPostingForm = ({ onSwitchToSettings }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -1112,19 +1112,9 @@ const handleSaveDraft = async () => {
       }
 
     } catch (err) {
-      console.error("Save draft failed:", err);
-      
-      // More detailed error message
-      let errorMessage = 'Failed to save draft. ';
-      if (err.message) {
-        errorMessage += err.message;
-      } else if (err.response?.data?.message) {
-        errorMessage += err.response.data.message;
-      } else if (err.response?.statusText) {
-        errorMessage += `HTTP ${err.response.status}: ${err.response.statusText}`;
-      }
-      
-      alert(errorMessage);
+      console.error("Save draft failed:", err.message)
+      alert(err.response.data.message)
+
     } finally {
       setIsSubmitting(false);
     }
@@ -1133,8 +1123,29 @@ const handleSaveDraft = async () => {
 
 const handleSubmit = async (additionalData = null) => {
   // additionalData can be FormData from preview capture or null for regular submit
-  
+
   if (!validateForm()) {
+    return;
+  }
+
+  // Check company profile strength before proceeding
+  try {
+    const profileResponse = await companyProfileService.getCompanyProfileStrength();
+    if (profileResponse.success) {
+      const profileStrength = profileResponse.strength || profileResponse.data?.strength || 0;
+      if (profileStrength <= 50) {
+        // Switch to settings tab instead of navigating
+        alert('Your company profile needs to be at least 60% complete before creating jobs. Please update your profile.');
+        return;
+      }
+    } else {
+      console.error('Failed to check company profile strength');
+      alert('Unable to verify company profile. Please try again.');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking company profile strength:', error);
+    alert('Unable to verify company profile. Please try again.');
     return;
   }
 

@@ -19,7 +19,6 @@ export default function JobLatestOpeningsCard() {
     refetchOnWindowFocus: false,
   });
 
-  console.log("Job Data:", jobs); // Debug log to check data structure
 
   const latestOpenings = jobs
     .slice()
@@ -80,20 +79,7 @@ const LatestOpenings = memo(function LatestOpenings({
 
   // Enhanced format salary display with better validation
   const formatSalary = (job) => {
-    // Debug log to see what's in the job object
-    console.log("Job salary data:", {
-      id: job._id,
-      title: job.jobTitle,
-      salaryMin: job.salaryMin,
-      salaryMax: job.salaryMax,
-      salaryType: job.salaryType,
-      hasMin: job.salaryMin !== undefined,
-      hasMax: job.salaryMax !== undefined,
-      minIsZero: job.salaryMin === 0,
-      maxIsZero: job.salaryMax === 0,
-      minIsNull: job.salaryMin === null,
-      maxIsNull: job.salaryMax === null
-    });
+
 
     // Check if salary fields don't exist at all
     if (job.salaryMin === undefined && job.salaryMax === undefined) {
@@ -253,14 +239,7 @@ const LatestOpenings = memo(function LatestOpenings({
             const salaryType = formatSalaryType(job);
             const hasValidCompensation = hasCompensation(job);
             
-            // Debug: Log job details
-            console.log(`Job ${i}:`, {
-              title: job.jobTitle,
-              salaryMin: job.salaryMin,
-              salaryMax: job.salaryMax,
-              formattedSalary,
-              hasValidCompensation
-            });
+        
 
             return (
               <motion.li

@@ -1,5 +1,18 @@
 import api from "../api/companyApi"
 
+export const companyProfileService = {
+  // Check company profile strength
+  async getCompanyProfileStrength() {
+    try {
+      const response = await api.get('/job/company/profile/strength');
+      return response.data;
+    } catch (error) {
+      console.error('Error checking company profile strength:', error);
+      throw error;
+    }
+  },
+};
+
 export const companyLocationService = {
   // Check company location status
   async checkLocationStatus() {
@@ -14,7 +27,7 @@ export const companyLocationService = {
           },
         }
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error checking company location:', error);
@@ -35,7 +48,7 @@ export const companyLocationService = {
           },
         }
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error updating company location:', error);

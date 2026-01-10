@@ -19,6 +19,7 @@ import { updateJobEngagement } from "../../Service/jobservices";
 import { FEED_CARD_STYLE } from "../../constance/feedLayout";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import SharePopup from "./jobSharePop-Up"; // Import the SharePopup component
 
 const JobCard = ({ jobData }) => {
   const [isLiked, setIsLiked] = useState(jobData?.isLiked || false);
@@ -26,6 +27,7 @@ const JobCard = ({ jobData }) => {
   const [stats, setStats] = useState({});
   const [showPopup, setShowPopup] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false); // State for share modal
   const cardRef = useRef(null);
 
   const {
@@ -94,7 +96,8 @@ const JobCard = ({ jobData }) => {
 
   // Show boost badge for promoted jobs
   const showBoost = useMemo(() => isPaid || boostLevel > 0, [isPaid, boostLevel]);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
+
   const fetchStats = useCallback(async () => {
     try {
       const { data } = await api.get(`/job/stats/${_id}`);
@@ -151,20 +154,32 @@ const JobCard = ({ jobData }) => {
     }
   }, [_id, isSaved, fetchStats]);
 
+  // Modified handleShare to open modal
   const handleShare = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const shareUrl = `${window.location.origin}/jobs/${_id}`;
-      
-      await navigator.clipboard.writeText(shareUrl);
+      // Record share engagement
       await updateJobEngagement(_id, "share", token);
-      
       fetchStats();
-      toast.success("Link copied!");
-    } catch {
-      toast.error("Failed to share job.");
+      
+      // Open share modal instead of copying to clipboard
+      setShowShareModal(true);
+    } catch (err) {
+      console.error("Share error:", err);
+      toast.error("Failed to prepare share options.");
     }
   }, [_id, fetchStats]);
+
+  // Close share modal handler
+  const handleCloseShareModal = useCallback(() => {
+    setShowShareModal(false);
+  }, []);
+
+  // Handle share completion (optional callback)
+  const handleShareComplete = useCallback(() => {
+    toast.success("Job shared successfully!");
+    // You can add any post-share logic here
+  }, []);
 
   const handleView = useCallback(async () => {
     try {
@@ -178,8 +193,8 @@ const JobCard = ({ jobData }) => {
 
   const handleViewDetails = useCallback(() => {
     handleView(); // Trigger view engagement
-    navigate(`/job/${_id}`)
-  }, [handleView]);
+    navigate(`/job/${_id}`);
+  }, [handleView, _id, navigate]);
 
   // Clean description for card preview
   const cleanDescription = useMemo(() => {
@@ -355,6 +370,20 @@ const JobCard = ({ jobData }) => {
         </div>
       </div>
 
+      {/* Share Popup Modal */}
+      <SharePopup
+        isOpen={showShareModal}
+        onClose={handleCloseShareModal}
+        postId={_id}
+        postCaption={`Check out this job: ${title} at ${companyName} - ${location}`}
+        userName={postedUserName}
+        authUser={{ _id: localStorage.getItem("userId") }}
+        postType="job"
+        onShareComplete={handleShareComplete}
+        // You might need to customize SharePopup for jobs or create a JobSharePopup
+        // For now, using the existing SharePopup with job-specific props
+        mediaFiles={[]} // Jobs typically don't have media files
+      />
     </>
   );
 };

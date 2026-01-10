@@ -1,21 +1,30 @@
 import React, { useState } from "react";
 import { FiTag, FiMapPin, FiBriefcase } from "react-icons/fi";
-import { Search, Filter, Navigation, Target, X, ChevronDown, MapPin } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Navigation,
+  Target,
+  X,
+  ChevronDown,
+  MapPin,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const JobHeader = ({ 
-  searchText, 
-  onSearchChange, 
+const JobHeader = ({
+  searchText,
+  onSearchChange,
   jobTitleSearch,
   onJobTitleChange,
-  selectedCity, 
-  onCityChange, 
-  selectedCountry, 
+  selectedCity,
+  onCityChange,
+  selectedCountry,
   onCountryChange,
   selectedCategory,
   onCategoryChange,
   filters,
   onFilterChange,
-  
+
   // Location props
   showLocationFilters,
   locationLoading,
@@ -35,11 +44,14 @@ const JobHeader = ({
   handleStateSelect,
   handleCitySelect,
   handleAreaSelect,
-  handleDistanceSelect
+  handleDistanceSelect,
 }) => {
   const [localSearch, setLocalSearch] = useState(searchText);
   const [localJobTitle, setLocalJobTitle] = useState(jobTitleSearch || "");
-  const [selectedJobTypes, setSelectedJobTypes] = useState(filters.employmentType || []);
+  const [selectedJobTypes, setSelectedJobTypes] = useState(
+    filters.employmentType || []
+  );
+  const navigate=useNavigate();
 
   const jobTypes = [
     { value: "freelance", label: "Freelance" },
@@ -63,24 +75,29 @@ const JobHeader = ({
   const handleJobTypeToggle = (type) => {
     console.log("Job type toggle:", type);
     console.log("Current selected types:", selectedJobTypes);
-    
+
     const newTypes = selectedJobTypes.includes(type)
-      ? selectedJobTypes.filter(t => t !== type)
+      ? selectedJobTypes.filter((t) => t !== type)
       : [...selectedJobTypes, type];
-    
+
     console.log("New selected types:", newTypes);
-    
+
     setSelectedJobTypes(newTypes);
-    onFilterChange('employmentType', newTypes);
+    onFilterChange("employmentType", newTypes);
   };
+
+
+  const hadleAppliedApplications=()=>{
+    navigate("/jobs/applied/jobs")
+  }
 
   return (
     <div className="w-full bg-gradient-to-br from-emerald-50 via-green-100 to-emerald-100 pt-16 pb-20 px-4">
       <div className="max-w-6xl mx-auto text-center text-gray-800 relative -bottom-8">
-        
         {/* Heading */}
         <h1 className="text-4xl md:text-5xl font-bold">
-          <span className="text-emerald-600">1000+</span> Job Opportunities Await
+          <span className="text-emerald-600">1000+</span> Job Opportunities
+          Await
         </h1>
 
         <p className="mt-3 text-lg text-gray-600">
@@ -90,7 +107,6 @@ const JobHeader = ({
         {/* Combined Search and Location Section */}
         <div className="bg-transparent rounded-xl p-4 md:p-6 mt-8 md:mt-12 relative">
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-5">
-
             {/* Job Title Search */}
             <div className="flex flex-col text-left w-full md:w-auto md:min-w-[200px]">
               <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
@@ -137,11 +153,8 @@ const JobHeader = ({
             </div>
 
             {/* Current Location */}
-            <div className="flex flex-col text-left w-full md:w-auto md:min-w-[200px]">
-              <label className="text-sm mb-1 text-gray-700 font-medium flex items-center gap-1">
-                <Target className="w-4 h-4 text-emerald-600" />
-                Current Location
-              </label>
+            <div className="flex gap-3 text-left w-full md:w-auto md:min-w-[200px]">
+              
               <div className="relative">
                 {!userLocation ? (
                   <button
@@ -166,16 +179,22 @@ const JobHeader = ({
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex-1">
                         <button
-                          onClick={() => toggleDropdown('distance')}
+                          onClick={() => toggleDropdown("distance")}
                           className="w-full px-3 py-2.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-800 border border-emerald-200 hover:border-emerald-300 hover:shadow-md transition-all flex items-center justify-between shadow-lg text-sm md:text-base"
                         >
                           <div className="flex items-center gap-2">
                             <Navigation className="w-4 h-4 text-emerald-600" />
                             <span className="text-left">
-                              {distanceRadius ? `Within ${distanceRadius} km` : "Select radius"}
+                              {distanceRadius
+                                ? `Within ${distanceRadius} km`
+                                : "Select radius"}
                             </span>
                           </div>
-                          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${dropdownOpen.distance ? 'rotate-180' : ''}`} />
+                          <ChevronDown
+                            className={`w-4 h-4 text-gray-500 transition-transform ${
+                              dropdownOpen.distance ? "rotate-180" : ""
+                            }`}
+                          />
                         </button>
                       </div>
                       <button
@@ -193,27 +212,47 @@ const JobHeader = ({
                 {dropdownOpen.distance && userLocation && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-emerald-200 rounded-lg shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-sm max-h-60 overflow-y-auto">
                     <div className="p-2 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50">
-                      <p className="text-sm text-gray-700 font-medium">Select distance radius from your location</p>
+                      <p className="text-sm text-gray-700 font-medium">
+                        Select distance radius from your location
+                      </p>
                     </div>
                     {distanceOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => handleDistanceSelect(option.value)}
                         className={`w-full px-3 py-2.5 text-left hover:bg-emerald-50 text-gray-800 flex items-center justify-between border-b border-emerald-100 last:border-b-0 text-sm md:text-base ${
-                          distanceRadius === option.value ? "bg-gradient-to-r from-emerald-100 to-green-100" : ""
+                          distanceRadius === option.value
+                            ? "bg-gradient-to-r from-emerald-100 to-green-100"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${distanceRadius === option.value ? "bg-gradient-to-r from-emerald-500 to-green-500" : "bg-gray-300"}`} />
+                          <div
+                            className={`w-2 h-2 rounded-full ${
+                              distanceRadius === option.value
+                                ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                                : "bg-gray-300"
+                            }`}
+                          />
                           <span>{option.label}</span>
                         </div>
                         {distanceRadius === option.value && (
-                          <span className="text-emerald-600 font-medium">✓</span>
+                          <span className="text-emerald-600 font-medium">
+                            ✓
+                          </span>
                         )}
                       </button>
                     ))}
                   </div>
                 )}
+              </div>
+              <div>
+                <button
+                  onClick={hadleAppliedApplications}
+                  className="w-full rounded-lg px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-medium hover:from-emerald-600 hover:to-green-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm md:text-base"
+                >
+                  Your Applications
+                </button>
               </div>
             </div>
           </div>
@@ -221,8 +260,8 @@ const JobHeader = ({
           {/* Job Types */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-gray-700 mt-6 px-1">
             {jobTypes.map((type) => (
-              <label 
-                key={type.value} 
+              <label
+                key={type.value}
                 className="flex items-center gap-2 cursor-pointer hover:text-emerald-600 transition-colors bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm"
               >
                 <input
@@ -253,7 +292,9 @@ const JobHeader = ({
             </div>
             {distanceRadius && (
               <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
-                <span className="font-medium">{distanceRadius} km radius applied</span>
+                <span className="font-medium">
+                  {distanceRadius} km radius applied
+                </span>
               </div>
             )}
           </div>
@@ -266,7 +307,9 @@ const JobHeader = ({
             <span className="font-medium">Popular Job Titles:</span>
           </div>
           <span className="text-gray-600 text-sm md:text-base bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-            Software Engineer, Frontend Developer, Data Analyst, Product Manager, UX Designer, Marketing Manager, Sales Executive, Content Writer, Project Manager, Business Analyst
+            Software Engineer, Frontend Developer, Data Analyst, Product
+            Manager, UX Designer, Marketing Manager, Sales Executive, Content
+            Writer, Project Manager, Business Analyst
           </span>
         </div>
       </div>

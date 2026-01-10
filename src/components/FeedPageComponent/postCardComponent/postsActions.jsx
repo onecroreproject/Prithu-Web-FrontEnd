@@ -198,12 +198,7 @@ const PostActions = ({
         </button>
       )}
 
-      {/* Time ago */}
-      <div className="mt-2">
-        <span className="text-xs text-gray-400 uppercase">
-          {post.timeAgo || "Recently"}
-        </span>
-      </div>
+   
     </div>
   );
 };

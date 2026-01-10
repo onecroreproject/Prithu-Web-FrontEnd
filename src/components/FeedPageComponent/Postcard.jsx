@@ -233,6 +233,7 @@ function Postcard({
             data?.savedFeeds?.some((f) => f.feedId === feedId) ??
             newSavedState;
           setIsSaved(saved);
+          toast.success(saved ? "Post saved!" : "Post unsaved!");
         },
         onError: () => {
           setIsSaved(!newSavedState);
@@ -424,6 +425,7 @@ function Postcard({
         postId={feedId}
         postCaption={dec || caption || ""}
         userName={userName}
+        mediaFiles={contentUrl ? [{ url: contentUrl, type: type }] : []}
         onShareComplete={handleShareComplete}
       />
     </>

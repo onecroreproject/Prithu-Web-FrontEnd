@@ -75,7 +75,7 @@ function JobCard() {
   const jobs = Array.isArray(data?.jobs) ? data.jobs : 
                Array.isArray(data) ? data : 
                [];
-console.log(jobs)
+
   // ✅ Slice early for performance
   const topRoles = jobs.slice(0, 5);
   const latestOpenings = jobs

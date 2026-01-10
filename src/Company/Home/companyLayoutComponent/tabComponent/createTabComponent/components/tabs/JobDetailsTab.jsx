@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   MdDescription,
   MdMonetizationOn,
@@ -31,11 +31,18 @@ const JobDetailsAndSalaryTab = ({
   
   const editorRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isComposing, setIsComposing] = useState(false); // Track IME composition
 
   // Initialize editor content
   useEffect(() => {
     if (editorRef.current && formData.jobDescription) {
-      editorRef.current.innerHTML = formData.jobDescription;
+      // Only update if content is different to avoid cursor jumps
+      if (editorRef.current.innerHTML !== formData.jobDescription) {
+        editorRef.current.innerHTML = formData.jobDescription;
+      }
+    } else if (editorRef.current && !formData.jobDescription) {
+      // Set empty state
+      editorRef.current.innerHTML = "";
     }
   }, [formData.jobDescription]);
 
@@ -47,43 +54,85 @@ const JobDetailsAndSalaryTab = ({
     // Focus on editor
     editor.focus();
     
-    // Save selection
+    // Save and restore selection
     const selection = window.getSelection();
+    const range = selection.getRangeAt(0);
     
     try {
       // Execute the command
-      if (value) {
-        document.execCommand(command, false, value);
-      } else {
-        document.execCommand(command, false, null);
-      }
+      document.execCommand(command, false, value);
       
       // Update form data after formatting
-      updateFormData();
+      setTimeout(updateFormData, 0); // Use setTimeout to allow DOM to update
     } catch (error) {
       console.error("Formatting error:", error);
     }
   };
 
   // Update form data from editor content
-  const updateFormData = () => {
-    const editor = editorRef.current;
-    if (!editor) return;
+  const updateFormData = useCallback(() => {
+    if (!editorRef.current || isComposing) return;
+    
+    const htmlContent = editorRef.current.innerHTML;
+    
+    // Only update if content changed
+    if (htmlContent !== formData.jobDescription) {
+      handleInputChange({ 
+        target: { 
+          name: 'jobDescription', 
+          value: htmlContent 
+        } 
+      });
+    }
+  }, [formData.jobDescription, handleInputChange, isComposing]);
 
-    const htmlContent = editor.innerHTML;
-    handleInputChange({ target: { name: 'jobDescription', value: htmlContent } });
+  // Handle editor input with debouncing
+  const handleEditorInput = useCallback(() => {
+    if (isComposing) return; // Don't update during IME composition
+    
+    // Use requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+      updateFormData();
+    });
+  }, [updateFormData, isComposing]);
+
+  // Handle composition events for IME (Input Method Editor)
+  const handleCompositionStart = () => {
+    setIsComposing(true);
   };
 
-  // Handle editor input
-  const handleEditorInput = () => {
-    updateFormData();
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
+    // Update after composition ends
+    setTimeout(updateFormData, 0);
   };
 
-  // Handle editor paste (to remove unwanted formatting)
-  const handleEditorPaste = (e) => {
+  // Handle paste with better formatting handling
+  const handleEditorPaste = useCallback((e) => {
     e.preventDefault();
+    
+    // Get plain text from clipboard
     const text = e.clipboardData.getData('text/plain');
+    
+    // Insert the plain text
     document.execCommand('insertText', false, text);
+    
+    // Update form data
+    setTimeout(updateFormData, 0);
+  }, [updateFormData]);
+
+  // Handle key events to prevent unwanted behavior
+  const handleKeyDown = (e) => {
+    // Prevent default for some keys that might cause issues
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Allow Enter to create new lines
+      setTimeout(updateFormData, 0);
+    }
+  };
+
+  // Handle blur to ensure final update
+  const handleBlur = () => {
+    setIsEditing(false);
     updateFormData();
   };
 
@@ -148,7 +197,6 @@ const JobDetailsAndSalaryTab = ({
 
   return (
     <div className="space-y-8">
-
       {/* Job Description with ContentEditable Editor */}
       <div>
         <label className="block text-sm font-semibold text-gray-900 mb-3">
@@ -161,7 +209,6 @@ const JobDetailsAndSalaryTab = ({
         {/* Enhanced Formatting Toolbar */}
         <div className="mb-3 p-3 bg-gray-50 border border-gray-300 rounded-xl">
           <div className="flex flex-wrap items-center gap-2">
-            
             {/* Text Formatting */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
               <button
@@ -181,8 +228,6 @@ const JobDetailsAndSalaryTab = ({
                 <MdFormatItalic className="text-gray-700" size={18} />
               </button>
             </div>
-
-          
 
             {/* Text Alignment */}
             <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
@@ -210,17 +255,8 @@ const JobDetailsAndSalaryTab = ({
               >
                 <MdFormatAlignRight className="text-gray-700" size={18} />
               </button>
-              <button
-                type="button"
-                onClick={() => formatText('justifyFull')}
-                className="p-2 hover:bg-gray-200 rounded transition-colors"
-                title="Justify"
-              >
-                <MdFormatAlignJustify className="text-gray-700" size={18} />
-              </button>
+           
             </div>
-
-            
 
             {/* Clear Formatting */}
             <div className="flex items-center gap-1 ml-auto">
@@ -244,14 +280,17 @@ const JobDetailsAndSalaryTab = ({
           </div>
         </div>
 
-        {/* ContentEditable Editor */}
+        {/* ContentEditable Editor - FIXED */}
         <div
           ref={editorRef}
           contentEditable
           onInput={handleEditorInput}
           onPaste={handleEditorPaste}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
+          onKeyDown={handleKeyDown}
           onFocus={() => setIsEditing(true)}
-          onBlur={() => setIsEditing(false)}
+          onBlur={handleBlur}
           className={`min-h-[200px] w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-base resize-none overflow-y-auto ${
             errors.jobDescription ? 'border-red-300 bg-red-50' : 'border-gray-300'
           } ${isEditing ? 'bg-white' : 'bg-white'}`}
@@ -259,11 +298,15 @@ const JobDetailsAndSalaryTab = ({
             minHeight: '200px',
             maxHeight: '400px',
             whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word'
+            wordWrap: 'break-word',
+            textAlign: 'left' // Ensure proper text direction
           }}
-          placeholder="Describe the job role, expectations, company culture, and what makes this position exciting..."
+          suppressContentEditableWarning={true}
+          dir="ltr" // Explicitly set left-to-right direction
           data-placeholder="Describe the job role, expectations, company culture, and what makes this position exciting..."
         />
+        
+      
         
         {/* Hidden input to store the HTML */}
         <input

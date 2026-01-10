@@ -12,7 +12,7 @@ import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
   Calendar, Briefcase, Activity, Users, Brain, GraduationCap, BookOpen,
-  MessageCircle, Heart, UserPlus, Eye
+  MessageCircle, Heart, UserPlus, Eye, Share2
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -249,6 +249,7 @@ const handleCloseInterestModal = useCallback(() => {
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get("/api/get/user/all/notification", authHeader);
+      console.log(res.data)
       const list = res.data?.notifications || [];
       setNotifications(list);
     } catch (err) {
@@ -352,24 +353,31 @@ const handleCloseInterestModal = useCallback(() => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // Helper function to get notification icon
-  const getNotificationIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'like':
-      case 'like_post':
-        return <Heart className="w-4 h-4 text-pink-500" />;
-      case 'comment':
-      case 'reply':
-        return <MessageCircle className="w-4 h-4 text-blue-500" />;
-      case 'follow':
-        return <UserPlus className="w-4 h-4 text-green-500" />;
-      case 'story_like':
-        return <Heart className="w-4 h-4 text-purple-500" />;
-      case 'story_view':
-        return <Eye className="w-4 h-4 text-blue-400" />;
-      default:
-        return <BellRing className="w-4 h-4 text-gray-500" />;
-    }
-  };
+  // Helper function to get notification icon
+const getNotificationIcon = (type) => {
+  switch (type?.toLowerCase()) {
+    case 'job_status_update':
+      return <Briefcase className="w-4 h-4 text-blue-500" />;
+    case 'like':
+    case 'like_post':
+      return <Heart className="w-4 h-4 text-pink-500" />;
+    case 'comment':
+    case 'reply':
+      return <MessageCircle className="w-4 h-4 text-blue-500" />;
+    case 'follow':
+      return <UserPlus className="w-4 h-4 text-green-500" />;
+    case 'share':
+    case 'shared':
+    case 'repost':
+      return <Share2 className="w-4 h-4 text-green-600" />;
+    case 'story_like':
+      return <Heart className="w-4 h-4 text-purple-500" />;
+    case 'story_view':
+      return <Eye className="w-4 h-4 text-blue-400" />;
+    default:
+      return <BellRing className="w-4 h-4 text-gray-500" />;
+  }
+};
 
   // Helper function to format time
   const formatTime = (timestamp) => {
@@ -766,132 +774,171 @@ const handleCloseInterestModal = useCallback(() => {
                 </div>
 
                 {/* Notification List - FIXED WITH PROPER DATA */}
-                <div className="h-[calc(100vh-120px)] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <BellRing className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
-                      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
+              
+<div className="h-[calc(100vh-120px)] overflow-y-auto">
+  {notifications.length === 0 ? (
+    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+        <BellRing className="w-10 h-10 text-gray-400" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
+      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
+    </div>
+  ) : (
+    <div className="divide-y divide-gray-100">
+      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
+        <div key={groupName} className="py-2">
+          {/* Group Header */}
+          <div className="px-4 py-2">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              {groupName}
+            </h3>
+          </div>
+          
+          {/* Group Notifications - FIXED WITH JOB STATUS SUPPORT */}
+          {groupNotifications.map((notif) => {
+            // Handle job status notifications differently
+            const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
+            const isRegularNotification = notif.sender || notif.feedInfo;
+            
+            let senderName = "System";
+            let senderAvatar = null;
+            let actionText = notif.message || notif.title || "New notification";
+            let feedImage = null;
+            
+            if (isJobStatusUpdate) {
+              // Job status notification
+              const jobInfo = notif.job || {};
+              senderName = jobInfo.companyName || "Company";
+              senderAvatar = jobInfo.companyLogo;
+              actionText = notif.message || `Your job application status has been updated`;
+              feedImage = jobInfo.companyLogo;
+            } else if (isRegularNotification) {
+              // Regular notification
+              const sender = notif.sender || {};
+              const feed = notif.feedInfo || {};
+              senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
+              senderAvatar = sender.profileAvatar || sender.avatar;
+              feedImage = feed.contentUrl || notif.image;
+              
+              // Determine message based on type
+              const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
+              const isFollow = notif.type?.toLowerCase()?.includes("follow");
+              const isComment = notif.type?.toLowerCase()?.includes("comment");
+              
+              if (isLike) actionText = "liked your post";
+              if (isFollow) actionText = "started following you";
+              if (isComment) actionText = "commented on your post";
+            }
+
+            return (
+              <motion.div
+                key={notif._id || notif.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                  !notif.isRead ? "bg-blue-50/50" : ""
+                }`}
+                onClick={() => handleNotificationClick(notif)}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Avatar */}
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
+                      {senderAvatar ? (
+                        <img
+                          src={senderAvatar}
+                          alt={senderName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : isJobStatusUpdate ? (
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <span className="text-blue-600 font-semibold">
+                          {(senderName[0] || "U").toUpperCase()}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
-                        <div key={groupName} className="py-2">
-                          {/* Group Header */}
-                          <div className="px-4 py-2">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                              {groupName}
-                            </h3>
-                          </div>
-                          
-                          {/* Group Notifications - FIXED DATA EXTRACTION */}
-                          {groupNotifications.map((notif) => {
-                            const sender = notif.sender || {};
-                            const feed = notif.feedInfo || {};
-                            const senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
-                            const senderAvatar = sender.profileAvatar || sender.avatar;
-                            const feedImage = feed.contentUrl || notif.image;
-                            const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
-                            const isFollow = notif.type?.toLowerCase()?.includes("follow");
-                            const isComment = notif.type?.toLowerCase()?.includes("comment");
-                            
-                            // Determine message based on type
-                            let actionText = notif.message || notif.title || "New notification";
-                            if (isLike) actionText = "liked your post";
-                            if (isFollow) actionText = "started following you";
-                            if (isComment) actionText = "commented on your post";
+                    {/* Notification Type Icon */}
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                      {isJobStatusUpdate ? (
+                        <Briefcase className="w-4 h-4 text-blue-500" />
+                      ) : (
+                        getNotificationIcon(notif.type)
+                      )}
+                    </div>
+                  </div>
 
-                            return (
-                              <motion.div
-                                key={notif._id || notif.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                                  !notif.isRead ? "bg-blue-50/50" : ""
-                                }`}
-                                onClick={() => handleNotificationClick(notif)}
-                              >
-                                <div className="flex items-start gap-3">
-                                  {/* Avatar - FIXED */}
-                                  <div className="relative">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
-                                      {senderAvatar ? (
-                                        <img
-                                          src={senderAvatar}
-                                          alt={senderName}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <span className="text-blue-600 font-semibold">
-                                          {(senderName[0] || "U").toUpperCase()}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {/* Notification Type Icon */}
-                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                                      {getNotificationIcon(notif.type)}
-                                    </div>
-                                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {isJobStatusUpdate ? `📌 ${senderName}` : senderName}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-0.5">
+                          {actionText}
+                          {/* Show job status if available */}
+                          {isJobStatusUpdate && notif.job?.status && (
+                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                              notif.job.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                              notif.job.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {notif.job.status.charAt(0).toUpperCase() + notif.job.status.slice(1)}
+                            </span>
+                          )}
+                        </p>
+                        {/* Job details for job status updates */}
+                        {isJobStatusUpdate && notif.job?.jobTitle && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Position: <span className="font-medium">{notif.job.jobTitle}</span>
+                          </p>
+                        )}
+                      </div>
+                      {!notif.isRead && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      )}
+                    </div>
+                    
+                    {/* Time and Actions */}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-gray-500">
+                        {formatTime(notif.createdAt)}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNotification(notif._id);
+                        }}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
 
-                                  {/* Content - FIXED */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between">
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-900">
-                                          {senderName}
-                                        </p>
-                                        <p className="text-sm text-gray-600 mt-0.5">
-                                          {actionText}
-                                          {feed.dec && (isLike || isComment) && (
-                                            <span className="text-gray-500 ml-1">"{feed.dec.substring(0, 30)}..."</span>
-                                          )}
-                                        </p>
-                                      </div>
-                                      {!notif.isRead && (
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Time and Actions */}
-                                    <div className="flex items-center justify-between mt-2">
-                                      <span className="text-xs text-gray-500">
-                                        {formatTime(notif.createdAt)}
-                                      </span>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteNotification(notif._id);
-                                        }}
-                                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                                      >
-                                        ×
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Feed Preview Image - FIXED */}
-                                  {feedImage && (
-                                    <div className="flex-shrink-0 ml-2">
-                                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                        <img
-                                          src={feedImage}
-                                          alt="Post"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      ))}
+                  {/* Feed Preview Image */}
+                  {feedImage && (
+                    <div className="flex-shrink-0 ml-2">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                        <img
+                          src={feedImage}
+                          alt={isJobStatusUpdate ? "Company logo" : "Post"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
                 {/* View All Button */}
                 {notifications.length > 0 && (

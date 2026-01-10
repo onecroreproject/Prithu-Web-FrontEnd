@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMapPin, FiHeart, FiTag, FiDollarSign, FiBriefcase, FiClock, FiGrid, FiList, FiChevronLeft, FiChevronRight, FiImage } from "react-icons/fi";
-
+import { updateJobEngagement } from "../../../Service/jobservices";
 const JobCards = ({ jobs = [] }) => {
   const navigate = useNavigate();
   const [savedJobs, setSavedJobs] = useState({});
@@ -22,18 +22,37 @@ const JobCards = ({ jobs = [] }) => {
   // Helper function to fix image URLs - now handles both localhost and live server
 
 
-  const handleJobClick = (job) => {
-    const sameRoleJobs = jobs.filter((j) => j.jobRole === job.jobRole);
-    const currentIndexInRole = sameRoleJobs.findIndex((j) => j._id === job._id);
+const handleJobClick = async (job) => {
+  try {
+    const token = localStorage.getItem("token");
 
-    navigate(`/job/${job._id}`, {
-      state: {
-        job,
-        jobs: sameRoleJobs,
-        index: currentIndexInRole,
-      },
-    });
-  };
+    // 🔁 Update engagement (view)
+    if (token) {
+      await updateJobEngagement(job._id, "view", token);
+    }
+  } catch (err) {
+    console.error("View update failed:", err);
+  }
+
+  // 🔍 Same role jobs logic
+  const sameRoleJobs = jobs.filter(
+    (j) => j.jobRole === job.jobRole
+  );
+
+  const currentIndexInRole = sameRoleJobs.findIndex(
+    (j) => j._id === job._id
+  );
+
+  // 🚀 Navigate after engagement update
+  navigate(`/job/${job._id}`, {
+    state: {
+      job,
+      jobs: sameRoleJobs,
+      index: currentIndexInRole,
+    },
+  });
+};
+
 
   const handleClickCompany = (company) => (e) => {
     e.stopPropagation();
@@ -178,7 +197,7 @@ const JobCards = ({ jobs = [] }) => {
   return (
     <>
       {/* View Toggle and Page Info - Hidden on mobile */}
-      <div className="hidden md:flex items-center justify-between mb-6">
+      <div className="hidden md:flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
             <button
@@ -305,16 +324,7 @@ const JobCards = ({ jobs = [] }) => {
                     {employmentType.label}
                   </button>
 
-                  <button 
-                    className={`p-2 border rounded-md hover:border-red-300 transition-colors ${
-                      savedJobs[job._id] 
-                        ? 'text-red-500 border-red-300' 
-                        : 'text-gray-500 border-gray-300'
-                    }`}
-                    onClick={toggleSaveJob(job._id)}
-                  >
-                    <FiHeart />
-                  </button>
+              
                 </div>
 
                 {/* Key Details */}

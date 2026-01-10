@@ -244,46 +244,75 @@ const FilterSection = ({
   };
 
   // Calculate experience levels from jobs
-  const getExperienceLevelsFromJobs = () => {
-    if (!jobs || jobs.length === 0) return [];
+ // Calculate experience levels from jobs - FIXED VERSION
+// In FilterSection.js, update getExperienceLevelsFromJobs():
+const getExperienceLevelsFromJobs = () => {
+  if (!jobs || jobs.length === 0) return [];
+  
+  const experienceRanges = [
+    { min: 0, max: 1, value: "0", label: "Fresher (0-1 yrs)" },
+    { min: 1, max: 3, value: "1-3", label: "1-3 years" },
+    { min: 3, max: 5, value: "3-5", label: "3-5 years" },
+    { min: 5, max: 8, value: "5-8", label: "5-8 years" },
+    { min: 8, max: Infinity, value: "8+", label: "8+ years" }
+  ];
+  
+  // Initialize counts
+  const counts = experienceRanges.map(range => ({ ...range, count: 0 }));
+  
+  jobs.forEach(job => {
+    let expValue = 0;
     
-    const experienceRanges = [
-      { min: 0, max: 1, value: "0", label: "Fresher (0-1 yrs)" },
-      { min: 1, max: 3, value: "1-3", label: "1-3 years" },
-      { min: 3, max: 5, value: "3-5", label: "3-5 years" },
-      { min: 5, max: 8, value: "5-8", label: "5-8 years" },
-      { min: 8, max: Infinity, value: "8+", label: "8+ years" }
-    ];
+    // First try to get experience from common fields
+    if (job.minimumExperience !== undefined && job.minimumExperience !== null) {
+      expValue = parseFloat(job.minimumExperience);
+    } else if (job.maximumExperience !== undefined && job.maximumExperience !== null) {
+      expValue = parseFloat(job.maximumExperience);
+    }
     
-    const counts = experienceRanges.map(range => ({ ...range, count: 0 }));
+    // Handle NaN values
+    if (isNaN(expValue)) {
+      expValue = 0;
+    }
     
-    jobs.forEach(job => {
-      // Use minimumExperience or maximumExperience
-      let expValue = 0;
-      
-      if (job.minimumExperience !== undefined && job.minimumExperience !== null) {
-        expValue = job.minimumExperience;
-      } else if (job.maximumExperience !== undefined && job.maximumExperience !== null) {
-        expValue = job.maximumExperience;
-      } else if (job.experience) {
-        // Try to parse from experience string
-        const match = job.experience.toString().match(/\d+/g);
-        if (match && match.length > 0) {
-          expValue = parseInt(match[0]);
+    // Special handling for fresher jobs
+    const isFresherJob = job.freshersAllowed === true || 
+                         (job.minimumExperience === 0 && job.maximumExperience === 0 && 
+                          (job.freshersAllowed === true || job.freshersAllowed === undefined));
+    
+    // Determine which range this job belongs to
+    if (isFresherJob) {
+      // Fresher jobs go in the 0-1 range
+      counts[0].count++;
+    } else {
+      // For non-fresher jobs, use the experience value
+      for (let i = 0; i < counts.length; i++) {
+        const range = counts[i];
+        
+        if (range.value === "0") {
+          // Skip fresher range for non-fresher jobs
+          continue;
+        } 
+        else if (range.value === "8+") {
+          // 8+ years: 8 and above
+          if (expValue >= range.min) {
+            range.count++;
+            break;
+          }
         }
-      }
-      
-      if (expValue >= 0) {
-        counts.forEach(range => {
+        else {
+          // Other ranges: min <= expValue < max
           if (expValue >= range.min && expValue < range.max) {
             range.count++;
+            break;
           }
-        });
+        }
       }
-    });
-    
-    return counts.filter(range => range.count > 0);
-  };
+    }
+  });
+  
+  return counts.filter(range => range.count > 0);
+};
 
   // Use calculated filters
   const employmentTypes = getEmploymentTypesFromJobs();

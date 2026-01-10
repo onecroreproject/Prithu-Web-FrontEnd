@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import api from "../../../api/axios";
 import { toast } from "react-hot-toast";
-import SharePopup from "../../FeedPageComponent/sharePopUp";
+import JobSharePopup from "../../Jobs/jobSharePop-Up";
 import SimilarJobsSection from "./similarJobs";
+import {updateJobEngagement} from "../../../Service/jobservices";
 
 export default function JobPage({ 
   job, 
@@ -46,7 +47,7 @@ export default function JobPage({
       
       const response = await api.get("/api/get/job/locations");
       
-      console.log("location", response.data);
+
       
       if (response.data.success) {
         const uniqueCities = extractUniqueCities(response.data.locations);
@@ -70,26 +71,18 @@ export default function JobPage({
     }
 
     const uniqueStates = new Set();
-    const uniqueCities = new Set();
-    
+
     locationsData.forEach(location => {
       if (location?.location?.state && typeof location.location.state === 'string') {
-        const state = location.location.state.trim();
+        const state = location.location.state.trim().toLowerCase();
         if (state.length > 0) {
           uniqueStates.add(state);
-        }
-      }
-      
-      if (location?.location?.city && typeof location.location.city === 'string') {
-        const city = location.location.city.trim();
-        if (city.length > 0) {
-          uniqueCities.add(city);
         }
       }
     });
 
     let locations = [];
-    
+
     if (uniqueStates.size > 0) {
       locations = Array.from(uniqueStates)
         .map(state => {
@@ -99,20 +92,13 @@ export default function JobPage({
             .join(' ');
         })
         .sort((a, b) => a.localeCompare(b));
-    } else if (uniqueCities.size > 0) {
-      locations = Array.from(uniqueCities)
-        .map(city => {
-          return city
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
-        })
-        .sort((a, b) => a.localeCompare(b));
     }
-    
+
     const finalLocations = locations.slice(0, 10);
     return finalLocations;
   };
+
+
 
   const getDefaultLocations = () => {
     return [
@@ -282,36 +268,89 @@ export default function JobPage({
   };
 
   const handleSave = async () => {
-    try {
-      setIsSaved(!isSaved);
+  const prev = isSaved;
 
-    } catch (error) {
-      console.error("Failed to save job:", error);
-      toast.error("Failed to save job");
-    }
-  };
-
-  const handleLike = async () => {
-    try {
-      setIsLiked(!isLiked);
-
-    } catch (error) {
-      console.error("Failed to like job:", error);
-      toast.error("Failed to like job");
-    }
-  };
-
-  const handleShare = () => {
-    setShowSharePopup(true);
-  };
-
-  const handleApply = () => {
-    if (isExpired || job.status === "expired") {
-      toast.error("This job posting has expired");
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to save jobs");
       return;
     }
-    navigate(`/job/apply/${job._id}`);
-  };
+
+    // 🔁 Optimistic UI
+    setIsSaved(!prev);
+
+    // 🔁 Backend engagement
+    await updateJobEngagement(job._id, "saved", token);
+  } catch (error) {
+    console.error("Failed to save job:", error);
+
+    // ❌ Rollback UI
+    setIsSaved(prev);
+    toast.error("Failed to save job");
+  }
+};
+
+const handleLike = async () => {
+  const prev = isLiked;
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to like jobs");
+      return;
+    }
+
+    // 🔁 Optimistic UI
+    setIsLiked(!prev);
+
+    // 🔁 Backend engagement
+    await updateJobEngagement(job._id, "liked", token);
+  } catch (error) {
+    console.error("Failed to like job:", error);
+
+    // ❌ Rollback UI
+    setIsLiked(prev);
+    toast.error("Failed to like job");
+  }
+};
+
+
+  const handleShare = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      await updateJobEngagement(job._id, "shared", token);
+    }
+
+    // Show share popup after engagement update
+    setShowSharePopup(true);
+  } catch (error) {
+    console.error("Failed to update share engagement:", error);
+    setShowSharePopup(true); // still allow sharing
+  }
+};
+
+
+ const handleApply = async () => {
+  if (isExpired || job.status === "expired") {
+    toast.error("This job posting has expired");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      await updateJobEngagement(job._id, "applied", token);
+    }
+  } catch (error) {
+    console.error("Failed to update apply engagement:", error);
+    // Do NOT block apply flow
+  }
+
+  navigate(`/job/apply/${job._id}`);
+};
+
 
   const isNewJob = () => {
     if (!job.createdAt) return false;
@@ -437,7 +476,6 @@ export default function JobPage({
       <div className="space-y-4">
         {paragraphs.map((paragraph, index) => (
           <div key={index} className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
             <span className="text-gray-700 leading-relaxed">{paragraph}</span>
           </div>
         ))}
@@ -448,12 +486,15 @@ export default function JobPage({
   return (
     <div className="min-h-screen mx-auto bg-gray-50 container">
       {/* Share Popup */}
-      <SharePopup
+      <JobSharePopup
         isOpen={showSharePopup}
         onClose={() => setShowSharePopup(false)}
-        postId={job._id}
-        postCaption={getJobShareCaption()}
-        userName=""
+        jobId={job._id}
+        jobTitle={job.jobTitle}
+        companyName={job.companyName}
+        location={[job.city, job.state].filter(Boolean).join(', ')}
+        salaryRange={formatSalary(job.salaryMin, job.salaryMax, job.salaryType, job.salaryCurrency)}
+        postedUserName=""
         onShareComplete={() => {
           console.log("Share completed");
         }}
@@ -649,9 +690,9 @@ export default function JobPage({
         </div>
 
         {/* Main Content - Responsive Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 p-4 lg:p-6">
-          {/* LEFT COLUMN - Main Content (2/3 width on large screens) */}
-          <div className="lg:col-span-2 xl:col-span-3 space-y-4 lg:space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-10 xl:grid-cols-12 gap-4 lg:gap-6 p-4 lg:p-6">
+          {/* LEFT COLUMN - Main Content (70% width on large screens) */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4 lg:space-y-6">
             {/* Job Description */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6 transition-shadow hover:shadow-sm">
               <div className="flex items-center gap-3 mb-4 lg:mb-6">
@@ -809,7 +850,7 @@ export default function JobPage({
           </div>
 
           {/* RIGHT COLUMN - Sidebar (1/3 width on large screens) */}
-          <div className="space-y-4 lg:space-y-8">
+          <div className="space-y-4 lg:space-y-8 xl:col-span-4">
             {/* Combined Job Insights & Hiring Information */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 lg:p-6 transition-shadow hover:shadow-sm">
               {/* Posted by section */}
@@ -886,7 +927,7 @@ export default function JobPage({
     </div>
   </div>
   
-  <div className="flex flex-col lg:flex-row gap-3 mb-4">
+  <div className="flex flex-col lg:flex-row justify-around gap-3 mb-4">
     {/* Apply Now Section */}
     <div className="lg:w-1/3">
       <div className="mb-2">
@@ -922,35 +963,7 @@ export default function JobPage({
       </button>
     </div>
 
-    {/* Requirements Section */}
-    {/* <div className="lg:w-1/3">
-      <div className="mb-2">
-        <h3 className="font-semibold text-gray-900 mb-0.5 text-xs lg:text-sm">Requirements</h3>
-        <p className="text-gray-500 text-xs">Documents needed</p>
-      </div>
-      
-      <div className="space-y-1">
-        {job.resumeRequired && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-blue-200 bg-blue-50">
-            <FileText className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className="text-xs text-blue-600 font-medium">Resume</span>
-          </div>
-        )}
-        
-        {job.coverLetterRequired && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-blue-200 bg-blue-50">
-            <FileText className="w-3 h-3 text-blue-600 flex-shrink-0" />
-            <span className="text-xs text-blue-600 font-medium">Cover Letter</span>
-          </div>
-        )}
-        
-        {!job.resumeRequired && !job.coverLetterRequired && (
-          <div className="px-2 py-1 rounded-md border border-gray-200 bg-gray-50">
-            <span className="text-xs text-gray-500">No docs</span>
-          </div>
-        )}
-      </div>
-    </div> */}
+    
 
     {/* Save Job Section */}
     <div className="lg:w-1/3">
@@ -973,31 +986,6 @@ export default function JobPage({
     </div>
   </div>
 
-  {/* Expiration Information */}
-  {job.endDate && (
-    <div className="pt-4 border-t border-gray-200">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex items-start gap-2 p-2 bg-gray-50 rounded-md">
-          <Calendar className="w-3 h-3 text-gray-600 mt-0.5 flex-shrink-0" />
-          <div className="min-w-0">
-            <div className="text-gray-500 text-[10px] font-medium truncate">START DATE</div>
-            <div className="text-gray-900 font-semibold text-xs truncate">{formatDate(job.startDate)}</div>
-          </div>
-        </div>
-        <div className={`flex items-start gap-2 p-2 rounded-md ${isExpired ? 'bg-red-50' : 'bg-gray-50'}`}>
-          <Clock className={`w-3 h-3 mt-0.5 flex-shrink-0 ${isExpired ? 'text-red-500' : 'text-gray-600'}`} />
-          <div className="min-w-0">
-            <div className={`text-[10px] font-medium truncate ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
-              END DATE
-            </div>
-            <div className={`font-semibold text-xs truncate ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
-              {formatDate(job.endDate)}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
 
   {/* Report suspicious link */}
   <div className="mt-4 pt-4 border-t border-gray-200">
