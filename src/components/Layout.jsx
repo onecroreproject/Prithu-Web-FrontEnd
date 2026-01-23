@@ -7,17 +7,13 @@ import LeftColumn from "./LeftColumn";
 import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
-import JobTopRolesCard from "./Jobs/JobCardComponets/topRoles";
-import JobLatestOpeningsCard from "./Jobs/JobCardComponets/latestOpenings";
-import JobFeaturedCompaniesCard from "./Jobs/JobCardComponets/featureCompanies";
 import { useNavigate } from "react-router-dom";
-import TopAptitudePerformace from "./topAptitudePerformace";
 import { useEffect } from "react";
 
 export default function Layout() {
   const location = useLocation();
   const params = useParams();
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   // Get tagname from URL: /hashtag/:tagname
   const tagname = params.tagname || null;
 
@@ -25,7 +21,7 @@ export default function Layout() {
   const notifyfeedid = params.notifyfeedid || null;
 
   // full-width pages (no side columns)
-  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/events", "/community", "/aptitude", "/activity", "/settings"];
+  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings"];
   const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
 
   // Home page or hashtag page or retrivefeed page
@@ -64,19 +60,19 @@ export default function Layout() {
     <div className="flex flex-col bg-white dark:bg-[#121212]">
 
       <Header />
-          
+
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
         <div className="sticky top-0 lg:top-0 lg:left-[280px] z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 ml-0 lg:ml-[280px]">
           <div className="flex items-center gap-3">
-            <IconButton 
-              onClick={handleBackClick} 
+            <IconButton
+              onClick={handleBackClick}
               className="hover:bg-gray-100"
               size="small"
             >
               <ArrowBackIcon />
             </IconButton>
-            
+
             <div className="flex items-center gap-2">
               <div className="p-2 bg-blue-50 rounded-full">
                 <TagIcon className="text-blue-600" />
@@ -110,10 +106,6 @@ export default function Layout() {
               <div className="flex flex-col w-[350px] gap-4">
                 <LeftColumn />
                 {!isHashtagPage && <Birthdays />}
-                <JobTopRolesCard />
-                <JobLatestOpeningsCard />
-                <JobFeaturedCompaniesCard />
-                <TopAptitudePerformace />
               </div>
             </aside>
           )}

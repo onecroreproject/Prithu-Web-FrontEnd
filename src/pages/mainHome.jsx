@@ -16,7 +16,7 @@ import PrithuLogo from '../assets/prithulogo.png';
 const LandingPage = () => {
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
-  
+
   // Transform scroll for parallax effects
   const y1 = useTransform(scrollYProgress, [0, 1], [0, 100]);
   const y2 = useTransform(scrollYProgress, [0, 1], [0, 50]);
@@ -26,47 +26,38 @@ const LandingPage = () => {
   const [activeFeature, setActiveFeature] = useState(0);
   const [stats, setStats] = useState({
     totalUsers: 0,
-    totalJobs: 0,
-    totalCompanies: 0,
+    totalPosts: 0,
+    totalReels: 0,
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
 
   useEffect(() => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (token) {
-    navigate("/home", { replace: true });
-  }
-}, [navigate]);
+    if (token) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
 
   // Fetch stats from API
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`/api/main/board/status`);
-      
+
       if (response.data.success) {
         setStats({
-          totalUsers: response.data.data.totalUsers,
-          totalJobs: response.data.data.totalJobs,
-          totalCompanies: response.data.data.totalCompanies,
-          successRate: 95 // You can calculate this from backend if needed
+          totalUsers: 50000,
+          totalPosts: 100000,
+          totalReels: 25000,
+          successRate: 95
         });
       }
     } catch (err) {
       console.error("Failed to fetch dashboard stats:", err);
-      setError("Failed to load statistics. Showing default values.");
-      
-      // Fallback to default values
-      setStats({
-        totalUsers: 50000,
-        totalJobs: 1000,
-        totalCompanies: 200,
-        successRate: 95
-      });
     } finally {
       setLoading(false);
     }
@@ -86,7 +77,7 @@ const LandingPage = () => {
   // Animated counters
   useEffect(() => {
     fetchDashboardStats();
-    
+
     // Refresh stats every 5 minutes
     const interval = setInterval(() => {
       fetchDashboardStats();
@@ -114,29 +105,12 @@ const LandingPage = () => {
       image: "https://images.unsplash.com/photo-1611605698335-8b1569810432?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     },
     {
-      icon: <Briefcase className="w-8 h-8" />,
-      title: "Jobs Portal",
-      description: `Access ${formatNumber(stats.totalJobs)} opportunities from ${formatNumber(stats.totalCompanies)} companies. Find your dream job with our smart matching system.`,
+      icon: <Video className="w-8 h-8" />,
+      title: "Watch Reels",
+      description: "Discover trending short videos from creators around the world. Stay entertained and inspired!",
       color: "from-blue-500 to-cyan-500",
-      stats: `${formatNumber(stats.totalJobs)} Opportunities`,
-      image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Community",
-      description: `Connect with ${formatNumber(stats.totalUsers)} professionals, share insights, and grow together in our vibrant community.`,
-      color: "from-green-500 to-emerald-500",
-      stats: `${formatNumber(stats.totalUsers)} Members`,
-      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-    },
-   
-    {
-      icon: <Calendar className="w-8 h-8" />,
-      title: "Weekly Events",
-      description: "New events every week! Workshops, webinars, and networking sessions to boost your career.",
-      color: "from-cyan-500 to-blue-500",
-      stats: "50+ Weekly Events",
-      image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      stats: "24/7 Entertainment",
+      image: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     },
     {
       icon: <Gift className="w-8 h-8" />,
@@ -145,6 +119,14 @@ const LandingPage = () => {
       color: "from-yellow-500 to-orange-500",
       stats: "Active Bonus Program",
       image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      icon: <Target className="w-8 h-8" />,
+      title: "Smart Portfolio",
+      description: "Build a professional portfolio that stands out. Showcase your skills with our smart tools.",
+      color: "from-green-500 to-emerald-500",
+      stats: "Professional Profiles",
+      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     }
   ];
 
@@ -197,27 +179,27 @@ const LandingPage = () => {
   const testimonials = [
     {
       name: "Alex Johnson",
-      role: "Software Developer",
-      company: "TechCorp",
-      content: "PRITHU helped me connect with the right companies. Found my dream job in just 2 weeks!",
+      role: "Content Creator",
+      company: "Prithu Studio",
+      content: "PRITHU has completely changed how I share my content. The engagement is incredible!",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
       rating: 5,
       plan: "Pro User"
     },
     {
       name: "Sarah Miller",
-      role: "Marketing Manager",
-      company: "BrandWorks",
-      content: "The community support and weekly events kept me motivated throughout my career transition.",
+      role: "Digital Artist",
+      company: "CreativeFlow",
+      content: "The portfolio tools are top-notch. I can showcase my work beautifully to my followers.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
       rating: 5,
       plan: "Free User"
     },
     {
       name: "David Chen",
-      role: "UI/UX Designer",
-      company: "DesignHub",
-      content: "Portfolio feature with aptitude tests helped me showcase my skills effectively to employers.",
+      role: "Social Media Manager",
+      company: "TrendSetters",
+      content: "Managing multiple accounts and tracking performance has never been easier. Highly recommended!",
       avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
       rating: 5,
       plan: "Pro User"
@@ -226,25 +208,25 @@ const LandingPage = () => {
 
   // Stats display array
   const statsDisplay = [
-    { 
-      label: "Active Users", 
-      value: loading ? "..." : formatNumber(stats.totalUsers), 
-      icon: <UsersIcon className="w-6 h-6" />, 
-      color: "text-blue-600" 
+    {
+      label: "Active Users",
+      value: loading ? "..." : formatNumber(stats.totalUsers),
+      icon: <UsersIcon className="w-6 h-6" />,
+      color: "text-blue-600"
     },
-    { 
-      label: "Jobs Posted", 
-      value: loading ? "..." : formatNumber(stats.totalJobs), 
-      icon: <Briefcase className="w-6 h-6" />, 
-      color: "text-green-600" 
+    {
+      label: "Total Posts",
+      value: loading ? "..." : formatNumber(stats.totalPosts),
+      icon: <ImageIcon className="w-6 h-6" />,
+      color: "text-green-600"
     },
-    { 
-      label: "Companies", 
-      value: loading ? "..." : formatNumber(stats.totalCompanies), 
-      icon: <Globe className="w-6 h-6" />, 
-      color: "text-purple-600" 
+    {
+      label: "Total Reels",
+      value: loading ? "..." : formatNumber(stats.totalReels),
+      icon: <Video className="w-6 h-6" />,
+      color: "text-purple-600"
     },
-  
+
   ];
 
   return (
@@ -252,7 +234,7 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Animated Background */}
-        <motion.div 
+        <motion.div
           style={{ y: y1 }}
           className="absolute inset-0 z-0"
         >
@@ -271,9 +253,9 @@ const LandingPage = () => {
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={PrithuLogo} 
-                    alt="PRITHU Logo" 
+                  <img
+                    src={PrithuLogo}
+                    alt="PRITHU Logo"
                     className="w-12 h-12 object-contain"
                   />
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-full">
@@ -319,8 +301,8 @@ const LandingPage = () => {
               </h1>
 
               <p className="text-xl text-gray-600 mb-8 max-w-xl">
-                Join {loading ? "thousands of" : `${formatNumber(stats.totalUsers)}`} professionals who are building their careers, sharing their stories, 
-                and discovering {loading ? "opportunities" : `${formatNumber(stats.totalJobs)} opportunities`} in our vibrant community.
+                Join {loading ? "thousands of" : `${formatNumber(stats.totalUsers)}`} people who are building their brands, sharing their stories,
+                and discovering amazing content in our vibrant platform.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -341,8 +323,8 @@ const LandingPage = () => {
                   onClick={() => navigate("/login")}
                   className="px-8 py-4 bg-white text-gray-800 font-semibold rounded-2xl border-2 border-gray-200 hover:border-blue-300 transition-all flex items-center justify-center gap-3"
                 >
-                  <Users className="w-5 h-5" />
-                  Explore Community
+                  <PlayCircle className="w-5 h-5" />
+                  Explore Content
                 </motion.button>
               </div>
 
@@ -373,7 +355,7 @@ const LandingPage = () => {
                     </motion.div>
                   ))}
                 </div>
-                
+
                 {loading && (
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-500">Loading live statistics...</p>
@@ -392,7 +374,7 @@ const LandingPage = () => {
               <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
                 {/* Active Feature Display */}
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6">
-                  <img 
+                  <img
                     src={features[activeFeature].image}
                     alt={features[activeFeature].title}
                     className="w-full h-full object-cover"
@@ -418,38 +400,36 @@ const LandingPage = () => {
                     <p
                       key={index}
                       onClick={() => setActiveFeature(index)}
-                      className={`w-3 h-3 rounded-full transition-all ${
-                        index === activeFeature 
-                          ? 'bg-blue-600 w-8' 
-                          : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
+                      className={`w-3 h-3 rounded-full transition-all ${index === activeFeature
+                        ? 'bg-blue-600 w-8'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                        }`}
                     />
                   ))}
                 </div>
 
                 {/* Feature Grid */}
-              <div className="grid grid-cols-2 gap-4">
-  {features.slice(0, 4).map((feature, index) => (
-    <motion.div
-      key={index}
-      className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} bg-opacity-10 border border-white/10 backdrop-blur-sm ${
-        activeFeature === index ? 'ring-2 ring-blue-500' : ''
-      }`}
-      // ❌ removed cursor-pointer
-      // ❌ removed onClick for view-only
-    >
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg bg-gradient-to-br ${feature.color}`}>
-          <div className="text-white">{feature.icon}</div>
-        </div>
-        <div>
-          <h4 className="font-semibold text-gray-900">{feature.title}</h4>
-          <p className="text-xs text-gray-600">{feature.stats}</p>
-        </div>
-      </div>
-    </motion.div>
-  ))}
-</div>
+                <div className="grid grid-cols-2 gap-4">
+                  {features.slice(0, 4).map((feature, index) => (
+                    <motion.div
+                      key={index}
+                      className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} bg-opacity-10 border border-white/10 backdrop-blur-sm ${activeFeature === index ? 'ring-2 ring-blue-500' : ''
+                        }`}
+                    // ❌ removed cursor-pointer
+                    // ❌ removed onClick for view-only
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg bg-gradient-to-br ${feature.color}`}>
+                          <div className="text-white">{feature.icon}</div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{feature.title}</h4>
+                          <p className="text-xs text-gray-600">{feature.stats}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
 
               </div>
 
@@ -509,12 +489,12 @@ const LandingPage = () => {
               >
                 {/* Updated: Changed Image for Post & Reels */}
                 <div className="h-48 rounded-xl overflow-hidden mb-6">
-                  <img 
+                  <img
                     src={
-                      feature.title === "Post & Reels" 
+                      feature.title === "Post & Reels"
                         ? "https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
                         : feature.image
-                    } 
+                    }
                     alt={feature.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
@@ -533,7 +513,7 @@ const LandingPage = () => {
                   </div>
                   <p className="text-gray-600 mb-4">{feature.description}</p>
                   <div className="flex items-center justify-between">
-                    <button 
+                    <button
                       onClick={() => navigate("/login")}
                       className="text-blue-600 font-semibold hover:text-blue-700 transition-colors flex items-center gap-2"
                     >
@@ -548,11 +528,11 @@ const LandingPage = () => {
         </div>
       </section>
 
-    
 
-     
 
-      {/* Community Section */}
+
+
+      {/* Platform Highlight Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -564,32 +544,32 @@ const LandingPage = () => {
           >
             {/* Background Image */}
             <div className="absolute inset-0">
-              <img 
-                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
-                alt="Community"
+              <img
+                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
+                alt="Creativity"
                 className="w-full h-full object-cover opacity-20"
               />
             </div>
-            
+
             {/* Content */}
             <div className="relative z-10 px-8 py-16 text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full mb-6">
-                <Users className="w-5 h-5 text-white" />
-                <span className="text-sm font-medium text-white">Community First</span>
+                <Sparkles className="w-5 h-5 text-white" />
+                <span className="text-sm font-medium text-white">Creativity First</span>
               </div>
-              
+
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                Be Part of Something{" "}
+                Unleash Your{" "}
                 <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                  Bigger
+                  Potential
                 </span>
               </h2>
-              
+
               <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-                Join {loading ? "thousands of" : `${formatNumber(stats.totalUsers)}`} professionals sharing knowledge, collaborating on projects, 
-                and helping each other grow. Your success is our community's success.
+                Join {loading ? "thousands of" : `${formatNumber(stats.totalUsers)}`} creators sharing knowledge, collaborating on projects,
+                and helping each other grow. Your creativity is our platform's heartbeat.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -597,33 +577,9 @@ const LandingPage = () => {
                   onClick={() => navigate("/login")}
                   className="px-8 py-4 bg-white text-gray-900 font-bold rounded-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3"
                 >
-                  <Users className="w-5 h-5" />
-                  Explore Community
+                  <Rocket className="w-5 h-5" />
+                  Get Started Now
                 </motion.button>
-                
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/events")}
-                  className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-3"
-                >
-                  <Calendar className="w-5 h-5" />
-                  View Events
-                </motion.button>
-              </div>
-              
-              <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[
-                  { label: "Daily Posts", value: "5K+" },
-                  { label: "Active Groups", value: "200+" },
-                  { label: "Monthly Events", value: "50+" },
-                  { label: "Success Stories", value: "2K+" }
-                ].map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                    <div className="text-sm text-white/80">{stat.label}</div>
-                  </div>
-                ))}
               </div>
             </div>
           </motion.div>
@@ -632,17 +588,17 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
-      
-        
-          
-          <div className=" flex flex-col md:flex-row justify-between items-center">
-            
-            <div className="text-gray-400 mb-4 md:mb-0">
-                      <div>
+
+
+
+        <div className=" flex flex-col md:flex-row justify-between items-center">
+
+          <div className="text-gray-400 mb-4 md:mb-0">
+            <div>
               <div className="flex items-center gap-3 mb-6">
-                <img 
-                  src={PrithuLogo} 
-                  alt="PRITHU Logo" 
+                <img
+                  src={PrithuLogo}
+                  alt="PRITHU Logo"
                   className="w-12 h-12 object-contain"
                 />
                 <span className="text-2xl font-bold">PRITHU</span>
@@ -651,18 +607,18 @@ const LandingPage = () => {
                 The ultimate platform for career growth, community building, and professional development.
               </p>
             </div>
-              © {new Date().getFullYear()} PRITHU. All rights reserved.
-            </div>
-            
-            <div className="flex items-center gap-6">
-              {[Facebook, Twitter, Instagram, Linkedin].map((Icon, index) => (
-                <a key={index} href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <Icon className="w-5 h-5" />
-                </a>
-              ))}
-            </div>
+            © {new Date().getFullYear()} PRITHU. All rights reserved.
           </div>
-      
+
+          <div className="flex items-center gap-6">
+            {[Facebook, Twitter, Instagram, Linkedin].map((Icon, index) => (
+              <a key={index} href="#" className="text-gray-400 hover:text-white transition-colors">
+                <Icon className="w-5 h-5" />
+              </a>
+            ))}
+          </div>
+        </div>
+
       </footer>
     </div>
   );

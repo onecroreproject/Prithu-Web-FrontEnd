@@ -1,4 +1,4 @@
-// ✅ src/hook/userProfile.js
+// ✅ src/hooks/userProfile.js
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getUserCurriculamProfile,

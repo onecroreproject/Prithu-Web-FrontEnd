@@ -15,8 +15,6 @@ import {
   Image,
   Video,
   MapPin,
-  Building,
-  DollarSign,
 } from "lucide-react";
 import api from "../../api/axios";
 import Postcard from "../FeedPageComponent/Postcard";
@@ -35,7 +33,6 @@ const SearchResultsScreen = () => {
   const [results, setResults] = useState({
     categories: [],
     people: [],
-    jobs: [],
     feeds: [],
     all: [],
   });
@@ -119,7 +116,6 @@ const SearchResultsScreen = () => {
         setResults({
           categories: [],
           people: [],
-          jobs: [],
           feeds: [],
           all: [],
         });
@@ -137,7 +133,6 @@ const SearchResultsScreen = () => {
           const {
             categories = [],
             people = [],
-            jobs = [],
             feeds = [],
           } = response.data;
 
@@ -145,14 +140,12 @@ const SearchResultsScreen = () => {
           const allCombined = [
             ...categories.map((c) => ({ ...c, __type: "category" })),
             ...people.map((p) => ({ ...p, __type: "person" })),
-            ...jobs.map((j) => ({ ...j, __type: "job" })),
             ...feeds.map((f) => ({ ...f, __type: "feed" })),
           ];
 
           setResults({
             categories,
             people,
-            jobs,
             feeds,
             all: allCombined,
           });
@@ -163,7 +156,6 @@ const SearchResultsScreen = () => {
           setResults({
             categories: [],
             people: [],
-            jobs: [],
             feeds: [],
             all: [],
           });
@@ -207,7 +199,6 @@ const SearchResultsScreen = () => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleSearchSubmit();
-      setShowSuggestions(false);
     }
   };
 
@@ -245,13 +236,6 @@ const SearchResultsScreen = () => {
       color: "purple",
     },
     {
-      id: "jobs",
-      label: "Jobs",
-      icon: Briefcase,
-      count: results.jobs.length,
-      color: "orange",
-    },
-    {
       id: "feeds",
       label: "Posts",
       icon: Folder,
@@ -274,27 +258,27 @@ const SearchResultsScreen = () => {
             {/* Search Bar */}
             <div className="flex gap-35 items-center justify-center">
               <div className="flex items-center gap-2 ">
-              <div>
-                <motion.div
-                  onClick={handleHome}
-                  whileHover={{ rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <img
-                    src={PrithuLogo}
-                    alt="Prithu Logo"
-                    className="w-16 h-15 transition-transform duration-200 hover:scale-105"
-                  />
+                <div>
+                  <motion.div
+                    onClick={handleHome}
+                    whileHover={{ rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <img
+                      src={PrithuLogo}
+                      alt="Prithu Logo"
+                      className="w-16 h-15 transition-transform duration-200 hover:scale-105"
+                    />
 
-           
-                </motion.div>
-              </div>
-               <motion.h1 
-              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
-              whileHover={{ scale: 1.05 }}
-            >
-              PRITHU
-            </motion.h1>
+
+                  </motion.div>
+                </div>
+                <motion.h1
+                  className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  PRITHU
+                </motion.h1>
               </div>
               <div className="flex-1 max-w-8xl">
                 <div className="relative" ref={suggestionsRef}>
@@ -307,7 +291,7 @@ const SearchResultsScreen = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={handleInputFocus}
                       onKeyDown={handleKeyDown}
-                      placeholder="Search people, hashtags, jobs, posts..."
+                      placeholder="Search people, hashtags, posts..."
                       className="w-[700px] pl-12 pr-12 py-3 border-2 border-green-300 rounded-2xl focus:ring-4 focus:ring-green-200 focus:border-green-500 bg-white/80 backdrop-blur-sm outline-none transition-all duration-300 text-lg shadow-sm hover:shadow-md"
                     />
 
@@ -425,18 +409,16 @@ const SearchResultsScreen = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 group ${
-                          activeTab === tab.id
-                            ? "bg-green-50 border-2 border-green-200 shadow-sm"
-                            : "hover:bg-gray-50 border-2 border-transparent"
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 group ${activeTab === tab.id
+                          ? "bg-green-50 border-2 border-green-200 shadow-sm"
+                          : "hover:bg-gray-50 border-2 border-transparent"
+                          }`}
                       >
                         <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            activeTab === tab.id
-                              ? "bg-green-100 text-green-600"
-                              : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
-                          }`}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${activeTab === tab.id
+                            ? "bg-green-100 text-green-600"
+                            : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                            }`}
                         >
                           <tab.icon className="w-5 h-5" />
                         </div>
@@ -445,11 +427,10 @@ const SearchResultsScreen = () => {
                             {tab.label}
                           </div>
                           <div
-                            className={`text-sm ${
-                              activeTab === tab.id
-                                ? "text-green-600"
-                                : "text-gray-500"
-                            }`}
+                            className={`text-sm ${activeTab === tab.id
+                              ? "text-green-600"
+                              : "text-gray-500"
+                              }`}
                           >
                             {tab.count} results
                           </div>
@@ -483,12 +464,6 @@ const SearchResultsScreen = () => {
                           <span>Hashtags</span>
                           <span className="font-medium">
                             {results.categories.length}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-gray-600">
-                          <span>Jobs</span>
-                          <span className="font-medium">
-                            {results.jobs.length}
                           </span>
                         </div>
                         <div className="flex justify-between text-gray-600">
@@ -578,7 +553,7 @@ const renderContent = ({
           Start Exploring
         </h3>
         <p className="text-gray-500 text-lg max-w-md mx-auto">
-          Enter a search term to discover people, hashtags, jobs, and posts
+          Enter a search term to discover people, hashtags, and posts
         </p>
       </div>
     );
@@ -611,9 +586,6 @@ const renderContent = ({
           {activeTab === "categories" && (
             <Hash className="w-6 h-6 text-gray-400" />
           )}
-          {activeTab === "jobs" && (
-            <Briefcase className="w-6 h-6 text-gray-400" />
-          )}
           {activeTab === "feeds" && (
             <Folder className="w-6 h-6 text-gray-400" />
           )}
@@ -636,8 +608,6 @@ const renderContent = ({
       return <PeopleResults results={currentResults} />;
     case "categories":
       return <CategoriesResults results={currentResults} />;
-    case "jobs":
-      return <JobsResults results={currentResults} />;
     case "feeds":
       return <FeedsResults results={currentResults} />;
     default:
@@ -683,28 +653,12 @@ const AllResults = ({ results }) => (
       </section>
     )}
 
-    {results.jobs.length > 0 && (
-      <section className="flex bg-white flex-col w-[80%] p-4">
-        <div className="flex items-center gap-3 mb-6">
-          <Briefcase className="w-6 h-6 text-orange-600" />
 
-          <div>
-            <h2 className="text- font-bold text-gray-900">Jobs</h2>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          {results.jobs.slice(0, 4).map((job) => (
-            <JobCard key={job._id} job={job} />
-          ))}
-        </div>
-      </section>
-    )}
 
     {results.feeds.length > 0 && (
       <section className="flex flex-col  rounded-lg w-[80%] p-4">
         <div className="flex items-center gap-3 mb-6">
           <Folder className="w-6 h-6 text-pink-600" />
-
           <div>
             <h2 className="text-xl font-bold text-gray-900">Posts</h2>
           </div>
@@ -735,13 +689,6 @@ const CategoriesResults = ({ results }) => (
   </div>
 );
 
-const JobsResults = ({ results }) => (
-  <div className="space-y-4">
-    {results.map((job) => (
-      <JobCard key={job._id} job={job} />
-    ))}
-  </div>
-);
 
 const FeedsResults = ({ results }) => (
   <div className="space-y-6">
@@ -853,78 +800,6 @@ const CategoryCard = ({ category }) => {
   );
 };
 
-const JobCard = ({ job }) => {
-  const navigate = useNavigate();
-
-  const handleViewJob = (e) => {
-    e.stopPropagation();
-
-    const jobId = job._id || job.id || job.jobId;
-    if (!jobId) {
-      console.error("❌ No jobId found:", job);
-      return;
-    }
-
-    // Preserve other URL parameters if they exist
-    const currentParams = new URLSearchParams(window.location.search);
-    currentParams.set("jobId", jobId);
-
-    navigate(`/jobs?${currentParams.toString()}`);
-  };
-
-  return (
-    <motion.div
-      whileHover={{ scale: 1.01, y: -1 }}
-      className="p-6 bg-white rounded-lg shadow-sm hover:shadow-md cursor-pointer border border-gray-100 transition-shadow duration-200"
-      onClick={handleViewJob}
-    >
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">
-            {job.jobTitle || job.title || job.jobRole || "Untitled Job"}
-          </h3>
-
-          <div className="flex items-center gap-2 mb-3">
-            <Briefcase className="w-4 h-4 text-gray-500" />
-            <p className="text-gray-700 font-medium">
-              {job.companyName || job.company || "Unknown Company"}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1 text-gray-500 text-sm mb-4">
-            <MapPin className="w-4 h-4" />
-            <span>
-              {job.city || job.location || job.country || "Location not set"}
-            </span>
-          </div>
-        </div>
-
-        <div className="text-right">
-          {job.salaryMin && job.salaryMax && (
-            <div className="text-lg font-semibold text-green-600">
-              ${job.salaryMin.toLocaleString()} - $
-              {job.salaryMax.toLocaleString()}
-            </div>
-          )}
-          <div className="text-sm text-gray-500 mt-1">
-            {job.employmentType || "Full-time"}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">
-            Posted {new Date(job.createdAt).toLocaleDateString()}
-          </span>
-        </div>
-        <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-          View Details →
-        </button>
-      </div>
-    </motion.div>
-  );
-};
 
 // FeedCard with single column layout
 const FeedCard = ({ feed }) => {

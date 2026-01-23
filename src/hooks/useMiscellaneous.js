@@ -17,22 +17,6 @@ export function useBirthdays() {
     });
 }
 
-/**
- * Fetch upcoming events
- */
-export function useUpcomingEvents(token) {
-    return useQuery({
-        queryKey: ['upcomingEvents', token],
-        queryFn: async () => {
-            const { data } = await api.get('/api/get/upcoming/events', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            return data.events || [];
-        },
-        enabled: !!token,
-        staleTime: 10 * 60 * 1000,
-    });
-}
 
 /**
  * Fetch all categories

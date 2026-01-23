@@ -8,7 +8,7 @@ import {
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { useUserProfile } from "../../hook/userProfile";
+import { useUserProfile } from "../../hooks/userProfile";
 import {
   updateCoverPhoto,
   updateProfileAvatar,
@@ -18,16 +18,16 @@ import { getCroppedImg } from "../../components/ProfileHeaderComponent/ImageCrop
 import defaultAvatars from "../../assets/user.png";
 import { useNavigate } from "react-router-dom";
 
-const defaultBanner =defaultAvatars
- 
-const defaultAvatar =defaultAvatars
- 
+const defaultBanner = defaultAvatars
+
+const defaultAvatar = defaultAvatars
+
 
 export default function ProfileHeader({ id }) {
   const { token } = useAuth();
   const { data: user, isLoading, refetch } = useUserProfile(token, id);
   const currentUser = localStorage.getItem("userId");
-  const navigate=useNavigate()
+  const navigate = useNavigate()
   const [bannerUrl, setBannerUrl] = useState(defaultBanner);
   const [profileUrl, setProfileUrl] = useState(defaultAvatar);
 
@@ -59,7 +59,7 @@ export default function ProfileHeader({ id }) {
     if (user) {
       setBannerUrl(user.coverPhoto || defaultBanner);
       setProfileUrl(user.profileAvatar || defaultAvatar);
-      
+
       const serverFollowersCount =
         user.followersCount ?? (user.followers ? user.followers.length : 0);
       setFollowersCount(serverFollowersCount);
@@ -105,7 +105,7 @@ export default function ProfileHeader({ id }) {
         { userId: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       toast.success("Followed successfully!");
       await refetch();
     } catch (err) {
@@ -150,7 +150,7 @@ export default function ProfileHeader({ id }) {
   // Open crop modal
   const openCropModal = (file, type) => {
     if (!isOwnProfile) return;
-    
+
     const imageURL = URL.createObjectURL(file);
     setImageToCrop(imageURL);
     setCropFor(type);
@@ -213,7 +213,7 @@ export default function ProfileHeader({ id }) {
 
       <div className="w-full bg-white overflow-hidden rounded-b-2xl shadow">
         {/* Banner Section */}
-       <motion.div className="relative bg-gradient-to-r from-blue-500 to-purple-600 overflow-hidden">
+        <motion.div className="relative bg-gradient-to-r from-blue-500 to-purple-600 overflow-hidden">
           <div className="aspect-[3/1] min-h-[160px] max-h-full w-full">
             <img
               src={bannerUrl}
@@ -292,7 +292,7 @@ export default function ProfileHeader({ id }) {
               {/* Mobile Follow Section */}
               {!isOwnProfile && currentUser !== id && (
                 <div className="flex items-center gap-4 mt-3 sm:hidden">
-                  
+
 
                   <div>
                     {isFollowing ? (
@@ -320,7 +320,7 @@ export default function ProfileHeader({ id }) {
             {/* Desktop Follow Section */}
             {!isOwnProfile && currentUser !== id && (
               <div className="hidden sm:flex flex-col items-end gap-2">
-               
+
                 {isFollowing ? (
                   <button
                     onClick={handleUnfollow}

@@ -35,7 +35,6 @@ import HeroSection from "./heroSection";
 import StatsBar from "./statusBar";
 import ServicesSection from "./serviceSection";
 import SkillSetSection from "./skillSetSection";
-import PortfolioUnderConstruction from "../../UnderConstructionPages/portfolioUnderConstruction";
 
 export default function PortfolioLayout() {
   const { username } = useParams();
@@ -52,11 +51,11 @@ export default function PortfolioLayout() {
     const fetchPortfolio = async () => {
       try {
         const { data } = await api.get(`/api/user/portfolio/${username}`);
-        
+
         if (data.success) {
           setPortfolioData(data.data);
           setIsPublished(data.data?.profileSettings?.isPublished || false);
-          
+
           // Check if user is authorized (has token OR portfolio is published)
           if (token || data.data?.profileSettings?.isPublished) {
             setIsAuthorized(true);
@@ -77,20 +76,6 @@ export default function PortfolioLayout() {
     if (username) fetchPortfolio();
   }, [username, token]);
 
-  // Process aptitude tests to show only highest score per test
-  const processedAptitudeTests = useMemo(() => {
-    if (!portfolioData?.aptitudeTests) return [];
-    
-    const testMap = new Map();
-    portfolioData.aptitudeTests.forEach(test => {
-      const existing = testMap.get(test.testName);
-      if (!existing || test.score > existing.score) {
-        testMap.set(test.testName, test);
-      }
-    });
-    
-    return Array.from(testMap.values());
-  }, [portfolioData?.aptitudeTests]);
 
   // ✅ Loading State
   if (loading)
@@ -125,16 +110,16 @@ export default function PortfolioLayout() {
 
             {/* Title */}
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              {isPublished 
-                ? "Portfolio Preview Restricted" 
+              {isPublished
+                ? "Portfolio Preview Restricted"
                 : "Portfolio Under Construction"}
             </h2>
 
             {/* Message */}
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              {isPublished 
-                ? token 
-                  ? "Loading your portfolio..." 
+              {isPublished
+                ? token
+                  ? "Loading your portfolio..."
                   : "This portfolio is currently private. Please log in to view it."
                 : "This portfolio is not yet published. The owner is still working on it."}
             </p>
@@ -202,7 +187,7 @@ export default function PortfolioLayout() {
             {/* Footer Note */}
             <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {isPublished 
+                {isPublished
                   ? "Want to share your work privately? Create your portfolio on Prithu."
                   : "Build your professional portfolio with Prithu - Showcase your skills and achievements"}
               </p>
@@ -216,11 +201,13 @@ export default function PortfolioLayout() {
   // ✅ Not Found State (Authorized but no data)
   if (!portfolioData)
     return (
-      <PortfolioUnderConstruction username={username} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-500">Portfolio under construction</p>
+      </div>
     );
 
   const { user, profileSettings, curriculum } = portfolioData;
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       {/* Private Badge for unpublished but owner viewing */}
@@ -238,8 +225,8 @@ export default function PortfolioLayout() {
       )}
 
       {/* 🎨 Hero Section */}
-      <HeroSection 
-        user={user} 
+      <HeroSection
+        user={user}
         profileSettings={profileSettings}
         curriculum={curriculum}
         shareableLink={profileSettings?.shareableLink}
@@ -252,9 +239,9 @@ export default function PortfolioLayout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Sidebar */}
           <div className="lg:col-span-1">
-            <PortfolioSidebar 
-              user={user} 
-              profileSettings={profileSettings} 
+            <PortfolioSidebar
+              user={user}
+              profileSettings={profileSettings}
               curriculum={curriculum}
               shareableLink={profileSettings?.shareableLink}
               isPublished={isPublished}
@@ -264,7 +251,7 @@ export default function PortfolioLayout() {
           {/* Right Column - Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Stats Section */}
-            <StatsBar 
+            <StatsBar
               experience={curriculum?.experience || []}
               projects={curriculum?.projects || []}
               skills={curriculum?.skills || []}
@@ -273,72 +260,17 @@ export default function PortfolioLayout() {
             />
 
             {/* Profile Summary Section */}
-            <ServicesSection 
+            <ServicesSection
               profileSettings={profileSettings}
               curriculum={curriculum}
               projects={curriculum?.projects || []}
               isPublished={isPublished}
             />
 
-            {/* Aptitude Tests Section */}
-            {processedAptitudeTests.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      Aptitude Tests
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Highest scores achieved
-                    </p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-blue-500" />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {processedAptitudeTests.map((test, index) => (
-                    <div
-                      key={test._id}
-                      className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">
-                            {test.testName}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Score: {test.score}%
-                          </p>
-                        </div>
-                        <div className="bg-white dark:bg-gray-700 rounded-lg px-3 py-1">
-                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                            {test.score}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full"
-                            style={{ width: `${test.score}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
 
             {/* Skills Section */}
-            <SkillSetSection 
-              skills={curriculum?.skills || []} 
+            <SkillSetSection
+              skills={curriculum?.skills || []}
               isPublished={isPublished}
             />
 
@@ -354,7 +286,7 @@ export default function PortfolioLayout() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
                   Technical Expertise
                 </h2>
-                
+
                 <div className="flex flex-wrap gap-3 justify-center">
                   {curriculum.skills.map((skill, index) => (
                     <motion.div
@@ -421,7 +353,7 @@ export default function PortfolioLayout() {
                           </a>
                         )}
                       </div>
-                      
+
                       <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
                         {project.description}
                       </p>
@@ -521,7 +453,7 @@ export default function PortfolioLayout() {
                     Certifications
                   </h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {curriculum.certifications.map((cert, index) => (
                     <div
@@ -619,7 +551,7 @@ export default function PortfolioLayout() {
                 )}
               </p>
             </div>
-            
+
             <div className="flex items-center gap-4">
               {user?.email && (
                 <a
@@ -630,7 +562,7 @@ export default function PortfolioLayout() {
                   <span className="hidden sm:inline">Contact</span>
                 </a>
               )}
-              
+
               <div className="text-gray-400">
                 Portfolio powered by Prithu
               </div>

@@ -3,7 +3,7 @@ import { useAuth } from "../../../context/AuthContext";
 import {
   useUserCurriculamProfile,
   useProfileMutations,
-} from "../../../hook/userProfile";
+} from "../../../hooks/userProfile";
 import {
   PlusCircle,
   Pencil,

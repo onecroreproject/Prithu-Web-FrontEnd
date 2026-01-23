@@ -6,7 +6,6 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Context
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import { CompanyProvider } from "./context/CompanyContext.jsx";
 import { UserStatusProvider } from "./context/userContext.jsx";
 
 // Protected Route
@@ -31,23 +30,11 @@ import PortfolioLayout from "./components/User_PrortFolio/portFolioLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
 import PostDetails from "./components/FeedPageComponent/postView.jsx";
 import SingleUserProfilelayout from "./components/SingleUserProfileViewComponent/singleProfileLayout.jsx";
-import SearchJobDetailsPopup from "./components/Jobs/JobCardComponets/searchBarJobPop-up.jsx";
 import RegisterForm from "./components/LoginPageComponents/forms/registerForm.jsx";
 import UserActivity from "./components/UserActivity/userActivity.jsx";
 import Feed from "./pages/Feed.jsx";
 import SearchResultsScreen from "./components/SearchComponent/mainLayout.jsx";
-import UpcomingEvents from "./components/UpcomingEvents.jsx";
-import JobDomainPage from "./components/Jobs/HeaderJobs/JobDomainPage.jsx";
-import JobsHomePage from "./components/Jobs/HeaderJobs/JobLayout.jsx";
-import CompanyLogin from "./components/CompanyLoginComponents/mainLoginLayout.jsx";
-import JobPageWrapper from "./components/Jobs/HeaderJobs/jobPageWraper.jsx";
-import CompanyDashboard from "./Company/Home/companyLayout.jsx";
-import JobPostingForm from "./Company/Home/companyLayoutComponent/tabComponent/createTabComponent/JobApplication.jsx";
-import JobApplicationPage from "./components/Jobs/HeaderJobs/appliedPagePop-up.jsx";
-import AptitudeTest from "./components/Aptitude/aptitudeMainLayout.jsx";
-import CompanyProfile from "./Company/Home/companyProfile.jsx";
 import LandingPage from "./pages/mainHome.jsx";
-import AppliedJobs from "./pages/userJobApplication/userAppliedJobs.jsx";
 import HelpPageLayout from "./pages/HelpPageLayout.jsx";
 import FAQPage from "./pages/HelpPageLayout.jsx";
 import FeedbackSupportPage from "./pages/FeedbackSupportPage.jsx";
@@ -88,23 +75,10 @@ function AppRoutes() {
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
       <Route path="/home/user/profile/:id" element={<SingleUserProfilelayout />} />
-      <Route path="/job/view/:id" element={<SearchJobDetailsPopup />} />
       <Route path="/create/account" element={<RegisterForm />} />
       <Route path="/search" element={<SearchResultsScreen />} />
-      <Route path="/event" element={<UpcomingEvents />} />
-      <Route path="/jobs/:domain" element={<JobDomainPage />} />
-      <Route path="/jobs" element={<JobsHomePage />} />
-      <Route path="/company/login" element={<CompanyLogin />} />
-      <Route path="/company/home" element={<CompanyDashboard />} />
-      <Route path="/job/:id" element={<JobPageWrapper />} />
-      <Route path="/jobs/create" element={<JobPostingForm />} />
-      <Route path="/jobs/edit/:id" element={<JobPostingForm />} />
-      <Route path="/job/apply/:jobId" element={<JobApplicationPage />} />
-      <Route path="/aptitude" element={<AptitudeTest />} />
       <Route path="/post/:id" element={<PostDetails />} />
-      <Route path="/company/:companyId" element={<CompanyProfile />} />
-      <Route path="/jobs/applied/jobs" element={<AppliedJobs/>} />
-      
+
 
       {/* ================= PROTECTED ROUTES ================= */}
       <Route
@@ -137,8 +111,8 @@ function AppRoutes() {
         </Route>
 
         {/* Help */}
-        <Route path="help" element={<FAQPage/>} />
-        <Route path="feedback-support" element={<FeedbackPage/>} />
+        <Route path="help" element={<FAQPage />} />
+        <Route path="feedback-support" element={<FeedbackPage />} />
       </Route>
 
       {/* Shared Post */}
@@ -161,14 +135,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <CompanyProvider>
-          <AuthProvider>
-            <UserStatusProvider>
-              <AppRoutes />
-              <Toaster position="top-right" />
-            </UserStatusProvider>
-          </AuthProvider>
-        </CompanyProvider>
+        <AuthProvider>
+          <UserStatusProvider>
+            <AppRoutes />
+            <Toaster position="top-right" />
+          </UserStatusProvider>
+        </AuthProvider>
       </Router>
 
       <ReactQueryDevtools initialIsOpen={false} />

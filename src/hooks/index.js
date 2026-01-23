@@ -14,7 +14,6 @@ export * from './useSearch';
 export * from './useProfileData';
 
 // Phase 3: Jobs & Miscellaneous
-export * from './useJobs';
 export * from './useMiscellaneous';
 
 // Existing hooks (if any)

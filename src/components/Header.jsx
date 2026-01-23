@@ -9,31 +9,21 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
-  BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase, Activity, Users, Brain, Building, Users as CommunityIcon,
-  TrendingUp, Clock, GraduationCap, HelpCircle, MessageSquare, Flag
+  BellRing, Home, User, Settings, LogOut, Plus, Menu, X, Search,
+  Gift, Activity, HelpCircle, MessageSquare
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import api from "../api/axios";
-import CreatePostModal from "../components/CreatePostModal";
-import UpcomingEvents from "../components/UpcomingEvents";
 import { useAuth } from "../context/AuthContext";
-import { useCompany } from "../context/CompanyContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
 
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
-
-// Import Popup Components - FIXED IMPORT NAMES
-import CommunityPopup from "../UnderConstructionPages/commmunity";
-import LearningPopup from "../UnderConstructionPages/learning";
-import EventsPopup from "../UnderConstructionPages/commmunity";
-import ReferralPopup from "../UnderConstructionPages/referralCommigSoon";
-import SubscriptionPopup from "../UnderConstructionPages/subcriptionCommingSoon";
+import ComingSoonPopup from "./ComingSoonPopup";
 
 // Import User Feedback and Report Pages
 import UserFeedbackPage from "../components/UserFeedbackPage";
@@ -45,7 +35,6 @@ const MAX_HISTORY = 12;
 
 export default function Header() {
   const { user, token, logout, fetchUserProfile } = useAuth();
-  const { company, loading: companyLoading } = useCompany();
   const navigate = useNavigate();
 
   // Notification count from React Query hook
@@ -56,14 +45,11 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
-  
+
   // Popup States
-  const [showCommunityPopup, setShowCommunityPopup] = useState(false);
-  const [showLearningPopup, setShowLearningPopup] = useState(false);
-  const [showEventsPopup, setShowEventsPopup] = useState(false);
-  const [showReferralPopup, setShowReferralPopup] = useState(false); // NEW
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false); // NEW
-  
+  const [showReferralPopup, setShowReferralPopup] = useState(false);
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
+
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({
@@ -81,7 +67,7 @@ export default function Header() {
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Enhanced navItems with icons - UPDATED WITH onClick HANDLERS
+  // Enhanced navItems with icons
   const navItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
     { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
@@ -93,8 +79,7 @@ export default function Header() {
       Icon: BellRing,
       desc: "Manage subscriptions",
       onClick: (e) => {
-        e.preventDefault(); // Prevent navigation
-        console.log("Subscriptions clicked - opening popup");
+        e.preventDefault();
         setShowSubscriptionPopup(true);
         closeAll();
       }
@@ -105,8 +90,7 @@ export default function Header() {
       Icon: Gift,
       desc: "Referral program",
       onClick: (e) => {
-        e.preventDefault(); // Prevent navigation
-        console.log("Referral clicked - opening popup");
+        e.preventDefault();
         setShowReferralPopup(true);
         closeAll();
       }
@@ -167,43 +151,16 @@ export default function Header() {
   const handleReelClick = () => {
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
-
-    // 1️⃣ Navigate to home
     navigate("/home");
-
-    // 2️⃣ Then trigger reels state AFTER home loads
     setTimeout(() => {
       window.dispatchEvent(
         new CustomEvent("toggleReels", { detail: { isActive: nextState } })
       );
-    }, 50); // small delay is enough
-  };
-
-  const handleEventsClick = () => {
-    setShowEventsPopup(true);
-    closeAll();
-  };
-
-  const handleJobsClick = () => {
-    navigate("/jobs");
+    }, 50);
   };
 
   const handlePortfolioClick = () => {
     window.open(`/portfolio/${user?.userName || ""}`, "_blank", "noopener,noreferrer");
-  };
-
-  const handleCommunityClick = () => {
-    setShowCommunityPopup(true);
-    closeAll();
-  };
-
-  const handleAptitudeClick = () => {
-    navigate("/aptitude");
-  };
-
-  const handleLearningClick = () => {
-    setShowLearningPopup(true);
-    closeAll();
   };
 
   const closeAll = () => {
@@ -389,8 +346,8 @@ export default function Header() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        {/* Left Section: Logo + Search */}
-        <div className="flex items-center gap-3 md:gap-6 flex-1">
+        {/* Left Section: Logo */}
+        <div className="flex items-center gap-3 md:gap-4 shrink-0">
           {/* Logo */}
           <div
             onClick={() => {
@@ -401,119 +358,73 @@ export default function Header() {
                 navigate("/home");
               }
             }}
-            className="flex items-center gap-2 cursor-pointer group shrink-0"
+            className="flex items-center gap-2 cursor-pointer group"
           >
             <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
               <img
-                src={company?.logo || PrithuLogo}
-                alt={`${company?.name || 'Prithu'} Logo`}
+                src={PrithuLogo}
+                alt="Prithu Logo"
                 className="w-8 h-8 md:w-9 md:h-9 transition-transform duration-200 group-hover:scale-105"
               />
             </motion.div>
             <motion.h1
-              className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+              className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent hidden md:block"
               whileHover={{ scale: 1.05 }}
             >
-              {company?.name || 'PRITHU'}
+              PRITHU
             </motion.h1>
-          </div>
-
-          {/* Desktop Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-xl lg:max-w-2xl">
-            <SearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleKeyDown={handleKeyDown}
-              debouncedSearch={debouncedSearch}
-              loadHistory={loadHistory}
-              setShowSearchDropdown={setShowSearchDropdown}
-              showSearchDropdown={showSearchDropdown}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              trending={trending}
-              history={history}
-              clearHistory={clearHistory}
-              handleTrendingClick={handleTrendingClick}
-              handleHistoryClick={handleHistoryClick}
-              scoredResults={scoredResults}
-              handleSelectResult={handleSelectResult}
-              searchRef={searchRef}
-            />
           </div>
         </div>
 
-        {/* Center Section: Navigation Icons */}
-        <div className="hidden lg:flex items-center justify-center gap-1 mx-4">
-          {[
-            { Icon: Briefcase, label: "Jobs", onClick: handleJobsClick },
-            { Icon: User, label: "Portfolio", onClick: handlePortfolioClick },
-            { 
-              Icon: GraduationCap, 
-              label: "Learning", 
-              onClick: handleLearningClick,
-              comingSoon: true 
-            },
-            { 
-              Icon: CommunityIcon, 
-              label: "Community", 
-              onClick: handleCommunityClick,
-              comingSoon: true 
-            },
-            { 
-              Icon: Brain, 
-              label: "Aptitude", 
-              onClick: handleAptitudeClick
-            },
-            { 
-              Icon: Calendar, 
-              label: "Events", 
-              onClick: handleEventsClick,
-              comingSoon: true 
-            }
-          ].map((item, index) => (
-            <motion.button
-              key={item.label}
-              onClick={item.onClick}
-              className="flex flex-col items-center px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-blue-50 group relative"
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <div className="relative">
-                <item.Icon className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-xs mt-1 text-gray-600 group-hover:text-blue-700 font-medium transition-colors">
-                  {item.label}
-                </span>
-              </div>
-            </motion.button>
-          ))}
+        {/* Center Section: Search Bar - Now takes more space */}
+        <div className="flex-1 flex justify-center px-2 md:px-4">
+          <div className="w-full max-w-2xl lg:max-w-3xl">
+            <div className="hidden md:block">
+              <SearchBar
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleKeyDown={handleKeyDown}
+                debouncedSearch={debouncedSearch}
+                loadHistory={loadHistory}
+                setShowSearchDropdown={setShowSearchDropdown}
+                showSearchDropdown={showSearchDropdown}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                trending={trending}
+                history={history}
+                clearHistory={clearHistory}
+                handleTrendingClick={handleTrendingClick}
+                handleHistoryClick={handleHistoryClick}
+                scoredResults={scoredResults}
+                handleSelectResult={handleSelectResult}
+                searchRef={searchRef}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Right Section: Actions & Profile */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {/* Mobile search button */}
-          <button 
-            onClick={() => setMobileSearchOpen(true)} 
-            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden transition-colors"
+          <button
+            onClick={() => setMobileSearchOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 md:hidden transition-colors"
             aria-label="Search"
           >
             <Search className="w-5 h-5 text-blue-600" />
           </button>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-3">
             {/* Create Post */}
             <motion.button
               onClick={() => setIsCreatePostOpen(true)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm"
             >
               <Plus className="w-4 h-4" />
+              <span className="text-sm font-medium">Create</span>
             </motion.button>
 
             {/* Notification */}
@@ -523,7 +434,7 @@ export default function Header() {
                 className={`relative p-2.5 rounded-lg transition-all duration-200 ${notifOpen
                   ? "bg-blue-100 ring-2 ring-blue-200"
                   : "hover:bg-gray-100"
-                }`}
+                  }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -540,11 +451,22 @@ export default function Header() {
               </motion.button>
             </div>
 
+            {/* Portfolio Button (Desktop) */}
+            <motion.button
+              onClick={handlePortfolioClick}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <User className="w-5 h-5 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Portfolio</span>
+            </motion.button>
+
             {/* Profile Dropdown */}
             <div ref={dropdownRef} className="relative">
               <motion.button
                 onClick={() => setDropdownOpen(p => !p)}
-                className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-gray-100"
+                className="flex items-center gap-2 pl-1 pr-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-gray-100"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -650,15 +572,15 @@ export default function Header() {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex md:hidden items-center gap-2">
             {/* Notification for mobile */}
             <div ref={notificationRef} className="relative">
               <motion.button
                 onClick={handleBellClick}
-                className={`relative p-2 rounded-lg transition-all ${notifOpen 
-                  ? "bg-blue-100 ring-2 ring-blue-200" 
+                className={`relative p-2 rounded-lg transition-all ${notifOpen
+                  ? "bg-blue-100 ring-2 ring-blue-200"
                   : "hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
                 {notifCount > 0 && (
@@ -685,7 +607,7 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* Notification Dropdown - Always rendered for both desktop and mobile */}
+      {/* Notification Dropdown */}
       <NotificationDropdown
         isOpen={notifOpen}
         onClose={() => setNotifOpen(false)}
@@ -701,7 +623,7 @@ export default function Header() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 lg:hidden"
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 md:hidden"
           >
             {/* Mobile Menu Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
@@ -733,6 +655,16 @@ export default function Header() {
                 >
                   <Plus className="w-5 h-5" />
                   <span className="text-sm">Create Post</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handlePortfolioClick();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex flex-col items-center gap-2 p-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
+                >
+                  <User className="w-5 h-5" />
+                  <span className="text-sm">Portfolio</span>
                 </button>
               </div>
 
@@ -780,52 +712,6 @@ export default function Header() {
                 ))}
               </div>
 
-              {/* Quick Navigation */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Quick Access</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { Icon: Briefcase, label: "Jobs", onClick: handleJobsClick },
-                    { Icon: User, label: "Portfolio", onClick: handlePortfolioClick },
-                    { 
-                      Icon: GraduationCap, 
-                      label: "Learning", 
-                      onClick: handleLearningClick,
-                      comingSoon: true 
-                    },
-                    { 
-                      Icon: CommunityIcon, 
-                      label: "Community", 
-                      onClick: handleCommunityClick,
-                      comingSoon: true 
-                    },
-                    { 
-                      Icon: Brain, 
-                      label: "Aptitude", 
-                      onClick: handleAptitudeClick
-                    },
-                    { 
-                      Icon: Calendar, 
-                      label: "Events", 
-                      onClick: handleEventsClick,
-                      comingSoon: true 
-                    }
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        item.onClick();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors relative"
-                    >
-                      <item.Icon className="w-5 h-5 text-gray-600 mb-1" />
-                      <span className="text-xs text-gray-700 font-medium">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Logout */}
               <button
                 onClick={() => {
@@ -849,7 +735,7 @@ export default function Header() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -873,51 +759,28 @@ export default function Header() {
         handleSelectResult={handleSelectResult}
       />
 
-      {/* Create Post Modal */}
-      <CreatePostModal
+      {/* Create Post Modal (You'll need to import/create this) */}
+      {/* <CreatePostModal
         open={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
+      /> */}
+
+      {/* Coming Soon Popups */}
+      <ComingSoonPopup
+        isOpen={showSubscriptionPopup}
+        onClose={() => setShowSubscriptionPopup(false)}
+        title="Subscriptions"
+        icon={BellRing}
+        description="Get exclusive access to premium content and features with our upcoming subscription plans."
       />
 
-      {/* Popup Components - CONDITIONALLY RENDERED */}
-      {showCommunityPopup && (
-        <CommunityPopup
-          isOpen={showCommunityPopup}
-          onClose={() => setShowCommunityPopup(false)}
-        />
-      )}
-
-      {showLearningPopup && (
-        <LearningPopup
-          isOpen={showLearningPopup}
-          onClose={() => setShowLearningPopup(false)}
-        />
-      )}
-
-      {showEventsPopup && (
-        <EventsPopup
-          isOpen={showEventsPopup}
-          onClose={() => setShowEventsPopup(false)}
-        />
-      )}
-
-      {/* Referral Popup */}
-      {showReferralPopup && (
-        <ReferralPopup
-          isOpen={showReferralPopup}
-          onClose={() => setShowReferralPopup(false)}
-        />
-      )}
-
-      {/* Subscription Popup */}
-      {showSubscriptionPopup && (
-        <SubscriptionPopup
-          isOpen={showSubscriptionPopup}
-          onClose={() => setShowSubscriptionPopup(false)}
-        />
-      )}
-
-
+      <ComingSoonPopup
+        isOpen={showReferralPopup}
+        onClose={() => setShowReferralPopup(false)}
+        title="Referral"
+        icon={Gift}
+        description="Share Prithu with your friends and earn rewards! Our referral program is launching soon."
+      />
     </Fragment>
   );
 }

@@ -1,26 +1,26 @@
 import React, { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
-import { useUserProfile } from "../../../hook/userProfile";
+import { useUserProfile } from "../../../hooks/userProfile";
 import { updateProfileDetails } from "../../../Service/profileService";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../api/axios";
 import debounce from "lodash.debounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit3, Save, X, User, Mail, Phone, MapPin, Calendar, Globe, Lock, Bell, Link2, ChevronDown, Eye, EyeOff, Users } from "lucide-react";
- 
+
 export default function EditProfile({ id, visibility }) {
   const { token } = useAuth();
   const { data: user, isLoading: profileLoading, refetch } = useUserProfile(token, id.id);
-  const currentUser=localStorage.getItem("userId");
+  const currentUser = localStorage.getItem("userId");
   const [isEditing, setIsEditing] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMaritalDate, setShowMaritalDate] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followStatusLoading, setFollowStatusLoading] = useState(false);
- 
-  console.log("id",visibility);
+
+  console.log("id", visibility);
   console.log(user);
   const [formData, setFormData] = useState({
     userName: "",
@@ -53,43 +53,43 @@ export default function EditProfile({ id, visibility }) {
       website: "",
     },
   });
- 
+
   const initialDataRef = useRef(JSON.stringify(formData));
- 
+
   // 🧩 Check if current user is following the profile user
-// 🧩 Check if current user is following the profile user
-useEffect(() => {
-  const checkFollowStatus = async () => {
-    // currentUser from localStorage is a string id
-    if (!id.id || !currentUser || id.id === String(currentUser)) return;
- 
-    try {
-      setFollowStatusLoading(true);
- 
-      const response = await api.post(
-        "/api/check/follow/status",
-        {
-          creatorId: id.id,                 // profile owner
-          followerId: String(currentUser) // logged-in user (string)
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
- 
-      setIsFollowing(Boolean(response.data?.isFollowing));
-    } catch (err) {
-      console.error("Error checking follow status:", err);
-    } finally {
-      setFollowStatusLoading(false);
-    }
-  };
- 
-  checkFollowStatus();
-}, [id, currentUser, token]);
- 
- 
- 
+  // 🧩 Check if current user is following the profile user
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      // currentUser from localStorage is a string id
+      if (!id.id || !currentUser || id.id === String(currentUser)) return;
+
+      try {
+        setFollowStatusLoading(true);
+
+        const response = await api.post(
+          "/api/check/follow/status",
+          {
+            creatorId: id.id,                 // profile owner
+            followerId: String(currentUser) // logged-in user (string)
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
+        setIsFollowing(Boolean(response.data?.isFollowing));
+      } catch (err) {
+        console.error("Error checking follow status:", err);
+      } finally {
+        setFollowStatusLoading(false);
+      }
+    };
+
+    checkFollowStatus();
+  }, [id, currentUser, token]);
+
+
+
   // 🧩 Prefill user data
   useEffect(() => {
     if (!user) return;
@@ -128,11 +128,11 @@ useEffect(() => {
     setShowMaritalDate(updated.maritalStatus === "Married");
     initialDataRef.current = JSON.stringify(updated);
   }, [user]);
- 
+
   useEffect(() => {
     setHasUnsavedChanges(JSON.stringify(formData) !== initialDataRef.current);
   }, [formData]);
- 
+
   // ✅ Debounced username check
   const checkUsername = useRef(
     debounce(async (username) => {
@@ -150,16 +150,16 @@ useEffect(() => {
       }
     }, 600)
   ).current;
- 
+
   // 🔧 Handlers
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (field === "userName") checkUsername(value);
   };
- 
+
   const handleMaritalStatusChange = (value) => {
     setFormData((prev) => ({ ...prev, maritalStatus: value }));
-   
+
     if (value === "Married") {
       setShowMaritalDate(true);
     } else {
@@ -167,20 +167,20 @@ useEffect(() => {
       setFormData((prev) => ({ ...prev, maritalDate: null }));
     }
   };
- 
+
   const handlePhoneChange = (field, value) => {
     if (/^\d{0,10}$/.test(value)) {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }
   };
- 
+
   const handleSocialChange = (platform, value) => {
     setFormData((prev) => ({
       ...prev,
       socialLinks: { ...prev.socialLinks, [platform]: value },
     }));
   };
- 
+
   // ✅ Mutation for update
   const mutation = useMutation({
     mutationFn: (payload) => updateProfileDetails(payload, token),
@@ -194,11 +194,11 @@ useEffect(() => {
     onError: (err) =>
       toast.error(err.response?.data?.message || "❌ Failed to update profile"),
   });
- 
+
   const handleSave = (e) => {
     e.preventDefault();
-  const payload = new FormData();
- 
+    const payload = new FormData();
+
     Object.entries(formData).forEach(([key, value]) => {
       if (key === "socialLinks") {
         payload.append("socialLinks", JSON.stringify(value));
@@ -209,17 +209,17 @@ useEffect(() => {
         );
       }
     });
- 
+
     mutation.mutate(payload);
   };
- 
+
   const handleCancel = () => {
     setFormData(JSON.parse(initialDataRef.current));
     setIsEditing(false);
     setHasUnsavedChanges(false);
     setShowMaritalDate(JSON.parse(initialDataRef.current).maritalStatus === "Married");
   };
- 
+
   if (profileLoading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -227,20 +227,20 @@ useEffect(() => {
       </div>
     );
   }
- 
+
   // 🔥 If id exists (viewing another user's profile), show view-only mode with visibility checks
- if (id.id) {
-  return (
-    <ProfileDetailsView
-      user={user}
-      visibility={id.visibility}
-      currentUserId={String(currentUser)} // localStorage id (string)
-      isFollowing={isFollowing}
-    />
-  );
-}
- 
- 
+  if (id.id) {
+    return (
+      <ProfileDetailsView
+        user={user}
+        visibility={id.visibility}
+        currentUserId={String(currentUser)} // localStorage id (string)
+        isFollowing={isFollowing}
+      />
+    );
+  }
+
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -264,7 +264,7 @@ useEffect(() => {
               </p>
             </div>
           </div>
- 
+
           {!isEditing ? (
             <button
               type="button"
@@ -288,11 +288,10 @@ useEffect(() => {
                 type="submit"
                 form="profile-form"
                 disabled={mutation.isLoading || !hasUnsavedChanges}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
-                  mutation.isLoading || !hasUnsavedChanges
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${mutation.isLoading || !hasUnsavedChanges
                     ? "bg-gray-400 text-white cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
-                }`}
+                  }`}
               >
                 <Save className="w-4 h-4" />
                 {mutation.isLoading ? "Saving..." : "Save Changes"}
@@ -301,7 +300,7 @@ useEffect(() => {
           )}
         </div>
       </div>
- 
+
       <form id="profile-form" className="p-6 space-y-8" onSubmit={handleSave}>
         {/* Personal Information Section */}
         <Section title="Personal Information" icon={User}>
@@ -321,7 +320,7 @@ useEffect(() => {
               icon={User}
             />
           </div>
-         
+
           <InputField
             label="Username"
             value={formData.userName}
@@ -329,23 +328,22 @@ useEffect(() => {
             disabled={!isEditing}
             icon={User}
           />
-         
+
           <AnimatePresence>
             {isEditing && usernameStatus && (
               <motion.p
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`text-sm font-medium ${
-                  usernameStatus.available ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-sm font-medium ${usernameStatus.available ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {usernameStatus.message}
               </motion.p>
             )}
           </AnimatePresence>
         </Section>
- 
+
         {/* Contact Information Section */}
         <Section title="Contact Information" icon={Phone}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -367,7 +365,7 @@ useEffect(() => {
             />
           </div>
         </Section>
- 
+
         {/* Location Information */}
         <Section title="Location" icon={MapPin}>
           <TextArea
@@ -394,7 +392,7 @@ useEffect(() => {
             />
           </div>
         </Section>
- 
+
         {/* Dates Section */}
         <Section title="Important Dates" icon={Calendar}>
           <div className="space-y-4">
@@ -404,7 +402,7 @@ useEffect(() => {
               onChange={(date) => handleChange("dateOfBirth", date)}
               disabled={!isEditing}
             />
- 
+
             <div className="space-y-3">
               <SelectField
                 label="Marital Status"
@@ -413,7 +411,7 @@ useEffect(() => {
                 onChange={handleMaritalStatusChange}
                 disabled={!isEditing}
               />
- 
+
               <AnimatePresence>
                 {showMaritalDate && (
                   <motion.div
@@ -434,7 +432,7 @@ useEffect(() => {
             </div>
           </div>
         </Section>
- 
+
         {/* About Section */}
         <Section title="About You" icon={User}>
           <TextArea
@@ -452,7 +450,7 @@ useEffect(() => {
             rows={3}
           />
         </Section>
- 
+
         {/* Preferences Section */}
         <Section title="Preferences" icon={Globe}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -472,8 +470,8 @@ useEffect(() => {
             />
           </div>
         </Section>
- 
- 
+
+
         {/* Privacy & Notifications */}
         <Section title="Privacy & Notifications" icon={Lock}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -500,7 +498,7 @@ useEffect(() => {
             </div>
           </div>
         </Section>
- 
+
         {/* Social Links Section */}
         <Section title="Social Media Links" icon={Link2}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -520,26 +518,26 @@ useEffect(() => {
     </motion.div>
   );
 }
- 
+
 /* 🔥 Profile Details View Component with Visibility Checks */
 /* 🔥 Profile Details View Component with Visibility Checks */
 function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing }) {
   if (!user) return null;
- 
+
   // helper: compare current user id with profile owner id (profile may have userId or _id)
   const isViewingOwnProfile = () => {
     const profileOwnerId = user.userId ? String(user.userId) : String(user._id || "");
     return Boolean(currentUserId) && String(currentUserId) === profileOwnerId;
   };
- 
+
   // 🛡️ Visibility Check Functions
   const isFieldVisible = (fieldName, fieldVisibility) => {
     // If viewing own profile, show everything
     if (isViewingOwnProfile()) return true;
- 
+
     // If visibility config missing, default to public
     const rule = fieldVisibility ?? "public";
- 
+
     switch (rule) {
       case "public":
         return true;
@@ -551,7 +549,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
         return true; // safe default
     }
   };
- 
+
   const formatDate = (dateString) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -560,41 +558,41 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
       day: "numeric",
     });
   };
- 
+
   // Check which sections have visible content (use visibility rules)
   const hasBasicInfo =
     (isFieldVisible("name", visibility?.name) && (user.name || user.lastName)) ||
     (isFieldVisible("userName", visibility?.userName) && user.userName) ||
     (isFieldVisible("bio", visibility?.bio) && user.bio) ||
     (isFieldVisible("profileSummary", visibility?.profileSummary) && user.profileSummary);
- 
+
   const hasContactInfo =
     (isFieldVisible("phoneNumber", visibility?.phoneNumber) && user.phoneNumber) ||
     (isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) && user.whatsAppNumber);
- 
+
   const hasLocationInfo =
     (isFieldVisible("address", visibility?.address) && user.address) ||
     (isFieldVisible("city", visibility?.city) && user.city) ||
     (isFieldVisible("country", visibility?.country) && user.country);
- 
+
   const hasDateInfo =
     (isFieldVisible("dateOfBirth", visibility?.dateOfBirth) && user.dateOfBirth) ||
     (isFieldVisible("maritalStatus", visibility?.maritalStatus) && user.maritalStatus) ||
     (isFieldVisible("maritalDate", visibility?.maritalDate) && user.maritalDate);
- 
+
   // Filter social links based on visibility rules inside visibility.socialLinks
   const visibleSocialLinks = user.socialLinks
     ? Object.entries(user.socialLinks)
-        .filter(([platform, value]) => {
-          // only show if value exists AND visibility setting for that platform allows it
-          const platformVisibility = visibility?.socialLinks?.[platform] ?? "public";
-          return value && isFieldVisible(platform, platformVisibility);
-        })
-        .map(([platform, value]) => ({ platform, value }))
+      .filter(([platform, value]) => {
+        // only show if value exists AND visibility setting for that platform allows it
+        const platformVisibility = visibility?.socialLinks?.[platform] ?? "public";
+        return value && isFieldVisible(platform, platformVisibility);
+      })
+      .map(([platform, value]) => ({ platform, value }))
     : [];
- 
+
   const hasSocialLinks = visibleSocialLinks.length > 0;
- 
+
   // 🔒 Privacy Notice Component
   const PrivacyNotice = ({ fieldName }) => (
     <div className="flex items-center gap-2 text-gray-400 text-sm">
@@ -608,7 +606,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
       <span>Follow to view this information</span>
     </div>
   );
- 
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -630,7 +628,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 </div>
               </div>
             )}
- 
+
             {isFieldVisible("userName", visibility?.userName) && user.userName && (
               <div className="flex items-start">
                 <User className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
@@ -640,7 +638,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 </div>
               </div>
             )}
- 
+
             {user.bio ? (
               isFieldVisible("bio", visibility?.bio) ? (
                 <div className="flex items-start">
@@ -654,7 +652,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="bio" />
               )
             ) : null}
- 
+
             {user.profileSummary ? (
               isFieldVisible("profileSummary", visibility?.profileSummary) ? (
                 <div className="flex items-start">
@@ -671,7 +669,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
           </div>
         </div>
       )}
- 
+
       {/* Contact Information */}
       {hasContactInfo && (
         <div className="mb-8">
@@ -690,7 +688,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="phoneNumber" />
               )
             ) : null}
- 
+
             {user.whatsAppNumber ? (
               isFieldVisible("whatsAppNumber", visibility?.whatsAppNumber) ? (
                 <div className="flex items-start">
@@ -707,7 +705,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
           </div>
         </div>
       )}
- 
+
       {/* Location Information */}
       {hasLocationInfo && (
         <div className="mb-8">
@@ -726,7 +724,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="address" />
               )
             ) : null}
- 
+
             {user.city ? (
               isFieldVisible("city", visibility?.city) ? (
                 <div className="flex items-start">
@@ -740,7 +738,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="city" />
               )
             ) : null}
- 
+
             {user.country ? (
               isFieldVisible("country", visibility?.country) ? (
                 <div className="flex items-start">
@@ -757,7 +755,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
           </div>
         </div>
       )}
- 
+
       {/* Important Dates */}
       {hasDateInfo && (
         <div className="mb-8">
@@ -776,7 +774,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="dateOfBirth" />
               )
             ) : null}
- 
+
             {user.maritalStatus ? (
               isFieldVisible("maritalStatus", visibility?.maritalStatus) ? (
                 <div className="flex items-start">
@@ -790,7 +788,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
                 <PrivacyNotice fieldName="maritalStatus" />
               )
             ) : null}
- 
+
             {user.maritalDate ? (
               isFieldVisible("maritalDate", visibility?.maritalDate) ? (
                 <div className="flex items-start">
@@ -807,7 +805,7 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
           </div>
         </div>
       )}
- 
+
       {/* Social Links */}
       {hasSocialLinks && (
         <div className="mb-8">
@@ -832,9 +830,9 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
           </div>
         </div>
       )}
- 
- 
-       {/* Empty State */}
+
+
+      {/* Empty State */}
       {!hasBasicInfo && !hasContactInfo && !hasLocationInfo && !hasDateInfo && !hasSocialLinks && (
         <div className="text-center py-12">
           <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -845,8 +843,8 @@ function ProfileDetailsView({ user, visibility = {}, currentUserId, isFollowing 
     </motion.div>
   );
 }
- 
- 
+
+
 /* ✅ Reusable Section Component */
 function Section({ title, icon: Icon, children }) {
   return (
@@ -863,7 +861,7 @@ function Section({ title, icon: Icon, children }) {
     </div>
   );
 }
- 
+
 /* ✅ Reusable Input Components (for edit mode) */
 function InputField({ label, value, onChange, disabled, icon: Icon, type = "text" }) {
   return (
@@ -880,19 +878,17 @@ function InputField({ label, value, onChange, disabled, icon: Icon, type = "text
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
-            Icon ? "pl-10" : ""
-          } ${
-            disabled
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${Icon ? "pl-10" : ""
+            } ${disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
               : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          }`}
+            }`}
         />
       </div>
     </div>
   );
 }
- 
+
 /* ✅ Simple Date Input Field Component */
 function DateInputField({ label, value, onChange, disabled }) {
   const formatDateForInput = (date) => {
@@ -905,12 +901,12 @@ function DateInputField({ label, value, onChange, disabled }) {
     }
     return '';
   };
- 
+
   const handleDateChange = (e) => {
     const newDate = e.target.value ? new Date(e.target.value) : null;
     onChange(newDate);
   };
- 
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -923,17 +919,16 @@ function DateInputField({ label, value, onChange, disabled }) {
           value={formatDateForInput(value)}
           onChange={handleDateChange}
           disabled={disabled}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 pl-10 ${
-            disabled
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 pl-10 ${disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
               : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          }`}
+            }`}
         />
       </div>
     </div>
   );
 }
- 
+
 function TextArea({ label, value, onChange, disabled, icon: Icon, rows = 3 }) {
   return (
     <div>
@@ -949,19 +944,17 @@ function TextArea({ label, value, onChange, disabled, icon: Icon, rows = 3 }) {
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
           disabled={disabled}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${
-            Icon ? "pl-10" : ""
-          } ${
-            disabled
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 ${Icon ? "pl-10" : ""
+            } ${disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
               : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          }`}
+            }`}
         />
       </div>
     </div>
   );
 }
- 
+
 function SelectField({ label, options, value, onChange, disabled }) {
   return (
     <div>
@@ -971,11 +964,10 @@ function SelectField({ label, options, value, onChange, disabled }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 appearance-none ${
-            disabled
+          className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 appearance-none ${disabled
               ? "bg-gray-100 text-gray-500 cursor-not-allowed"
               : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          }`}
+            }`}
         >
           {options.map((opt) => (
             <option key={opt} value={opt}>
@@ -990,8 +982,7 @@ function SelectField({ label, options, value, onChange, disabled }) {
     </div>
   );
 }
- 
+
 export { DateInputField };
- 
- 
- 
+
+

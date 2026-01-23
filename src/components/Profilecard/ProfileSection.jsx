@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
-import { useUserProfile } from "../../hook/userProfile";
+import { useUserProfile } from "../../hooks/userProfile";
 import {
   updateProfileDetails,
   updateProfileAvatar,
@@ -17,7 +17,7 @@ import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
 import ProfileSettings from "./ProfileSectionComponents/profileSettings";
 import { useAuth } from "../../context/AuthContext";
 
-export default function PostSection({ id,visibility }) {
+export default function PostSection({ id, visibility }) {
   const [activeOption, setActiveOption] = useState("profilePage");
   const { token } = useAuth();
 
@@ -71,16 +71,16 @@ export default function PostSection({ id,visibility }) {
   // -----------------------------------------------------
   const options = id
     ? [
-        // Only show ProfilePage for other users
-        { id: "profilePage", label: "Profile View" },
-      ]
+      // Only show ProfilePage for other users
+      { id: "profilePage", label: "Profile View" },
+    ]
     : [
-        // Full options for own profile
-        { id: "profilePage", label: "Profile View" },
-        { id: "profile-photo", label: "Change Profile Photo" },
-        { id: "cover-image", label: "Change Cover Image" },
-        { id: "settings", label: "Settings" },
-      ];
+      // Full options for own profile
+      { id: "profilePage", label: "Profile View" },
+      { id: "profile-photo", label: "Change Profile Photo" },
+      { id: "cover-image", label: "Change Cover Image" },
+      { id: "settings", label: "Settings" },
+    ];
 
   // -----------------------------------------------------
 
@@ -124,11 +124,10 @@ export default function PostSection({ id,visibility }) {
             <button
               key={opt.id}
               onClick={() => setActiveOption(opt.id)}
-              className={`flex-shrink-0 px-4 py-3 mx-1 text-sm font-medium rounded-lg transition-all duration-200 ${
-                activeOption === opt.id
+              className={`flex-shrink-0 px-4 py-3 mx-1 text-sm font-medium rounded-lg transition-all duration-200 ${activeOption === opt.id
                   ? "bg-blue-50 text-blue-600 border border-blue-200"
                   : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-              }`}
+                }`}
             >
               {opt.label}
             </button>
@@ -143,11 +142,10 @@ export default function PostSection({ id,visibility }) {
             <button
               key={opt.id}
               onClick={() => setActiveOption(opt.id)}
-              className={`relative px-4 py-4 text-sm font-medium transition-all duration-200 ${
-                activeOption === opt.id
+              className={`relative px-4 py-4 text-sm font-medium transition-all duration-200 ${activeOption === opt.id
                   ? "text-blue-600"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               {opt.label}
               {activeOption === opt.id && (

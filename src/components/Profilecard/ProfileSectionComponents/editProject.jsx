@@ -7,7 +7,7 @@ import {
 } from "../../../Service/userEducationService";
 import {
   useUserCurriculamProfile,
-} from "../../../hook/userProfile";
+} from "../../../hooks/userProfile";
 import {
   PlusCircle,
   Pencil,

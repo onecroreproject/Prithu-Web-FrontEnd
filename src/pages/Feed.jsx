@@ -10,11 +10,9 @@ import {
   getFeedsByHashtag,
 } from "../Service/feedService";
 
-import { getTopRankedJobs } from "../Service/jobservices";
 import PostcardWrapper from "../components/FeedPageComponent/postCardWraper";
 import Stories from "../components/Stories";
 import Createpost from "../components/postCreatedCard";
-import JobCard from "../components/Jobs/jobCard";
 import { Skeleton } from "@mui/material";
 import TagIcon from "@mui/icons-material/Tag";
 
@@ -33,70 +31,6 @@ const timeAgoFrom = (iso) => {
   return `${days}d ago`;
 };
 
-const mapJobForCard = (job) => ({
-  _id: job._id,
-  title: job.jobTitle || "Untitled Job",
-  jobRole: job.jobRole || "—",
-  category: job.jobCategory || "General",
-  subCategory: job.jobSubCategory || null,
-  employmentType: job.employmentType || "full-time",
-  workMode: job.workMode || "onsite",
-  shiftType: job.shiftType || "day",
-  city: job.city || "—",
-  state: job.state || null,
-  country: job.country || null,
-  salaryType: job.salaryType || "monthly",
-  salaryMin: job.salaryMin || 0,
-  salaryMax: job.salaryMax || 0,
-  salaryRange: job.salaryMin && job.salaryMax ? `₹${job.salaryMin.toLocaleString()} - ₹${job.salaryMax.toLocaleString()}` : "Based on Experience",
-  experienceMin: job.minimumExperience || 0,
-  experienceMax: job.maximumExperience || null,
-  experience: typeof job.minimumExperience === "number" ? `${job.minimumExperience}+ yrs` : "—",
-  companyName: job.postedBy?.companyName || "Unknown Company",
-  companyLogo: job.companyLogo || job.companyProfile?.logo || "https://cdn-icons-png.flaticon.com/512/1187/1187541.png",
-  postedBy: {
-    name: job.postedBy?.name || "Unknown",
-    email: job.postedBy?.email || null,
-    phone: job.postedBy?.phone || null,
-    position: job.postedBy?.position || "HR",
-  },
-  postedUserName: job.postedBy?.name || "Unknown",
-  companyProfile: {
-    logo: job.companyProfile?.logo || null,
-    about: job.companyProfile?.about || "",
-    mission: job.companyProfile?.mission || "",
-    vision: job.companyProfile?.vision || "",
-    city: job.companyProfile?.city || "",
-    state: job.companyProfile?.state || "",
-    country: job.companyProfile?.country || "",
-    yearEstablished: job.companyProfile?.yearEstablished || null,
-    employeeCount: job.companyProfile?.employeeCount || null,
-  },
-  visibilitySettings: job.visibilitySettings || {},
-  tags: Array.isArray(job.tags) ? job.tags.filter(Boolean) : [],
-  createdAt: job.createdAt,
-  postedAt: timeAgoFrom(job.createdAt),
-  status: job.status || "active",
-  isApproved: job.isApproved || false,
-  isPaid: job.paymentAmount > 0,
-  isPromoted: job.isPromoted || false,
-  isFeatured: job.isFeatured || false,
-  priorityScore: job.priorityScore || 0,
-  paymentAmount: job.paymentAmount || 0,
-  boostLevel: job.boostLevel || 0,
-  engagementScore: job.engagementScore || 0,
-  description: job.jobDescription || "No description available",
-  likeCount: job.likeCount || 0,
-  shareCount: job.shareCount || 0,
-  saveCount: job.saveCount || 0,
-  applyCount: job.applyCount || 0,
-  viewCount: job.viewCount || 0,
-  isLiked: job.isLiked || false,
-  isSaved: job.isSaved || false,
-  isApplied: job.isApplied || false,
-  isViewed: job.isViewed || false,
-  score: (job.priorityScore || 0) + (job.paymentAmount > 0 ? 5 : 0) + (job.isApproved ? 2 : 0) + (job.engagementScore || 0) + (job.boostLevel || 0),
-});
 
 const FeedSkeleton = () => (
   <motion.div className="w-full bg-white rounded-2xl shadow-sm p-4">
@@ -138,7 +72,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
 
-  const JOB_RATIO = 3;
 
   const tokenRef = useRef(token);
   useEffect(() => {
@@ -177,11 +110,6 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     });
   })();
   console.log(feeds)
-  const { data: jobs = [] } = useQuery({
-    queryKey: ["jobs", tokenRef.current || token],
-    queryFn: () => getTopRankedJobs(tokenRef.current || token),
-    enabled: !!(tokenRef.current || token) && !isHashtagMode,
-  });
 
   const normalizeSingleFeed = useCallback((raw) => {
     console.log(raw)
@@ -395,23 +323,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const mixFeedsAndJobs = useCallback((feedArr = [], jobArr = [], ratio = JOB_RATIO) => {
-    const out = [];
-    if (feedArr.length > 0) out.push({ ...feedArr[0], __kind: "feed" });
-    let f = 1;
-    let j = 0;
-    while (f < feedArr.length) {
-      out.push(...feedArr.slice(f, f + ratio).map((ff) => ({ ...ff, __kind: "feed" })));
-      f += ratio;
-      if (j < jobArr.length) {
-        out.push({ ...jobArr[j], __kind: "job" });
-        j++;
-      }
-    }
-    return out;
-  }, []);
 
-  let mixed = isHashtagMode ? feeds.map(f => ({ ...f, __kind: "feed" })) : mixFeedsAndJobs(feeds, jobs, JOB_RATIO);
+  let mixed = feeds.map(f => ({ ...f, __kind: "feed" }));
 
   const handleHideFromUI = (feedId) => {
     queryClient.setQueryData(feedsQueryKey, (oldData) => {
@@ -457,17 +370,13 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                   transition={{ duration: 0.4 }}
                   className="w-full"
                 >
-                  {item.__kind === "job" ? (
-                    <JobCard jobData={mapJobForCard(item)} />
-                  ) : (
-                    <PostcardWrapper
-                      postData={item}
-                      authUser={authUser}
-                      token={tokenRef.current || token}
-                      onHideFromUI={handleHideFromUI}
-                      isVisible={true}
-                    />
-                  )}
+                  <PostcardWrapper
+                    postData={item}
+                    authUser={authUser}
+                    token={tokenRef.current || token}
+                    onHideFromUI={handleHideFromUI}
+                    isVisible={true}
+                  />
                 </motion.div>
               ))
             ) : (

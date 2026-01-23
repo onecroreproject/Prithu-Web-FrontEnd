@@ -578,80 +578,93 @@ function Postcard({
             </div>
 
             {/* v4: Footer Renderer (Inside frame, bottom area) */}
-            {isTemplate && hasFooter && (() => {
-              const showElements = postData.footerDisplay?.showElements || {};
-              const socialIconsEnabled = showElements.socialIcons;
-              const hasAnyElementEnabled = showElements.name || showElements.email || showElements.phone || socialIconsEnabled;
+           {/* v4: Footer Renderer (Inside frame, bottom area) */}
+{isTemplate && hasFooter && (() => {
+  const footer = postData.footerDisplay || {};
+  const showElements = footer.showElements || {};
 
-              // Only render footer if at least one element is enabled
-              if (!hasAnyElementEnabled) return null;
+  const icons = (footer.socialIcons || []).filter(
+  (i) => i.visible && (i.urlTemplate || i.url)
+);
 
-              return (
-                <div
-                  className="relative w-full z-30 px-4 py-2 shrink-0 flex flex-col gap-1"
-                  style={{
-                    backgroundColor: postData.footerDisplay?.backgroundColor || "#000000",
-                    background: postData.footerDisplay?.backgroundColor || "#000000"
+
+  const hasAnyElementEnabled =
+    showElements.name ||
+    showElements.email ||
+    showElements.phone ||
+    (showElements.socialIcons && icons.length > 0);
+
+  if (!hasAnyElementEnabled) return null;
+console.log(showElements)
+  return (
+    <div
+      className="relative w-full z-30 px-4 py-2 shrink-0 flex flex-col gap-1"
+      style={{
+        backgroundColor: footer.backgroundColor || "#000000",
+        background: footer.backgroundColor || "#000000",
+      }}
+    >
+      {/* Top Row: Username + Social Icons */}
+      <div
+        className={`flex items-center gap-2 ${
+          showElements.name && showElements.socialIcons && icons.length > 0
+            ? "justify-between"
+            : "justify-center"
+        }`}
+      >
+        {showElements.name && (
+          <span
+            className="font-bold text-white truncate"
+            style={{ fontSize: "14px" }}
+          >
+            {viewer?.userName || "Username"}
+          </span>
+        )}
+
+        {showElements.socialIcons && icons.length > 0 && (
+          <div className="flex items-center gap-2.5">
+            {icons.map((icon, idx) => (
+              <a
+                key={idx}
+                href={icon.urlTemplate || icon.url}
+
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer"
+              >
+                <img
+                  src={`https://cdn.simpleicons.org/${icon.platform}`}
+                  className="w-3.5 h-3.5 object-contain invert"
+                  alt={icon.platform}
+                  onError={(e) => {
+                    e.currentTarget.src = defaultAvatar;
                   }}
-                >
-                  {/* Top Row: Username and Social Icons */}
-                  <div className={`flex items-center gap-2 ${(showElements.name && socialIconsEnabled && (postData.footerDisplay?.socialIcons || []).some(i => i.visible))
-                    ? "justify-between"
-                    : "justify-center"
-                    }`}>
-                    {(showElements.name || postData.footerDisplay?.name) && (
-                      <span
-                        className="font-bold text-white truncate"
-                        style={{ fontSize: '14px' }}
-                      >
-                        {postData.viewer?.userName || "Username"}
-                      </span>
-                    )}
+                />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
 
-                    {socialIconsEnabled && (postData.footerDisplay?.socialIcons || []).some(i => i.visible) && (
-                      <div className="flex items-center gap-2.5">
-                        {(postData.footerDisplay?.socialIcons || []).map((icon, idx) => (
-                          icon.visible && icon.url && (
-                            <div key={idx} className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer">
-                              <img
-                                src={`https://cdn.simpleicons.org/${icon.platform}`}
-                                className="w-3.5 h-3.5 object-contain invert"
-                                alt={icon.platform}
-                                onError={(e) => {
-                                  e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; // fallback
-                                }}
-                              />
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    )}
-                  </div>
+      {/* Bottom Row: Email + Phone */}
+    {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
+        <div className="flex items-center justify-between gap-4 w-full">
+         {showElements.email && viewer?.email && (
+  <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
+    {viewer.email}
+  </span>
+)}
+{showElements.phone && viewer?.phoneNumber && (
+  <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
+    {viewer.phoneNumber}
+  </span>
+)}
+        </div>
+      )}
+    </div>
+  );
+})()}
 
-                  {/* Bottom Row: Email and Phone */}
-                  {(showElements.email || showElements.phone) && (
-                    <div className="flex items-center justify-between gap-4 w-full">
-                      {(showElements.email || postData.footerDisplay?.email) && (
-                        <span
-                          className="text-white font-medium truncate opacity-95"
-                          style={{ fontSize: '16px' }}
-                        >
-                          {postData.viewer?.email}
-                        </span>
-                      )}
-                      {(showElements.phone || postData.footerDisplay?.phone) && (
-                        <span
-                          className="text-white font-medium truncate opacity-95"
-                          style={{ fontSize: '16px' }}
-                        >
-                          {postData.viewer?.phoneNumber}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
           </div>
 
           {showHeartAnimation && (

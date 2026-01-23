@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import React, {
   useState,
   useRef,
@@ -11,14 +10,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Calendar, Briefcase, Activity, Users, Brain, GraduationCap, BookOpen,
-  MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
 import api from "../api/axios";
 import CreatePostModal from "../components/CreatePostModal";
-import CasualInterestPopup from "../components/intrestedPop-up"; // ADDED
+import CasualInterestPopup from "../components/intrestedPop-up";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
@@ -26,14 +24,7 @@ import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/us
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
-
-// Import Coming Soon Popups
-import CommunityComingSoon from "../UnderConstructionPages/commmunity";
-import LearningComingSoon from "../UnderConstructionPages/learning";
-import EventsComingSoon from "../UnderConstructionPages/event";
-import Referral from "../UnderConstructionPages/referralCommigSoon";
-import Subscription from "../UnderConstructionPages/subcriptionCommingSoon";
-import HelpPage from "../components/HelpPage";
+import ComingSoonPopup from "./ComingSoonPopup";
 
 // Import the existing NotificationDropdown for mobile
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
@@ -54,24 +45,21 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
-  
-  // ADDED: Posting permission states
-  const [postStatus, setPostStatus] = useState(null); // "allow", "interest", "notallow", or null
+
+  // Posting permission states
+  const [postStatus, setPostStatus] = useState(null);
   const [loadingPostStatus, setLoadingPostStatus] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
-  
+
   // Coming Soon Popup States
-  const [showCommunityPopup, setShowCommunityPopup] = useState(false);
-  const [showLearningPopup, setShowLearningPopup] = useState(false);
-  const [showEventsPopup, setShowEventsPopup] = useState(false);
   const [showReferralPopup, setShowReferralPopup] = useState(false);
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [showHelpPage, setShowHelpPage] = useState(false);
-  
+
   // Notification states
   const [notifications, setNotifications] = useState([]);
   const [selectedNotif, setSelectedNotif] = useState(null);
-  
+
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({
@@ -88,7 +76,7 @@ export default function Header() {
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
   const notifPanelRef = useRef(null);
-  
+
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   // Check posting status on component mount
@@ -103,7 +91,7 @@ export default function Header() {
       const response = await api.get('/api/post/allowed/status', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.data.success) {
         setPostStatus(response.data.status);
       }
@@ -115,59 +103,50 @@ export default function Header() {
     }
   };
 
-  // ADDED: Handle Create Post Click with permission check
+  // Handle Create Post Click with permission check
   const handleCreatePostClick = useCallback(async () => {
     if (loadingPostStatus) return;
-    
-    // Check if user is allowed to post
+
     if (postStatus === "allow") {
-      // User is allowed, open post modal directly
       setIsCreatePostOpen(true);
     } else if (postStatus === "interest") {
-      // User has already requested, show interest modal
       setInterestModalOpen(true);
     } else if (postStatus === "notallow") {
-      // User hasn't requested yet or not allowed
       setInterestModalOpen(true);
     } else {
-      // Status unknown, check first
       await checkPostStatus();
       setInterestModalOpen(true);
     }
-    
-    // Close mobile menu if open
+
     setMobileMenuOpen(false);
   }, [postStatus, loadingPostStatus]);
 
-  // ADDED: Handle interest modal response
+  // Handle interest modal response
   const handleInterestsSelected = useCallback((status) => {
     console.log("Interest status:", status);
-    
+
     if (status === "allow") {
-      // User is now allowed to post
       setPostStatus("allow");
       setIsCreatePostOpen(true);
       toast.success("You can now create posts! 🎉");
     } else if (status === "interest") {
-      // User just submitted interest
       setPostStatus("interest");
       toast.success("Interest submitted! Admin will review your request.");
-      // Refresh status after some time
       setTimeout(() => {
         checkPostStatus();
       }, 2000);
     } else if (status === "skip") {
-      // User skipped
       toast.info("You can request posting access anytime");
     }
-    
+
     setInterestModalOpen(false);
   }, []);
 
-const handleCloseInterestModal = useCallback(() => {
-  console.log("Closing interest modal");
-  setInterestModalOpen(false);
-}, []);
+  const handleCloseInterestModal = useCallback(() => {
+    console.log("Closing interest modal");
+    setInterestModalOpen(false);
+  }, []);
+
   const handleCloseModal = useCallback(() => setIsCreatePostOpen(false), []);
 
   // Main menu items to show directly in sidebar
@@ -181,15 +160,9 @@ const handleCloseInterestModal = useCallback(() => {
   const profileMenuItems = [
     { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
     { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
-    {
-      to: `/portfolio/${user?.userName || "user"}`,
-      label: "Portfolio",
-      Icon: Briefcase,
-      desc: "Your portfolio",
-    }
   ];
 
-  // Settings menu items - UPDATED with onClick handlers
+  // Settings menu items
   const settingsMenuItems = [
     { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
     {
@@ -198,7 +171,7 @@ const handleCloseInterestModal = useCallback(() => {
       Icon: BellRing,
       desc: "Manage subscriptions",
       onClick: (e) => {
-        e.preventDefault(); // Prevent navigation
+        e.preventDefault();
         setShowSubscriptionPopup(true);
       }
     },
@@ -208,7 +181,7 @@ const handleCloseInterestModal = useCallback(() => {
       Icon: Gift,
       desc: "Referral program",
       onClick: (e) => {
-        e.preventDefault(); // Prevent navigation
+        e.preventDefault();
         setShowReferralPopup(true);
       }
     },
@@ -226,40 +199,11 @@ const handleCloseInterestModal = useCallback(() => {
     },
   ];
 
-  // Feature items
-  const featureItems = [
-    { 
-      Icon: Briefcase, 
-      label: "Jobs", 
-      onClick: () => navigate("/jobs") 
-    },
-    { 
-      Icon: Users, 
-      label: "Community", 
-      onClick: () => setShowCommunityPopup(true)
-    },
-    { 
-      Icon: Brain, 
-      label: "Aptitude", 
-      onClick: () => navigate("/aptitude") 
-    },
-    { 
-      Icon: GraduationCap, 
-      label: "Learning", 
-      onClick: () => setShowLearningPopup(true)
-    },
-    { 
-      Icon: Calendar, 
-      label: "Events", 
-      onClick: () => setShowEventsPopup(true)
-    },
-  ];
-
   useEffect(() => {
     if (token) fetchUserProfile();
   }, [token]);
 
-  // ✅ Fetch notifications
+  // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get("/api/get/user/all/notification", authHeader);
@@ -271,13 +215,13 @@ const handleCloseInterestModal = useCallback(() => {
     }
   }, [token]);
 
-  // ✅ Live socket updates
+  // Live socket updates
   useEffect(() => {
     const handleNewNotif = (e) => {
       const notif = e.detail;
       setNotifications((prev) => [notif, ...prev]);
       refreshNotifications();
-      
+
       toast.success(`🔔 ${notif.title || "New notification!"}`, {
         duration: 4000,
         position: "top-right",
@@ -288,12 +232,12 @@ const handleCloseInterestModal = useCallback(() => {
     return () => document.removeEventListener("socket:newNotification", handleNewNotif);
   }, [refreshNotifications]);
 
-  // ✅ Fetch when notification panel opens
+  // Fetch when notification panel opens
   useEffect(() => {
     if (notifOpen) fetchNotifications();
   }, [notifOpen, fetchNotifications]);
 
-  // ✅ Mark all as read
+  // Mark all as read
   const markAllAsRead = async () => {
     try {
       await api.put("/api/mark/all/notification/read", {}, authHeader);
@@ -305,7 +249,7 @@ const handleCloseInterestModal = useCallback(() => {
     }
   };
 
-  // ✅ Delete all notifications
+  // Delete all notifications
   const handleDeleteAllNotifications = async () => {
     try {
       await api.delete("/api/user/delete/all/notification", authHeader);
@@ -318,7 +262,7 @@ const handleCloseInterestModal = useCallback(() => {
     }
   };
 
-  // ✅ Mark single notification as read
+  // Mark single notification as read
   const handleNotificationClick = async (notif) => {
     setSelectedNotif({ ...notif });
 
@@ -337,7 +281,7 @@ const handleCloseInterestModal = useCallback(() => {
     }
   };
 
-  // ✅ Delete individual notification
+  // Delete individual notification
   const handleDeleteNotification = async (notifId) => {
     try {
       await api.delete("/api/user/delete/notification", {
@@ -353,7 +297,7 @@ const handleCloseInterestModal = useCallback(() => {
     }
   };
 
-  // ✅ Close notification panel when clicking outside
+  // Close notification panel when clicking outside
   useEffect(() => {
     const handleOutside = (e) => {
       if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
@@ -367,31 +311,30 @@ const handleCloseInterestModal = useCallback(() => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // Helper function to get notification icon
-  // Helper function to get notification icon
-const getNotificationIcon = (type) => {
-  switch (type?.toLowerCase()) {
-    case 'job_status_update':
-      return <Briefcase className="w-4 h-4 text-blue-500" />;
-    case 'like':
-    case 'like_post':
-      return <Heart className="w-4 h-4 text-pink-500" />;
-    case 'comment':
-    case 'reply':
-      return <MessageCircle className="w-4 h-4 text-blue-500" />;
-    case 'follow':
-      return <UserPlus className="w-4 h-4 text-green-500" />;
-    case 'share':
-    case 'shared':
-    case 'repost':
-      return <Share2 className="w-4 h-4 text-green-600" />;
-    case 'story_like':
-      return <Heart className="w-4 h-4 text-purple-500" />;
-    case 'story_view':
-      return <Eye className="w-4 h-4 text-blue-400" />;
-    default:
-      return <BellRing className="w-4 h-4 text-gray-500" />;
-  }
-};
+  const getNotificationIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'job_status_update':
+        return <Briefcase className="w-4 h-4 text-blue-500" />;
+      case 'like':
+      case 'like_post':
+        return <Heart className="w-4 h-4 text-pink-500" />;
+      case 'comment':
+      case 'reply':
+        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      case 'follow':
+        return <UserPlus className="w-4 h-4 text-green-500" />;
+      case 'share':
+      case 'shared':
+      case 'repost':
+        return <Share2 className="w-4 h-4 text-green-600" />;
+      case 'story_like':
+        return <Heart className="w-4 h-4 text-purple-500" />;
+      case 'story_view':
+        return <Eye className="w-4 h-4 text-blue-400" />;
+      default:
+        return <BellRing className="w-4 h-4 text-gray-500" />;
+    }
+  };
 
   // Helper function to format time
   const formatTime = (timestamp) => {
@@ -431,7 +374,7 @@ const getNotificationIcon = (type) => {
 
     notifications.forEach(notif => {
       const notifDate = new Date(notif.createdAt || notif.timestamp || now);
-      
+
       if (notifDate >= todayStart) {
         groups.Today.push(notif);
       } else if (notifDate >= yesterdayStart) {
@@ -455,7 +398,6 @@ const getNotificationIcon = (type) => {
 
   // Navigation handlers
   const handleReelClick = (e) => {
-    // If we're on the home page, prevent navigation and just toggle reels filter
     if (location.pathname === "/home" || location.pathname === "/") {
       e.preventDefault();
     }
@@ -470,9 +412,6 @@ const getNotificationIcon = (type) => {
   };
 
   const closeAllPopups = () => {
-    setShowCommunityPopup(false);
-    setShowLearningPopup(false);
-    setShowEventsPopup(false);
     setShowReferralPopup(false);
     setShowSubscriptionPopup(false);
   };
@@ -655,8 +594,8 @@ const getNotificationIcon = (type) => {
         </span>
       );
     }
-    
-    switch(postStatus) {
+
+    switch (postStatus) {
       case "allow":
         return (
           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">
@@ -682,15 +621,15 @@ const getNotificationIcon = (type) => {
 
   return (
     <Fragment>
-      {/* DESKTOP SIDEBAR */}
+      {/* DESKTOP SIDEBAR - UPDATED WIDTH */}
       <motion.aside
-        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-100 z-50"
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[240px] bg-white border-r border-gray-100 z-50"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        {/* Logo Section with Notification */}
-        <div className="flex items-center justify-between border-b border-gray-100">
+        {/* Logo Section with Notification - IMPROVED SPACING */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div
             onClick={() => {
               if (window.location.pathname === "/") {
@@ -700,36 +639,35 @@ const getNotificationIcon = (type) => {
                 navigate("/");
               }
             }}
-            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded-lg"
+            className="flex items-center gap-2 cursor-pointer group"
           >
             <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
-              <img 
-                src={PrithuLogo} 
-                alt="Prithu Logo" 
-                className="w-9 h-9 transition-transform duration-200 hover:scale-105" 
+              <img
+                src={PrithuLogo}
+                alt="Prithu Logo"
+                className="w-8 h-8 transition-transform duration-200 group-hover:scale-105"
               />
             </motion.div>
-            <motion.h1 
-              className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+            <motion.h1
+              className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
               whileHover={{ scale: 1.05 }}
             >
               PRITHU
             </motion.h1>
           </div>
-          
-          {/* Notification Icon in Header */}
+
+          {/* Notification Icon */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={handleBellClick}
-              className={`p-2.5 rounded-lg transition-all duration-200 ${
-                notifOpen 
-                  ? "bg-blue-100 ring-2 ring-blue-200" 
-                  : "hover:bg-gray-100"
-              }`}
+              className={`p-2 rounded-lg transition-all duration-200 ${notifOpen
+                ? "bg-blue-100 ring-2 ring-blue-200"
+                : "hover:bg-gray-100"
+                }`}
             >
               <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
               {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-4 flex items-center justify-center px-0.5">
                   {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
@@ -737,7 +675,7 @@ const getNotificationIcon = (type) => {
           </div>
         </div>
 
-        {/* Instagram-like Left Sidebar Notification Panel (Desktop Only) - FIXED */}
+        {/* Instagram-like Left Sidebar Notification Panel */}
         <AnimatePresence>
           {notifOpen && (
             <>
@@ -749,7 +687,7 @@ const getNotificationIcon = (type) => {
                 className="fixed inset-0 bg-black/30 z-40"
                 onClick={() => setNotifOpen(false)}
               />
-              
+
               {/* Notification Panel */}
               <motion.div
                 ref={notifPanelRef}
@@ -770,7 +708,7 @@ const getNotificationIcon = (type) => {
                       <X className="w-5 h-5 text-gray-500" />
                     </button>
                   </div>
-                  
+
                   {/* Action Buttons */}
                   <div className="flex items-center justify-start gap-2 mt-3">
                     <button
@@ -779,181 +717,167 @@ const getNotificationIcon = (type) => {
                     >
                       Mark all as read
                     </button>
-                    {/* <button
-                      onClick={handleDeleteAllNotifications}
-                      className="flex-1 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      Clear all
-                    </button> */}
                   </div>
                 </div>
 
-                {/* Notification List - FIXED WITH PROPER DATA */}
-              
-<div className="h-[calc(100vh-120px)] overflow-y-auto">
-  {notifications.length === 0 ? (
-    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-        <BellRing className="w-10 h-10 text-gray-400" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
-      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
-    </div>
-  ) : (
-    <div className="divide-y divide-gray-100">
-      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
-        <div key={groupName} className="py-2">
-          {/* Group Header */}
-          <div className="px-4 py-2">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              {groupName}
-            </h3>
-          </div>
-          
-          {/* Group Notifications - FIXED WITH JOB STATUS SUPPORT */}
-          {groupNotifications.map((notif) => {
-            // Handle job status notifications differently
-            const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
-            const isRegularNotification = notif.sender || notif.feedInfo;
-            
-            let senderName = "System";
-            let senderAvatar = null;
-            let actionText = notif.message || notif.title || "New notification";
-            let feedImage = null;
-            
-            if (isJobStatusUpdate) {
-              // Job status notification
-              const jobInfo = notif.job || {};
-              senderName = jobInfo.companyName || "Company";
-              senderAvatar = jobInfo.companyLogo;
-              actionText = notif.message || `Your job application status has been updated`;
-              feedImage = jobInfo.companyLogo;
-            } else if (isRegularNotification) {
-              // Regular notification
-              const sender = notif.sender || {};
-              const feed = notif.feedInfo || {};
-              senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
-              senderAvatar = sender.profileAvatar || sender.avatar;
-              feedImage = feed.contentUrl || notif.image;
-              
-              // Determine message based on type
-              const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
-              const isFollow = notif.type?.toLowerCase()?.includes("follow");
-              const isComment = notif.type?.toLowerCase()?.includes("comment");
-              
-              if (isLike) actionText = "liked your post";
-              if (isFollow) actionText = "started following you";
-              if (isComment) actionText = "commented on your post";
-            }
-
-            return (
-              <motion.div
-                key={notif._id || notif.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                  !notif.isRead ? "bg-blue-50/50" : ""
-                }`}
-                onClick={() => handleNotificationClick(notif)}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
-                      {senderAvatar ? (
-                        <img
-                          src={senderAvatar}
-                          alt={senderName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : isJobStatusUpdate ? (
-                        <Briefcase className="w-5 h-5 text-blue-600" />
-                      ) : (
-                        <span className="text-blue-600 font-semibold">
-                          {(senderName[0] || "U").toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    {/* Notification Type Icon */}
-                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                      {isJobStatusUpdate ? (
-                        <Briefcase className="w-4 h-4 text-blue-500" />
-                      ) : (
-                        getNotificationIcon(notif.type)
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {isJobStatusUpdate ? `📌 ${senderName}` : senderName}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-0.5">
-                          {actionText}
-                          {/* Show job status if available */}
-                          {isJobStatusUpdate && notif.job?.status && (
-                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                              notif.job.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                              notif.job.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {notif.job.status.charAt(0).toUpperCase() + notif.job.status.slice(1)}
-                            </span>
-                          )}
-                        </p>
-                        {/* Job details for job status updates */}
-                        {isJobStatusUpdate && notif.job?.jobTitle && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Position: <span className="font-medium">{notif.job.jobTitle}</span>
-                          </p>
-                        )}
+                {/* Notification List */}
+                <div className="h-[calc(100vh-120px)] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <BellRing className="w-10 h-10 text-gray-400" />
                       </div>
-                      {!notif.isRead && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
+                      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
                     </div>
-                    
-                    {/* Time and Actions */}
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">
-                        {formatTime(notif.createdAt)}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteNotification(notif._id);
-                        }}
-                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
+                        <div key={groupName} className="py-2">
+                          {/* Group Header */}
+                          <div className="px-4 py-2">
+                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                              {groupName}
+                            </h3>
+                          </div>
 
-                  {/* Feed Preview Image */}
-                  {feedImage && (
-                    <div className="flex-shrink-0 ml-2">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                        <img
-                          src={feedImage}
-                          alt={isJobStatusUpdate ? "Company logo" : "Post"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                          {/* Group Notifications */}
+                          {groupNotifications.map((notif) => {
+                            const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
+                            const isRegularNotification = notif.sender || notif.feedInfo;
+
+                            let senderName = "System";
+                            let senderAvatar = null;
+                            let actionText = notif.message || notif.title || "New notification";
+                            let feedImage = null;
+
+                            if (isJobStatusUpdate) {
+                              const jobInfo = notif.job || {};
+                              senderName = jobInfo.companyName || "Company";
+                              senderAvatar = jobInfo.companyLogo;
+                              actionText = notif.message || `Your job application status has been updated`;
+                              feedImage = jobInfo.companyLogo;
+                            } else if (isRegularNotification) {
+                              const sender = notif.sender || {};
+                              const feed = notif.feedInfo || {};
+                              senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
+                              senderAvatar = sender.profileAvatar || sender.avatar;
+                              feedImage = feed.contentUrl || notif.image;
+
+                              const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
+                              const isFollow = notif.type?.toLowerCase()?.includes("follow");
+                              const isComment = notif.type?.toLowerCase()?.includes("comment");
+
+                              if (isLike) actionText = "liked your post";
+                              if (isFollow) actionText = "started following you";
+                              if (isComment) actionText = "commented on your post";
+                            }
+
+                            return (
+                              <motion.div
+                                key={notif._id || notif.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.isRead ? "bg-blue-50/50" : ""
+                                  }`}
+                                onClick={() => handleNotificationClick(notif)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  {/* Avatar */}
+                                  <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
+                                      {senderAvatar ? (
+                                        <img
+                                          src={senderAvatar}
+                                          alt={senderName}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : isJobStatusUpdate ? (
+                                        <Briefcase className="w-5 h-5 text-blue-600" />
+                                      ) : (
+                                        <span className="text-blue-600 font-semibold">
+                                          {(senderName[0] || "U").toUpperCase()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Notification Type Icon */}
+                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                                      {isJobStatusUpdate ? (
+                                        <Briefcase className="w-4 h-4 text-blue-500" />
+                                      ) : (
+                                        getNotificationIcon(notif.type)
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Content */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between">
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900">
+                                          {isJobStatusUpdate ? `📌 ${senderName}` : senderName}
+                                        </p>
+                                        <p className="text-sm text-gray-600 mt-0.5">
+                                          {actionText}
+                                          {isJobStatusUpdate && notif.job?.status && (
+                                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${notif.job.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                              notif.job.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                'bg-yellow-100 text-yellow-800'
+                                              }`}>
+                                              {notif.job.status.charAt(0).toUpperCase() + notif.job.status.slice(1)}
+                                            </span>
+                                          )}
+                                        </p>
+                                        {/* Job details for job status updates */}
+                                        {isJobStatusUpdate && notif.job?.jobTitle && (
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Position: <span className="font-medium">{notif.job.jobTitle}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                      {!notif.isRead && (
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      )}
+                                    </div>
+
+                                    {/* Time and Actions */}
+                                    <div className="flex items-center justify-between mt-2">
+                                      <span className="text-xs text-gray-500">
+                                        {formatTime(notif.createdAt)}
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteNotification(notif._id);
+                                        }}
+                                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Feed Preview Image */}
+                                  {feedImage && (
+                                    <div className="flex-shrink-0 ml-2">
+                                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                                        <img
+                                          src={feedImage}
+                                          alt={isJobStatusUpdate ? "Company logo" : "Post"}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  )}
-</div>
 
                 {/* View All Button */}
                 {notifications.length > 0 && (
@@ -974,65 +898,43 @@ const getNotificationIcon = (type) => {
           )}
         </AnimatePresence>
 
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {/* Sidebar Navigation - IMPROVED SPACING */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {/* Main Navigation */}
-          <div className="mb-2">
+          <div className="mb-3">
             {mainMenuItems.map(({ to, label, Icon, desc }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-all w-full text-left ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
+                    ? "bg-blue-50 text-blue-700 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
                   }`
                 }
                 onClick={label === "Reels" ? handleReelClick : undefined}
               >
                 <Icon className={`w-5 h-5 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
-                <span className="text-sm">{label}</span>
+                <span className="text-sm font-medium">{label}</span>
               </NavLink>
             ))}
-            
-            {/* Create Post Button - UPDATED */}
-            <div className="mb-2">
-              <button
-                onClick={handleCreatePostClick}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700 relative group"
-              >
-                <div className="w-4 h-4 flex items-center justify-center">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">Create Post</span>
-                  {getPostStatusBadge()}
-                </div>
-              </button>
-            </div>
-          </div>
 
-          {/* Feature Items */}
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Features</h3>
-            {featureItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => {
-                  item.onClick();
-                }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 group"
-              >
-                <item.Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                <span className="text-sm">{item.label}</span>
-              </button>
-            ))}
+            {/* Create Post Button */}
+            <button
+              onClick={handleCreatePostClick}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700 mt-1"
+            >
+              <Plus className="w-5 h-5" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Create Post</span>
+                {getPostStatusBadge()}
+              </div>
+            </button>
           </div>
 
           {/* Profile Section */}
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Profile</h3>
+          <div className="mb-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Profile</h3>
             {profileMenuItems.map((item) => {
               if (item.label === "Portfolio") {
                 return (
@@ -1043,27 +945,26 @@ const getNotificationIcon = (type) => {
                   >
                     <item.Icon className="w-5 h-5" />
                     <div className="flex-1">
-                      <span className="text-sm">{item.label}</span>
+                      <span className="text-sm font-medium">{item.label}</span>
                     </div>
                   </button>
                 );
               }
-              
+
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-gray-700 hover:bg-gray-50"
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
                     }`
                   }
                 >
                   <item.Icon className="w-5 h-5" />
                   <div className="flex-1">
-                    <span className="text-sm">{item.label}</span>
+                    <span className="text-sm font-medium">{item.label}</span>
                   </div>
                 </NavLink>
               );
@@ -1071,17 +972,17 @@ const getNotificationIcon = (type) => {
           </div>
 
           {/* Settings Section */}
-          <div className="mt-auto pt-4 border-t border-gray-100">
+          <div className="mt-auto pt-3 border-t border-gray-100">
             {settingsMenuItems.map(({ to, label, Icon, onClick }) => (
               onClick ? (
                 <button
                   key={label}
                   onClick={onClick}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 mb-1"
                 >
                   <Icon className="w-5 h-5" />
                   <div className="flex-1">
-                    <span className="text-sm">{label}</span>
+                    <span className="text-sm font-medium">{label}</span>
                   </div>
                 </button>
               ) : (
@@ -1089,42 +990,41 @@ const getNotificationIcon = (type) => {
                   key={to}
                   to={to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-gray-700 hover:bg-gray-50"
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left mb-1 ${isActive
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
                     }`
                   }
                 >
                   <Icon className="w-5 h-5" />
                   <div className="flex-1">
-                    <span className="text-sm">{label}</span>
+                    <span className="text-sm font-medium">{label}</span>
                   </div>
                 </NavLink>
               )
             ))}
-            
+
             {/* Logout Button */}
             <button
               onClick={logout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 mt-2"
             >
               <LogOut className="w-5 h-5" />
-              <span className="text-sm">Logout</span>
+              <span className="text-sm font-medium">Logout</span>
             </button>
           </div>
         </nav>
       </motion.aside>
 
-      {/* MOBILE HEADER */}
+      {/* MOBILE HEADER - IMPROVED SPACING */}
       <motion.header
-        className="lg:hidden fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-6 py-2.5 z-50"
+        className="lg:hidden fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 py-2.5 z-50"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        {/* Left Section: Logo + Search */}
-        <div className="flex items-center gap-3 md:gap-6 flex-1">
+        {/* Left Section: Logo */}
+        <div className="flex items-center gap-3 shrink-0">
           {/* Logo */}
           <div
             onClick={() => {
@@ -1135,98 +1035,65 @@ const getNotificationIcon = (type) => {
                 navigate("/");
               }
             }}
-            className="flex items-center gap-2 cursor-pointer group shrink-0"
+            className="flex items-center gap-2 cursor-pointer group"
           >
             <motion.div whileHover={{ rotate: 5 }} whileTap={{ scale: 0.95 }}>
-              <img 
-                src={PrithuLogo} 
-                alt="Prithu Logo" 
-                className="w-8 h-8 md:w-9 md:h-9 transition-transform duration-200 group-hover:scale-105" 
+              <img
+                src={PrithuLogo}
+                alt="Prithu Logo"
+                className="w-8 h-8 transition-transform duration-200 group-hover:scale-105"
               />
             </motion.div>
-            <motion.h1 
-              className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
+            <motion.h1
+              className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
               whileHover={{ scale: 1.05 }}
             >
               PRITHU
             </motion.h1>
           </div>
-
-          {/* Desktop Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-xl lg:max-w-2xl">
-            <SearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleKeyDown={handleKeyDown}
-              debouncedSearch={debouncedSearch}
-              loadHistory={loadHistory}
-              setShowSearchDropdown={setShowSearchDropdown}
-              showSearchDropdown={showSearchDropdown}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              trending={trending}
-              history={history}
-              clearHistory={clearHistory}
-              handleTrendingClick={handleTrendingClick}
-              handleHistoryClick={handleHistoryClick}
-              scoredResults={scoredResults}
-              handleSelectResult={handleSelectResult}
-              searchRef={searchRef}
-            />
-          </div>
         </div>
 
-        {/* Right Section: Actions & Profile */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* Right Section: Actions */}
+        <div className="flex items-center gap-2">
           {/* Mobile search button */}
-          <button 
-            onClick={() => setMobileSearchOpen(true)} 
-            className="p-2 rounded-lg hover:bg-gray-100 lg:hidden transition-colors"
+          <button
+            onClick={() => setMobileSearchOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Search"
           >
             <Search className="w-5 h-5 text-blue-600" />
           </button>
 
-          {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-2">
-            {/* Notification for mobile - Use the existing dropdown */}
-            <div ref={notificationRef} className="relative">
-              <motion.button
-                onClick={handleBellClick}
-                className={`relative p-2 rounded-lg transition-all ${notifOpen 
-                  ? "bg-blue-100 ring-2 ring-blue-200" 
-                  : "hover:bg-gray-100"
-                }`}
-              >
-                <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
-                {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                    {notifCount > 99 ? '99+' : notifCount}
-                  </span>
-                )}
-              </motion.button>
-              
-              {/* Use existing NotificationDropdown for mobile */}
-              <NotificationDropdown
-                isOpen={notifOpen}
-                onClose={() => setNotifOpen(false)}
-                onUpdateCount={refreshNotifications}
-              />
-            </div>
-
-            {/* Hamburger Menu */}
+          {/* Notification for mobile */}
+          <div ref={notificationRef} className="relative">
             <motion.button
-              onClick={() => setMobileMenuOpen(p => !p)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              whileTap={{ scale: 0.95 }}
+              onClick={handleBellClick}
+              className={`relative p-2 rounded-lg transition-all ${notifOpen
+                ? "bg-blue-100 ring-2 ring-blue-200"
+                : "hover:bg-gray-100"
+                }`}
             >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-blue-600" />
-              ) : (
-                <Menu className="w-5 h-5 text-blue-600" />
+              <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                  {notifCount > 99 ? '99+' : notifCount}
+                </span>
               )}
             </motion.button>
           </div>
+
+          {/* Hamburger Menu */}
+          <motion.button
+            onClick={() => setMobileMenuOpen(p => !p)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            whileTap={{ scale: 0.95 }}
+          >
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5 text-blue-600" />
+            ) : (
+              <Menu className="w-5 h-5 text-blue-600" />
+            )}
+          </motion.button>
         </div>
       </motion.header>
 
@@ -1242,7 +1109,7 @@ const getNotificationIcon = (type) => {
             className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 lg:hidden"
           >
             {/* Mobile Menu Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
               <div className="flex items-center gap-3">
                 <ProfileAvatar user={user} size="lg" />
                 <div>
@@ -1282,7 +1149,7 @@ const getNotificationIcon = (type) => {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl font-medium transition-all ${isReelsActive
                     ? "bg-blue-100 text-blue-700 border border-blue-300"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                    }`}
                 >
                   <Video className="w-5 h-5" />
                   <span className="text-sm">Reels</span>
@@ -1334,12 +1201,11 @@ const getNotificationIcon = (type) => {
                           </div>
                           <div className="flex-1">
                             <p className="font-medium">{item.label}</p>
-                            <p className="text-xs text-gray-500">{item.desc}</p>
                           </div>
                         </button>
                       );
                     }
-                    
+
                     return (
                       <NavLink
                         key={item.to}
@@ -1364,26 +1230,6 @@ const getNotificationIcon = (type) => {
                 </div>
               </div>
 
-              {/* Quick Navigation */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Quick Access</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {featureItems.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        item.onClick();
-                        handleMobileMenuClose();
-                      }}
-                      className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-50 transition-colors group relative"
-                    >
-                      <item.Icon className="w-5 h-5 text-gray-600 mb-1 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs text-gray-700 font-medium">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Settings Links */}
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Settings</h3>
@@ -1393,7 +1239,7 @@ const getNotificationIcon = (type) => {
                       <button
                         key={label}
                         onClick={() => {
-                          onClick({ preventDefault: () => {} });
+                          onClick({ preventDefault: () => { } });
                           handleMobileMenuClose();
                         }}
                         className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
@@ -1476,40 +1322,6 @@ const getNotificationIcon = (type) => {
         handleSelectResult={handleSelectResult}
       />
 
-      {/* Coming Soon Popups */}
-      <CommunityComingSoon
-        isOpen={showCommunityPopup}
-        onClose={() => setShowCommunityPopup(false)}
-      />
-      
-      <LearningComingSoon
-        isOpen={showLearningPopup}
-        onClose={() => setShowLearningPopup(false)}
-      />
-      
-      <EventsComingSoon
-        isOpen={showEventsPopup}
-        onClose={() => setShowEventsPopup(false)}
-      />
-
-      {/* Referral Popup */}
-      <Referral
-        isOpen={showReferralPopup}
-        onClose={() => setShowReferralPopup(false)}
-      />
-
-      {/* Subscription Popup */}
-      <Subscription
-        isOpen={showSubscriptionPopup}
-        onClose={() => setShowSubscriptionPopup(false)}
-      />
-
-      {/* Help Page */}
-      <HelpPage
-        isOpen={showHelpPage}
-        onClose={() => setShowHelpPage(false)}
-      />
-
       {/* Create Post Modal */}
       <CreatePostModal
         open={isCreatePostOpen && postStatus === "allow"}
@@ -1518,20 +1330,29 @@ const getNotificationIcon = (type) => {
 
       {/* Interest Popup */}
       {interestModalOpen && (
-       <CasualInterestPopup
-  open={interestModalOpen}
-  onClose={handleCloseInterestModal}
-  onInterestsSelected={handleInterestsSelected}
-/>
-      )}
-
-      {/* Desktop Notification Popup */}
-      {selectedNotif && (
-        <NotificationPopup
-          notification={selectedNotif}
-          onClose={() => setSelectedNotif(null)}
+        <CasualInterestPopup
+          open={interestModalOpen}
+          onClose={handleCloseInterestModal}
+          onInterestsSelected={handleInterestsSelected}
         />
       )}
+
+      {/* Coming Soon Popups */}
+      <ComingSoonPopup
+        isOpen={showSubscriptionPopup}
+        onClose={() => setShowSubscriptionPopup(false)}
+        title="Subscriptions"
+        icon={BellRing}
+        description="Get exclusive access to premium content and features with our upcoming subscription plans."
+      />
+
+      <ComingSoonPopup
+        isOpen={showReferralPopup}
+        onClose={() => setShowReferralPopup(false)}
+        title="Referral"
+        icon={Gift}
+        description="Share Prithu with your friends and earn rewards! Our referral program is launching soon."
+      />
     </Fragment>
   );
 }

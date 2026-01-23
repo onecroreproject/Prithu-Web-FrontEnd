@@ -99,7 +99,13 @@ export const getAllFeeds = async (page = 1, token) => {
 
       // ✅ EditMetadata for crop and filters
       const editMetadata = feed.editMetadata || designMetadata.editMetadata || {};
-
+const footerIcons=(footerSrc.socialIcons || []).length > 0
+    ? footerSrc.socialIcons
+    : viewerSocialLinks.map((i) => ({
+        platform: i.platform,
+        visible: true,
+        urlTemplate: i.url, // ✅ convert url -> urlTemplate
+      }));
       return {
         ...feed, // Keep all raw keys
 
@@ -155,10 +161,13 @@ export const getAllFeeds = async (page = 1, token) => {
 
         overlayElements,
         hasFooter: isFooterEnabled,
-        footerDisplay: {
-          ...footerSrc,
-          socialIcons: viewerSocialLinks,
-        },
+
+
+
+footerDisplay: {
+  ...footerSrc,
+  socialIcons: footerIcons,
+},
 
         themeColor,
         primary: themeColor.primary || themeColor.primaryColor || "#262e39",

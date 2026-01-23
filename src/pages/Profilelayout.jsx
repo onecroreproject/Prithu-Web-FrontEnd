@@ -12,7 +12,6 @@ import FriendsSection from "../components/Profilecard/followersFollowingSection"
 import GroupsSection from "../components/Profilecard/GroupsSection";
 import Advertisement from "../components/Profilecard/Advertisement";
 import ForumsSection from "../components/Profilecard/FormsSection";
-import Jobsection from "../components/Jobs/Jobsection";
 
 const Profilelayout = () => {
   const [activeTab, setActiveTab] = useState("Activity");
@@ -33,7 +32,7 @@ const Profilelayout = () => {
       const res = await api.get(`/api/get/profile/overview`);
       const userData = res.data?.data;
       setUserData(userData);
-     
+
       setProfileStats({
         followersCount: userData.followerCount || 0,
         followingCount: userData.followingCount || 0,
@@ -121,8 +120,6 @@ const Profilelayout = () => {
         return <Advertisement />;
       case "forums":
         return <ForumsSection />;
-      case "jobs":
-        return <Jobsection />;
       default:
         return (
           <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -186,7 +183,7 @@ const Profilelayout = () => {
             activeTab={activeTab}
             onFollowersClick={handleFollowersClick}
             onFollowingClick={handleFollowingClick}
-            onPostsClick={handlePostsClick} 
+            onPostsClick={handlePostsClick}
             friendsSectionView={friendsSectionView}
             activeStat={activeStat} // Pass the activeStat state
           />

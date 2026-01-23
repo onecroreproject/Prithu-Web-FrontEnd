@@ -2,7 +2,7 @@
 import api from "../../api/axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";   
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
 // Components
@@ -15,20 +15,19 @@ import FriendsSection from "../../components/Profilecard/followersFollowingSecti
 import GroupsSection from "../../components/Profilecard/GroupsSection";
 import Advertisement from "../../components/Profilecard/Advertisement";
 import ForumsSection from "../../components/Profilecard/FormsSection";
-import Jobsection from "../../components/Jobs/Jobsection";
 import Headers from "../../components/Header";
 import { X, UserPlus, Home, Eye } from 'lucide-react';
 
 const SingleUserProfilelayout = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState("Activity");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visibility, setVisibility] = useState(null);
   const [error, setError] = useState("");
-  
+
   // Profile stats
   const [profileStats, setProfileStats] = useState({
     followersCount: 0,
@@ -44,7 +43,7 @@ const SingleUserProfilelayout = () => {
 
   // Get current user ID from localStorage
   const currentUserId = localStorage.getItem("userId");
-  
+
   // Check if current user is viewing their own profile
   const isOwnProfile = currentUserId === id;
 
@@ -103,15 +102,15 @@ const SingleUserProfilelayout = () => {
     }
 
     setCheckingFollow(true);
-    
+
     try {
       const res = await api.post("/api/check/follow/status", {
         creatorId: id,
       });
-      
+
       if (res.data.success) {
         setIsFollowing(res.data.isFollowing);
-        
+
         // If not following, show modal after a delay (1 second)
         if (!res.data.isFollowing && shouldShowModal.current) {
           setTimeout(() => {
@@ -128,38 +127,38 @@ const SingleUserProfilelayout = () => {
   };
 
   // 🔥 Follow User
-const handleFollowUser = async () => {
-  if (!id || !currentUserId || isOwnProfile) return;
-  
-  setFollowingLoading(true);
-  
-  try {
-    const res = await api.post('/api/user/follow/creator', { userId: id });
+  const handleFollowUser = async () => {
+    if (!id || !currentUserId || isOwnProfile) return;
 
-    if (res.data.success) {
-      setIsFollowing(true);
+    setFollowingLoading(true);
 
-      setProfileStats(prev => ({
-        ...prev,
-        followersCount: prev.followersCount + 1
-      }));
+    try {
+      const res = await api.post('/api/user/follow/creator', { userId: id });
 
-      if (userData) {
-        setUserData(prev => ({
+      if (res.data.success) {
+        setIsFollowing(true);
+
+        setProfileStats(prev => ({
           ...prev,
-          followerCount: prev.followerCount + 1
+          followersCount: prev.followersCount + 1
         }));
-      }
 
-      toast.success(`You are now following ${userData?.displayName || userData?.userName}!`);
+        if (userData) {
+          setUserData(prev => ({
+            ...prev,
+            followerCount: prev.followerCount + 1
+          }));
+        }
+
+        toast.success(`You are now following ${userData?.displayName || userData?.userName}!`);
+      }
+    } catch (err) {
+      console.error("Error following user:", err);
+      toast.error("Failed to follow user");
+    } finally {
+      setFollowingLoading(false);
     }
-  } catch (err) {
-    console.error("Error following user:", err);
-    toast.error("Failed to follow user");
-  } finally {
-    setFollowingLoading(false);
-  }
-};
+  };
 
 
 
@@ -167,23 +166,23 @@ const handleFollowUser = async () => {
   // 🔥 Unfollow User
   const handleUnfollowUser = async () => {
     if (!id || !currentUserId || isOwnProfile) return;
-    
+
     setFollowingLoading(true);
-    
+
     try {
       const res = await api.post('/api/user/unfollow/creator', {
         userId: id,
       });
-      
+
       if (res.data.success) {
         setIsFollowing(false);
-        
+
         // Update follower count
         setProfileStats(prev => ({
           ...prev,
           followersCount: Math.max(0, prev.followersCount - 1)
         }));
-        
+
         // Update userData if it has followerCount
         if (userData) {
           setUserData(prev => ({
@@ -191,10 +190,10 @@ const handleFollowUser = async () => {
             followerCount: Math.max(0, prev.followerCount - 1)
           }));
         }
-        
+
         // Show success toast
         toast.success(`You have unfollowed ${userData?.displayName || userData?.userName || "this user"}`);
-        
+
         // Refresh data
         refreshAllData();
       }
@@ -217,25 +216,25 @@ const handleFollowUser = async () => {
   };
 
   // 🔥 Handle follow from modal
-const handleFollowFromModal = async () => {
-  try {
-    // Step 1: instantly unlock UI
-    setIsFollowing(true);
-    setShowFollowModal(false);
-    shouldShowModal.current = false;
+  const handleFollowFromModal = async () => {
+    try {
+      // Step 1: instantly unlock UI
+      setIsFollowing(true);
+      setShowFollowModal(false);
+      shouldShowModal.current = false;
 
-    // Step 2: call follow API
-    await handleFollowUser();
+      // Step 2: call follow API
+      await handleFollowUser();
 
-    // Step 3: refresh quietly after UI unlock
-    setTimeout(() => {
-      refreshAllData();
-    }, 100);
+      // Step 3: refresh quietly after UI unlock
+      setTimeout(() => {
+        refreshAllData();
+      }, 100);
 
-  } catch (error) {
-    console.error("Error in follow action:", error);
-  }
-};
+    } catch (error) {
+      console.error("Error in follow action:", error);
+    }
+  };
 
 
 
@@ -270,10 +269,10 @@ const handleFollowFromModal = async () => {
     setUserData((prev) =>
       prev
         ? {
-            ...prev,
-            followerCount: newCounts.followersCount,
-            followingCount: newCounts.followingCount,
-          }
+          ...prev,
+          followerCount: newCounts.followersCount,
+          followingCount: newCounts.followingCount,
+        }
         : null
     );
   };
@@ -293,16 +292,16 @@ const handleFollowFromModal = async () => {
           />
         );
       case "profile":
-        return <ProfileSection 
-          userData={userData} 
-          visibility={visibility} 
+        return <ProfileSection
+          userData={userData}
+          visibility={visibility}
           id={id}
           isFollowing={isFollowing}
         />;
       case "friends":
-        return <FriendsSection 
-          onFollowDataUpdate={handleFollowDataUpdate} 
-          id={id} 
+        return <FriendsSection
+          onFollowDataUpdate={handleFollowDataUpdate}
+          id={id}
           isFollowing={isFollowing}
         />;
       case "groups":
@@ -311,8 +310,6 @@ const handleFollowFromModal = async () => {
         return <Advertisement isFollowing={isFollowing} />;
       case "forums":
         return <ForumsSection isFollowing={isFollowing} />;
-      case "jobs":
-        return <Jobsection isFollowing={isFollowing} />;
       default:
         return (
           <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -329,13 +326,13 @@ const handleFollowFromModal = async () => {
         <div className="h-48 bg-gray-200 rounded-xl mb-4 relative">
           <div className="absolute -bottom-8 left-6 w-20 h-20 bg-gray-300 rounded-full border-4 border-white"></div>
         </div>
- 
+
         <div className="flex gap-4 mb-4">
           {Array(5).fill(0).map((_, i) => (
             <div key={i} className="h-4 w-20 bg-gray-200 rounded-md"></div>
           ))}
         </div>
- 
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="space-y-4">
             <div className="h-32 bg-gray-200 rounded-xl"></div>
@@ -353,7 +350,7 @@ const handleFollowFromModal = async () => {
   return (
     <>
       <div>
-        <Headers/>
+        <Headers />
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Integrated Follow Modal */}
           <AnimatePresence>
@@ -388,8 +385,8 @@ const handleFollowFromModal = async () => {
                       <div className="relative">
                         <div className="w-16 h-16 rounded-full border-2 border-white shadow-md overflow-hidden">
                           {userData?.profileAvatar ? (
-                            <img 
-                              src={userData.profileAvatar} 
+                            <img
+                              src={userData.profileAvatar}
                               alt={userData.displayName || userData.userName}
                               className="w-full h-full object-cover"
                             />
@@ -447,7 +444,7 @@ const handleFollowFromModal = async () => {
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           <PostHeader
             id={id}
             coverImage={userData.coverPhoto}
