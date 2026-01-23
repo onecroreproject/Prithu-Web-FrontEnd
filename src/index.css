@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import "tailwindcss";
+
+/* ===============================
+   GLOBAL BASE
+   =============================== */
+
+* {
+  font-family: "Outfit", sans-serif;
+}
+
+/* ===============================
+   SCROLL BEHAVIOR (OS NATIVE)
+   =============================== */
+
+/* Let OS handle auto-hide (BEST PRACTICE) */
+html,
+body {
+  overflow-y: auto;
+}
+
+/* Smooth scroll for anchors */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===============================
+   SCROLLBAR (SAFE STYLING)
+   =============================== */
+
+/* Works ONLY when browser allows classic scrollbar
+   (ignored automatically on overlay scrollbars) */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.6);
+  border-radius: 999px;
+}
+
+/* Hover / active (optional) */
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.8);
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+}

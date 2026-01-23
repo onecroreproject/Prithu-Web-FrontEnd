@@ -1,0 +1,190 @@
+import React, { useState, useRef, useEffect } from "react";
+import {
+  ContentCopy as CopyIcon,
+  Facebook,
+  WhatsApp,
+  Email,
+  Twitter,
+  LinkedIn,
+  Telegram,
+  Message,
+  Image as ImageIcon,
+  Videocam as VideoIcon,
+} from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
+import api from "../../api/axios";
+import { toast } from "react-hot-toast";
+
+const SharePopup = ({
+  isOpen,
+  onClose,
+  postId,
+  postCaption = "",
+  userName = "",
+  onShareComplete,
+}) => {
+  const [shareData, setShareData] = useState(null);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const popupRef = useRef(null);
+
+  const frontendShareUrl = postId
+    ? `https://www.prithu.app/share/post/${postId}`
+    : "";
+
+  useEffect(() => {
+    if (isOpen && postId) {
+      fetchShareData();
+    } else {
+      setShareData(null);
+      setError(null);
+      setIsLinkCopied(false);
+    }
+  }, [isOpen, postId]);
+
+  const fetchShareData = async () => {
+    if (!postId) {
+      setError("Post ID is required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/api/feed/share/${postId}`);
+      setShareData(response.data);
+    } catch (err) {
+      console.error("Failed to fetch share data:", err);
+      // setError("Failed to load share options. Please try again.");
+      // toast.error("Failed to load share options");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const trackShareAction = async (platform, target = null) => {
+    try {
+      const shareChannelMap = {
+        'whatsapp': 'whatsapp',
+        'facebook': 'facebook',
+        'twitter': 'twitter',
+        'linkedin': 'linkedin',
+        'telegram': 'telegram',
+        'email': 'email',
+        'messenger': 'messenger',
+        'copy': 'copy_link'
+      };
+
+      await api.post('/api/user/feed/share', {
+        feedId: postId,
+        shareChannel: shareChannelMap[platform] || platform,
+        shareTarget: target
+      });
+    } catch (error) {
+      console.error('Failed to track share:', error);
+    }
+  };
+
+  const shareOptions = [
+    { id: "whatsapp", name: "WhatsApp", icon: <WhatsApp />, color: "#25D366" },
+    { id: "facebook", name: "Facebook", icon: <Facebook />, color: "#1877F2" },
+    { id: "twitter", name: "Twitter", icon: <Twitter />, color: "#1DA1F2" },
+    { id: "linkedin", name: "LinkedIn", icon: <LinkedIn />, color: "#0A66C2" },
+    { id: "telegram", name: "Telegram", icon: <Telegram />, color: "#0088cc" },
+    { id: "email", name: "Email", icon: <Email />, color: "#EA4335" },
+    { id: "messenger", name: "Messenger", icon: <Message />, color: "#006AFF" },
+    { id: "copy", name: "Copy Link", icon: <CopyIcon />, color: "#6B7280" },
+  ];
+
+  const copyToClipboard = async () => {
+    if (!frontendShareUrl) return;
+    try {
+      await navigator.clipboard.writeText(frontendShareUrl);
+      setIsLinkCopied(true);
+      await trackShareAction('copy');
+      toast.success("Link copied!");
+      if (onShareComplete) onShareComplete();
+      setTimeout(() => setIsLinkCopied(false), 2000);
+    } catch (err) {
+      toast.error("Failed to copy");
+    }
+  };
+
+  const handleSocialShare = async (platform) => {
+    const urlToShare = frontendShareUrl;
+    const encodedUrl = encodeURIComponent(urlToShare);
+    const caption = shareData?.caption || postCaption || "";
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+    await trackShareAction(platform);
+
+    switch (platform) {
+      case "whatsapp": window.open(isMobile ? `whatsapp://send?text=${encodeURIComponent(`${caption}\n\n${urlToShare}`)}` : `https://web.whatsapp.com/send?text=${encodeURIComponent(`${caption}\n\n${urlToShare}`)}`, "_blank"); break;
+      case "facebook": window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank"); break;
+      case "messenger": window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank", "width=600,height=500"); break;
+      case "twitter": window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(caption)}`, "_blank"); break;
+      case "telegram": window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(caption)}`, "_blank"); break;
+      case "linkedin": window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, "_blank"); break;
+      case "email": {
+        const mailto = `mailto:?subject=${encodeURIComponent("Check out this post")}&body=${encodeURIComponent(`${caption}\n\n${urlToShare}`)}`;
+        window.location.href = mailto;
+        break;
+      }
+      case "copy": await copyToClipboard(); return;
+    }
+
+    if (onShareComplete) onShareComplete();
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) onClose();
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div ref={popupRef} className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+              {shareData?.mediaType === 'video' ? <VideoIcon /> : <ImageIcon />}
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Share Post</h2>
+              <p className="text-sm text-gray-500">Share this post with others</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><CloseIcon /></button>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-4 gap-4">
+            {shareOptions.map((opt) => (
+              <button key={opt.id} onClick={() => handleSocialShare(opt.id)} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all active:scale-95">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: opt.color }}>
+                  {opt.icon}
+                </div>
+                <span className="text-[10px] font-medium text-gray-700">{opt.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SharePopup;

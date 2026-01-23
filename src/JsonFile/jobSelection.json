@@ -1,0 +1,379 @@
+{
+  "industries": [
+    {
+      "industryId": "information_technology",
+      "industryName": "Information Technology & Software",
+      "roles": [
+        "Software Engineer",
+        "Frontend Developer",
+        "Backend Developer",
+        "Full Stack Developer",
+        "Web Developer",
+        "Mobile App Developer",
+        "DevOps Engineer",
+        "Cloud Engineer",
+        "System Administrator",
+        "Network Engineer",
+        "Database Administrator",
+        "QA Engineer",
+        "Automation Tester",
+        "UI Designer",
+        "UX Designer",
+        "Product Manager",
+        "Technical Lead",
+        "IT Support Engineer",
+        "Cyber Security Analyst",
+        "Ethical Hacker",
+        "Blockchain Developer",
+        "Game Developer"
+      ]
+    },
+    {
+      "industryId": "data_ai",
+      "industryName": "Data Science, AI & Analytics",
+      "roles": [
+        "Data Analyst",
+        "Data Scientist",
+        "Machine Learning Engineer",
+        "AI Engineer",
+        "Deep Learning Engineer",
+        "NLP Engineer",
+        "Computer Vision Engineer",
+        "Big Data Engineer",
+        "Business Intelligence Analyst",
+        "Data Architect",
+        "Statistician"
+      ]
+    },
+    {
+      "industryId": "banking_finance",
+      "industryName": "Banking, Finance & Accounting",
+      "roles": [
+        "Accountant",
+        "Chartered Accountant",
+        "Cost Accountant",
+        "Financial Analyst",
+        "Investment Banker",
+        "Bank Clerk",
+        "Bank Manager",
+        "Auditor",
+        "Tax Consultant",
+        "Credit Analyst",
+        "Risk Analyst",
+        "Insurance Advisor",
+        "Claims Officer"
+      ]
+    },
+    {
+      "industryId": "healthcare",
+      "industryName": "Healthcare & Medical",
+      "roles": [
+        "Doctor",
+        "Surgeon",
+        "Physician",
+        "Dentist",
+        "Nurse",
+        "Staff Nurse",
+        "Medical Officer",
+        "Pharmacist",
+        "Lab Technician",
+        "Radiologist",
+        "Physiotherapist",
+        "Psychologist",
+        "Medical Coder",
+        "Hospital Administrator"
+      ]
+    },
+    {
+      "industryId": "education",
+      "industryName": "Education & Training",
+      "roles": [
+        "Teacher",
+        "Professor",
+        "Lecturer",
+        "School Principal",
+        "Academic Counselor",
+        "Online Tutor",
+        "Corporate Trainer",
+        "Instructional Designer",
+        "Education Consultant"
+      ]
+    },
+    {
+      "industryId": "engineering",
+      "industryName": "Engineering & Manufacturing",
+      "roles": [
+        "Mechanical Engineer",
+        "Electrical Engineer",
+        "Civil Engineer",
+        "Electronics Engineer",
+        "Chemical Engineer",
+        "Industrial Engineer",
+        "Production Engineer",
+        "Quality Engineer",
+        "Maintenance Engineer",
+        "Plant Manager"
+      ]
+    },
+    {
+      "industryId": "construction",
+      "industryName": "Construction & Infrastructure",
+      "roles": [
+        "Site Engineer",
+        "Construction Manager",
+        "Project Engineer",
+        "Quantity Surveyor",
+        "Architect",
+        "Interior Designer",
+        "Structural Engineer",
+        "Safety Officer",
+        "Building Inspector"
+      ]
+    },
+    {
+      "industryId": "skilled_trades",
+      "industryName": "Skilled Trades & Technical Services",
+      "roles": [
+        "Electrician",
+        "Plumber",
+        "HVAC Technician",
+        "AC Mechanic",
+        "Refrigeration Technician",
+        "Welder",
+        "Fitter",
+        "Turner",
+        "Machinist",
+        "Maintenance Technician",
+        "Fire Alarm Technician",
+        "CCTV Technician",
+        "Instrumentation Technician",
+        "Automation Technician"
+      ]
+    },
+    {
+      "industryId": "construction_trades",
+      "industryName": "Construction Trades",
+      "roles": [
+        "Mason",
+        "Carpenter",
+        "Shuttering Carpenter",
+        "Steel Fixer",
+        "Bar Bender",
+        "Painter",
+        "Tile Setter",
+        "Plasterer",
+        "Scaffolder",
+        "Roofer",
+        "Waterproofing Technician"
+      ]
+    },
+    {
+      "industryId": "automobile",
+      "industryName": "Automobile & Vehicle Services",
+      "roles": [
+        "Auto Mechanic",
+        "Car Mechanic",
+        "Bike Mechanic",
+        "Diesel Mechanic",
+        "Vehicle Electrician",
+        "Auto AC Technician",
+        "Tyre Technician",
+        "Service Advisor",
+        "Workshop Supervisor"
+      ]
+    },
+    {
+      "industryId": "factory_industrial",
+      "industryName": "Factory & Industrial Workforce",
+      "roles": [
+        "Factory Worker",
+        "Machine Operator",
+        "CNC Operator",
+        "Lathe Operator",
+        "Press Operator",
+        "Assembly Line Worker",
+        "Production Helper",
+        "Quality Inspector",
+        "Shift Supervisor"
+      ]
+    },
+    {
+      "industryId": "logistics_transport",
+      "industryName": "Logistics, Transport & Supply Chain",
+      "roles": [
+        "Supply Chain Manager",
+        "Logistics Coordinator",
+        "Warehouse Manager",
+        "Inventory Manager",
+        "Truck Driver",
+        "Bus Driver",
+        "Delivery Driver",
+        "Forklift Operator",
+        "Fleet Supervisor"
+      ]
+    },
+    {
+      "industryId": "sales_marketing",
+      "industryName": "Sales, Marketing & Advertising",
+      "roles": [
+        "Sales Executive",
+        "Business Development Executive",
+        "Marketing Executive",
+        "Digital Marketing Specialist",
+        "SEO Specialist",
+        "Content Marketer",
+        "Brand Manager",
+        "Market Research Analyst"
+      ]
+    },
+    {
+      "industryId": "media_creative",
+      "industryName": "Media, Design & Creative Arts",
+      "roles": [
+        "Graphic Designer",
+        "Web Designer",
+        "Video Editor",
+        "Animator",
+        "Photographer",
+        "Content Creator",
+        "Journalist",
+        "Copywriter"
+      ]
+    },
+    {
+      "industryId": "human_resources",
+      "industryName": "Human Resources & Recruitment",
+      "roles": [
+        "HR Executive",
+        "HR Manager",
+        "Recruiter",
+        "Talent Acquisition Specialist",
+        "Payroll Executive",
+        "Training Manager"
+      ]
+    },
+    {
+      "industryId": "operations_admin",
+      "industryName": "Operations & Administration",
+      "roles": [
+        "Operations Executive",
+        "Operations Manager",
+        "Office Administrator",
+        "Admin Executive",
+        "Facility Manager"
+      ]
+    },
+    {
+      "industryId": "hospitality",
+      "industryName": "Hospitality, Travel & Tourism",
+      "roles": [
+        "Hotel Manager",
+        "Front Office Executive",
+        "Housekeeping Supervisor",
+        "Chef",
+        "Cook",
+        "Restaurant Manager",
+        "Travel Consultant",
+        "Tour Guide"
+      ]
+    },
+    {
+      "industryId": "retail_ecommerce",
+      "industryName": "Retail & E-commerce",
+      "roles": [
+        "Store Manager",
+        "Retail Sales Associate",
+        "Visual Merchandiser",
+        "E-commerce Manager",
+        "Customer Support Executive",
+        "Order Fulfillment Executive"
+      ]
+    },
+    {
+      "industryId": "government",
+      "industryName": "Government & Public Services",
+      "roles": [
+        "Civil Servant",
+        "Government Clerk",
+        "Public Relations Officer",
+        "Policy Analyst",
+        "Municipal Officer"
+      ]
+    },
+    {
+      "industryId": "legal",
+      "industryName": "Legal & Compliance",
+      "roles": [
+        "Lawyer",
+        "Advocate",
+        "Legal Advisor",
+        "Corporate Counsel",
+        "Compliance Manager"
+      ]
+    },
+    {
+      "industryId": "agriculture",
+      "industryName": "Agriculture, Farming & Food Production",
+      "roles": [
+        "Farmer",
+        "Agricultural Officer",
+        "Farm Manager",
+        "Horticulturist",
+        "Food Processing Worker",
+        "Dairy Farm Worker"
+      ]
+    },
+    {
+      "industryId": "energy_environment",
+      "industryName": "Energy, Utilities & Environment",
+      "roles": [
+        "Renewable Energy Engineer",
+        "Solar Technician",
+        "Wind Energy Technician",
+        "Power Plant Operator",
+        "Environmental Engineer",
+        "Sustainability Manager",
+        "Energy Analyst"
+      ]
+    },
+    {
+      "industryId": "security",
+      "industryName": "Security & Safety Services",
+      "roles": [
+        "Security Guard",
+        "Security Supervisor",
+        "Watchman",
+        "Fire Safety Officer",
+        "Loss Prevention Officer"
+      ]
+    },
+    {
+      "industryId": "domestic_services",
+      "industryName": "Domestic & Personal Services",
+      "roles": [
+        "Housekeeper",
+        "Maid",
+        "Cook",
+        "Babysitter",
+        "Nanny",
+        "Caretaker",
+        "Elder Care Assistant",
+        "Gardener",
+        "Personal Driver"
+      ]
+    },
+    {
+      "industryId": "freelance_gig",
+      "industryName": "Freelance & Gig Economy",
+      "roles": [
+        "Freelancer",
+        "Consultant",
+        "Virtual Assistant",
+        "Online Tutor",
+        "Freelance Web Developer",
+        "Freelance Designer",
+        "Freelance Digital Marketer"
+      ]
+    }
+  ]
+}
