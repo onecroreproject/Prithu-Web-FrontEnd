@@ -185,12 +185,12 @@ export const useStories = () => {
   // Fetch replies
   const fetchReplies = async (commentId) => {
     const parentReplyId = commentId;
-    console.log(commentId)
+ 
     try {
       setReplyLoading((prev) => ({ ...prev, [commentId]: true }));
 
       const res = await api.post('/api/get/nested/replies', { parentReplyId });
-      console.log(res.data)
+    
       setReplies((prev) => ({
         ...prev,
         [commentId]: res.data?.replies || [],
@@ -204,7 +204,7 @@ export const useStories = () => {
 
   // Post reply - FIXED VERSION
   const postReply = async (feedId, parentCommentId) => {
-    console.log(parentCommentId)
+
     const replyText = replyInputs[parentCommentId]?.trim();
     if (!replyText) return;
 

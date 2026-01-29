@@ -25,7 +25,7 @@ export function useCategories() {
     return useQuery({
         queryKey: ['categories'],
         queryFn: async () => {
-            const { data } = await api.get('/api/user/get/all/category');
+            const { data } = await api.get('/api/get/feed/category');
             return data.categories || [];
         },
         staleTime: 60 * 60 * 1000, // 1 hour

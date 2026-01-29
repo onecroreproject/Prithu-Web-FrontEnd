@@ -125,8 +125,8 @@ export default function PostSection({ id, visibility }) {
               key={opt.id}
               onClick={() => setActiveOption(opt.id)}
               className={`flex-shrink-0 px-4 py-3 mx-1 text-sm font-medium rounded-lg transition-all duration-200 ${activeOption === opt.id
-                  ? "bg-blue-50 text-blue-600 border border-blue-200"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                ? "bg-blue-50 text-blue-600 border border-blue-200"
+                : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                 }`}
             >
               {opt.label}
@@ -143,8 +143,8 @@ export default function PostSection({ id, visibility }) {
               key={opt.id}
               onClick={() => setActiveOption(opt.id)}
               className={`relative px-4 py-4 text-sm font-medium transition-all duration-200 ${activeOption === opt.id
-                  ? "text-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-gray-900"
                 }`}
             >
               {opt.label}
@@ -177,7 +177,7 @@ export default function PostSection({ id, visibility }) {
       </div>
 
       {/* Hide Scrollbar CSS */}
-      <style jsx>{`
+      <style>{`
         .hide-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;

@@ -59,7 +59,7 @@ const SettingsSidebar = () => {
             onClick={(e) => {
               if (item.highlight) {
                 e.preventDefault();
-                console.log("Logout clicked");
+
                 // Implement logout logic here if needed
                 navigate("/logout"); // Example: navigate to logout route
               }

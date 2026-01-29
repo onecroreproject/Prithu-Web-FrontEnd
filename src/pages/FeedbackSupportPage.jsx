@@ -112,7 +112,7 @@ const FeedbackPage = () => {
       if (searchQuery) params.search = searchQuery;
 
       const response = await axios.get('/api/feedback/my', { params });
-      console.log(response.data)
+
       setHistoryData(response.data.data);
     } catch (error) {
       console.error('Error fetching feedback history:', error);

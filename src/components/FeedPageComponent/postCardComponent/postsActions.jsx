@@ -151,7 +151,7 @@ const PostActions = ({
             <Download style={{ fontSize: 22 }} />
           </button>
 
-          <button
+          {/* <button
             onClick={instantSave}
             className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
             aria-label={localSaved ? "Unsave" : "Save"}
@@ -161,7 +161,7 @@ const PostActions = ({
             ) : (
               <BookmarkBorder style={{ fontSize: 24 }} />
             )}
-          </button>
+          </button> */}
         </div>
       </div>
 

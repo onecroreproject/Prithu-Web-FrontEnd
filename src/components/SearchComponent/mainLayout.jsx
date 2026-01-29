@@ -19,6 +19,8 @@ import {
 import api from "../../api/axios";
 import Postcard from "../FeedPageComponent/Postcard";
 import defaultAvater from "../../assets/user.png";
+import { useAuth } from "../../context/AuthContext";
+
 
 const SearchResultsScreen = () => {
   const location = useLocation();
@@ -127,7 +129,7 @@ const SearchResultsScreen = () => {
         const response = await api.get(
           `/api/global/search?q=${encodeURIComponent(searchQuery)}`
         );
-        console.log("Search API Response:", response.data);
+
 
         if (response.data?.success) {
           const {
@@ -700,10 +702,12 @@ const FeedsResults = ({ results }) => (
 
 const PersonCard = ({ person }) => {
   const navigate = useNavigate();
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(person?._id || person?.userId);
 
   const handleClick = () => {
-    if (!person?._id) return;
-    navigate(`/home/user/profile/${person.userId}`);
+    if (!person?._id && !person?.userId) return;
+    navigate(`/home/user/profile/${person.userId || person._id}`);
   };
 
   return (
@@ -714,14 +718,20 @@ const PersonCard = ({ person }) => {
     >
       {/* Left Section - Avatar */}
       <div className="flex items-center min-w-0 gap-4">
-        <img
-          src={person.profileAvatar || defaultAvater}
-          alt={person.userName || person.name}
-          className="w-12 h-12 rounded-full border object-cover"
-          onError={(e) => {
-            e.target.src = defaultAvater;
-          }}
-        />
+        <div className="relative">
+          <img
+            src={person.profileAvatar || defaultAvater}
+            alt={person.userName || person.name}
+            className="w-12 h-12 rounded-full border object-cover"
+            onError={(e) => {
+              e.target.src = defaultAvater;
+            }}
+          />
+          {isOnline && (
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+          )}
+        </div>
+
 
         <div className="min-w-0 flex flex-col">
           {/* User name */}

@@ -6,7 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Context
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import { UserStatusProvider } from "./context/userContext.jsx";
+import { DownloadProvider } from "./context/DownloadContext.jsx";
 
 // Protected Route
 import ProtectedRoute from "./context/authProtectedRoutes.jsx";
@@ -39,6 +39,7 @@ import HelpPageLayout from "./pages/HelpPageLayout.jsx";
 import FAQPage from "./pages/HelpPageLayout.jsx";
 import FeedbackSupportPage from "./pages/FeedbackSupportPage.jsx";
 import FeedbackPage from "./pages/FeedbackSupportPage.jsx";
+import ReferralPage from "./pages/ReferralPage.jsx";
 
 // React Query Client
 const queryClient = new QueryClient();
@@ -70,6 +71,11 @@ function AppRoutes() {
         element={!token ? <Login /> : <Navigate to="/home" replace />}
       />
 
+      <Route
+        path="/signup"
+        element={!token ? <Login initialMode="register" /> : <Navigate to="/home" replace />}
+      />
+
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/r/:username" element={<PublicResume />} />
       <Route path="/portfolio/:username" element={<PortfolioLayout />} />
@@ -98,6 +104,7 @@ function AppRoutes() {
         <Route path="profile" element={<Profilelayout />} />
         <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="invite" element={<InviteFriends />} />
+        <Route path="referral" element={<ReferralPage />} />
         <Route path="activity" element={<UserActivity />} />
 
         {/* Settings */}
@@ -136,10 +143,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
-          <UserStatusProvider>
+          <DownloadProvider>
             <AppRoutes />
             <Toaster position="top-right" />
-          </UserStatusProvider>
+          </DownloadProvider>
         </AuthProvider>
       </Router>
 

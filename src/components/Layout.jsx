@@ -4,6 +4,7 @@ import Feed from "../pages/Feed";
 import Birthdays from "./Birthdays";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftColumn from "./LeftColumn";
+import DownloadMenu from "./Download/DownloadMenu";
 import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
@@ -60,6 +61,7 @@ export default function Layout() {
     <div className="flex flex-col bg-white dark:bg-[#121212]">
 
       <Header />
+      <DownloadMenu />
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
@@ -105,7 +107,7 @@ export default function Layout() {
             <aside className="hidden xl:flex w-[350px] mt-2 flex-shrink-0 mr-4">
               <div className="flex flex-col w-[350px] gap-4">
                 <LeftColumn />
-                {!isHashtagPage && <Birthdays />}
+                {/* {!isHashtagPage && <Birthdays />} */}
               </div>
             </aside>
           )}

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -20,11 +20,11 @@ import CasualInterestPopup from "../components/intrestedPop-up";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
+import { useDownloads } from "../context/DownloadContext";
 
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
-import ComingSoonPopup from "./ComingSoonPopup";
 
 // Import the existing NotificationDropdown for mobile
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
@@ -46,14 +46,16 @@ export default function Header() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
 
+  // Download State
+  const { activeDownloads, toggleMenu } = useDownloads();
+  const activeDownloadCount = Object.keys(activeDownloads).length;
+
   // Posting permission states
   const [postStatus, setPostStatus] = useState(null);
   const [loadingPostStatus, setLoadingPostStatus] = useState(false);
   const [interestModalOpen, setInterestModalOpen] = useState(false);
 
   // Coming Soon Popup States
-  const [showReferralPopup, setShowReferralPopup] = useState(false);
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [showHelpPage, setShowHelpPage] = useState(false);
 
   // Notification states
@@ -123,7 +125,7 @@ export default function Header() {
 
   // Handle interest modal response
   const handleInterestsSelected = useCallback((status) => {
-    console.log("Interest status:", status);
+
 
     if (status === "allow") {
       setPostStatus("allow");
@@ -143,7 +145,7 @@ export default function Header() {
   }, []);
 
   const handleCloseInterestModal = useCallback(() => {
-    console.log("Closing interest modal");
+
     setInterestModalOpen(false);
   }, []);
 
@@ -159,31 +161,23 @@ export default function Header() {
   // Profile menu items
   const profileMenuItems = [
     { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
-    { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
+    // { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
   ];
 
   // Settings menu items
   const settingsMenuItems = [
     { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
     {
-      to: "/subscriptions",
+      to: "/home/subscriptions",
       label: "Subscriptions",
       Icon: BellRing,
-      desc: "Manage subscriptions",
-      onClick: (e) => {
-        e.preventDefault();
-        setShowSubscriptionPopup(true);
-      }
+      desc: "Manage subscriptions"
     },
     {
-      to: "/referral",
+      to: "/home/referral",
       label: "Referral",
       Icon: Gift,
-      desc: "Referral program",
-      onClick: (e) => {
-        e.preventDefault();
-        setShowReferralPopup(true);
-      }
+      desc: "Referral program"
     },
     {
       to: "/home/help",
@@ -207,7 +201,7 @@ export default function Header() {
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get("/api/get/user/all/notification", authHeader);
-      console.log(res.data)
+
       const list = res.data?.notifications || [];
       setNotifications(list);
     } catch (err) {
@@ -412,8 +406,8 @@ export default function Header() {
   };
 
   const closeAllPopups = () => {
-    setShowReferralPopup(false);
-    setShowSubscriptionPopup(false);
+    // setShowReferralPopup(false);
+    // setShowSubscriptionPopup(false);
   };
 
   // Search helpers
@@ -656,22 +650,40 @@ export default function Header() {
             </motion.h1>
           </div>
 
-          {/* Notification Icon */}
-          <div className="relative" ref={notificationRef}>
-            <button
-              onClick={handleBellClick}
-              className={`p-2 rounded-lg transition-all duration-200 ${notifOpen
-                ? "bg-blue-100 ring-2 ring-blue-200"
-                : "hover:bg-gray-100"
-                }`}
-            >
-              <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
-              {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-4 flex items-center justify-center px-0.5">
-                  {notifCount > 99 ? '99+' : notifCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Download Icon */}
+            <div className="relative">
+              <button
+                onClick={toggleMenu}
+                className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 flex items-center justify-center`}
+                title="Downloads"
+              >
+                <Download className="w-5 h-5 text-gray-600" />
+                {activeDownloadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold animate-pulse">
+                    {activeDownloadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Notification Icon */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={handleBellClick}
+                className={`p-2 rounded-lg transition-all duration-200 ${notifOpen
+                  ? "bg-blue-100 ring-2 ring-blue-200"
+                  : "hover:bg-gray-100"
+                  }`}
+              >
+                <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
+                {notifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-4 flex items-center justify-center px-0.5">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -742,7 +754,7 @@ export default function Header() {
                           </div>
 
                           {/* Group Notifications */}
-                          {groupNotifications.map((notif) => {
+                          {groupNotifications.map((notif, index) => {
                             const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
                             const isRegularNotification = notif.sender || notif.feedInfo;
 
@@ -775,7 +787,7 @@ export default function Header() {
 
                             return (
                               <motion.div
-                                key={notif._id || notif.id}
+                                key={notif._id || notif.id || `notif-${index}`}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.isRead ? "bg-blue-50/50" : ""
@@ -920,7 +932,7 @@ export default function Header() {
             ))}
 
             {/* Create Post Button */}
-            <button
+            {/* <button
               onClick={handleCreatePostClick}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700 mt-1"
             >
@@ -929,50 +941,51 @@ export default function Header() {
                 <span className="text-sm font-medium">Create Post</span>
                 {getPostStatusBadge()}
               </div>
-            </button>
+            </button> */}
           </div>
 
           {/* Profile Section */}
-          <div className="mb-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Profile</h3>
-            {profileMenuItems.map((item) => {
-              if (item.label === "Portfolio") {
+
+
+          {/* Settings Section */}
+          <div className="mt-auto pt-3 border-t border-gray-100">
+            <div className="mb-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Profile</h3>
+              {profileMenuItems.map((item) => {
+                if (item.label === "Portfolio") {
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={handlePortfolioClick}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                    >
+                      <item.Icon className="w-5 h-5" />
+                      <div className="flex">
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </div>
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
-                    key={item.label}
-                    onClick={handlePortfolioClick}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
+                        ? "bg-blue-50 text-blue-700 font-semibold"
+                        : "text-gray-700 hover:bg-gray-50"
+                      }`
+                    }
                   >
                     <item.Icon className="w-5 h-5" />
                     <div className="flex-1">
                       <span className="text-sm font-medium">{item.label}</span>
                     </div>
-                  </button>
+                  </NavLink>
                 );
-              }
-
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
-                    }`
-                  }
-                >
-                  <item.Icon className="w-5 h-5" />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </div>
-                </NavLink>
-              );
-            })}
-          </div>
-
-          {/* Settings Section */}
-          <div className="mt-auto pt-3 border-t border-gray-100">
+              })}
+            </div>
             {settingsMenuItems.map(({ to, label, Icon, onClick }) => (
               onClick ? (
                 <button
@@ -1323,10 +1336,10 @@ export default function Header() {
       />
 
       {/* Create Post Modal */}
-      <CreatePostModal
+      {/* <CreatePostModal
         open={isCreatePostOpen && postStatus === "allow"}
         onClose={handleCloseModal}
-      />
+      /> */}
 
       {/* Interest Popup */}
       {interestModalOpen && (
@@ -1337,28 +1350,16 @@ export default function Header() {
         />
       )}
 
-      {/* Coming Soon Popups */}
-      <ComingSoonPopup
-        isOpen={showSubscriptionPopup}
-        onClose={() => setShowSubscriptionPopup(false)}
-        title="Subscriptions"
-        icon={BellRing}
-        description="Get exclusive access to premium content and features with our upcoming subscription plans."
-      />
 
-      <ComingSoonPopup
-        isOpen={showReferralPopup}
-        onClose={() => setShowReferralPopup(false)}
-        title="Referral"
-        icon={Gift}
-        description="Share Prithu with your friends and earn rewards! Our referral program is launching soon."
-      />
     </Fragment>
   );
 }
 
 /* ✅ Profile Avatar component */
 const ProfileAvatar = ({ user, size = "md" }) => {
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(user?._id || user?.userId);
+
   const fallback = user?.displayName?.[0]?.toUpperCase() || user?.userName?.[0]?.toUpperCase() || "U";
   const sizeClasses = {
     sm: "w-8 h-8 text-sm",
@@ -1366,21 +1367,36 @@ const ProfileAvatar = ({ user, size = "md" }) => {
     lg: "w-12 h-12 text-base"
   };
 
-  return user?.profileAvatar ? (
-    <motion.img
-      src={user.profileAvatar}
-      alt="Avatar"
-      className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200 shadow-sm`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    />
-  ) : (
-    <motion.div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200 shadow-sm`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {fallback}
-    </motion.div>
+  const dotSizes = {
+    sm: "w-2 h-2",
+    md: "w-2.5 h-2.5",
+    lg: "w-3 h-3"
+  };
+
+  return (
+    <div className="relative">
+      {user?.profileAvatar ? (
+        <motion.img
+          src={user.profileAvatar}
+          alt="Avatar"
+          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200 shadow-sm`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        />
+      ) : (
+        <motion.div
+          className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200 shadow-sm`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {fallback}
+        </motion.div>
+      )}
+
+      {/* Online Status Dot */}
+      {isOnline && (
+        <span className={`absolute bottom-0 right-0 ${dotSizes[size]} bg-green-500 border-2 border-white rounded-full shadow-sm`}></span>
+      )}
+    </div>
   );
 };

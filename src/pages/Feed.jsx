@@ -5,10 +5,11 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAllFeeds,
-
   getSingleFeed,
   getFeedsByHashtag,
 } from "../Service/feedService";
+import { useCategories } from "../hooks/useMiscellaneous";
+
 
 import PostcardWrapper from "../components/FeedPageComponent/postCardWraper";
 import Stories from "../components/Stories";
@@ -17,6 +18,7 @@ import { Skeleton } from "@mui/material";
 import TagIcon from "@mui/icons-material/Tag";
 
 import throttle from "lodash.throttle";
+import CategoryFeedPage from "../components/categories";
 
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -72,13 +74,20 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
 
-
   const tokenRef = useRef(token);
   useEffect(() => {
     tokenRef.current = token;
   }, [token]);
 
-  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all"];
+  const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
+
+  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all"];
+
+  const initialPageParam = {
+    categoryPage: 1,
+    allPage: 1,
+    mode: feedCategory ? "category" : "all",
+  };
 
   const {
     data: feedPages,
@@ -89,12 +98,46 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     isError: feedsError,
   } = useInfiniteQuery({
     queryKey: feedsQueryKey,
-    queryFn: ({ pageParam = 1 }) =>
-      tagname
-        ? getFeedsByHashtag(tagname, pageParam, tokenRef.current || token)
-        : getAllFeeds(pageParam, tokenRef.current || token),
-    getNextPageParam: (lastPage, pages) =>
-      lastPage && lastPage.length < 10 ? undefined : pages.length + 1,
+    queryFn: ({ pageParam }) => {
+      const param = pageParam || initialPageParam;
+
+      if (tagname) {
+        return getFeedsByHashtag(tagname, param.page || 1, tokenRef.current || token);
+      }
+
+      if (param.mode === "category" && feedCategory) {
+        return getAllFeeds(param.categoryPage, tokenRef.current || token, feedCategory);
+      } else {
+        return getAllFeeds(param.allPage, tokenRef.current || token, null);
+      }
+    },
+    initialPageParam,
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      if (tagname) {
+        const currentPage = typeof lastPageParam === "number" ? lastPageParam : (lastPageParam?.page || 1);
+        return lastPage && lastPage.length < 10 ? undefined : currentPage + 1;
+      }
+
+      const currentParam = lastPageParam || initialPageParam;
+      const isFullBatch = lastPage && lastPage.length >= 10;
+
+      if (currentParam.mode === "category") {
+        if (isFullBatch) {
+          return { ...currentParam, categoryPage: currentParam.categoryPage + 1 };
+        } else {
+          // Category exhausted, switch to 'all' (mixed)
+          return { ...currentParam, mode: "all", allPage: 1 };
+        }
+      } else {
+        // mode === "all"
+        if (isFullBatch) {
+          return { ...currentParam, allPage: currentParam.allPage + 1 };
+        } else {
+          // 'all' exhausted, restart 'all' feeds again (Persistent Loop)
+          return { ...currentParam, allPage: 1 };
+        }
+      }
+    },
     enabled: !!(tokenRef.current || token),
     refetchOnWindowFocus: false,
   });
@@ -350,24 +393,27 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
         )}
         {!isHashtagMode && (
           <>
-            <Stories />
-            <div className="flex items-center flex-col mb-6">
-              <Createpost authUser={authUser} token={tokenRef.current || token} />
+            {/* <Stories />*/}
+            <div className="sticky top-[80px] lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-2 flex items-center flex-col border-b border-gray-100/50 sm:border-none">
+              <CategoryFeedPage onSelectCategory={setFeedCategory} selectedCategoryId={feedCategory} />
             </div>
           </>
         )}
-        <AnimatePresence>
-          <div className="flex items-center flex-col gap-5">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={feedCategory || tagname || "home"}
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -50, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex items-center flex-col gap-5 w-full"
+          >
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
             ) : mixed.length > 0 ? (
               mixed.map((item, idx) => (
-                <motion.div
+                <div
                   key={`${item.__kind}-${item._id || item.feedId || idx}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.4 }}
                   className="w-full"
                 >
                   <PostcardWrapper
@@ -377,15 +423,16 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                     onHideFromUI={handleHideFromUI}
                     isVisible={true}
                   />
-                </motion.div>
+                </div>
               ))
             ) : (
               <p className="text-center text-gray-500 py-8">
                 {feedsError ? "⚠️ Failed to load content." : "No content available."}
               </p>
             )}
-          </div>
+          </motion.div>
         </AnimatePresence>
+
         {isFetchingNextPage && (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>

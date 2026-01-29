@@ -1,113 +1,98 @@
 
 
- 
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import api from "../../api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationHeader from "./notificationHeader";
 import NotificationItem from "./notificationItem";
 import NotificationPopup from "./notificationPopUpReader";
-import { Bell } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
- 
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification } from "../../hooks/useNotifications";
+
 export default function NotificationDropdown({ isOpen, onClose, onUpdateCount }) {
-  const [notifications, setNotifications] = useState([]);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const dropdownRef = useRef(null);
+  const observerRef = useRef(null);
   const token = localStorage.getItem("token");
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
- 
-  // ✅ Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get("/api/get/user/all/notification", authHeader);
-      console.log(res.data)
-      const list = res.data?.notifications || [];
-      setNotifications(list);
-    } catch (err) {
-      console.error("❌ Fetch error:", err);
-    }
-  }, []);
- 
-  // ✅ Live socket updates
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch
+  } = useNotifications(token);
+
+  const deleteNotif = useDeleteNotification();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  // ✅ Flatten notifications for infinite list
+  const allNotifications = data?.pages?.flatMap(page => page.notifications) || [];
+  const unreadCount = allNotifications.filter(n => !n.isRead).length;
+
+  // ✅ Live socket pulse update
   useEffect(() => {
-    const handleNewNotif = (e) => {
-      setNotifications((prev) => [e.detail, ...prev]);
+    const handlePulse = () => {
+      refetch();
       onUpdateCount?.();
     };
-    document.addEventListener("socket:newNotification", handleNewNotif);
-    return () => document.removeEventListener("socket:newNotification", handleNewNotif);
-  }, [onUpdateCount]);
- 
-  // ✅ Fetch when dropdown opens
-  useEffect(() => {
-    if (isOpen) fetchNotifications();
-  }, [isOpen, fetchNotifications]);
- 
+    document.addEventListener("socket:notificationPulse", handlePulse);
+    return () => document.removeEventListener("socket:notificationPulse", handlePulse);
+  }, [refetch, onUpdateCount]);
+
+  // ✅ Infinite Scroll Intersection Observer
+  const lastElementRef = useCallback(node => {
+    if (isLoading || isFetchingNextPage) return;
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
+      }
+    });
+
+    if (node) observerRef.current.observe(node);
+  }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
+
   // ✅ Mark all as read
-  const markAllAsRead = async () => {
+  const handleMarkAllAsRead = async () => {
     try {
-      await api.put("/api/mark/all/notification/read", {}, authHeader);
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      await markAllRead.mutateAsync();
       onUpdateCount?.();
       toast.success("All notifications marked as read!");
     } catch (err) {
       toast.error("Failed to mark notifications as read");
     }
   };
- 
-  // ✅ Delete all notifications
-  const handleDeleteAllNotifications = async () => {
-    try {
-      await api.delete("/api/user/delete/all/notification", authHeader);
-      setNotifications([]);
-      onUpdateCount?.();
-      toast.success("All notifications deleted");
-    } catch (err) {
-      console.error("❌ Delete all error:", err);
-      toast.error("Failed to delete all notifications");
-    }
-  };
- 
-  // ✅ Mark single notification as read + open popup
- const handleNotificationClick = async (notif) => {
-  setSelectedNotif({ ...notif });   // <-- send full data
 
-  if (!notif.isRead) {
-    try {
-      await api.put("/api/user/read", { notificationId: notif._id }, authHeader);
-
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n._id === notif._id ? { ...n, isRead: true } : n
-        )
-      );
-
-      onUpdateCount?.();
-    } catch (err) {
-      console.error("❌ Mark read error:", err);
-    }
-  }
-};
-
- 
   // ✅ Delete individual notification
   const handleDeleteNotification = async (notifId) => {
     try {
-      await api.delete("/api/user/delete/notification", {
-        ...authHeader,
-        data: { notificationId: notifId },
-      });
-
-      setNotifications((prev) => prev.filter((n) => n._id !== notifId));
+      await deleteNotif.mutateAsync(notifId);
       onUpdateCount?.();
-      toast.success("Notification deleted successfully");
+      toast.success("Notification deleted");
     } catch (err) {
-      console.error("❌ Delete error:", err);
       toast.error("Failed to delete notification");
     }
   };
- 
+
+  const handleNotificationClick = async (notif) => {
+    setSelectedNotif({ ...notif });
+    if (!notif.isRead) {
+      try {
+        await markRead.mutateAsync(notif._id);
+        onUpdateCount?.();
+      } catch (err) {
+        console.error("❌ Mark read error:", err);
+      }
+    }
+  };
+
   // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleOutside = (e) => {
@@ -116,9 +101,7 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [onClose]);
- 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
- 
+
   return (
     <>
       <AnimatePresence>
@@ -129,20 +112,24 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed sm:absolute right-0 top-14 sm:top-12 w-full sm:w-96 max-w-sm mx-auto sm:mx-0 bg-white rounded-none sm:rounded-xl shadow-2xl sm:shadow-xl border-0 sm:border border-gray-200 overflow-hidden z-50 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[80vh]"
+            className="fixed sm:absolute right-0 top-14 sm:top-12 w-full sm:w-96 max-w-sm mx-auto sm:mx-0 bg-white rounded-none sm:rounded-xl shadow-2xl sm:shadow-xl border-0 sm:border border-gray-200 overflow-hidden z-50 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[80vh] flex flex-col"
           >
             {/* Header */}
             <NotificationHeader
-              notifications={notifications}
-              onMarkAllAsRead={markAllAsRead}
-              onDeleteAll={handleDeleteAllNotifications}
+              notifications={allNotifications}
+              onMarkAllAsRead={handleMarkAllAsRead}
+              onDeleteAll={() => { }} // Could implement if needed
               unreadCount={unreadCount}
               onClose={onClose}
             />
- 
+
             {/* Notification List */}
-            <div className="flex-1 overflow-y-auto h-full sm:max-h-96">
-              {notifications.length === 0 ? (
+            <div className="flex-1 overflow-y-auto h-full sm:max-h-96 custom-scrollbar">
+              {isLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                </div>
+              ) : allNotifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
                     <Bell size={28} className="text-gray-400" />
@@ -152,28 +139,35 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
                 </div>
               ) : (
                 <div className="p-2 sm:p-0">
-                  {notifications.map((notif, index) => (
-                    <motion.div
+                  {allNotifications.map((notif, index) => (
+                    <div
                       key={notif._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      ref={index === allNotifications.length - 1 ? lastElementRef : null}
                     >
                       <NotificationItem
                         notif={notif}
                         onClick={() => handleNotificationClick(notif)}
                         onDelete={handleDeleteNotification}
                       />
-                    </motion.div>
+                    </div>
                   ))}
+
+                  {isFetchingNextPage && (
+                    <div className="flex justify-center p-4">
+                      <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
- 
+
             {/* Footer */}
-            {notifications.length > 0 && (
+            {allNotifications.length > 0 && (
               <div className="bg-white border-t border-gray-100 p-4 sm:p-3">
-                <button className="w-full text-center text-sm text-gray-700 font-medium hover:text-gray-900 py-3 sm:py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 border border-gray-300">
+                <button
+                  onClick={() => onClose()} // Could link to a full notification page
+                  className="w-full text-center text-sm text-gray-700 font-medium hover:text-gray-900 py-3 sm:py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 border border-gray-300"
+                >
                   View All Notifications
                 </button>
               </div>
@@ -181,16 +175,14 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
           </motion.div>
         )}
       </AnimatePresence>
- 
-      {/* Backdrop for mobile */}
+
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/20 z-40 sm:hidden"
           onClick={onClose}
         />
       )}
- 
-      {/* Notification Reader Popup */}
+
       {selectedNotif && (
         <NotificationPopup
           notification={selectedNotif}
@@ -200,4 +192,4 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
     </>
   );
 }
- 
+

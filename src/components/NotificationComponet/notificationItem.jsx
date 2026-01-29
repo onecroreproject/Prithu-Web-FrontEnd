@@ -1,14 +1,14 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { 
-  BellRing, 
-  Trash2, 
-  User, 
-  Briefcase, 
-  Heart, 
-  MessageCircle, 
-  UserPlus, 
-  Share2, 
+import {
+  BellRing,
+  Trash2,
+  User,
+  Briefcase,
+  Heart,
+  MessageCircle,
+  UserPlus,
+  Share2,
   Eye,
   CheckCircle,
   XCircle,
@@ -17,11 +17,11 @@ import {
 
 export default function NotificationItem({ notif, onClick, onDelete }) {
   const sender = notif.sender || {};
-  
+
   // Check if it's a job status notification
   const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
   const jobInfo = notif.job || {};
-  
+
   // Get notification icon based on type
   const getNotificationIcon = () => {
     switch (notif.type?.toLowerCase()) {
@@ -43,6 +43,8 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
         return <Heart size={10} className="text-purple-500" />;
       case 'story_view':
         return <Eye size={10} className="text-blue-400" />;
+      case 'new_feed':
+        return <BellRing size={10} className="text-orange-500" />;
       default:
         return <BellRing size={10} className="text-gray-500" />;
     }
@@ -108,6 +110,7 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
       success: "bg-green-100 text-green-800 border-green-200",
       warning: "bg-amber-100 text-amber-800 border-amber-200",
       job_status_update: "bg-indigo-100 text-indigo-800 border-indigo-200",
+      new_feed: "bg-orange-100 text-orange-800 border-orange-200",
       default: "bg-gray-100 text-gray-800 border-gray-200"
     };
     return typeColors[type?.toLowerCase()] || typeColors.default;
@@ -137,11 +140,10 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
       onClick={onClick}
       whileHover={{ backgroundColor: "#f8fafc" }}
       whileTap={{ scale: 0.995 }}
-      className={`relative p-3 sm:p-4 border-b border-gray-100 last:border-b-0 flex items-start gap-3 sm:gap-4 cursor-pointer transition-all duration-200 group ${
-        !notif.isRead
+      className={`relative p-3 sm:p-4 border-b border-gray-100 last:border-b-0 flex items-start gap-3 sm:gap-4 cursor-pointer transition-all duration-200 group ${!notif.isRead
           ? "bg-blue-50/60 hover:bg-blue-50"
           : "bg-white hover:bg-gray-50"
-      }`}
+        }`}
     >
       {/* Unread Indicator */}
       {!notif.isRead && (
@@ -157,11 +159,10 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border border-gray-200 shadow-sm"
           />
         ) : (
-          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm ${
-            isJobStatusUpdate 
-              ? "bg-gradient-to-br from-indigo-500 to-indigo-600" 
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm ${isJobStatusUpdate
+              ? "bg-gradient-to-br from-indigo-500 to-indigo-600"
               : "bg-gradient-to-br from-blue-500 to-blue-600"
-          }`}>
+            }`}>
             {isJobStatusUpdate ? (
               <Briefcase size={16} className="text-white" />
             ) : (
@@ -169,11 +170,10 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
             )}
           </div>
         )}
-       
+
         {/* Notification Type Icon Badge */}
-        <div className={`absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-gray-200 flex items-center justify-center shadow-sm ${
-          isJobStatusUpdate ? "bg-indigo-50" : "bg-white"
-        }`}>
+        <div className={`absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-gray-200 flex items-center justify-center shadow-sm ${isJobStatusUpdate ? "bg-indigo-50" : "bg-white"
+          }`}>
           {getNotificationIcon()}
         </div>
       </div>
@@ -193,14 +193,14 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
                 </span>
               )}
             </div>
-           
+
             {notif.type && !isJobStatusUpdate && (
               <span className={`hidden sm:inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTypeColor(notif.type)}`}>
                 {notif.type.replace(/_/g, ' ')}
               </span>
             )}
           </div>
-         
+
           <span className="text-xs text-gray-500 font-medium whitespace-nowrap flex-shrink-0">
             {formatTime(notif.createdAt)}
           </span>
@@ -228,9 +228,9 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
             {jobInfo.status && (
               <div className="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-gray-100 text-xs">
                 {jobStatusInfo.icon}
-                <span className={`text-xs font-medium ${jobInfo.status === 'accepted' ? 'text-green-600' : 
-                  jobInfo.status === 'rejected' ? 'text-red-600' : 
-                  jobInfo.status === 'reviewed' ? 'text-blue-600' : 'text-gray-600'}`}>
+                <span className={`text-xs font-medium ${jobInfo.status === 'accepted' ? 'text-green-600' :
+                  jobInfo.status === 'rejected' ? 'text-red-600' :
+                    jobInfo.status === 'reviewed' ? 'text-blue-600' : 'text-gray-600'}`}>
                   {jobInfo.status.charAt(0).toUpperCase() + jobInfo.status.slice(1)}
                 </span>
               </div>
@@ -246,13 +246,12 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
             </span>
           )}
           {notif.priority && (
-            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-              notif.priority === "high"
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${notif.priority === "high"
                 ? "bg-red-50 text-red-700"
                 : notif.priority === "medium"
-                ? "bg-amber-50 text-amber-700"
-                : "bg-blue-50 text-blue-700"
-            }`}>
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-blue-50 text-blue-700"
+              }`}>
               {notif.priority}
             </span>
           )}
@@ -268,11 +267,10 @@ export default function NotificationItem({ notif, onClick, onDelete }) {
             className="w-10 h-10 sm:w-14 sm:h-14 rounded-lg object-cover border border-gray-200 shadow-sm"
           />
         ) : (
-          <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-lg border border-gray-200 flex items-center justify-center shadow-sm ${
-            isJobStatusUpdate 
-              ? "bg-gradient-to-br from-indigo-50 to-indigo-100" 
+          <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-lg border border-gray-200 flex items-center justify-center shadow-sm ${isJobStatusUpdate
+              ? "bg-gradient-to-br from-indigo-50 to-indigo-100"
               : "bg-gradient-to-br from-gray-100 to-gray-200"
-          }`}>
+            }`}>
             {isJobStatusUpdate ? (
               <Briefcase size={16} className={notif.isRead ? "text-indigo-400" : "text-indigo-500"} />
             ) : (

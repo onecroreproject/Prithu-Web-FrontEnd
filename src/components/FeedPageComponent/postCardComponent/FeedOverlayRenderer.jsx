@@ -52,7 +52,7 @@ export default function FeedOverlayRenderer({
     };
 
     const renderOverlay = (el) => {
-        console.log(el.avatarConfig)
+
         const id = el.id || el._id;
         const x = el.xPercent ?? el.x ?? 0;
         const y = el.yPercent ?? el.y ?? 0;
@@ -97,15 +97,16 @@ export default function FeedOverlayRenderer({
                             width: "100%",
                             height: "100%",
                             objectFit: "contain",
-                            borderRadius: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle') ? "8px" : "100000px",
-                            maskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
-                                ? "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)"
-                                : "radial-gradient(120% 100% at 50% 0%, black 75%, transparent 100%)",
-                            WebkitMaskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
-                                ? "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)"
-                                : "radial-gradient(120% 100% at 50% 0%, black 75%, transparent 100%)",
-                            filter: "drop-shadow(0px 10px 18px rgba(0,0,0,0.45))",
+                            borderRadius: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle') ? "12px" : "100000px",
+                            border: "none",
                             backgroundColor: "transparent",
+                            maskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
+                                ? "linear-gradient(to bottom, black 0%, black 88%, transparent 100%)"
+                                : "radial-gradient(110% 100% at 50% 0%, black 78%, transparent 100%)",
+                            WebkitMaskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
+                                ? "linear-gradient(to bottom, black 0%, black 88%, transparent 100%)"
+                                : "radial-gradient(110% 100% at 50% 0%, black 78%, transparent 100%)",
+                            filter: "drop-shadow(0px 8px 16px rgba(0,0,0,0.35))",
                         }}
                     />
                 </div>

@@ -1,24 +1,26 @@
-// src/hooks/useNotifications.js
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import api from '../api/axios';
 
 /**
- * Custom hook for fetching notifications using React Query
- * Replaces polling with proper caching and WebSocket integration
+ * Custom hook for fetching notifications using Infinite Query
+ * Supports lazy loading for scale
  */
 export function useNotifications(token) {
-    return useQuery({
+    return useInfiniteQuery({
         queryKey: ['notifications', token],
-        queryFn: async () => {
-            const { data } = await api.get('/api/get/user/all/notification', {
+        queryFn: async ({ pageParam = 1 }) => {
+            const { data } = await api.get(`/api/get/user/all/notification?page=${pageParam}&limit=10`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            return data?.notifications || [];
+            return data;
+        },
+        getNextPageParam: (lastPage) => {
+            const { page, pages } = lastPage.pagination || {};
+            return page < pages ? page + 1 : undefined;
         },
         enabled: !!token,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: false, // Rely on WebSocket for real-time updates
-        refetchInterval: false, // No polling - use WebSocket instead
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
 }
 
@@ -26,7 +28,9 @@ export function useNotifications(token) {
  * Get unread notification count
  */
 export function useUnreadNotificationCount(token) {
-    const { data: notifications = [] } = useNotifications(token);
+    const { data } = useNotifications(token);
+    // Flatten the pages and count unread
+    const notifications = data?.pages?.flatMap(page => page.notifications) || [];
     return notifications.filter((n) => !n.isRead).length;
 }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import PostOptionsMenu from "../PostOptionsMenu";
 import { MoreVertical } from "lucide-react";
+import { useAuth } from "../../../context/AuthContext";
 
 const PostHeader = ({
   userId,
@@ -18,7 +19,8 @@ const PostHeader = ({
   onFollow,
   onUnfollow,
 }) => {
-  const [isFollowing, setIsFollowing] = React.useState(initialFollowState);
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(userId);
 
   const currentUser = localStorage.getItem("userId");
   const isOwner = currentUser === userId;
@@ -41,22 +43,26 @@ const PostHeader = ({
       <div className="flex items-center gap-3">
         <div
           onClick={() => navigate(`/home/user/profile/${userId}`)}
-          className="w-8 h-8 overflow-hidden cursor-pointer"
+          className="relative w-8 h-8 overflow-hidden cursor-pointer"
         >
           {profileAvatar ? (
             <img
               src={profileAvatar}
               alt={userName}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-full"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
               <span className="text-xs font-semibold text-white">
                 {userName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
+          {isOnline && (
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+          )}
         </div>
+
 
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">

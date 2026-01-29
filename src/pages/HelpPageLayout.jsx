@@ -45,10 +45,10 @@ const FAQPage = () => {
 
   const filteredSections = useMemo(() => {
     if (!searchQuery) return sections;
-    return sections.filter(section => 
+    return sections.filter(section =>
       section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       section.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      section.faqs.some(faq => 
+      section.faqs.some(faq =>
         faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
         faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -67,7 +67,7 @@ const FAQPage = () => {
       });
       setSections(response.data.data);
       setTotalFAQs(response.data.totalFAQs);
-      
+
       // Auto-expand first section if search results are filtered
       if (searchQuery && response.data.data.length > 0) {
         setExpandedSections(new Set([response.data.data[0]._id]));
@@ -138,7 +138,7 @@ const FAQPage = () => {
                 <p className="text-gray-600 text-sm mt-1">Find answers to your questions</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={expandAll}
@@ -210,25 +210,22 @@ const FAQPage = () => {
                     <button
                       key={section._id}
                       onClick={() => toggleSection(section._id)}
-                      className={`group flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                        expandedSections.has(section._id)
+                      className={`group flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 ${expandedSections.has(section._id)
                           ? 'bg-blue-50 text-blue-700 border border-blue-200'
                           : 'text-gray-700 hover:bg-gray-50 hover:border hover:border-gray-200'
-                      }`}
+                        }`}
                     >
-                      <div className={`p-1.5 rounded transition-all duration-200 ${
-                        expandedSections.has(section._id)
+                      <div className={`p-1.5 rounded transition-all duration-200 ${expandedSections.has(section._id)
                           ? 'bg-blue-100 text-blue-600'
                           : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-500'
-                      }`}>
+                        }`}>
                         {sectionIcons[section.sectionKey] || <HelpCircle className="w-3 h-3" />}
                       </div>
                       <span className="font-medium text-sm flex-1 truncate">{section.title}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-200 ${
-                        expandedSections.has(section._id)
+                      <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-200 ${expandedSections.has(section._id)
                           ? 'bg-blue-200 text-blue-800'
                           : 'bg-gray-100 text-gray-600 group-hover:bg-blue-200 group-hover:text-blue-800'
-                      }`}>
+                        }`}>
                         {section.faqs.length}
                       </span>
                     </button>
@@ -294,8 +291,8 @@ const FAQPage = () => {
               ) : (
                 <div className="space-y-4">
                   {filteredSections.map((section, sectionIndex) => (
-                    <div 
-                      key={section._id} 
+                    <div
+                      key={section._id}
                       className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
                       style={{ animationDelay: `${sectionIndex * 100}ms` }}
                     >
@@ -306,11 +303,10 @@ const FAQPage = () => {
                         <div className="flex items-center gap-4">
                           <div className="relative">
                             <div className="absolute inset-0 bg-blue-100 rounded-lg opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
-                            <div className={`p-2 rounded-lg relative transition-all duration-200 ${
-                              expandedSections.has(section._id)
+                            <div className={`p-2 rounded-lg relative transition-all duration-200 ${expandedSections.has(section._id)
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
-                            }`}>
+                              }`}>
                               {sectionIcons[section.sectionKey] || <HelpCircle className="w-4 h-4" />}
                             </div>
                           </div>
@@ -327,11 +323,10 @@ const FAQPage = () => {
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                             {section.faqs.length}
                           </span>
-                          <div className={`p-1 rounded transition-all duration-200 ${
-                            expandedSections.has(section._id)
+                          <div className={`p-1 rounded transition-all duration-200 ${expandedSections.has(section._id)
                               ? 'bg-blue-100 text-blue-600 rotate-180'
                               : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'
-                          }`}>
+                            }`}>
                             {expandedSections.has(section._id) ? (
                               <ChevronUp className="w-4 h-4" />
                             ) : (
@@ -345,8 +340,8 @@ const FAQPage = () => {
                         <div className="border-t border-gray-100">
                           <div className="p-5 space-y-3">
                             {section.faqs.map((faq, faqIndex) => (
-                              <div 
-                                key={faq._id} 
+                              <div
+                                key={faq._id}
                                 className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 hover:border-blue-300"
                                 style={{ animationDelay: `${faqIndex * 50}ms` }}
                               >
@@ -356,21 +351,19 @@ const FAQPage = () => {
                                 >
                                   <div className="flex items-start gap-3">
                                     <div className="mt-1.5">
-                                      <div className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                                        expandedFAQs.has(faq._id)
+                                      <div className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${expandedFAQs.has(faq._id)
                                           ? 'bg-blue-500'
                                           : 'bg-gray-300 group-hover:bg-blue-400'
-                                      }`}></div>
+                                        }`}></div>
                                     </div>
                                     <span className="font-medium text-gray-900 text-sm pr-6 group-hover:text-blue-700 transition-colors duration-200">
                                       {faq.question}
                                     </span>
                                   </div>
-                                  <div className={`p-1 rounded transition-all duration-200 ${
-                                    expandedFAQs.has(faq._id)
+                                  <div className={`p-1 rounded transition-all duration-200 ${expandedFAQs.has(faq._id)
                                       ? 'bg-blue-100 text-blue-600'
                                       : 'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'
-                                  }`}>
+                                    }`}>
                                     {expandedFAQs.has(faq._id) ? (
                                       <ChevronUp className="w-3.5 h-3.5" />
                                     ) : (
@@ -378,7 +371,7 @@ const FAQPage = () => {
                                     )}
                                   </div>
                                 </button>
-                                
+
                                 {expandedFAQs.has(faq._id) && (
                                   <div className="px-4 pb-4 animate-slideDown">
                                     <div className="pl-5 border-l-2 border-blue-400 bg-blue-50/50 p-4 rounded-r-lg">
@@ -512,7 +505,7 @@ const FAQPage = () => {
       </div>
 
       {/* Animation Styles */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;

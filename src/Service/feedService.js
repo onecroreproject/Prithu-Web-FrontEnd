@@ -16,18 +16,19 @@ const getGDriveUrl = (id) => {
   if (fileId.startsWith("http")) return fileId;
 
   // Use backend proxy for streaming (handles byte ranges for audio/video)
-  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
   return `${baseUrl}/media/${fileId}`;
 };
 
-export const getAllFeeds = async (page = 1, token) => {
+export const getAllFeeds = async (page = 1, token, categoryId = null) => {
   try {
     const { data } = await api.get(
-      `/api/get/all/feeds/user?page=${page}&limit=10`,
+      `/api/get/all/feeds/user?page=${page}&limit=10${categoryId ? `&categoryId=${categoryId}` : ""}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
+
 
     console.log("API RAW DATA:", data);
 
@@ -99,13 +100,13 @@ export const getAllFeeds = async (page = 1, token) => {
 
       // ✅ EditMetadata for crop and filters
       const editMetadata = feed.editMetadata || designMetadata.editMetadata || {};
-const footerIcons=(footerSrc.socialIcons || []).length > 0
-    ? footerSrc.socialIcons
-    : viewerSocialLinks.map((i) => ({
-        platform: i.platform,
-        visible: true,
-        urlTemplate: i.url, // ✅ convert url -> urlTemplate
-      }));
+      const footerIcons = (footerSrc.socialIcons || []).length > 0
+        ? footerSrc.socialIcons
+        : viewerSocialLinks.map((i) => ({
+          platform: i.platform,
+          visible: true,
+          urlTemplate: i.url, // ✅ convert url -> urlTemplate
+        }));
       return {
         ...feed, // Keep all raw keys
 
@@ -164,10 +165,10 @@ const footerIcons=(footerSrc.socialIcons || []).length > 0
 
 
 
-footerDisplay: {
-  ...footerSrc,
-  socialIcons: footerIcons,
-},
+        footerDisplay: {
+          ...footerSrc,
+          socialIcons: footerIcons,
+        },
 
         themeColor,
         primary: themeColor.primary || themeColor.primaryColor || "#262e39",

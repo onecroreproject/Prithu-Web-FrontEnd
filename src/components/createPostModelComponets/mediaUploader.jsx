@@ -17,7 +17,7 @@ export default function MediaUploader({
       : type === "image"
       ? "image/*"
       : "image/*,video/*";
-console.log(files)
+
   return (
     <motion.div
       className="mt-4 p-3 border border-dashed border-gray-400 rounded-lg bg-[#F9FAFB] min-h-[120px] flex flex-col items-center justify-center"

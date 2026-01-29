@@ -51,7 +51,7 @@ export default function ChangeCoverImage({ user, fetchUserProfile ,id}) {
   };
  
   const handleFileUpload = async (file) => {
-    console.log("Uploading cover image");
+
     const form = new FormData();
     form.append("coverPhoto", file);
  

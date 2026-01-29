@@ -5,7 +5,7 @@ import { X, Clock, User, ExternalLink, Bell, Image as ImageIcon, Video } from "l
 export default function NotificationPopup({ notification, onClose }) {
   if (!notification) return null;
 
-  console.log("NOTIFICATION POPUP DATA:", notification);
+
 
   const senderName = notification?.sender?.userName || "Someone";
   const notifImage = notification?.image;

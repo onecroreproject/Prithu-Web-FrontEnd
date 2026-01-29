@@ -73,7 +73,7 @@ const Response = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 
-                console.log('Notifications API Response:', response.data);
+           
 
                 if (response.data.success) {
                     setNotifications(response.data.notifications || []);
@@ -129,7 +129,7 @@ const Response = () => {
         // Handle follow notifications
         if (notification.type?.toLowerCase().includes('follow')) {
             const followerId = notification.sender?.id;
-            console.log(followerId)
+        
             if (followerId) {
                 navigate(`/user/profile/${followerId}`);
                 return;

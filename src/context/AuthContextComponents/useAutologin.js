@@ -58,7 +58,7 @@ export const useAutoLogin = ({ setToken, setUser, setSessionId, navigate }) => {
         console.warn("⚠️ Session invalid or expired:", err.message);
         disconnectSocket();
         localStorage.clear();
-        SwitchMode("/login");
+        navigate("/login");
       }
     };
 

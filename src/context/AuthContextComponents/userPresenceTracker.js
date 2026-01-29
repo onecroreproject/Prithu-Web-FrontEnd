@@ -7,7 +7,7 @@ export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAcce
   useEffect(() => {
     if (!token || !sessionId || !user?._id || !socket) return;
 
-    const backendUrl = import.meta.env.VITE_API_URL ;
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     // -----------------------------------------------------
     // 1️⃣ Heartbeat Sender (AXIOS)

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { UserCheck, UserPlus, X, ShieldBan, Calendar, User, Mail, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+
 
 export default function FriendsSection({ onFollowDataUpdate, id, initialView = "followers" }) {
   const [activeSubTab, setActiveSubTab] = useState(initialView === "followers" ? "followers" : "followings");
@@ -25,8 +27,8 @@ export default function FriendsSection({ onFollowDataUpdate, id, initialView = "
           api.get(`/api/single/user/followers?id=${id}`),
           api.get(`/api/single/user/following?id=${id}`)
         ]);
-      } 
-      
+      }
+
       // 🔹 Otherwise → fetch your own follow data
       else {
         [followersRes, followingsRes] = await Promise.all([
@@ -68,7 +70,7 @@ export default function FriendsSection({ onFollowDataUpdate, id, initialView = "
 
       if (res.status === 200) {
         await fetchFollowData();
-        console.log("Unfollowed:", userId);
+        // console.log("Unfollowed:", userId);
       }
     } catch (err) {
       console.error("Unfollow error:", err.response?.data || err.message);
@@ -85,7 +87,7 @@ export default function FriendsSection({ onFollowDataUpdate, id, initialView = "
       );
 
       if (res.status === 200) {
-        console.log("Blocked user:", userId);
+        // console.log("Blocked user:", userId);
         await fetchFollowData();
       }
     } catch (err) {
@@ -157,9 +159,8 @@ export default function FriendsSection({ onFollowDataUpdate, id, initialView = "
               >
                 <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{tab.label}</span>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  isActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
-                }`}>
+                <span className={`px-2 py-1 text-xs rounded-full ${isActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                  }`}>
                   {tab.count}
                 </span>
               </button>
@@ -269,6 +270,8 @@ function FollowingsTab({ followings, onUnfollow, onMessage, id }) {
 /* ---------------- Follower Card Component ---------------- */
 function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
   const navigate = useNavigate();
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(follower.userId);
 
   const handleMessageClick = (e) => {
     e.stopPropagation();
@@ -294,6 +297,9 @@ function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
               e.target.src = defaultAvatar;
             }}
           />
+          {isOnline && (
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+          )}
         </div>
 
         {/* Info */}
@@ -334,6 +340,8 @@ function FollowerCard({ follower, onRemove, onBlock, onMessage, id }) {
 function FollowingCard({ following, onUnfollow, onMessage, id }) {
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const navigate = useNavigate();
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(following.userId);
 
   const handleMessageClick = (e) => {
     e.stopPropagation();
@@ -359,6 +367,9 @@ function FollowingCard({ following, onUnfollow, onMessage, id }) {
               e.target.src = defaultAvatar;
             }}
           />
+          {isOnline && (
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+          )}
         </div>
 
         {/* Info */}

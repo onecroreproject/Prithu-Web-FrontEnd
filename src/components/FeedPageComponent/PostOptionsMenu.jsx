@@ -69,7 +69,7 @@ const PostOptionsMenu = ({
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-console.log(res.data)
+
       setToastMsg(res.data.message);
 
       // 🔥 Remove from UI instantly

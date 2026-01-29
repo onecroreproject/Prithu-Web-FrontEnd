@@ -27,11 +27,12 @@ import {
 import {
   userImageViewCount,
   userVideoViewCount
-} from "../../Service/feedService";
+} from "../../Service/userViewCount";
 
 import FeedOverlayRenderer from "./postCardComponent/FeedOverlayRenderer";
 import useFeedAudioPlayer from "../../hooks/useFeedAudioPlayer";
 import prithuLogo from "../../assets/prithulogo.png";
+import { useDownloads } from "../../context/DownloadContext";
 
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -73,6 +74,8 @@ function Postcard({
     designMetadata = {},
   } = postData || {};
 
+  const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
+
   const isTemplate = uploadMode === "template" || postData.uploadType === "template";
 
   // ✅ Header should show postedBy (creator)
@@ -113,6 +116,7 @@ function Postcard({
 
   const [imageViewCounted, setImageViewCounted] = useState(false);
   const [videoViewCounted, setVideoViewCounted] = useState(false);
+  const [videoSessionId, setVideoSessionId] = useState(0);
 
   const { data: commentsData } = useComments(feedId, showCommentsModal);
 
@@ -233,9 +237,32 @@ function Postcard({
       vid.pause();
     } else {
       vid.currentTime = 0;
+      setVideoSessionId((prev) => prev + 1);
       vid.play().catch(() => { });
     }
   }, [isVisible, isVideo]);
+
+  // Handle browser tab/window switch
+  useEffect(() => {
+    if (!isVideo) return;
+
+    const handleVisibilityChange = () => {
+      const vid = videoRef.current;
+      if (!vid) return;
+
+      if (document.hidden) {
+        vid.pause();
+      } else if (isVisible) {
+        // Only restart if it's currently visible in the feed
+        vid.currentTime = 0;
+        setVideoSessionId((prev) => prev + 1);
+        vid.play().catch(() => { });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [isVideo, isVisible]);
 
   /* ---------------------------- ACTION HANDLERS ---------------------------- */
 
@@ -350,61 +377,34 @@ function Postcard({
     });
   }, [feedId, tempUser._id, shareMutation]);
 
+  // Download Logic
+  const { addDownload, setIsMenuOpen } = useDownloads();
+
   const handleDownload = () => {
     if (!feedId) return toast.error("Invalid feed!");
 
-    const loadingToast = toast.loading("Preparing download...");
+    const loadingToast = toast.loading("Initiating download...");
 
     downloadMutation.mutate(
       { feedId },
       {
-        onSuccess: async (data) => {
+        onSuccess: (data) => {
           const jobId = data?.jobId;
           if (!jobId) {
             toast.dismiss(loadingToast);
             return toast.error("Failed to start download job");
           }
 
-          // Polling function
-          const pollStatus = async () => {
-            try {
-              const statusData = await getDownloadStatus(jobId);
+          toast.success("Download started! Check progress in the menu.", { id: loadingToast });
 
-              if (statusData.status === "completed" || statusData.downloadLink || statusData.result?.downloadUrl) {
-                const downloadLink = statusData.downloadLink || statusData.result?.downloadUrl;
-                if (!downloadLink) {
-                  toast.dismiss(loadingToast);
-                  return toast.error("No download link found!");
-                }
+          // Add to global download context
+          addDownload(jobId, {
+            caption: caption || description,
+            thumbnail: contentUrl, // Using main image for now
+          });
 
-                toast.success("Download ready!", { id: loadingToast });
-
-                // Trigger browser download
-                const response = await fetch(downloadLink, { mode: "cors" });
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-
-                const a = document.createElement("a");
-                a.href = blobUrl;
-                a.download = downloadLink.split("/").pop();
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(blobUrl);
-              } else if (statusData.status === "failed") {
-                toast.dismiss(loadingToast);
-                toast.error("Download processing failed");
-              } else {
-                // Still processing, poll again in 2 seconds
-                setTimeout(pollStatus, 2000);
-              }
-            } catch (err) {
-              toast.dismiss(loadingToast);
-              toast.error("Error checking download status");
-            }
-          };
-
-          pollStatus();
+          // Open the menu to show progress
+          setIsMenuOpen(true);
         },
         onError: () => {
           toast.dismiss(loadingToast);
@@ -454,7 +454,7 @@ function Postcard({
   return (
     <>
       <div className="w-[470px] mx-auto bg-white border-b border-gray-300 mb-6 last:mb-0">
-        <PostHeader
+        {/* <PostHeader
           userId={userId}
           userName={userName}
           post={postData}
@@ -471,7 +471,7 @@ function Postcard({
           onCommentsClick={() => setShowCommentsModal(true)}
           onFollow={handleFollow}
           onUnfollow={handleUnfollow}
-        />
+        /> */}
 
         <div
           ref={mediaContainerRef}
@@ -481,11 +481,12 @@ function Postcard({
           <div
             className="relative overflow-hidden w-full flex flex-col"
             style={{
-              aspectRatio: (designMetadata?.canvasSettings?.aspectRatio || postAspectRatio || "1:1").replace(":", "/"),
-              maxHeight: "max(520px, 80vh)",
+              aspectRatio: (editMetadata?.crop?.ratio === 'original'
+                ? (designMetadata?.canvasSettings?.aspectRatio?.replace(':', '/') || postAspectRatio?.replace(':', '/') || '9/16')
+                : (editMetadata?.crop?.ratio?.replace(':', '/') || '9/16')),
+              maxHeight: "max(650px, 80vh)",
               backgroundColor: "transparent"
             }}
-
           >
             {/* ✅ BACKGROUND LAYER (Blur Image / Glass Video) */}
             <div className="absolute inset-0 z-0">
@@ -519,7 +520,10 @@ function Postcard({
                   toggleMute={toggleMute}
                   onDoubleTap={handleDoubleTapLike}
                   aspectRatio={(designMetadata?.canvasSettings?.aspectRatio || postAspectRatio || "1:1")}
-                  editMetadata={designMetadata.editMetadata || postData.editMetadata || {}}
+                  editMetadata={{
+                    ...editMetadata,
+                    onColorExtract: (color) => setDominantColor(color)
+                  }}
                   isTemplate={isTemplate}
                   onVideoPlay={() => {
                     setIsVideoPlaying(true);
@@ -528,9 +532,38 @@ function Postcard({
                     }
                   }}
                   onVideoPause={() => setIsVideoPlaying(false)}
-                  onVideoEnded={() => setIsVideoPlaying(false)}
+                  onVideoEnded={() => {
+                    setIsVideoPlaying(false);
+                    const vid = videoRef.current;
+                    if (vid) {
+                      vid.currentTime = 0;
+                      setVideoSessionId((prev) => prev + 1);
+                      vid.play().catch(() => { });
+                    }
+                  }}
                 />
               </div>
+
+              {/* ✅ Mute/Unmute Toggle for Video (Top Right) */}
+              {isVideo && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleMute();
+                  }}
+                  className="absolute z-40 top-3 right-3 bg-black/60 text-white p-2 rounded-full hover:bg-black/80 transition cursor-pointer pointer-events-auto"
+                >
+                  {isMuted ? (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.65.52-1.37.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                    </svg>
+                  )}
+                </button>
+              )}
 
               {/* ✅ OVERLAYS - Positioned relative to media area */}
               {isTemplate && overlayElements.length > 0 && (
@@ -539,7 +572,7 @@ function Postcard({
                     overlayElements={overlayElements}
                     viewer={viewer}
                     prithuLogoUrl={prithuLogo}
-                    playSessionId={playSessionId}
+                    playSessionId={isVideo ? videoSessionId : playSessionId}
                     isVisible={isVisible}
                     freezeAtEnd={isTemplate && !isVisible}
                   />
@@ -578,92 +611,91 @@ function Postcard({
             </div>
 
             {/* v4: Footer Renderer (Inside frame, bottom area) */}
-           {/* v4: Footer Renderer (Inside frame, bottom area) */}
-{isTemplate && hasFooter && (() => {
-  const footer = postData.footerDisplay || {};
-  const showElements = footer.showElements || {};
+            {/* v4: Footer Renderer (Inside frame, bottom area) */}
+            {isTemplate && hasFooter && (() => {
+              const footer = postData.footerDisplay || {};
+              const showElements = footer.showElements || {};
 
-  const icons = (footer.socialIcons || []).filter(
-  (i) => i.visible && (i.urlTemplate || i.url)
-);
+              const icons = (footer.socialIcons || []).filter(
+                (i) => i.visible && (i.urlTemplate || i.url)
+              );
 
 
-  const hasAnyElementEnabled =
-    showElements.name ||
-    showElements.email ||
-    showElements.phone ||
-    (showElements.socialIcons && icons.length > 0);
+              const hasAnyElementEnabled =
+                showElements.name ||
+                showElements.email ||
+                showElements.phone ||
+                (showElements.socialIcons && icons.length > 0);
 
-  if (!hasAnyElementEnabled) return null;
-console.log(showElements)
-  return (
-    <div
-      className="relative w-full z-30 px-4 py-2 shrink-0 flex flex-col gap-1"
-      style={{
-        backgroundColor: footer.backgroundColor || "#000000",
-        background: footer.backgroundColor || "#000000",
-      }}
-    >
-      {/* Top Row: Username + Social Icons */}
-      <div
-        className={`flex items-center gap-2 ${
-          showElements.name && showElements.socialIcons && icons.length > 0
-            ? "justify-between"
-            : "justify-center"
-        }`}
-      >
-        {showElements.name && (
-          <span
-            className="font-bold text-white truncate"
-            style={{ fontSize: "14px" }}
-          >
-            {viewer?.userName || "Username"}
-          </span>
-        )}
+              if (!hasAnyElementEnabled) return null;
 
-        {showElements.socialIcons && icons.length > 0 && (
-          <div className="flex items-center gap-2.5">
-            {icons.map((icon, idx) => (
-              <a
-                key={idx}
-                href={icon.urlTemplate || icon.url}
-
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer"
-              >
-                <img
-                  src={`https://cdn.simpleicons.org/${icon.platform}`}
-                  className="w-3.5 h-3.5 object-contain invert"
-                  alt={icon.platform}
-                  onError={(e) => {
-                    e.currentTarget.src = defaultAvatar;
+              return (
+                <div
+                  className="relative w-full z-30 px-4 py-2 shrink-0 flex flex-col gap-1"
+                  style={{
+                    backgroundColor: footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000"),
+                    background: footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000"),
                   }}
-                />
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
+                >
+                  {/* Top Row: Username + Social Icons */}
+                  <div
+                    className={`flex items-center gap-2 ${showElements.name && showElements.socialIcons && icons.length > 0
+                      ? "justify-between"
+                      : "justify-center"
+                      }`}
+                  >
+                    {showElements.name && (
+                      <span
+                        className="font-bold text-white truncate"
+                        style={{ fontSize: "14px" }}
+                      >
+                        {viewer?.userName || "Username"}
+                      </span>
+                    )}
 
-      {/* Bottom Row: Email + Phone */}
-    {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
-        <div className="flex items-center justify-between gap-4 w-full">
-         {showElements.email && viewer?.email && (
-  <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
-    {viewer.email}
-  </span>
-)}
-{showElements.phone && viewer?.phoneNumber && (
-  <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
-    {viewer.phoneNumber}
-  </span>
-)}
-        </div>
-      )}
-    </div>
-  );
-})()}
+                    {showElements.socialIcons && icons.length > 0 && (
+                      <div className="flex items-center gap-2.5">
+                        {icons.map((icon, idx) => (
+                          <a
+                            key={idx}
+                            href={icon.urlTemplate || icon.url}
+
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer"
+                          >
+                            <img
+                              src={`https://cdn.simpleicons.org/${icon.platform}`}
+                              className="w-3.5 h-3.5 object-contain invert"
+                              alt={icon.platform}
+                              onError={(e) => {
+                                e.currentTarget.src = defaultAvatar;
+                              }}
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Row: Email + Phone */}
+                  {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
+                    <div className="flex items-center justify-between gap-4 w-full">
+                      {showElements.email && viewer?.email && (
+                        <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
+                          {viewer.email}
+                        </span>
+                      )}
+                      {showElements.phone && viewer?.phoneNumber && (
+                        <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "16px" }}>
+                          {viewer.phoneNumber}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
           </div>
 

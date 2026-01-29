@@ -45,7 +45,7 @@ function ForgotForm({ switchMode }) {
         const { data } = await api.get(
           `/api/check/email/availability?email=${encodeURIComponent(email)}`
         );
-        console.log(data)
+
         setEmailStatus(data.available ? "available" : "not-available");
       } catch {
         setEmailStatus("error");

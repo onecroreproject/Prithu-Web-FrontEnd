@@ -1,8 +1,9 @@
-import React, { useState, useContext, useEffect, memo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useContext, memo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../../context/AuthContext";
 import api from "../../../api/axios";
+import { validateReferralCode } from "../../../API_Services/referralServices";
 
 function RegisterForm({ switchMode }) {
   const { sendOtpForReset, verifyOtpForNewUser, register } = useContext(AuthContext);
@@ -16,7 +17,14 @@ function RegisterForm({ switchMode }) {
     password: "",
     phone: "",
     whatsapp: "",
-    accountType: "",
+    referralCode: "",
+  });
+
+  const [searchParams] = useSearchParams();
+  const [referrer, setReferrer] = useState({
+    name: null,
+    status: "idle", // "idle" | "loading" | "valid" | "invalid"
+    isLocked: false,
   });
 
   const [sameAsWhatsapp, setSameAsWhatsapp] = useState(false);
@@ -44,6 +52,41 @@ function RegisterForm({ switchMode }) {
     const t = setTimeout(() => setTimer((prev) => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [timer]);
+
+  /* --------------------------- REFERRAL CHECK --------------------------- */
+  useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode) {
+      setForm((p) => ({ ...p, referralCode: refCode }));
+      handleValidateReferral(refCode);
+    }
+  }, [searchParams]);
+
+  const handleValidateReferral = async (code) => {
+    setReferrer((p) => ({ ...p, status: "loading", isLocked: true }));
+    try {
+      const data = await validateReferralCode(code);
+      if (data.success) {
+        setReferrer({
+          name: data.referrerName,
+          status: "valid",
+          isLocked: true,
+        });
+      } else {
+        setReferrer({
+          name: null,
+          status: "invalid",
+          isLocked: true,
+        });
+      }
+    } catch (err) {
+      setReferrer({
+        name: null,
+        status: "invalid",
+        isLocked: true,
+      });
+    }
+  };
 
   /* --------------------------- CHANGE EMAIL --------------------------- */
   const handleChangeEmail = () => {
@@ -83,7 +126,7 @@ function RegisterForm({ switchMode }) {
           params: { email: emailClean },
           signal: controller.signal,
         });
-  
+
         setStatus((p) => ({
           ...p,
           email: data.available ? "available" : "taken",
@@ -112,7 +155,7 @@ function RegisterForm({ switchMode }) {
         const { data } = await api.get("/api/check/username/availability", {
           params: { username: form.username },
         });
-        console.log(data);
+
         if (data.available) {
           setStatus((p) => ({
             ...p,
@@ -197,11 +240,8 @@ function RegisterForm({ switchMode }) {
     e.preventDefault();
     if (loading) return;
 
-    const validPassword = Object.values(passwordChecks).every(Boolean);
     if (!validPassword || form.username.length < 5)
       return alert("Please complete all requirements before registering.");
-
-    if (!form.accountType) return alert("Please select account type.");
 
     setLoading(true);
     try {
@@ -211,7 +251,7 @@ function RegisterForm({ switchMode }) {
         password: form.password,
         phone: form.phone,
         whatsapp: form.whatsapp,
-        accountType: form.accountType,
+        referralCode: form.referralCode,
       });
 
       if (success) {
@@ -243,8 +283,8 @@ function RegisterForm({ switchMode }) {
           step === "email"
             ? handleSendOtp
             : step === "otp"
-            ? handleVerifyOtp
-            : handleRegister
+              ? handleVerifyOtp
+              : handleRegister
         }
       >
         <AnimatePresence mode="wait">
@@ -305,11 +345,10 @@ function RegisterForm({ switchMode }) {
                 <button
                   type="submit"
                   disabled={loading || timer > 0}
-                  className={`w-full py-2 rounded-full font-semibold text-white transition-all ${
-                    loading || timer > 0
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
-                  }`}
+                  className={`w-full py-2 rounded-full font-semibold text-white transition-all ${loading || timer > 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                    }`}
                 >
                   {loading ? "Sending..." : timer > 0 ? `Resend OTP in ${timer}s` : "Register Now"}
                 </button>
@@ -334,9 +373,8 @@ function RegisterForm({ switchMode }) {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-2 rounded-full font-semibold text-white ${
-                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
-                }`}
+                className={`w-full py-2 rounded-full font-semibold text-white ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                  }`}
               >
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
@@ -388,21 +426,6 @@ function RegisterForm({ switchMode }) {
                 {status.username === "taken" && <span className="text-red-500">❌ Username not available</span>}
               </p>
 
-              {/* Account Type */}
-              <label className="block font-medium text-gray-700 mb-1 mt-2">
-                Account For <span className="text-red-500">*</span>
-              </label>
-
-              <select
-                value={form.accountType}
-                onChange={(e) => setForm((p) => ({ ...p, accountType: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2 bg-white"
-                required
-              >
-                <option value="">Select account type</option>
-                <option value="personal">Personal</option>
-                <option value="company">Company</option>
-              </select>
 
               {/* Phone + WhatsApp */}
               <div className=" sm:flex-row gap-3">
@@ -466,13 +489,38 @@ function RegisterForm({ switchMode }) {
                 ))}
               </motion.div>
 
+              {/* Referral Code */}
+              <div className="mt-4">
+                <label className="block font-medium text-gray-700 mb-1">Referral Code (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Enter referral code"
+                  value={form.referralCode}
+                  onChange={(e) => setForm((p) => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
+                  readOnly={referrer.isLocked}
+                  className={`w-full px-4 py-2 border rounded-full outline-none transition-all ${referrer.isLocked ? "bg-gray-100 cursor-not-allowed border-gray-200" : "focus:ring-2 focus:ring-green-400"
+                    }`}
+                />
+
+                {referrer.status === "loading" && (
+                  <p className="text-xs text-gray-500 mt-1 animate-pulse">Validating referral code...</p>
+                )}
+                {referrer.status === "valid" && referrer.name && (
+                  <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">
+                    ✅ Referred by: <span className="font-bold">{referrer.name}</span>
+                  </p>
+                )}
+                {referrer.status === "invalid" && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">❌ Invalid referral code</p>
+                )}
+              </div>
+
               {/* Register Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full mt-4 py-2 rounded-full font-semibold text-white transition ${
-                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
-                }`}
+                className={`w-full mt-4 py-2 rounded-full font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                  }`}
               >
                 {loading ? "Registering..." : "Register"}
               </button>

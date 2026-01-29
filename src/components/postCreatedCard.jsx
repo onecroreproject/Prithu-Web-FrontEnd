@@ -58,7 +58,7 @@ const Createpost = ({ onPostCreated }) => {
   const handleCloseInterestModal = useCallback(() => setInterestModalOpen(false), []);
 
   const handleInterestsSelected = useCallback((status) => {
-    console.log("Interest status:", status);
+
     
     if (status === "allow") {
       // User is now allowed to post
@@ -80,7 +80,7 @@ const Createpost = ({ onPostCreated }) => {
 
   const handleSubmit = useCallback(async (postData) => {
     try {
-      console.log("Post data:", postData);
+     
       
       if (onPostCreated) {
         onPostCreated();

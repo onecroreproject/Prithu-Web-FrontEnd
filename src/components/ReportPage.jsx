@@ -19,7 +19,7 @@ const ReportPage = ({ isOpen, onClose }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Here you would typically send the report to your backend
-    console.log('Report submitted:', { reportType, description });
+   
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

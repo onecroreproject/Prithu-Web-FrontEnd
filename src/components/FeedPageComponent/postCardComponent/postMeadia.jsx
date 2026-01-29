@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
+
 
 const FILTER_STYLES = {
   original: '',
@@ -45,46 +46,51 @@ export default function PostMedia({
 
   const lastTap = useRef(0);
 
-  const extractColorFromURL = (url) => {
-    let hash = 0;
-    for (let i = 0; i < url.length; i++) {
-      hash = url.charCodeAt(i) + ((hash << 5) - hash);
+  const extractColor = useCallback((element) => {
+    if (!element) return;
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 10; // Small size for faster processing
+      canvas.height = 10;
+      ctx.drawImage(element, 0, 0, 10, 10);
+      const data = ctx.getImageData(0, 0, 10, 10).data;
+
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue; // Skip semi-transparent pixels
+        r += data[i];
+        g += data[i + 1];
+        b += data[i + 2];
+        count++;
+      }
+
+      if (count > 0) {
+        const rgb = `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        setDominantColor(rgb);
+        editMetadata?.onColorExtract?.(rgb);
+      }
+    } catch (e) {
+      console.warn("Dominant color extraction failed:", e);
     }
-    const r = (hash & 0xff0000) >> 16;
-    const g = (hash & 0x00ff00) >> 8;
-    const b = hash & 0x0000ff;
-    return `rgb(${Math.abs(r)}, ${Math.abs(g)}, ${Math.abs(b)})`;
-  };
+  }, [editMetadata]);
 
   useEffect(() => {
-    if (contentUrl) {
-      setDominantColor(extractColorFromURL(contentUrl));
+    if (type === "image" && contentUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => extractColor(img);
+      img.src = contentUrl;
     }
-  }, [contentUrl]);
+  }, [type, contentUrl, extractColor]);
 
-  useEffect(() => {
-    if (type !== "video" || !videoRef.current) return;
+  // For video, extract when it starts playing
+  const handleVideoMetadata = useCallback((e) => {
+    // Extract color from first frame
+    setTimeout(() => extractColor(e.target), 500);
+  }, [extractColor]);
 
-    const vid = videoRef.current;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries[0].isIntersecting;
-
-        if (visible) {
-          setIsAutoPlaying(true);
-          vid.play().catch(() => { });
-        } else {
-          setIsAutoPlaying(false);
-          vid.pause();
-        }
-      },
-      { threshold: 0.65 }
-    );
-
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [type, videoRef]);
 
   const handleTap = () => {
     const now = Date.now();
@@ -141,8 +147,8 @@ export default function PostMedia({
   return (
     <div
       ref={containerRef}
-      onClick={onCommentsClick}
-      className="relative w-full h-full flex items-center justify-center overflow-hidden"
+      onClick={type === "video" ? togglePlayPause : onCommentsClick}
+      className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-pointer"
     >
       <ColorBackground />
 
@@ -153,12 +159,12 @@ export default function PostMedia({
         muted={isMuted}
         playsInline
         preload="metadata"
-        controls
         className={`absolute inset-0 w-full h-full ${objectFitClass} z-10`}
         style={{
           filter: filterStyle,
           transform: `scale(${zoomLevel})`
         }}
+        onLoadedMetadata={handleVideoMetadata}
         onPlay={() => onVideoPlay?.()}
         onPause={() => onVideoPause?.()}
         onEnded={() => onVideoEnded?.()}
@@ -174,7 +180,7 @@ export default function PostMedia({
 }
 
 const HeartAnimation = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
     <div className="text-white text-6xl animate-pop-heart">❤️</div>
     <style>{`
       .animate-pop-heart {

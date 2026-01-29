@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 const LeftPanel = lazy(() => import("./LoginPageComponents/leftPanel"));
 const RightPanel = lazy(() => import("./LoginPageComponents/rightPanel"));
 
-function LoginPage() {
-  const [mode, setMode] = useState("login"); // 'login' | 'register' | 'forgot'
+function LoginPage({ initialMode = "login" }) {
+  const [mode, setMode] = useState(initialMode); // 'login' | 'register' | 'forgot'
 
   return (
     <div className="relative min-h-screen flex justify-center items-center overflow-hidden text-gray-800 bg-black">

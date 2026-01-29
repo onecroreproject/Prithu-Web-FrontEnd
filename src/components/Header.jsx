@@ -23,7 +23,6 @@ import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/us
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
 import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
-import ComingSoonPopup from "./ComingSoonPopup";
 
 // Import User Feedback and Report Pages
 import UserFeedbackPage from "../components/UserFeedbackPage";
@@ -45,10 +44,6 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
-
-  // Popup States
-  const [showReferralPopup, setShowReferralPopup] = useState(false);
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
 
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,23 +72,13 @@ export default function Header() {
       to: "/home/subscriptions",
       label: "Subscriptions",
       Icon: BellRing,
-      desc: "Manage subscriptions",
-      onClick: (e) => {
-        e.preventDefault();
-        setShowSubscriptionPopup(true);
-        closeAll();
-      }
+      desc: "Manage subscriptions"
     },
     {
       to: "/home/referral",
       label: "Referral",
       Icon: Gift,
-      desc: "Referral program",
-      onClick: (e) => {
-        e.preventDefault();
-        setShowReferralPopup(true);
-        closeAll();
-      }
+      desc: "Referral program"
     },
     {
       to: "/home/feedback-support",
@@ -112,7 +97,7 @@ export default function Header() {
   useEffect(() => {
     const handleNewNotif = e => {
       const notif = e.detail;
-      console.log("🔔 New notification received:", notif);
+
 
       toast.success(`🔔 ${notif.title || "New notification!"}`, {
         duration: 4000,
@@ -123,16 +108,59 @@ export default function Header() {
     };
 
     const handleNotifRead = () => {
-      console.log("📨 Notifications marked as read");
+      refreshNotifications();
+    };
+
+    const handlePulse = (e) => {
+      const pulse = e.detail;
+      // Show rich creative toast
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <img
+                  className="h-10 w-10 rounded-full"
+                  src={pulse.thumbnail || "/default-video-thumbnail.png"}
+                  alt="New Content"
+                />
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  New Fresh Content! 🔥
+                </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Check out this new feed! Download it and share 🔥❤️
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex border-l border-gray-200">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                setNotifOpen(true);
+              }}
+              className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+            >
+              View
+            </button>
+          </div>
+        </div>
+      ), { duration: 5000, position: "top-right" });
+
+      // Refresh the query to update the count
       refreshNotifications();
     };
 
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
+    document.addEventListener("socket:notificationPulse", handlePulse);
 
     return () => {
       document.removeEventListener("socket:newNotification", handleNewNotif);
       document.removeEventListener("socket:notificationRead", handleNotifRead);
+      document.removeEventListener("socket:notificationPulse", handlePulse);
     };
   }, [refreshNotifications]);
 
@@ -765,28 +793,16 @@ export default function Header() {
         onClose={() => setIsCreatePostOpen(false)}
       /> */}
 
-      {/* Coming Soon Popups */}
-      <ComingSoonPopup
-        isOpen={showSubscriptionPopup}
-        onClose={() => setShowSubscriptionPopup(false)}
-        title="Subscriptions"
-        icon={BellRing}
-        description="Get exclusive access to premium content and features with our upcoming subscription plans."
-      />
 
-      <ComingSoonPopup
-        isOpen={showReferralPopup}
-        onClose={() => setShowReferralPopup(false)}
-        title="Referral"
-        icon={Gift}
-        description="Share Prithu with your friends and earn rewards! Our referral program is launching soon."
-      />
     </Fragment>
   );
 }
 
 /* ✅ Profile Avatar component */
 const ProfileAvatar = ({ user, size = "md" }) => {
+  const { onlineUsers } = useAuth();
+  const isOnline = onlineUsers.has(user?._id || user?.userId);
+
   const fallback = user?.displayName?.[0]?.toUpperCase() || user?.userName?.[0]?.toUpperCase() || "U";
   const sizeClasses = {
     sm: "w-8 h-8 text-sm",
@@ -794,21 +810,37 @@ const ProfileAvatar = ({ user, size = "md" }) => {
     lg: "w-12 h-12 text-base"
   };
 
-  return user?.profileAvatar ? (
-    <motion.img
-      src={user.profileAvatar}
-      alt="Avatar"
-      className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200 shadow-sm`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    />
-  ) : (
-    <motion.div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200 shadow-sm`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {fallback}
-    </motion.div>
+  const dotSizes = {
+    sm: "w-2 h-2",
+    md: "w-2.5 h-2.5",
+    lg: "w-3 h-3"
+  };
+
+  return (
+    <div className="relative">
+      {user?.profileAvatar ? (
+        <motion.img
+          src={user.profileAvatar}
+          alt="Avatar"
+          className={`${sizeClasses[size]} rounded-full object-cover border-2 border-blue-200 shadow-sm`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        />
+      ) : (
+        <motion.div
+          className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 font-bold border-2 border-blue-200 shadow-sm`}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {fallback}
+        </motion.div>
+      )}
+
+      {/* Online Status Dot */}
+      {isOnline && (
+        <span className={`absolute bottom-0 right-0 ${dotSizes[size]} bg-green-500 border-2 border-white rounded-full shadow-sm`}></span>
+      )}
+    </div>
   );
 };
+
