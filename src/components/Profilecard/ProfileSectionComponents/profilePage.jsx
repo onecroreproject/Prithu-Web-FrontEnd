@@ -16,11 +16,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useUserProfile, useTogglePublish } from "../../../hooks/userProfile";
 import { toast } from "react-hot-toast";
 
-import EditProfile from "./editProfile";
-import EditEducation from "./editEductionProfile";
-import EditExperience from "./editExperience";
-import EditSkill from "./editSkillProfile";
-import EditCertification from "./editCertificationProfile";
+
 
 export default function ProfilePage(id) {
   const [expandedSection, setExpandedSection] = useState("profile");

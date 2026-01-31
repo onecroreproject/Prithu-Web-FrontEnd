@@ -6,7 +6,6 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 // Context
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import { DownloadProvider } from "./context/DownloadContext.jsx";
 
 // Protected Route
 import ProtectedRoute from "./context/authProtectedRoutes.jsx";
@@ -25,8 +24,6 @@ import LikedPosts from "./pages/LikedPosts.jsx";
 import NotInterestedposts from "./pages/NotInterestedposts.jsx";
 import Hiddenpost from "./pages/Hiddenpost.jsx";
 import PrivacyPolicy from "./privacyPolicy.jsx";
-import PublicResume from "./pages/publiceResume.jsx";
-import PortfolioLayout from "./components/User_PrortFolio/portFolioLayout.jsx";
 import AdminSendNotification from "./components/adminsendnotification.jsx";
 import PostDetails from "./components/FeedPageComponent/postView.jsx";
 import SingleUserProfilelayout from "./components/SingleUserProfileViewComponent/singleProfileLayout.jsx";
@@ -77,8 +74,6 @@ function AppRoutes() {
       />
 
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/r/:username" element={<PublicResume />} />
-      <Route path="/portfolio/:username" element={<PortfolioLayout />} />
       <Route path="/admin/notification" element={<AdminSendNotification />} />
       <Route path="/home/user/profile/:id" element={<SingleUserProfilelayout />} />
       <Route path="/create/account" element={<RegisterForm />} />
@@ -143,10 +138,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
-          <DownloadProvider>
-            <AppRoutes />
-            <Toaster position="top-right" />
-          </DownloadProvider>
+          <AppRoutes />
+          <Toaster position="top-right" />
         </AuthProvider>
       </Router>
 

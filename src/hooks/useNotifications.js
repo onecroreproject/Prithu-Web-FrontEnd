@@ -9,7 +9,7 @@ export function useNotifications(token) {
     return useInfiniteQuery({
         queryKey: ['notifications', token],
         queryFn: async ({ pageParam = 1 }) => {
-            const { data } = await api.get(`/api/get/user/all/notification?page=${pageParam}&limit=10`, {
+            const { data } = await api.get(`/api/notifications/all?page=${pageParam}&limit=10`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             return data;

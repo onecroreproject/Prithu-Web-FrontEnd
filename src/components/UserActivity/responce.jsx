@@ -69,7 +69,7 @@ const Response = () => {
         const fetchNotifications = async () => {
             try {
                 setLoading(true);
-                const response = await api.get('/api/get/user/all/notification', {
+                const response = await api.get('/api/notifications/all', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 

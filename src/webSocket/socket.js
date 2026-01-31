@@ -19,12 +19,12 @@ export const connectSocket = (token, sessionId) => {
 
   // Extract only the origin (protocol + host + port) to avoid "Invalid namespace" error
   // if VITE_BACKEND_URL contains a path like "/web"
-  let socketUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+  let socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
   try {
     const url = new URL(socketUrl);
     socketUrl = url.origin;
   } catch (err) {
-    console.warn("⚠️ Invalid VITE_BACKEND_URL, falling back to default.");
+    console.warn("⚠️ Invalid VITE_SOCKET_URL, falling back to default.");
   }
 
   socket = io(socketUrl, {

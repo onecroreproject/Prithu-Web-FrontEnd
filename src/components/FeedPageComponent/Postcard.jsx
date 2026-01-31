@@ -32,7 +32,6 @@ import {
 import FeedOverlayRenderer from "./postCardComponent/FeedOverlayRenderer";
 import useFeedAudioPlayer from "../../hooks/useFeedAudioPlayer";
 import prithuLogo from "../../assets/prithulogo.png";
-import { useDownloads } from "../../context/DownloadContext";
 
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -73,7 +72,7 @@ function Postcard({
     aspectRatio: postAspectRatio = "1:1",
     designMetadata = {},
   } = postData || {};
-
+console.log("footer",designMetadata)
   const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
 
   const isTemplate = uploadMode === "template" || postData.uploadType === "template";
@@ -378,40 +377,26 @@ function Postcard({
   }, [feedId, tempUser._id, shareMutation]);
 
   // Download Logic
-  const { addDownload, setIsMenuOpen } = useDownloads();
 
   const handleDownload = () => {
     if (!feedId) return toast.error("Invalid feed!");
 
-    const loadingToast = toast.loading("Initiating download...");
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://prithubackend.1croreprojects.com';
+    const token = localStorage.getItem('token');
+    const activeUserId = localStorage.getItem('userId');
 
-    downloadMutation.mutate(
-      { feedId },
-      {
-        onSuccess: (data) => {
-          const jobId = data?.jobId;
-          if (!jobId) {
-            toast.dismiss(loadingToast);
-            return toast.error("Failed to start download job");
-          }
+    if (!token || activeUserId === "guest") {
+      return toast.error("Please login to download");
+    }
 
-          toast.success("Download started! Check progress in the menu.", { id: loadingToast });
+    // Trigger direct browser download
+    const downloadUrl = `${BACKEND_URL}/api/feeds/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
 
-          // Add to global download context
-          addDownload(jobId, {
-            caption: caption || description,
-            thumbnail: contentUrl, // Using main image for now
-          });
+    // We show a simple toast as native browsers don't give immediate feedback during the processing phase
+    toast.success("Download started! Your browser will manage the progress.");
 
-          // Open the menu to show progress
-          setIsMenuOpen(true);
-        },
-        onError: () => {
-          toast.dismiss(loadingToast);
-          toast.error("Download request failed");
-        },
-      }
-    );
+    // Trigger download
+    window.location.href = downloadUrl;
   };
 
   const handleFollow = useCallback(() => {

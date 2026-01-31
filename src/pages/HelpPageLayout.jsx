@@ -62,7 +62,7 @@ const FAQPage = () => {
   const fetchFAQs = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/help', {
+      const response = await axios.get('/api/help/faq', {
         params: { search: searchQuery }
       });
       setSections(response.data.data);

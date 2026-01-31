@@ -4,7 +4,6 @@ import Feed from "../pages/Feed";
 import Birthdays from "./Birthdays";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftColumn from "./LeftColumn";
-import DownloadMenu from "./Download/DownloadMenu";
 import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
@@ -61,7 +60,6 @@ export default function Layout() {
     <div className="flex flex-col bg-white dark:bg-[#121212]">
 
       <Header />
-      <DownloadMenu />
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (

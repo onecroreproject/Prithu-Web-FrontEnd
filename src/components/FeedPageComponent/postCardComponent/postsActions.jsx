@@ -107,13 +107,13 @@ const PostActions = ({
           </div>
 
           <div className="flex items-center gap-1">
-            <button
+            {/* <button
               onClick={onCommentsClick}
               className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
               aria-label="Comment"
             >
               <ChatBubbleOutline style={{ fontSize: 24 }} />
-            </button>
+            </button> */}
             {commentCount > 0 && (
               <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
                 {commentCount > 999

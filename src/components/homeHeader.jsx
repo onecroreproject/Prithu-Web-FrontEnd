@@ -20,7 +20,7 @@ import CasualInterestPopup from "../components/intrestedPop-up";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
-import { useDownloads } from "../context/DownloadContext";
+// Notification count from React Query hook
 
 // Import search components
 import SearchBar from "../components/HeaderComponent/searchBar";
@@ -45,10 +45,6 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
-
-  // Download State
-  const { activeDownloads, toggleMenu } = useDownloads();
-  const activeDownloadCount = Object.keys(activeDownloads).length;
 
   // Posting permission states
   const [postStatus, setPostStatus] = useState(null);
@@ -200,7 +196,7 @@ export default function Header() {
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await api.get("/api/get/user/all/notification", authHeader);
+      const res = await api.get("/api/notifications/all", authHeader);
 
       const list = res.data?.notifications || [];
       setNotifications(list);
@@ -651,21 +647,7 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Download Icon */}
-            <div className="relative">
-              <button
-                onClick={toggleMenu}
-                className={`p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 flex items-center justify-center`}
-                title="Downloads"
-              >
-                <Download className="w-5 h-5 text-gray-600" />
-                {activeDownloadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold animate-pulse">
-                    {activeDownloadCount}
-                  </span>
-                )}
-              </button>
-            </div>
+
 
             {/* Notification Icon */}
             <div className="relative" ref={notificationRef}>

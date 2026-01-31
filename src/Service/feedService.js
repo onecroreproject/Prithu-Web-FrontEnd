@@ -1,24 +1,8 @@
 import api from "../api/axios";
 
+import { getMediaUrl } from "../utils/urlHelper";
+
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-const getGDriveUrl = (id) => {
-  if (!id) return "";
-
-  let fileId = id;
-  // If it's a legacy or absolute G-Drive link, extract the target ID
-  if (id.includes("docs.google.com") || id.includes("drive.google.com")) {
-    const match = id.match(/[&?]id=([^&]+)/);
-    if (match) fileId = match[1];
-  }
-
-  // If it's already an absolute URL (and not the ones we just handled), return as is
-  if (fileId.startsWith("http")) return fileId;
-
-  // Use backend proxy for streaming (handles byte ranges for audio/video)
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
-  return `${baseUrl}/media/${fileId}`;
-};
 
 export const getAllFeeds = async (page = 1, token, categoryId = null) => {
   try {
@@ -90,7 +74,7 @@ export const getAllFeeds = async (page = 1, token, categoryId = null) => {
       const rawAudio = designState.audioConfig || designMetadata.audioConfig || {};
       const audioConfig = {
         ...rawAudio,
-        audioFile: rawAudio.audioFile || getGDriveUrl(rawAudio.audioFileId),
+        audioFile: rawAudio.audioFile || getMediaUrl(rawAudio.audioFileId),
         enabled: Boolean(rawAudio.enabled),
       };
 
@@ -113,16 +97,16 @@ export const getAllFeeds = async (page = 1, token, categoryId = null) => {
         feedId: feed.feedId || feed._id || "",
         _id: feed.feedId || feed._id || "",
         type: feed.type || feed.postType || "image",
-        contentUrl: feed.contentUrl || feed.mediaUrl || primaryFile.url || "",
-        thumbnailUrl: feed.thumbnailUrl || feed.contentUrl || feed.mediaUrl || primaryFile.url || "",
+        contentUrl: getMediaUrl(feed.contentUrl || feed.mediaUrl || primaryFile.url),
+        thumbnailUrl: getMediaUrl(feed.thumbnailUrl || feed.contentUrl || feed.mediaUrl || primaryFile.url),
         caption: feed.caption || feed.dec || "",
         description: feed.dec || feed.description || "",
 
         postedBy: {
           id: creator._id || creator.id || feed.createdByAccount || null,
           name: creator.userName || creator.name || creator.displayName || "Unknown",
-          avatar: creator.profileAvatar || creator.avatar || defaultAvatar,
-          modifyAvatar: creator.modifyAvatar || null,
+          avatar: getMediaUrl(creator.profileAvatar || creator.avatar || defaultAvatar),
+          modifyAvatar: getMediaUrl(creator.modifyAvatar),
           role: creator.role || feed.roleRef || "User",
         },
 
@@ -132,8 +116,8 @@ export const getAllFeeds = async (page = 1, token, categoryId = null) => {
           userName: viewer?.userName || "user",
           email: viewer?.email || "",
           phoneNumber: viewer?.phoneNumber || "",
-          profileAvatar: viewer?.profileAvatar || defaultAvatar,
-          modifyAvatar: viewer?.modifyAvatar || null,
+          profileAvatar: getMediaUrl(viewer?.profileAvatar || defaultAvatar),
+          modifyAvatar: getMediaUrl(viewer?.modifyAvatar),
           socialLinks: viewerSocialLinks,
         },
 
@@ -195,6 +179,7 @@ const isTemplateMode = (feed) => {
 };
 
 export const getSingleFeed = async (id, token) => {
+  console.log(id)
   try {
     const { data } = await api.get(`/api/get/feed/${id}`, {
       headers: { Authorization: `Bearer ${token}` }

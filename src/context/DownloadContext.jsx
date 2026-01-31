@@ -49,6 +49,16 @@ export const DownloadProvider = ({ children }) => {
         });
     }, []);
 
+    const triggerBrowserDownload = useCallback((url, filename) => {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename || 'video.mp4');
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, []);
+
     const markComplete = useCallback((jobId, downloadUrl) => {
         setActiveDownloads(prev => {
             const job = prev[jobId];
@@ -64,17 +74,18 @@ export const DownloadProvider = ({ children }) => {
 
             setCompletedDownloads(current => [completedItem, ...current].slice(0, 20));
 
+            // Trigger browser download automatically
+            triggerBrowserDownload(downloadUrl, job.caption ? `${job.caption.slice(0, 30)}.mp4` : `download-${jobId.slice(-4)}.mp4`);
+
             const { [jobId]: _, ...remaining } = prev;
             return remaining;
         });
-    }, []);
+    }, [triggerBrowserDownload]);
 
     const markFailed = useCallback((jobId, error) => {
         setActiveDownloads(prev => {
             if (!prev[jobId]) return prev;
 
-            // We can either keep it in active with a failed status or move to a failed list
-            // For now, let's keep it in active so the user can see it failed
             return {
                 ...prev,
                 [jobId]: {
@@ -135,7 +146,8 @@ export const DownloadProvider = ({ children }) => {
         toggleMenu,
         addDownload,
         removeActiveDownload,
-        clearCompleted
+        clearCompleted,
+        triggerBrowserDownload
     };
 
     return (

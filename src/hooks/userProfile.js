@@ -1,19 +1,6 @@
 // ✅ src/hooks/userProfile.js
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getUserCurriculamProfile,
-  addEducation,
-  updateEducation,
-  deleteEducation,
-  addExperience,
-  updateExperience,
-  deleteExperience,
-  addSkill,
-  updateSkill,
-  deleteSkill,
-  addCertification,
-  updateCertification,
-  deleteCertification,
   getUserProfile,
   togglePublish,
 } from "../Service/profileService";
