@@ -10,8 +10,8 @@ export function useGlobalSearch(searchQuery, enabled = true) {
     return useQuery({
         queryKey: ['globalSearch', searchQuery],
         queryFn: async () => {
-            if (!searchQuery || searchQuery.trim().length < 2) {
-                return { categories: [], people: [], jobs: [] };
+            if (!searchQuery || searchQuery.trim().length < 1) {
+                return { categories: [] };
             }
 
             const { data } = await api.get(
@@ -20,11 +20,9 @@ export function useGlobalSearch(searchQuery, enabled = true) {
 
             return {
                 categories: data.categories || [],
-                people: data.people || [],
-                jobs: data.jobs || [],
             };
         },
-        enabled: enabled && !!searchQuery && searchQuery.trim().length >= 2,
+        enabled: enabled && !!searchQuery && searchQuery.trim().length >= 1,
         staleTime: 5 * 60 * 1000, // 5 minutes
         cacheTime: 10 * 60 * 1000, // 10 minutes
     });

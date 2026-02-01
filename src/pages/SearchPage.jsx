@@ -1,95 +1,58 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useContext, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import api from "../api/axios";
-import { Search as SearchIcon } from "lucide-react";
-import Postcard from "../components/FeedPageComponent/Postcard"; // your existing Postcard component
+import { Search as SearchIcon, PlayCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const SearchPage = () => {
-  const { token, user } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [allFeeds, setAllFeeds] = useState([]);
-  const [filteredFeeds, setFilteredFeeds] = useState([]);
-  const [categorySuggestions, setCategorySuggestions] = useState([]);
+  const [categoryResults, setCategoryResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [scrollViewMode, setScrollViewMode] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const debounceTimeout = useRef(null);
-
-  // Fetch all feeds
-  const fetchFeeds = async () => {
-    if (!token) return;
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await api.get("/api/get/all/feeds/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const images = (res.data.feeds || [])
-        .map(feed => ({
-          ...feed,
-          type: (feed.type || "image").toLowerCase(),
-          caption: feed.caption || "",
-          contentUrl: feed.contentUrl || "",
-          userName: feed.userName || "Unknown",
-          _id: feed._id,
-          category: feed.category || null,
-        }))
-        .filter(feed => feed.type === "image" && feed.contentUrl);
-
-      setAllFeeds(images);
-      setFilteredFeeds(images);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch feeds");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFeeds();
-  }, [token]);
 
   // Search handling
   const handleSearch = (e) => {
     const value = e.target.value;
     setQuery(value);
 
-    const filtered = allFeeds.filter(feed =>
-      feed.caption.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredFeeds(filtered);
-
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
     if (value.trim().length > 0) {
+      setLoading(true);
       debounceTimeout.current = setTimeout(async () => {
         try {
           const res = await api.post(
             "/api/search/all/category",
-            { query: value, userId: user?._id },
+            { query: value },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          setCategorySuggestions(res.data.categories || []);
+          setCategoryResults(res.data.categories || []);
+          setError("");
         } catch (err) {
-          console.error("Category suggestion error:", err);
-          setCategorySuggestions([]);
+          console.error("Category search error:", err);
+          setCategoryResults([]);
+          if (err.response?.status === 404) {
+            setError("No categories found matching your search.");
+          } else {
+            setError("Failed to fetch categories.");
+          }
+        } finally {
+          setLoading(false);
         }
-      }, 300);
+      }, 400);
     } else {
-      setCategorySuggestions([]);
+      setCategoryResults([]);
+      setLoading(false);
     }
   };
 
   const handleCategoryClick = (categoryId) => {
-    const filtered = allFeeds.filter(feed => feed.category === categoryId);
-    setFilteredFeeds(filtered);
-    setQuery("");
-    setCategorySuggestions([]);
+    // Navigate to Home and pass the categoryId in state
+    navigate("/", { state: { selectedCategoryId: categoryId } });
   };
 
   const highlightText = (text, highlight) => {
@@ -98,100 +61,92 @@ const SearchPage = () => {
     const parts = text.split(regex);
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <span key={i} className="bg-yellow-200 font-semibold">{part}</span>
+        <span key={i} className="text-green-600 font-bold">{part}</span>
       ) : (
         part
       )
     );
   };
 
-  // Open scroll view for full-screen posts
-  const openScrollView = (index) => {
-    setActiveIndex(index);
-    setScrollViewMode(true);
-  };
-
-  // Close scroll view
-  const closeScrollView = () => {
-    setScrollViewMode(false);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-white p-4 lg:p-8">
+      {/* Search Header */}
+      <div className="max-w-2xl mx-auto mb-8 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Search Categories</h1>
+        <p className="text-gray-500">Find and explore content by category</p>
+      </div>
 
       {/* Search Bar */}
-      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50 py-4">
+      <div className="sticky top-14 lg:top-0 z-20 bg-white/80 backdrop-blur-sm py-4 mb-6">
         <div className="flex items-center w-full max-w-2xl mx-auto relative">
-          <div className="flex items-center w-full bg-white rounded-full shadow px-4 py-2">
+          <div className="flex items-center w-full bg-gray-100 rounded-2xl px-5 py-3 transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-green-500/20 shadow-sm border border-transparent focus-within:border-green-500/30">
             <SearchIcon className="w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search posts..."
+              placeholder="Type category name (e.g. Bhakti, Motivation...)"
               value={query}
               onChange={handleSearch}
-              className="flex-1 ml-2 outline-none bg-transparent text-gray-700"
+              className="flex-1 ml-3 outline-none bg-transparent text-gray-800 font-medium placeholder:text-gray-400"
             />
           </div>
-
-          {categorySuggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white shadow-md rounded mt-1 z-30 max-h-60 overflow-y-auto">
-              {categorySuggestions.map((cat) => (
-                <div
-                  key={cat._id}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleCategoryClick(cat._id)}
-                >
-                  {highlightText(cat.name, query)}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Grid or Scrollable Feed */}
-      {!scrollViewMode ? (
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-          {loading && <p className="text-center col-span-full text-gray-500">Loading feeds...</p>}
-          {error && <p className="text-center col-span-full text-red-500">{error}</p>}
-          {!loading && filteredFeeds.length === 0 && !error && (
-            <p className="text-center col-span-full text-gray-500">No posts found.</p>
-          )}
-          {filteredFeeds.map((feed, index) => (
-            <div
-              key={feed._id}
-              className="relative w-full h-40 rounded-lg overflow-hidden cursor-pointer group"
-              onClick={() => openScrollView(index)}
-            >
-              <img
-                src={feed.contentUrl}
-                alt={feed.userName}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="h-screen w-full overflow-y-scroll snap-y snap-mandatory">
-          {filteredFeeds.slice(activeIndex).map((feed, index) => (
-            <div
-              key={feed._id}
-              className="h-screen w-full flex items-center justify-center snap-start"
-            >
-              <div className="w-full max-w-md h-full flex items-center justify-center relative">
-                <Postcard postData={feed} authUser={user} fullScreen compact={false} />
-                {/* Close Button */}
-                <button
-                  onClick={closeScrollView}
-                  className="absolute top-6 right-6 bg-black bg-opacity-50 text-white p-2 rounded-full z-50"
-                >
-                  ✕
-                </button>
+      {/* Results Section */}
+      <div className="max-w-2xl mx-auto">
+        {loading && (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="text-center py-10">
+            <p className="text-gray-400 italic">{error}</p>
+          </div>
+        )}
+
+        {!loading && categoryResults.length > 0 && (
+          <div className="grid grid-cols-1 gap-3">
+            {categoryResults.map((cat) => (
+              <div
+                key={cat._id}
+                className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-green-50 hover:border-green-100 border border-transparent transition-all cursor-pointer group shadow-sm active:scale-[0.98]"
+                onClick={() => handleCategoryClick(cat._id)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 group-hover:bg-green-200 transition-colors">
+                    <PlayCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {highlightText(cat.name, query)}
+                    </h3>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                    {cat.videoCount || 0} Videos
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+        {!loading && query.trim() !== "" && categoryResults.length === 0 && !error && (
+          <div className="text-center py-10">
+            <p className="text-gray-400">No matching categories found.</p>
+          </div>
+        )}
+
+        {!loading && query.trim() === "" && (
+          <div className="text-center py-20 opacity-40 grayscale flex flex-col items-center">
+            <SearchIcon className="w-16 h-16 text-gray-300 mb-4" />
+            <p className="text-lg font-medium text-gray-500">Search for categories above</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

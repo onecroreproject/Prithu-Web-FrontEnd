@@ -87,6 +87,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     categoryPage: 1,
     allPage: 1,
     mode: feedCategory ? "category" : "all",
+    categoryId: feedCategory || null,
   };
 
   const {
@@ -105,8 +106,10 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
         return getFeedsByHashtag(tagname, param.page || 1, tokenRef.current || token);
       }
 
-      if (param.mode === "category" && feedCategory) {
-        return getAllFeeds(param.categoryPage, tokenRef.current || token, feedCategory);
+      const fetchCategoryId = param.categoryId || feedCategory;
+
+      if (param.mode === "category" && fetchCategoryId) {
+        return getAllFeeds(param.categoryPage, tokenRef.current || token, fetchCategoryId);
       } else {
         return getAllFeeds(param.allPage, tokenRef.current || token, null);
       }
@@ -125,8 +128,22 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
         if (isFullBatch) {
           return { ...currentParam, categoryPage: currentParam.categoryPage + 1 };
         } else {
-          // Category exhausted, switch to 'all' (mixed)
-          return { ...currentParam, mode: "all", allPage: 1 };
+          // Category exhausted, transition to next category
+          const currentCatId = currentParam.categoryId || feedCategory;
+          const currentIndex = categories.findIndex(c => (c._id || c.id) === currentCatId);
+
+          if (currentIndex !== -1 && currentIndex < categories.length - 1) {
+            const nextCat = categories[currentIndex + 1];
+            return {
+              ...currentParam,
+              mode: "category",
+              categoryPage: 1,
+              categoryId: nextCat._id || nextCat.id
+            };
+          } else {
+            // No more categories, switch to 'all' (mixed)
+            return { ...currentParam, mode: "all", allPage: 1, categoryId: null };
+          }
         }
       } else {
         // mode === "all"
@@ -143,14 +160,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   });
 
   const feeds = (() => {
-    const flat = feedPages?.pages.flat() || [];
-    const seen = new Set();
-    return flat.filter((item) => {
-      const id = item._id || item.feedId;
-      if (!id || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
+    return feedPages?.pages.flat() || [];
   })();
   console.log(feeds)
 
@@ -381,6 +391,14 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   };
 
   const isLoading = isFeedsLoading || isCreatorModeLoading;
+  // Handle incoming category from SearchPage navigation
+  useEffect(() => {
+    if (location.state?.selectedCategoryId) {
+      setFeedCategory(location.state.selectedCategoryId);
+      // Clear state so it doesn't trigger again on manual refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, setFeedCategory]);
 
   return (
     <div id="feedTop">
@@ -411,20 +429,23 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
             ) : mixed.length > 0 ? (
-              mixed.map((item, idx) => (
-                <div
-                  key={`${item.__kind}-${item._id || item.feedId || idx}`}
-                  className="w-full"
-                >
-                  <PostcardWrapper
-                    postData={item}
-                    authUser={authUser}
-                    token={tokenRef.current || token}
-                    onHideFromUI={handleHideFromUI}
-                    isVisible={true}
-                  />
-                </div>
-              ))
+              mixed.map((item, idx) => {
+                const stableId = item._id || item.feedId || idx;
+                return (
+                  <div
+                    key={`${item.__kind}-${stableId}-${idx}`}
+                    className="w-full"
+                  >
+                    <PostcardWrapper
+                      postData={item}
+                      authUser={authUser}
+                      token={tokenRef.current || token}
+                      onHideFromUI={handleHideFromUI}
+                      isVisible={true}
+                    />
+                  </div>
+                );
+              })
             ) : (
               <p className="text-center text-gray-500 py-8">
                 {feedsError ? "⚠️ Failed to load content." : "No content available."}

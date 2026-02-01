@@ -1,219 +1,111 @@
-// src/components/MobileSearchBar.jsx
+// src/components/HeaderComponent/mobileSearchBar.jsx
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, PlayCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function MobileSearchBar({
   mobileSearchOpen, setMobileSearchOpen,
-  searchQuery, setSearchQuery, handleKeyDown, debouncedSearch,
-  activeTab, setActiveTab, trending, history, clearHistory,
-  handleTrendingClick, handleHistoryClick,
-  scoredResults, handleSelectResult
+  searchQuery, setSearchQuery, debouncedSearch,
+  scoredResults = { categories: [] }
 }) {
+  const navigate = useNavigate();
 
-  const navigate = useNavigate();   // ✅ Added
+  const handleCategoryClick = (categoryId) => {
+    navigate("/home", { state: { selectedCategoryId: categoryId } });
+    setMobileSearchOpen(false);
+  };
+
+  const highlightText = (text, highlight) => {
+    if (!highlight) return text;
+    const regex = new RegExp(`(${highlight})`, "gi");
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <span key={i} className="text-green-600 font-bold">{part}</span>
+      ) : (
+        part
+      )
+    );
+  };
 
   return (
     <AnimatePresence>
       {mobileSearchOpen && (
         <motion.div
-          initial={{ y: -120, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -120, opacity: 0 }}
-          transition={{ duration: 0.28 }}
-          className="fixed top-0 left-0 w-full bg-white shadow-xl z-[100] h-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-white z-[100] flex flex-col"
         >
-          <div className="flex items-center gap-3 p-3 border-b">
+          {/* Header */}
+          <div className="flex items-center gap-3 p-4 border-b border-gray-100">
             <button
               onClick={() => setMobileSearchOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100"
+              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6 text-gray-400" />
             </button>
 
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search everything..."
-              value={searchQuery}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSearchQuery(v);
-                debouncedSearch(v);
-              }}
-              onKeyDown={handleKeyDown}
-              className="flex-1 px-4 py-2 rounded-full bg-gray-100 border outline-none"
-            />
+            <div className="flex-1 relative">
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search categories..."
+                value={searchQuery}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSearchQuery(v);
+                  debouncedSearch(v);
+                }}
+                className="w-full pl-4 pr-10 py-3 rounded-2xl bg-gray-100 border-none outline-none text-gray-800 placeholder:text-gray-400 font-medium focus:ring-2 focus:ring-green-500/10 transition-all"
+              />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+            </div>
           </div>
 
-          <div className="max-h-[80vh] overflow-y-auto p-3">
-            <div className="space-y-6">
-
-              {/* ---------------- Recent ---------------- */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-gray-500 font-semibold">Recent</p>
-                  {history.length > 0 && (
-                    <button
-                      onClick={clearHistory}
-                      className="text-xs text-red-500 hover:underline"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {history.map((h) => (
-                    <button
-                      key={h}
-                      onClick={() => handleHistoryClick(h)}
-                      className="px-3 py-2 bg-gray-100 rounded-lg"
-                    >
-                      {h}
-                    </button>
-                  ))}
-                </div>
+          {/* Results Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {!searchQuery.trim() ? (
+              <div className="h-full flex flex-col items-center justify-center opacity-20 grayscale pb-20">
+                <Search className="w-20 h-20 mb-4" />
+                <p className="font-black text-xl">SEARCH CATEGORIES</p>
               </div>
-
-              {/* ---------------- Trending ---------------- */}
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-2">
-                  Trending hashtags
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {trending.map((t) => (
-                    <button
-                      key={t.tag || t}
-                      onClick={() => handleTrendingClick(t)}
-                      className="px-3 py-2 bg-gradient-to-r from-green-50 to-yellow-50 rounded-lg text-sm"
+            ) : (
+              <div className="space-y-3">
+                {scoredResults.categories?.length > 0 ? (
+                  scoredResults.categories.map((c) => (
+                    <motion.div
+                      key={c._id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      onClick={() => handleCategoryClick(c._id)}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-green-50 transition-all cursor-pointer group active:scale-[0.98]"
                     >
-                      #{t.tag || t}{" "}
-                      <span className="text-xs text-gray-500 ml-2">
-                        • {t.count}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ---------------- Results ---------------- */}
-              {searchQuery && (
-                <div>
-                  {/* Tabs */}
-                  <div className="flex items-center gap-2 mb-3">
-                    {["all", "people", "categories", "jobs"].map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setActiveTab(t)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          activeTab === t
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {t === "all" ? "All" : t[0].toUpperCase() + t.slice(1)}
-                      </button>
-                    ))}
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-green-500 shadow-sm group-hover:bg-green-500 group-hover:text-white transition-all">
+                          <PlayCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800 tracking-tight">
+                            {highlightText(c.name, searchQuery)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="bg-green-100/50 px-3 py-1 rounded-full">
+                        <span className="text-[10px] font-black text-green-700 uppercase">
+                          {c.videoCount || 0} Videos
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-20 text-gray-400 italic">
+                    No matching categories found
                   </div>
-
-                  {/* ALL TAB */}
-                  {activeTab === "all" && (
-                    <div className="space-y-2">
-
-                      {/* People */}
-                      {scoredResults.people.map((p) => (
-                        <div
-                          key={p._id}
-                          onClick={() => handleSelectResult("people", p)}
-                          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
-                        >
-                          <img
-                            src={p.profileAvatar || "/default.png"}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div>
-                            <div className="font-medium">{p.userName}</div>
-                            <div className="text-xs text-gray-500">{p.name}</div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Categories (UPDATED) */}
-                      {scoredResults.categories.map((c) => (
-                        <div
-                          key={c._id}
-                          onClick={() => {
-                            // send filter to Feed
-                            window.dispatchEvent(
-                              new CustomEvent("filterFeedByCategory", {
-                                detail: { categoryId: c._id }
-                              })
-                            );
-
-                            navigate("/home");   // go to Feed
-                            setMobileSearchOpen(false);  // close search
-                          }}
-                          className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
-                        >
-                          🔹 {c.name}
-                        </div>
-                      ))}
-
-                      {/* Jobs */}
-                      {scoredResults.jobs.map((j) => (
-                        <div
-                          key={j._id}
-                          onClick={() => handleSelectResult("jobs", j)}
-                          className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
-                        >
-                          <div className="font-medium">{j.title}</div>
-                          <div className="text-xs text-gray-500">
-                            {j.companyName}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* CATEGORIES TAB */}
-                  {activeTab === "categories" &&
-                    scoredResults.categories.map((c) => (
-                      <div
-                        key={c._id}
-                        onClick={() => {
-                          window.dispatchEvent(
-                            new CustomEvent("filterFeedByCategory", {
-                              detail: { categoryId: c._id }
-                            })
-                          );
-                          navigate("/home");
-                          setMobileSearchOpen(false);
-                        }}
-                        className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
-                      >
-                        🔹 {c.name}
-                      </div>
-                    ))}
-
-                  {/* JOBS TAB */}
-                  {activeTab === "jobs" &&
-                    scoredResults.jobs.map((j) => (
-                      <div
-                        key={j._id}
-                        onClick={() => handleSelectResult("jobs", j)}
-                        className="px-3 py-2 rounded hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="font-medium">{j.title}</div>
-                        <div className="text-xs text-gray-500">
-                          {j.companyName}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       )}
