@@ -137,7 +137,7 @@ const FeedbackPage = () => {
         ...deviceInfo
       };
 
-      const response = await axios.post('/api/feedback', payload);
+      const response = await axios.post('/api/feedback/submit', payload);
       
       // Reset form on success
       setFormData({

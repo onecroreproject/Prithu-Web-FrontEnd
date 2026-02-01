@@ -100,12 +100,12 @@ export function useUnfollowUser() {
 
 
 const downloadFeedService = async ({ feedId }) => {
-  const response = await api.post(`/api/feeds/${feedId}/download-request`);
+  const response = await api.post(`/api/user/feed/download`, { feedId });
   return response.data; // Expecting { success: true, jobId: "..." }
 };
 
 export const getDownloadStatus = async (jobId) => {
-  const response = await api.get(`/api/downloads/status/${jobId}`);
+  const response = await api.get(`/api/user/feed/download-status/${jobId}`);
   return response.data; // Expecting { status: 'completed', downloadLink: '...' }
 };
 

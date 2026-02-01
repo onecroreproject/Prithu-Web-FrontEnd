@@ -72,7 +72,7 @@ function Postcard({
     aspectRatio: postAspectRatio = "1:1",
     designMetadata = {},
   } = postData || {};
-console.log("footer",designMetadata)
+  console.log("footer", designMetadata)
   const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
 
   const isTemplate = uploadMode === "template" || postData.uploadType === "template";
@@ -390,7 +390,7 @@ console.log("footer",designMetadata)
     }
 
     // Trigger direct browser download
-    const downloadUrl = `${BACKEND_URL}/api/feeds/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
+    const downloadUrl = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
 
     // We show a simple toast as native browsers don't give immediate feedback during the processing phase
     toast.success("Download started! Your browser will manage the progress.");
@@ -648,15 +648,22 @@ console.log("footer",designMetadata)
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer"
-                          >
-                            <img
-                              src={`https://cdn.simpleicons.org/${icon.platform}`}
-                              className="w-3.5 h-3.5 object-contain invert"
-                              alt={icon.platform}
-                              onError={(e) => {
-                                e.currentTarget.src = defaultAvatar;
-                              }}
-                            />
+                          >{icon.platform === "twitter" ? <img
+                            src={`https://cdn.simpleicons.org/x`}
+                            className="w-3.5 h-3.5 object-contain invert"
+                            alt={icon.platform}
+                            onError={(e) => {
+                              e.currentTarget.src = defaultAvatar;
+                            }}
+                          /> : <img
+                            src={`https://cdn.simpleicons.org/${icon.platform}`}
+                            className="w-3.5 h-3.5 object-contain invert"
+                            alt={icon.platform}
+                            onError={(e) => {
+                              e.currentTarget.src = defaultAvatar;
+                            }}
+                          />}
+
                           </a>
                         ))}
                       </div>

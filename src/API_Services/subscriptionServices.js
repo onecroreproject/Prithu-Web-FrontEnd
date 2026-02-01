@@ -3,7 +3,7 @@ import api from "../api/axios";
 // 1. Get all subscription plans
 export const getAllSubscriptionPlans = async () => {
     try {
-        const response = await api.get("/api/user/subscription/plans");
+        const response = await api.get("/api/subscription/plans");
         console.log("all subcription", response.data)
         return response.data;
     } catch (error) {
@@ -14,7 +14,7 @@ export const getAllSubscriptionPlans = async () => {
 // 2. Get user's active subscription detail
 export const getUserSubscriptionActive = async () => {
     try {
-        const response = await api.get("/api/user/subscription/active");
+        const response = await api.get("/api/subscription/active");
         console.log("active subcription", response.data)
         return response.data;
     } catch (error) {
@@ -25,7 +25,7 @@ export const getUserSubscriptionActive = async () => {
 // 3. Check if user has an active subscription
 export const checkUserActiveSubscription = async () => {
     try {
-        const response = await api.get("/api/user/subscription/check-active");
+        const response = await api.get("/api/subscription/check-active");
         return response.data;
     } catch (error) {
         throw error.response?.data || error.message;
@@ -35,7 +35,7 @@ export const checkUserActiveSubscription = async () => {
 // 4. Subscribe to a plan
 export const subscribePlan = async (payload) => {
     try {
-        const response = await api.post("/api/user/plan/subscription", payload);
+        const response = await api.post("/api/plan/subscription", payload);
         return response.data;
     } catch (error) {
         throw error.response?.data || error.message;
@@ -45,7 +45,7 @@ export const subscribePlan = async (payload) => {
 // 5. Cancel subscription
 export const cancelSubscriptionApi = async (subscriptionId) => {
     try {
-        const response = await api.put("/api/user/subscription/cancel", { subscriptionId });
+        const response = await api.put("/api/subscription/cancel", { subscriptionId });
         console.log("cancel subcription", response.data)
         return response.data;
     } catch (error) {
@@ -56,7 +56,7 @@ export const cancelSubscriptionApi = async (subscriptionId) => {
 // 6. Activate trial plan
 export const activateTrialPlanApi = async () => {
     try {
-        const response = await api.post("/api/user/subscription/activate-trial");
+        const response = await api.post("/api/subscription/activate-trial");
         console.log("activate trial plan", response.data)
         return response.data;
     } catch (error) {
@@ -67,7 +67,7 @@ export const activateTrialPlanApi = async () => {
 // 7. Check trial plan eligibility
 export const checkTrialEligibilityApi = async () => {
     try {
-        const response = await api.get("/api/user/subscription/trial-eligibility");
+        const response = await api.get("/api/subscription/trial-eligible");
         console.log("check trial eligibility", response.data)
         return response.data;
     } catch (error) {
@@ -88,7 +88,7 @@ export const createOrderApi = async (planId) => {
 // 9. Verify Razorpay Payment
 export const verifyPaymentApi = async (paymentDetails) => {
     try {
-        const response = await api.post("/api/user/subscription/verify-payment", paymentDetails);
+        const response = await api.post("/api/subscription/verify-payment", paymentDetails);
         return response.data;
     } catch (error) {
         throw error.response?.data || error.message;

@@ -15,7 +15,7 @@ export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAcce
     const sendHeartbeat = async () => {
       try {
         const res = await axios.post(
-          `${backendUrl}/api/heartbeat`,
+          `${backendUrl}/api/session/heartbeat`,
           { sessionId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -33,7 +33,7 @@ export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAcce
           if (newToken) {
             console.log("🔄 Retrying heartbeat with new token...");
             await axios.post(
-              `${backendUrl}/api/heartbeat`,
+              `${backendUrl}/api/session/heartbeat`,
               { sessionId },
               { headers: { Authorization: `Bearer ${newToken}` } }
             );
@@ -79,7 +79,7 @@ export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAcce
     const updatePresence = async (isOnline) => {
       try {
         await axios.post(
-          `${backendUrl}/api/user/session/presence`,
+          `${backendUrl}/api/session/presence`,
           { sessionId, isOnline },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -94,7 +94,7 @@ export const usePresenceTracker = ({ token, sessionId, user, socket, refreshAcce
 
           if (newToken) {
             await axios.post(
-              `${backendUrl}/api/user/session/presence`,
+              `${backendUrl}/api/session/presence`,
               { sessionId, isOnline },
               { headers: { Authorization: `Bearer ${newToken}` } }
             );

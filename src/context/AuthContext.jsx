@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (payload) => {
     setLoading(true);
     try {
-      await api.post("/api/auth/user/register", payload);
+      await api.post("/api/register", payload);
 
       toast.success("🎉 Account created successfully!");
 
@@ -194,7 +194,7 @@ export const AuthProvider = ({ children }) => {
         sessionId: existingSessionId || null,
       };
 
-      const { data } = await api.post("/api/auth/user/login", payload);
+      const { data } = await api.post("/api/login", payload);
 
       const { accessToken, refreshToken, sessionId: newSessionId, userId } = data;
 
@@ -243,7 +243,7 @@ export const AuthProvider = ({ children }) => {
   // ---------------------------------------------------------------------------
   const sendOtpForReset = async (email) => {
     try {
-      const res = await api.post("/api/auth/user/otp-send", { email });
+      const res = await api.post("/api/sent-otp", { email });
       toast.success(res.data.message || "OTP sent successfully");
       setResetEmail(email);
       return true;
