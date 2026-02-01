@@ -1,6 +1,4 @@
-import React from "react";
-import PostOptionsMenu from "../PostOptionsMenu";
-import { MoreVertical } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 
 const PostHeader = ({
@@ -21,6 +19,12 @@ const PostHeader = ({
 }) => {
   const { onlineUsers } = useAuth();
   const isOnline = onlineUsers.has(userId);
+
+  const [isFollowing, setIsFollowing] = useState(initialFollowState);
+
+  useEffect(() => {
+    setIsFollowing(initialFollowState);
+  }, [initialFollowState]);
 
   const currentUser = localStorage.getItem("userId");
   const isOwner = currentUser === userId;
@@ -104,20 +108,6 @@ const PostHeader = ({
         )}
       </div>
 
-      <div className="flex items-center">
-        <PostOptionsMenu
-          feedId={feedId}
-          authUserId={tempUser?._id}
-          token={token}
-          onHideFromUI={onHideFromUI}
-          onNotInterested={onNotInterested}
-          trigger={
-            <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-              <MoreVertical className="w-5 h-5 text-gray-700" />
-            </button>
-          }
-        />
-      </div>
     </div>
   );
 };

@@ -147,6 +147,25 @@ export default function Header() {
 
   const handleCloseModal = useCallback(() => setIsCreatePostOpen(false), []);
 
+  useEffect(() => {
+    const handleOpenCreate = () => {
+      if (postStatus === "allow") {
+        setIsCreatePostOpen(true);
+      }
+    };
+    const handleOpenMobileSearch = () => {
+      setMobileSearchOpen(true);
+      setNotifOpen(false);
+      setMobileMenuOpen(false);
+    };
+    window.addEventListener("openCreatePost", handleOpenCreate);
+    window.addEventListener("openMobileSearch", handleOpenMobileSearch);
+    return () => {
+      window.removeEventListener("openCreatePost", handleOpenCreate);
+      window.removeEventListener("openMobileSearch", handleOpenMobileSearch);
+    };
+  }, [postStatus]);
+
   // Main menu items to show directly in sidebar
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
@@ -399,6 +418,7 @@ export default function Header() {
   const handleBellClick = () => {
     setNotifOpen(p => !p);
     setMobileMenuOpen(false);
+    setMobileSearchOpen(false);
   };
 
   const closeAllPopups = () => {
@@ -613,7 +633,7 @@ export default function Header() {
     <Fragment>
       {/* DESKTOP SIDEBAR - UPDATED WIDTH */}
       <motion.aside
-        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[240px] bg-white border-r border-gray-100 z-50"
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-100 z-50"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
@@ -1050,14 +1070,6 @@ export default function Header() {
 
         {/* Right Section: Actions */}
         <div className="flex items-center gap-2">
-          {/* Mobile search button */}
-          <button
-            onClick={() => setMobileSearchOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Search"
-          >
-            <Search className="w-5 h-5 text-blue-600" />
-          </button>
 
           {/* Notification for mobile */}
           <div ref={notificationRef} className="relative">
@@ -1318,10 +1330,10 @@ export default function Header() {
       />
 
       {/* Create Post Modal */}
-      {/* <CreatePostModal
+      <CreatePostModal
         open={isCreatePostOpen && postStatus === "allow"}
         onClose={handleCloseModal}
-      /> */}
+      />
 
       {/* Interest Popup */}
       {interestModalOpen && (
@@ -1331,6 +1343,14 @@ export default function Header() {
           onInterestsSelected={handleInterestsSelected}
         />
       )}
+
+      {/* Notification Dropdown for Mobile / Consistency */}
+      <NotificationDropdown
+        isOpen={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onUpdateCount={refreshNotifications}
+        toggleRef={notificationRef}
+      />
 
 
     </Fragment>

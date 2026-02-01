@@ -430,15 +430,15 @@ function Postcard({
 
   if (loading) {
     return (
-      <div className="w-[470px] mx-auto bg-gray-200 animate-pulse mb-6 rounded-none">
-        <div className="w-full h-[470px]"></div>
+      <div className="w-full max-w-[470px] mx-auto bg-gray-200 animate-pulse mb-6 rounded-none">
+        <div className="w-full aspect-square"></div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="w-[470px] mx-auto bg-white border-b border-gray-300 mb-6 last:mb-0">
+      <div className="w-full max-w-[470px] mx-auto bg-white border-b border-gray-300 mb-6 last:mb-0">
         {/* <PostHeader
           userId={userId}
           userName={userName}
@@ -726,6 +726,11 @@ function Postcard({
           commentCount={commentCount}
           handleDownload={handleDownload}
           onCommentsClick={() => setShowCommentsModal(true)}
+          feedId={feedId}
+          tempUser={tempUser}
+          token={token}
+          onHideFromUI={onHideFromUI}
+          onNotInterested={onNotInterested}
         />
 
         <PostCommentsModal

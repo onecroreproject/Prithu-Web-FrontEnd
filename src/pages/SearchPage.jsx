@@ -120,7 +120,7 @@ const SearchPage = () => {
     <div className="min-h-screen bg-gray-50 p-4 lg:p-8">
 
       {/* Search Bar */}
-      <div className="sticky top-0 z-20 bg-gray-50 py-4">
+      <div className="sticky top-14 lg:top-0 z-20 bg-gray-50 py-4">
         <div className="flex items-center w-full max-w-2xl mx-auto relative">
           <div className="flex items-center w-full bg-white rounded-full shadow px-4 py-2">
             <SearchIcon className="w-5 h-5 text-gray-400" />

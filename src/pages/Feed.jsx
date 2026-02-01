@@ -384,7 +384,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
   return (
     <div id="feedTop">
-      <div className={`relative px-3 sm:px-4 md:px-6 py-5 max-w-2xl mx-auto transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
+      <div className={`relative px-0 sm:px-4 md:px-6 py-5 max-w-[470px] mx-auto transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
         {isHashtagMode && (
           <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <TagIcon fontSize="inherit" />
@@ -394,7 +394,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
         {!isHashtagMode && (
           <>
             {/* <Stories />*/}
-            <div className="sticky top-[80px] lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-2 flex items-center flex-col border-b border-gray-100/50 sm:border-none">
+            <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-2 flex items-center flex-col border-b border-gray-100/50 sm:border-none">
               <CategoryFeedPage onSelectCategory={setFeedCategory} selectedCategoryId={feedCategory} />
             </div>
           </>

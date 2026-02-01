@@ -8,6 +8,7 @@ import {
   Bookmark,
   Download,
 } from "@mui/icons-material";
+import PostOptionsMenu from "../PostOptionsMenu";
 
 const PostActions = ({
   isLiked,
@@ -23,6 +24,11 @@ const PostActions = ({
   caption = "",
   userName = "",
   isSaved = false,
+  feedId,
+  tempUser,
+  token,
+  onHideFromUI,
+  onNotInterested,
 }) => {
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
@@ -46,7 +52,7 @@ const PostActions = ({
 
     try {
       await handleLikeFeed();
-    } catch {
+    } catch (err) {
       setLocalLiked(!optimistic);
       setLocalLikesCount((prev) => (optimistic ? prev - 1 : prev + 1));
     }
@@ -58,7 +64,7 @@ const PostActions = ({
 
     try {
       await handleShare();
-    } catch {
+    } catch (err) {
       setLocalSharesCount(currentCount);
     }
   };
@@ -68,7 +74,7 @@ const PostActions = ({
     setLocalSaved(optimistic);
     try {
       await handleSave();
-    } catch {
+    } catch (err) {
       setLocalSaved(!optimistic);
     }
   };
@@ -107,13 +113,6 @@ const PostActions = ({
           </div>
 
           <div className="flex items-center gap-1">
-            {/* <button
-              onClick={onCommentsClick}
-              className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
-              aria-label="Comment"
-            >
-              <ChatBubbleOutline style={{ fontSize: 24 }} />
-            </button> */}
             {commentCount > 0 && (
               <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
                 {commentCount > 999
@@ -151,17 +150,13 @@ const PostActions = ({
             <Download style={{ fontSize: 22 }} />
           </button>
 
-          {/* <button
-            onClick={instantSave}
-            className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
-            aria-label={localSaved ? "Unsave" : "Save"}
-          >
-            {localSaved ? (
-              <Bookmark className="text-black" style={{ fontSize: 24 }} />
-            ) : (
-              <BookmarkBorder style={{ fontSize: 24 }} />
-            )}
-          </button> */}
+          <PostOptionsMenu
+            feedId={feedId}
+            authUserId={tempUser?._id}
+            token={token}
+            onHideFromUI={onHideFromUI}
+            onNotInterested={onNotInterested}
+          />
         </div>
       </div>
 
@@ -184,7 +179,6 @@ const PostActions = ({
           </span>
         </button>
       )}
-
     </div>
   );
 };

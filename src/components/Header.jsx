@@ -153,14 +153,22 @@ export default function Header() {
       refreshNotifications();
     };
 
+    const handleOpenMobileSearch = () => {
+      setMobileSearchOpen(true);
+      setNotifOpen(false);
+      setMobileMenuOpen(false);
+    };
+
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
     document.addEventListener("socket:notificationPulse", handlePulse);
+    window.addEventListener("openMobileSearch", handleOpenMobileSearch);
 
     return () => {
       document.removeEventListener("socket:newNotification", handleNewNotif);
       document.removeEventListener("socket:notificationRead", handleNotifRead);
       document.removeEventListener("socket:notificationPulse", handlePulse);
+      window.removeEventListener("openMobileSearch", handleOpenMobileSearch);
     };
   }, [refreshNotifications]);
 
@@ -201,6 +209,7 @@ export default function Header() {
     setNotifOpen(p => !p);
     setDropdownOpen(false);
     setMobileMenuOpen(false);
+    setMobileSearchOpen(false); // Close search when opening notifications
   };
 
   // Search helpers
@@ -433,14 +442,6 @@ export default function Header() {
 
         {/* Right Section: Actions & Profile */}
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          {/* Mobile search button */}
-          <button
-            onClick={() => setMobileSearchOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 md:hidden transition-colors"
-            aria-label="Search"
-          >
-            <Search className="w-5 h-5 text-blue-600" />
-          </button>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
@@ -640,6 +641,7 @@ export default function Header() {
         isOpen={notifOpen}
         onClose={() => setNotifOpen(false)}
         onUpdateCount={refreshNotifications}
+        toggleRef={notificationRef}
       />
 
       {/* MOBILE MENU */}

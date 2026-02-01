@@ -11,7 +11,7 @@ import { Bell, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification } from "../../hooks/useNotifications";
 
-export default function NotificationDropdown({ isOpen, onClose, onUpdateCount }) {
+export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, toggleRef }) {
   const [selectedNotif, setSelectedNotif] = useState(null);
   const dropdownRef = useRef(null);
   const observerRef = useRef(null);
@@ -96,11 +96,15 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount })
   // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) onClose();
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        // Only close if we didn't click on the toggle button (to allow toggle off)
+        if (toggleRef?.current && toggleRef.current.contains(e.target)) return;
+        onClose();
+      }
     };
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, [onClose]);
+  }, [onClose, toggleRef]);
 
   return (
     <>

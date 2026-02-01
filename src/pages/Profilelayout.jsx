@@ -167,7 +167,7 @@ const Profilelayout = () => {
 
   // 🔹 Main Render
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-7xl mx-auto px-0 sm:px-4 py-4">
       <PostHeader
         coverImage={userData.coverPhoto}
         profileImage={userData.profileAvatar}

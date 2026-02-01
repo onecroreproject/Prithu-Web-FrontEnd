@@ -9,6 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import BottomNav from "./BottomNav";
 
 export default function Layout() {
   const location = useLocation();
@@ -63,7 +64,7 @@ export default function Layout() {
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
-        <div className="sticky top-0 lg:top-0 lg:left-[280px] z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 ml-0 lg:ml-[280px]">
+        <div className="sticky top-14 lg:top-0 lg:left-[280px] z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 ml-0 lg:ml-[280px]">
           <div className="flex items-center gap-3">
             <IconButton
               onClick={handleBackClick}
@@ -87,7 +88,7 @@ export default function Layout() {
         </div>
       )}
 
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full pt-14 lg:pt-0">
         <div className="flex pb-20 lg:pb-0 lg:ml-[280px]">
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
@@ -111,6 +112,9 @@ export default function Layout() {
           )}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }
