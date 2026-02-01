@@ -46,7 +46,7 @@ const SearchResultsScreen = () => {
       }
     };
 
-    const timeoutId = setTimeout(performSearch, 400);
+    const timeoutId = setTimeout(performSearch, 200);
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 

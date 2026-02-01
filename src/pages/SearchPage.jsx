@@ -43,7 +43,7 @@ const SearchPage = () => {
         } finally {
           setLoading(false);
         }
-      }, 400);
+      }, 200);
     } else {
       setCategoryResults([]);
       setLoading(false);

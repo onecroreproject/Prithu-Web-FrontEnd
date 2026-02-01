@@ -14,6 +14,7 @@ const PostActions = ({
   isLiked,
   likesCount = 0,
   shareCount = 0,
+  downloadCount = 0,
   handleLikeFeed,
   handleShare,
   handleSave,
@@ -33,14 +34,16 @@ const PostActions = ({
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
   const [localSharesCount, setLocalSharesCount] = useState(shareCount);
+  const [localDownloadCount, setLocalDownloadCount] = useState(downloadCount);
   const [localSaved, setLocalSaved] = useState(isSaved);
 
   useEffect(() => {
     setLocalLiked(isLiked);
     setLocalLikesCount(likesCount);
     setLocalSharesCount(shareCount);
+    setLocalDownloadCount(downloadCount);
     setLocalSaved(isSaved);
-  }, [isLiked, likesCount, shareCount, isSaved]);
+  }, [isLiked, likesCount, shareCount, downloadCount, isSaved]);
 
   const instantLike = async () => {
     const optimistic = !localLiked;
@@ -80,10 +83,13 @@ const PostActions = ({
   };
 
   const instantDownload = async () => {
+    const currentCount = localDownloadCount;
+    setLocalDownloadCount(currentCount + 1);
     try {
       await handleDownload();
     } catch (error) {
       console.error("Download failed:", error);
+      setLocalDownloadCount(currentCount);
     }
   };
 
@@ -112,15 +118,7 @@ const PostActions = ({
             )}
           </div>
 
-          <div className="flex items-center gap-1">
-            {commentCount > 0 && (
-              <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
-                {commentCount > 999
-                  ? `${(commentCount / 1000).toFixed(1)}k`
-                  : commentCount}
-              </span>
-            )}
-          </div>
+          {/* Comment icon hidden per user request */}
 
           <div className="flex items-center gap-1">
             <button
@@ -141,14 +139,23 @@ const PostActions = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={instantDownload}
-            className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
-            aria-label="Download"
-            title="Download"
-          >
-            <Download style={{ fontSize: 22 }} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={instantDownload}
+              className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+              aria-label="Download"
+              title="Download"
+            >
+              <Download style={{ fontSize: 22 }} />
+            </button>
+            {localDownloadCount > 0 && (
+              <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
+                {localDownloadCount > 999
+                  ? `${(localDownloadCount / 1000).toFixed(1)}k`
+                  : localDownloadCount}
+              </span>
+            )}
+          </div>
 
           <PostOptionsMenu
             feedId={feedId}

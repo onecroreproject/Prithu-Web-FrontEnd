@@ -376,6 +376,29 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // ✅ REAL-TIME FEED LISTENER
+  useEffect(() => {
+    const handleSocketNewFeed = (e) => {
+      const newFeed = e.detail;
+      if (!newFeed) return;
+
+      console.log("🚀 [Feed] Real-time feed received:", newFeed);
+
+      // 1. Normalize the raw feed data from socket
+      const normalized = normalizeSingleFeed(newFeed);
+
+      // 2. Inject into React Query cache (move to top)
+      injectSingleFeedIntoCache(normalized);
+
+      // 3. Optional: Highlight the new feed
+      setHighlightedFeedId(normalized._id || normalized.feedId);
+      setTimeout(() => setHighlightedFeedId(null), 3000);
+    };
+
+    document.addEventListener("socket:newFeed", handleSocketNewFeed);
+    return () => document.removeEventListener("socket:newFeed", handleSocketNewFeed);
+  }, [normalizeSingleFeed, injectSingleFeedIntoCache]);
+
 
   let mixed = feeds.map(f => ({ ...f, __kind: "feed" }));
 
@@ -417,13 +440,13 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
             </div>
           </>
         )}
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
             key={feedCategory || tagname || "home"}
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -50, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="flex items-center flex-col gap-5 w-full"
           >
             {isLoading ? (

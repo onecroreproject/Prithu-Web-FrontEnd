@@ -97,6 +97,13 @@ export const connectSocket = (token, sessionId) => {
     document.dispatchEvent(event);
   });
 
+  // ✅ NEW FEED PUBLISHED LISTENER
+  socket.on("new_feed_published", (feed) => {
+    console.log("🔥 [SOCKET] New Feed published:", feed);
+    const event = new CustomEvent("socket:newFeed", { detail: feed });
+    document.dispatchEvent(event);
+  });
+
   return socket;
 };
 

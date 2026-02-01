@@ -104,6 +104,8 @@ function Postcard({
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [hasAnimatedOnce, setHasAnimatedOnce] = useState(false);
   const [likesCount, setLikesCount] = useState(stats.likes || initialLikes);
+  const [sharesCount, setSharesCount] = useState(stats.shares || postData.shareCount || 0);
+  const [downloadCount, setDownloadCount] = useState(stats.downloads || postData.downloadCount || 0);
   const [isFollowing, setIsFollowing] = useState(
     userInteractions.isFollowing || postData?.isFollowing || false
   );
@@ -369,10 +371,15 @@ function Postcard({
 
   const handleShare = useCallback(async () => {
     setShowSharePopup(true);
+    setSharesCount((p) => p + 1);
     shareMutation.mutate({
       feedId,
       userId: tempUser._id,
       shareChannel: "share_popup",
+    }, {
+      onError: () => {
+        setSharesCount((p) => Math.max(p - 1, 0));
+      }
     });
   }, [feedId, tempUser._id, shareMutation]);
 
@@ -389,13 +396,12 @@ function Postcard({
       return toast.error("Please login to download");
     }
 
+    setDownloadCount((p) => p + 1);
+
     // Trigger direct browser download
     const downloadUrl = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
 
-    // We show a simple toast as native browsers don't give immediate feedback during the processing phase
-    toast.success("Download started! Your browser will manage the progress.");
-
-    // Trigger download
+    toast.success("Download started!");
     window.location.href = downloadUrl;
   };
 
@@ -717,9 +723,11 @@ function Postcard({
           isLiked={isLiked}
           isSaved={isSaved}
           likesCount={likesCount}
+          shareCount={sharesCount}
+          downloadCount={downloadCount}
           post={postData}
           handleLikeFeed={handleLikeFeed}
-          handleShare={() => setShowSharePopup(true)}
+          handleShare={handleShare}
           handleSave={handleSave}
           caption={caption}
           userName={userName}

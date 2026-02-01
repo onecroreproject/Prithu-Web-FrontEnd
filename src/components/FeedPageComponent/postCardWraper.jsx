@@ -1,13 +1,17 @@
 import React, { useRef, useState, useEffect } from "react";
 import Postcard from "./Postcard";
+import { observeElement } from "../../utils/intersectionObserver";
 
 const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInterested }) => {
   const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
+    if (!containerRef.current) return;
+
+    const unobserve = observeElement(
+      containerRef.current,
+      (entry) => {
         setIsVisible(entry.isIntersecting);
       },
       {
@@ -16,8 +20,7 @@ const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInteres
       }
     );
 
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    return unobserve;
   }, []);
 
   return (
