@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId }) => {
+const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCategoryIds = [] }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,13 +28,15 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId }) => {
   };
 
   const getDisplayCategories = () => {
+    const filtered = categories.filter(cat => !excludedCategoryIds.includes(cat.categoryId));
     if (showAll) {
-      return categories;
+      return filtered;
     }
-    return categories.slice(0, visibleCount);
+    return filtered.slice(0, visibleCount);
   };
 
-  const hasMoreCategories = categories.length > visibleCount;
+  const filteredCategoriesLen = categories.filter(cat => !excludedCategoryIds.includes(cat.categoryId)).length;
+  const hasMoreCategories = filteredCategoriesLen > visibleCount;
 
   const truncateName = (name) => {
     if (name.length > 10) {

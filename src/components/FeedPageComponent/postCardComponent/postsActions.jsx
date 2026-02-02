@@ -30,6 +30,7 @@ const PostActions = ({
   token,
   onHideFromUI,
   onNotInterested,
+  categoryId,
 }) => {
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
@@ -159,6 +160,7 @@ const PostActions = ({
 
           <PostOptionsMenu
             feedId={feedId}
+            categoryId={categoryId}
             authUserId={tempUser?._id}
             token={token}
             onHideFromUI={onHideFromUI}

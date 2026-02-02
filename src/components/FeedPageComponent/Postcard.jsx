@@ -71,6 +71,7 @@ function Postcard({
     hasFooter = false,
     aspectRatio: postAspectRatio = "1:1",
     designMetadata = {},
+    category = "",
   } = postData || {};
   console.log("footer", designMetadata)
   const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
@@ -735,6 +736,7 @@ function Postcard({
           handleDownload={handleDownload}
           onCommentsClick={() => setShowCommentsModal(true)}
           feedId={feedId}
+          categoryId={postData.category}
           tempUser={tempUser}
           token={token}
           onHideFromUI={onHideFromUI}

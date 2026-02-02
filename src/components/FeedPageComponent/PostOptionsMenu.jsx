@@ -20,6 +20,7 @@ import ReportModal from "../../components/ReportModal";
 
 const PostOptionsMenu = ({
   feedId,
+  categoryId,
   authUserId,
   token,
   onNotInterested,
@@ -39,17 +40,18 @@ const PostOptionsMenu = ({
      NOT INTERESTED
   -------------------------------------------------- */
   const handleNotInterested = async () => {
+    // 🔥 Remove from UI instantly
+    onNotInterested?.(feedId, categoryId);
+
     setLoading(true);
     try {
       const res = await api.post(
-        "/api/user/not/intrested",
+        "/api/user/not-interested",
         { feedId, userId: authUserId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success(res.data.message);
-      onNotInterested?.(feedId);
-
     } catch {
       toast.error("Action failed");
     } finally {
@@ -62,6 +64,9 @@ const PostOptionsMenu = ({
      HIDE POST
   -------------------------------------------------- */
   const handleHidePost = async () => {
+    // 🔥 Remove from UI instantly
+    onHideFromUI?.(feedId);
+
     setLoading(true);
     try {
       const res = await api.post(
@@ -70,16 +75,12 @@ const PostOptionsMenu = ({
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setToastMsg(res.data.message);
-
-      // 🔥 Remove from UI instantly
-      onHideFromUI?.(feedId);
+      toast.success(res.data.message);
 
       // Optional callback
       onHidePost?.(feedId);
-
     } catch {
-      setToastMsg("Hide failed");
+      toast.error("Hide failed");
     } finally {
       setLoading(false);
       handleClose();

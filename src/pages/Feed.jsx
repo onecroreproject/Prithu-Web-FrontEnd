@@ -70,9 +70,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
 
-  const [creatorModeFeeds, setCreatorModeFeeds] = useState(null);
-  const [creatorId, setCreatorId] = useState(null);
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
+  const [excludedCategoryIds, setExcludedCategoryIds] = useState([]);
 
   const tokenRef = useRef(token);
   useEffect(() => {
@@ -413,6 +412,31 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
     });
   };
 
+  const handleNotInterestedFromUI = (feedId, categoryId) => {
+    if (categoryId) {
+      setExcludedCategoryIds((prev) => [...prev, categoryId]);
+
+      // Cache update: Remove all feeds with matching category
+      queryClient.setQueryData(feedsQueryKey, (oldData) => {
+        if (!oldData) return oldData;
+        const catIdStr = categoryId.toString();
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) =>
+            page.filter((item) => {
+              const itemCatId = (item.category || item.categoryId)?.toString();
+              return itemCatId !== catIdStr;
+            })
+          ),
+          pageParams: oldData.pageParams ?? [1],
+        };
+      });
+    } else {
+      // Fallback
+      handleHideFromUI(feedId);
+    }
+  };
+
   const isLoading = isFeedsLoading || isCreatorModeLoading;
   // Handle incoming category from SearchPage navigation
   useEffect(() => {
@@ -436,7 +460,11 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
           <>
             {/* <Stories />*/}
             <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-2 flex items-center flex-col border-b border-gray-100/50 sm:border-none">
-              <CategoryFeedPage onSelectCategory={setFeedCategory} selectedCategoryId={feedCategory} />
+              <CategoryFeedPage
+                onSelectCategory={setFeedCategory}
+                selectedCategoryId={feedCategory}
+                excludedCategoryIds={excludedCategoryIds}
+              />
             </div>
           </>
         )}
@@ -464,6 +492,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                       authUser={authUser}
                       token={tokenRef.current || token}
                       onHideFromUI={handleHideFromUI}
+                      onNotInterested={handleNotInterestedFromUI}
                       isVisible={true}
                     />
                   </div>
