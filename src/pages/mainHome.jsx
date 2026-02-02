@@ -238,7 +238,7 @@ const LandingPage = () => {
     window.location.href = '/login';
   };
 
-  const handleRegisterClick = () => {
+  const handleSignUpClick = () => {
     window.location.href = '/register';
   };
 
@@ -405,7 +405,7 @@ const LandingPage = () => {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
             >
               <button
-                onClick={handleRegisterClick}
+                onClick={handleSignUpClick}
                 className="group relative px-10 py-5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full text-xl font-bold shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110 transform active:scale-105"
               >
                 <span className="relative z-10 flex items-center gap-3 text-white">
@@ -640,7 +640,7 @@ const LandingPage = () => {
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <button
-                      onClick={handleRegisterClick}
+                      onClick={handleSignUpClick}
                       className="group relative px-14 py-5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full text-2xl font-bold text-white shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-110 transform"
                     >
                       <span className="relative z-10 flex items-center gap-3">
