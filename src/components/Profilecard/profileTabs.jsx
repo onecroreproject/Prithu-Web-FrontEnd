@@ -49,44 +49,28 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
   // Main sections with image emojis from assets folder
 
   const mainSections = [
-
     {
-
       image: profile,
-
       label: "Activity",
-
       id: "Activity",
-
       mobileLabel: "Activity"
-
     },
-
     {
-
       image: userIcon,
-
       label: "Profile",
-
       id: "profile",
-
       mobileLabel: "Profile"
-
     },
-
     {
-
       image: followers,
-
       label: "Followers",
-
       id: "friends",
-
       mobileLabel: "Followers"
-
     }
-
-  ];
+  ].filter(section => {
+    if (id && section.id === "Activity") return false;
+    return true;
+  });
 
   // Handle tab click
 

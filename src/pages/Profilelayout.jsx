@@ -19,12 +19,10 @@ const Profilelayout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [profileStats, setProfileStats] = useState({
-    followersCount: 0,
-    followingCount: 0,
-    totalPost: 0
+    downloadCount: 0,
+    shareCount: 0
   });
   const [friendsSectionView, setFriendsSectionView] = useState("followers"); // "followers" or "following"
-  const [activeStat, setActiveStat] = useState("posts"); // "posts", "followers", "following" - ADD THIS LINE
 
   // 🔹 Fetch user profile overview data
   const fetchProfileOverview = async () => {
@@ -34,9 +32,8 @@ const Profilelayout = () => {
       setUserData(userData);
 
       setProfileStats({
-        followersCount: userData.followerCount || 0,
-        followingCount: userData.followingCount || 0,
-        totalPost: userData.postCount || 0
+        downloadCount: userData.downloadCount || 0,
+        shareCount: userData.shareCount || 0
       });
     } catch (err) {
       console.error("Error fetching profile overview:", err);
@@ -52,12 +49,6 @@ const Profilelayout = () => {
 
   // 🔹 Handle follow data updates
   const handleFollowDataUpdate = (newCounts) => {
-    setProfileStats(prev => ({
-      ...prev,
-      followersCount: newCounts.followersCount,
-      followingCount: newCounts.followingCount
-    }));
-
     setUserData(prev => prev ? {
       ...prev,
       followerCount: newCounts.followersCount,
@@ -65,24 +56,16 @@ const Profilelayout = () => {
     } : null);
   };
 
-  // 🔹 Handle click on posts count
-  const handlePostsClick = () => {
-    setActiveTab("Activity");
-    setActiveStat("posts"); // UPDATE activeStat
-  };
-
   // 🔹 Handle click on followers count
   const handleFollowersClick = () => {
     setActiveTab("friends");
     setFriendsSectionView("followers");
-    setActiveStat("followers"); // UPDATE activeStat
   };
 
   // 🔹 Handle click on following count
   const handleFollowingClick = () => {
     setActiveTab("friends");
     setFriendsSectionView("following");
-    setActiveStat("following"); // UPDATE activeStat
   };
 
   // 🔹 Animation Variants
@@ -177,15 +160,12 @@ const Profilelayout = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
         <div className="lg:col-span-1 space-y-4">
           <ProfileStats
-            followersCount={profileStats.followersCount}
-            followingCount={profileStats.followingCount}
-            totalPost={profileStats.totalPost}
+            downloadCount={profileStats.downloadCount}
+            shareCount={profileStats.shareCount}
             activeTab={activeTab}
             onFollowersClick={handleFollowersClick}
             onFollowingClick={handleFollowingClick}
-            onPostsClick={handlePostsClick}
             friendsSectionView={friendsSectionView}
-            activeStat={activeStat} // Pass the activeStat state
           />
           <ProfileTab
             activeTab={activeTab}

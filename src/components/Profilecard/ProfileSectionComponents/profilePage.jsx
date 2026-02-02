@@ -4,10 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   User2,
-  GraduationCap,
-  Briefcase,
-  Code2,
-  Award,
   Share2,
   Copy,
 } from "lucide-react";
@@ -15,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
 import { useUserProfile, useTogglePublish } from "../../../hooks/userProfile";
 import { toast } from "react-hot-toast";
+import EditProfile from "./editProfile";
 
 
 
@@ -66,47 +63,14 @@ export default function ProfilePage(id) {
   // 🔒 If ID exists (viewing someone else's profile), show only profile section
   const hasId = id && id.id;
 
-  const profileSections = hasId
-    ? [ // Only show profile section when ID exists
-      {
-        key: "profile",
-        title: "Profile Information",
-        icon: <User2 className="w-5 h-5 text-blue-600" />,
-        component: <EditProfile id={id} />,
-      },
-    ]
-    : [ // Show all sections for own profile
-      {
-        key: "profile",
-        title: "Profile Information",
-        icon: <User2 className="w-5 h-5 text-blue-600" />,
-        component: <EditProfile id={id} />,
-      },
-      {
-        key: "education",
-        title: "Education",
-        icon: <GraduationCap className="w-5 h-5 text-blue-600" />,
-        component: <EditEducation />,
-      },
-      {
-        key: "experience",
-        title: "Work Experience",
-        icon: <Briefcase className="w-5 h-5 text-blue-600" />,
-        component: <EditExperience />,
-      },
-      {
-        key: "skills",
-        title: "Skills",
-        icon: <Code2 className="w-5 h-5 text-blue-600" />,
-        component: <EditSkill />,
-      },
-      {
-        key: "certifications",
-        title: "Certifications",
-        icon: <Award className="w-5 h-5 text-blue-600" />,
-        component: <EditCertification />,
-      },
-    ];
+  const profileSections = [
+    {
+      key: "profile",
+      title: "Profile Information",
+      icon: <User2 className="w-5 h-5 text-blue-600" />,
+      component: <EditProfile id={id} />,
+    },
+  ];
 
   return (
     <motion.div

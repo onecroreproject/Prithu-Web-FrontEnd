@@ -1,26 +1,20 @@
 // src/components/ActivitySection.jsx
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
-import UserUploads from "./ActivitySectionComponents/userPost";
 import { Heart, Calendar, Play, Image, Loader, Eye, EyeOff, Ban, Tag } from "lucide-react";
 
 export default function ActivitySection({ id }) {
-  const [activeSubTab, setActiveSubTab] = useState("personal");
+  const [activeSubTab, setActiveSubTab] = useState("favourites");
 
   const subTabs = id
-    ? [
-        { id: "personal", label: "Post" },   // only visible tab
-      ]
+    ? [] // Activity tab will be hidden for others
     : [
-        { id: "personal", label: "Post" },
-        { id: "favourites", label: "Favourites" },
-        { id: "hidden", label: "Hidden" },
-        { id: "notInterested", label: "Not Interested" },
-      ];
+      { id: "favourites", label: "Favourites" },
+      { id: "hidden", label: "Hidden" },
+      { id: "notInterested", label: "Not Interested" },
+    ];
   const renderContent = () => {
     switch (activeSubTab) {
-      case "personal":
-        return <UserUploads id={id} />;
       case "favourites":
         return <FavouritesTab id={id} />;
       case "hidden":
@@ -62,7 +56,7 @@ export default function ActivitySection({ id }) {
 /* 🌟 2. Favourites Tab (Loads saved feeds)           */
 /* -------------------------------------------------- */
 
-function FavouritesTab({id}) {
+function FavouritesTab({ id }) {
   const [savedFeeds, setSavedFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +72,7 @@ function FavouritesTab({id}) {
             Private Favourites
           </h3>
           <p className="text-gray-500 text-sm leading-relaxed">
-            Favourites are personal and only visible to the account owner. 
+            Favourites are personal and only visible to the account owner.
             This user's saved content is kept private.
           </p>
         </div>
@@ -223,14 +217,13 @@ function FavouritesTab({id}) {
                   </div>
                 </div>
               )}
-              
+
               {/* Media Type Badge */}
               <div className="absolute top-3 left-3">
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                  feed.type === 'image' 
-                    ? 'bg-blue-500/90 text-white' 
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${feed.type === 'image'
+                    ? 'bg-blue-500/90 text-white'
                     : 'bg-purple-500/90 text-white'
-                }`}>
+                  }`}>
                   {feed.type === 'image' ? (
                     <Image className="w-3 h-3" />
                   ) : (
@@ -270,7 +263,7 @@ function FavouritesTab({id}) {
                   <span>{feed.likeCount || 0}</span>
                 </div>
               </div>
-              
+
               {feed.caption && (
                 <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
                   {feed.caption}
@@ -304,7 +297,7 @@ function HiddenTab({ id }) {
             Private Hidden Content
           </h3>
           <p className="text-gray-500 text-sm leading-relaxed">
-            Hidden content is personal and only visible to the account owner. 
+            Hidden content is personal and only visible to the account owner.
             This user's hidden content is kept private.
           </p>
         </div>
@@ -397,7 +390,7 @@ function HiddenTab({ id }) {
   // Helper function to get media type and URL
   const getMediaInfo = (feed) => {
     if (!feed) return { type: 'unknown', url: '' };
-    
+
     // Check for contentUrl or media field in feed
     if (feed.contentUrl) {
       const url = feed.contentUrl.toLowerCase();
@@ -406,7 +399,7 @@ function HiddenTab({ id }) {
         url: feed.contentUrl
       };
     }
-    
+
     return { type: 'unknown', url: '' };
   };
 
@@ -457,7 +450,7 @@ function HiddenTab({ id }) {
         {hiddenPosts.map((hidden) => {
           const media = getMediaInfo(hidden.feed);
           const feed = hidden.feed || {};
-          
+
           return (
             <div
               key={hidden.hiddenId}
@@ -488,7 +481,7 @@ function HiddenTab({ id }) {
                     <Image className="w-8 h-8 text-gray-400" />
                   </div>
                 )}
-                
+
                 {/* Hidden Badge */}
                 <div className="absolute top-3 left-3">
                   <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-500/90 text-white">
@@ -520,20 +513,20 @@ function HiddenTab({ id }) {
                     <span>{feed.statsId?.likes || 0}</span>
                   </div>
                 </div>
-                
+
                 {feed.caption && (
                   <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
                     {feed.caption}
                   </p>
                 )}
-                
+
                 {feed.category && (
                   <div className="mt-2 flex items-center gap-1">
                     <Tag className="w-3 h-3 text-gray-400" />
                     <span className="text-xs text-gray-500">{feed.category.name}</span>
                   </div>
                 )}
-                
+
                 {hidden.reason && (
                   <div className="mt-2">
                     <span className="text-xs text-gray-500">Reason: </span>
@@ -569,7 +562,7 @@ function NotInterestedTab({ id }) {
             Private Preferences
           </h3>
           <p className="text-gray-500 text-sm leading-relaxed">
-            Not interested preferences are personal and only visible to the account owner. 
+            Not interested preferences are personal and only visible to the account owner.
             This user's content preferences are kept private.
           </p>
         </div>
@@ -686,18 +679,18 @@ function NotInterestedTab({ id }) {
                     <Tag className="w-8 h-8 text-red-400" />
                   </div>
                 )}
-                
+
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   {category.name}
                 </h3>
-                
+
                 {category.slug && (
                   <p className="text-sm text-gray-500 mb-4">
                     {category.slug}
                   </p>
                 )}
               </div>
-              
+
               {/* Not Interested Badge */}
               <div className="absolute top-3 left-3">
                 <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-500/90 text-white">
