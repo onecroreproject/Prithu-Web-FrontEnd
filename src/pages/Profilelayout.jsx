@@ -8,13 +8,10 @@ import ProfileStats from "../components/Profilecard/ProfileStats";
 import ProfileTab from "../components/Profilecard/profileTabs";
 import ProfileSection from "../components/Profilecard/ProfileSection";
 import ActivitySection from "../components/Profilecard/ActivitySection";
-import FriendsSection from "../components/Profilecard/followersFollowingSection";
-import GroupsSection from "../components/Profilecard/GroupsSection";
-import Advertisement from "../components/Profilecard/Advertisement";
-import ForumsSection from "../components/Profilecard/FormsSection";
+import FavoriteFeedSection from "../components/Profilecard/FavoriteFeedSection";
 
 const Profilelayout = () => {
-  const [activeTab, setActiveTab] = useState("Activity");
+  const [activeTab, setActiveTab] = useState("activity");
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +19,6 @@ const Profilelayout = () => {
     downloadCount: 0,
     shareCount: 0
   });
-  const [friendsSectionView, setFriendsSectionView] = useState("followers"); // "followers" or "following"
 
   // 🔹 Fetch user profile overview data
   const fetchProfileOverview = async () => {
@@ -47,26 +43,6 @@ const Profilelayout = () => {
     fetchProfileOverview();
   }, []);
 
-  // 🔹 Handle follow data updates
-  const handleFollowDataUpdate = (newCounts) => {
-    setUserData(prev => prev ? {
-      ...prev,
-      followerCount: newCounts.followersCount,
-      followingCount: newCounts.followingCount
-    } : null);
-  };
-
-  // 🔹 Handle click on followers count
-  const handleFollowersClick = () => {
-    setActiveTab("friends");
-    setFriendsSectionView("followers");
-  };
-
-  // 🔹 Handle click on following count
-  const handleFollowingClick = () => {
-    setActiveTab("friends");
-    setFriendsSectionView("following");
-  };
 
   // 🔹 Animation Variants
   const pageVariants = {
@@ -79,8 +55,9 @@ const Profilelayout = () => {
   const renderActiveSection = () => {
     if (!userData) return null;
 
+    console.log("Profilelayout rendering section:", activeTab);
     switch (activeTab) {
-      case "Activity":
+      case "activity":
         return (
           <ActivitySection
             userAvatar={userData.profileAvatar}
@@ -90,19 +67,8 @@ const Profilelayout = () => {
         );
       case "profile":
         return <ProfileSection userData={userData} />;
-      case "friends":
-        return (
-          <FriendsSection
-            onFollowDataUpdate={handleFollowDataUpdate}
-            initialView={friendsSectionView}
-          />
-        );
-      case "groups":
-        return <GroupsSection />;
-      case "adverts":
-        return <Advertisement />;
-      case "forums":
-        return <ForumsSection />;
+      case "favorite":
+        return <FavoriteFeedSection onBack={() => setActiveTab("activity")} />;
       default:
         return (
           <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -163,9 +129,6 @@ const Profilelayout = () => {
             downloadCount={profileStats.downloadCount}
             shareCount={profileStats.shareCount}
             activeTab={activeTab}
-            onFollowersClick={handleFollowersClick}
-            onFollowingClick={handleFollowingClick}
-            friendsSectionView={friendsSectionView}
           />
           <ProfileTab
             activeTab={activeTab}

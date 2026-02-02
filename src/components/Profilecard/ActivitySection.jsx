@@ -221,8 +221,8 @@ function FavouritesTab({ id }) {
               {/* Media Type Badge */}
               <div className="absolute top-3 left-3">
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${feed.type === 'image'
-                    ? 'bg-blue-500/90 text-white'
-                    : 'bg-purple-500/90 text-white'
+                  ? 'bg-blue-500/90 text-white'
+                  : 'bg-purple-500/90 text-white'
                   }`}>
                   {feed.type === 'image' ? (
                     <Image className="w-3 h-3" />

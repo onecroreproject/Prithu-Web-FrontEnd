@@ -7,6 +7,16 @@ export default {
   ],
   theme: {
     extend: {
+          animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        }
+      },
       colors: {
         // Override ALL default Tailwind colors to use hex instead of oklch for html2canvas compatibility
         green: {
@@ -317,3 +327,6 @@ export default {
     preflight: false,
   },
 };
+
+
+

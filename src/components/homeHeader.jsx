@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -33,7 +33,7 @@ import NotificationDropdown from "../components/NotificationComponet/notificatio
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
 const MAX_HISTORY = 12;
 
-export default function Header() {
+export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggle }) {
   const { user, token, logout, fetchUserProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +43,14 @@ export default function Header() {
   const refreshNotifications = useRefreshNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Notify parent layout when mobile menu opens/closes
+  useEffect(() => {
+    if (onMobileMenuToggle) {
+      onMobileMenuToggle(mobileMenuOpen);
+    }
+  }, [mobileMenuOpen, onMobileMenuToggle]);
+
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
 
@@ -64,10 +72,12 @@ export default function Header() {
     categories: [], people: [], jobs: []
   });
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const isSidebarExpanded = isHovered || isHome;
   const [activeTab, setActiveTab] = useState("all");
   const [history, setHistory] = useState([]);
   const [trending, setTrending] = useState([]);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   // refs
   const mobileMenuRef = useRef(null);
@@ -169,7 +179,6 @@ export default function Header() {
   // Main menu items to show directly in sidebar
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
-    { to: "/search", label: "Search", Icon: Search, desc: "Search content" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
   ];
 
@@ -185,7 +194,7 @@ export default function Header() {
     {
       to: "/home/subscriptions",
       label: "Subscriptions",
-      Icon: BellRing,
+      Icon: CircleDollarSign,
       desc: "Manage subscriptions"
     },
     {
@@ -633,13 +642,21 @@ export default function Header() {
     <Fragment>
       {/* DESKTOP SIDEBAR - UPDATED WIDTH */}
       <motion.aside
-        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-100 z-50"
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-50 overflow-visible"
         initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        animate={{ x: 0, opacity: 1, width: isSidebarExpanded ? 280 : 80 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          onSidebarHoverChange?.(true);
+        }}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          onSidebarHoverChange?.(false);
+        }}
       >
-        {/* Logo Section with Notification - IMPROVED SPACING */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        {/* Logo Section - Responsive */}
+        <div className={`flex items-center ${isSidebarExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 border-b border-gray-100 h-[65px] relative`}>
           <div
             onClick={() => {
               if (window.location.pathname === "/") {
@@ -658,363 +675,266 @@ export default function Header() {
                 className="w-8 h-8 transition-transform duration-200 group-hover:scale-105"
               />
             </motion.div>
-            <motion.h1
-              className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent"
-              whileHover={{ scale: 1.05 }}
-            >
-              PRITHU
-            </motion.h1>
+            <AnimatePresence>
+              {isSidebarExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="flex items-center gap-2"
+                >
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent whitespace-nowrap">
+                    PRITHU
+                  </h1>
+
+                  {/* TRIAL BADGE - Only shows if user is on valid trial */}
+                  {user?.subscription?.isActive && user?.subscription?.planType === 'trial' && (
+                    <div className="relative group">
+                      <span className="cursor-help px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded shadow-sm tracking-wider animate-in fade-in">
+                        TRIAL
+                      </span>
+
+                      {/* DETAILED TOOLTIP - Top Right of Logo Area */}
+                      <div className="absolute left-full top-0 ml-3 w-52 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] transform -translate-y-2">
+                        <div className="font-bold text-amber-400 mb-1 text-sm bg-gray-800/50 p-1 rounded">Your Trial is Active</div>
+                        <div className="text-gray-300 font-mono text-[11px] mb-1">
+                          {(() => {
+                            if (!user?.subscription?.endDate) return "Ending soon";
+                            const diff = new Date(user.subscription.endDate) - new Date();
+                            if (diff <= 0) return "Expired";
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            return `${days}d ${hours}h left`;
+                          })()}
+                        </div>
+                        <div className="text-gray-400 border-t border-gray-700 pt-1 mt-1">
+                          • Upgrade anytime
+                        </div>
+                        {/* Arrow pointing left to the badge */}
+                        <div className="absolute right-full top-3 border-4 border-transparent border-r-gray-900"></div>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2">
-
-
-            {/* Notification Icon */}
-            <div className="relative" ref={notificationRef}>
-              <button
+          {/* New Notification Icon in Header - Right Corner */}
+          <AnimatePresence>
+            {isSidebarExpanded && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
                 onClick={handleBellClick}
-                className={`p-2 rounded-lg transition-all duration-200 ${notifOpen
-                  ? "bg-blue-100 ring-2 ring-blue-200"
-                  : "hover:bg-gray-100"
-                  }`}
+                ref={notificationRef}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
               >
                 <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
                 {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-4 flex items-center justify-center px-0.5">
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5">
                     {notifCount > 99 ? '99+' : notifCount}
                   </span>
                 )}
-              </button>
-            </div>
-          </div>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
-
-        {/* Instagram-like Left Sidebar Notification Panel */}
-        <AnimatePresence>
-          {notifOpen && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/30 z-40"
-                onClick={() => setNotifOpen(false)}
-              />
-
-              {/* Notification Panel */}
-              <motion.div
-                ref={notifPanelRef}
-                initial={{ x: -320 }}
-                animate={{ x: 0 }}
-                exit={{ x: -320 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed left-0 top-0 h-screen w-[320px] bg-white shadow-2xl z-50 border-r border-gray-200"
-              >
-                {/* Panel Header */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
-                    <button
-                      onClick={() => setNotifOpen(false)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-start gap-2 mt-3">
-                    <button
-                      onClick={markAllAsRead}
-                      className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
-                </div>
-
-                {/* Notification List */}
-                <div className="h-[calc(100vh-120px)] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                      <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <BellRing className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
-                      <p className="text-gray-500 text-sm">When you get notifications, they'll show up here</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {Object.entries(groupedNotifications).map(([groupName, groupNotifications]) => (
-                        <div key={groupName} className="py-2">
-                          {/* Group Header */}
-                          <div className="px-4 py-2">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-                              {groupName}
-                            </h3>
-                          </div>
-
-                          {/* Group Notifications */}
-                          {groupNotifications.map((notif, index) => {
-                            const isJobStatusUpdate = notif.type === "JOB_STATUS_UPDATE";
-                            const isRegularNotification = notif.sender || notif.feedInfo;
-
-                            let senderName = "System";
-                            let senderAvatar = null;
-                            let actionText = notif.message || notif.title || "New notification";
-                            let feedImage = null;
-
-                            if (isJobStatusUpdate) {
-                              const jobInfo = notif.job || {};
-                              senderName = jobInfo.companyName || "Company";
-                              senderAvatar = jobInfo.companyLogo;
-                              actionText = notif.message || `Your job application status has been updated`;
-                              feedImage = jobInfo.companyLogo;
-                            } else if (isRegularNotification) {
-                              const sender = notif.sender || {};
-                              const feed = notif.feedInfo || {};
-                              senderName = sender.userName || sender.displayName || sender.name || notif.senderName || "User";
-                              senderAvatar = sender.profileAvatar || sender.avatar;
-                              feedImage = feed.contentUrl || notif.image;
-
-                              const isLike = notif.type === "LIKE_POST" || notif.type?.toLowerCase()?.includes("like");
-                              const isFollow = notif.type?.toLowerCase()?.includes("follow");
-                              const isComment = notif.type?.toLowerCase()?.includes("comment");
-
-                              if (isLike) actionText = "liked your post";
-                              if (isFollow) actionText = "started following you";
-                              if (isComment) actionText = "commented on your post";
-                            }
-
-                            return (
-                              <motion.div
-                                key={notif._id || notif.id || `notif-${index}`}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.isRead ? "bg-blue-50/50" : ""
-                                  }`}
-                                onClick={() => handleNotificationClick(notif)}
-                              >
-                                <div className="flex items-start gap-3">
-                                  {/* Avatar */}
-                                  <div className="relative">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
-                                      {senderAvatar ? (
-                                        <img
-                                          src={senderAvatar}
-                                          alt={senderName}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : isJobStatusUpdate ? (
-                                        <Briefcase className="w-5 h-5 text-blue-600" />
-                                      ) : (
-                                        <span className="text-blue-600 font-semibold">
-                                          {(senderName[0] || "U").toUpperCase()}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {/* Notification Type Icon */}
-                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
-                                      {isJobStatusUpdate ? (
-                                        <Briefcase className="w-4 h-4 text-blue-500" />
-                                      ) : (
-                                        getNotificationIcon(notif.type)
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Content */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between">
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-900">
-                                          {isJobStatusUpdate ? `📌 ${senderName}` : senderName}
-                                        </p>
-                                        <p className="text-sm text-gray-600 mt-0.5">
-                                          {actionText}
-                                          {isJobStatusUpdate && notif.job?.status && (
-                                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${notif.job.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                              notif.job.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'
-                                              }`}>
-                                              {notif.job.status.charAt(0).toUpperCase() + notif.job.status.slice(1)}
-                                            </span>
-                                          )}
-                                        </p>
-                                        {/* Job details for job status updates */}
-                                        {isJobStatusUpdate && notif.job?.jobTitle && (
-                                          <p className="text-xs text-gray-500 mt-1">
-                                            Position: <span className="font-medium">{notif.job.jobTitle}</span>
-                                          </p>
-                                        )}
-                                      </div>
-                                      {!notif.isRead && (
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                      )}
-                                    </div>
-
-                                    {/* Time and Actions */}
-                                    <div className="flex items-center justify-between mt-2">
-                                      <span className="text-xs text-gray-500">
-                                        {formatTime(notif.createdAt)}
-                                      </span>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteNotification(notif._id);
-                                        }}
-                                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                                      >
-                                        ×
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Feed Preview Image */}
-                                  {feedImage && (
-                                    <div className="flex-shrink-0 ml-2">
-                                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                        <img
-                                          src={feedImage}
-                                          alt={isJobStatusUpdate ? "Company logo" : "Post"}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* View All Button */}
-                {notifications.length > 0 && (
-                  <div className="border-t border-gray-200 p-4">
-                    <button
-                      onClick={() => {
-                        navigate("/notifications");
-                        setNotifOpen(false);
-                      }}
-                      className="w-full py-2.5 text-center text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      View all notifications
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
         {/* Sidebar Navigation - IMPROVED SPACING */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex flex-col   p-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
           {/* Main Navigation */}
-          <div className="mb-3">
-            {mainMenuItems.map(({ to, label, Icon, desc }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
-                    ? "bg-blue-50 text-blue-700 font-semibold"
-                    : "text-gray-700 hover:bg-gray-50"
-                  }`
-                }
-                onClick={label === "Reels" ? handleReelClick : undefined}
-              >
-                <Icon className={`w-5 h-5 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
-                <span className="text-sm font-medium">{label}</span>
-              </NavLink>
-            ))}
-
-            {/* Create Post Button */}
-            {/* <button
-              onClick={handleCreatePostClick}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-all w-full text-gray-700 mt-1"
-            >
-              <Plus className="w-5 h-5" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Create Post</span>
-                {getPostStatusBadge()}
-              </div>
-            </button> */}
-          </div>
-
-          {/* Profile Section */}
-
-
-          {/* Settings Section */}
-          <div className="mt-auto pt-3 border-t border-gray-100">
-            <div className="mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Profile</h3>
-              {profileMenuItems.map((item) => {
-                if (item.label === "Portfolio") {
+          < div className="mb-3" >
+            {
+              mainMenuItems.map(({ to, label, Icon, desc, type }) => {
+                if (type === "notifications") {
                   return (
                     <button
-                      key={item.label}
-                      onClick={handlePortfolioClick}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                      key="notifications"
+                      onClick={handleBellClick}
+                      ref={notificationRef}
+                      className={`flex  items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${notifOpen ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50"}`}
                     >
-                      <item.Icon className="w-5 h-5" />
-                      <div className="flex">
-                        <span className="text-sm font-medium">{item.label}</span>
+                      <div className="flex w-6 h-5 items-center justify-center relative">
+                        <Icon className="w-5 h-5 shrink-0" />
+                        {notifCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] rounded-full min-w-[14px] h-3.5 flex items-center  px-0.5 z-10">
+                            {notifCount > 99 ? '99+' : notifCount}
+                          </span>
+                        )}
                       </div>
+                      <AnimatePresence>
+                        {isSidebarExpanded && (
+                          <motion.span
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            className="text-sm font-medium whitespace-nowrap"
+                          >
+                            {label}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </button>
                   );
                 }
 
                 return (
                   <NavLink
-                    key={item.to}
-                    to={item.to}
+                    key={to}
+                    to={to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${isActive
+                      `flex items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
                         ? "bg-blue-50 text-blue-700 font-semibold"
                         : "text-gray-700 hover:bg-gray-50"
                       }`
                     }
+                    onClick={label === "Reels" ? handleReelClick : undefined}
                   >
-                    <item.Icon className="w-5 h-5" />
-                    <div className="flex-1">
-                      <span className="text-sm font-medium">{item.label}</span>
+                    <div className="flex w-6 h-5 items-center justify-center">
+                      <Icon className={`w-5 h-5 shrink-0 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
                     </div>
+                    <AnimatePresence>
+                      {isSidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="text-sm font-medium  whitespace-nowrap"
+                        >
+                          {label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </NavLink>
                 );
-              })}
-            </div>
+              })
+            }
+
+          </div >
+
+          {/* Profile Section */}
+
+
+          {/* Settings Section */}
+          <div className="mt-auto pt-3 border-t border-gray-100">
+            <AnimatePresence>
+              {isSidebarExpanded && (
+                <motion.h3
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2 whitespace-nowrap"
+                >
+                  Profile
+                </motion.h3>
+              )}
+            </AnimatePresence>
+            {profileMenuItems.map((item) => {
+              if (item.label === "Portfolio") {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={handlePortfolioClick}
+                    className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
+                  >
+                    <div className="flex w-6 h-5 items-center justify-center">
+                      <item.Icon className="w-5 h-5 shrink-0" />
+                    </div>
+                    <AnimatePresence>
+                      {isSidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="text-sm font-medium whitespace-nowrap"
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-50"
+                    }`
+                  }
+                >
+                  <div className="flex w-6 h-5 items-center justify-center">
+                    <item.Icon className="w-5 h-5 shrink-0" />
+                  </div>
+                  <AnimatePresence>
+                    {isSidebarExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="text-sm font-medium whitespace-nowrap"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </NavLink>
+              );
+            })}
             {settingsMenuItems.map(({ to, label, Icon, onClick }) => (
               onClick ? (
                 <button
                   key={label}
                   onClick={onClick}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 mb-1"
+                  className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 mb-1 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{label}</span>
+                  <div className="flex w-6 h-5 items-center justify-center">
+                    <Icon className="w-5 h-5 shrink-0" />
                   </div>
+                  <AnimatePresence>
+                    {isSidebarExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="text-sm font-medium whitespace-nowrap"
+                      >
+                        {label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </button>
               ) : (
                 <NavLink
                   key={to}
                   to={to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left mb-1 ${isActive
+                    `flex items-center rounded-lg transition-all w-full text-left mb-1 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
                       ? "bg-blue-50 text-blue-700 font-semibold"
                       : "text-gray-700 hover:bg-gray-50"
                     }`
                   }
                 >
-                  <Icon className="w-5 h-5" />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{label}</span>
+                  <div className="flex w-6 h-5 items-center justify-center">
+                    <Icon className="w-5 h-5 shrink-0" />
                   </div>
+                  <AnimatePresence>
+                    {isSidebarExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        className="text-sm font-medium whitespace-nowrap"
+                      >
+                        {label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </NavLink>
               )
             ))}
@@ -1022,13 +942,37 @@ export default function Header() {
             {/* Logout Button */}
             <button
               onClick={logout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 mt-2"
+              className={`flex items-center rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
             >
-              <LogOut className="w-5 h-5" />
-              <span className="text-sm font-medium">Logout</span>
+              <div className="flex w-6 h-5 items-center justify-center">
+                <LogOut className="w-5 h-5 shrink-0" />
+              </div>
+              <AnimatePresence>
+                {isSidebarExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="text-sm font-medium whitespace-nowrap"
+                  >
+                    Logout
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </nav>
+
+        {/* Desktop Notification Dropdown - Sidebar Overlay */}
+        <div className="hidden lg:block">
+          <NotificationDropdown
+            isOpen={notifOpen}
+            onClose={() => setNotifOpen(false)}
+            onUpdateCount={refreshNotifications}
+            toggleRef={notificationRef}
+            isSidebarMode={true}
+          />
+        </div>
       </motion.aside>
 
       {/* MOBILE HEADER - IMPROVED SPACING */}
@@ -1071,6 +1015,7 @@ export default function Header() {
         {/* Right Section: Actions */}
         <div className="flex items-center gap-2">
 
+
           {/* Notification for mobile */}
           <div ref={notificationRef} className="relative">
             <motion.button
@@ -1082,7 +1027,7 @@ export default function Header() {
             >
               <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
               {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center  font-medium">
                   {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
@@ -1113,7 +1058,7 @@ export default function Header() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 lg:hidden"
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 lg:hidden flex flex-col"
           >
             {/* Mobile Menu Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
@@ -1133,39 +1078,13 @@ export default function Header() {
             </div>
 
             {/* Mobile Menu Content */}
-            <div className="p-4 space-y-1 h-[calc(100vh-80px)] overflow-y-auto">
+            <div className="p-4 space-y-1 flex-1 overflow-y-auto">
               {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <button
-                  onClick={handleCreatePostClick}
-                  className="flex flex-col items-center gap-2 p-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all relative"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="text-sm">Create Post</span>
-                  {postStatus === "interest" && (
-                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full px-1.5 py-0.5">
-                      ⏳
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    handleReelClick();
-                    handleMobileMenuClose();
-                  }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl font-medium transition-all ${isReelsActive
-                    ? "bg-blue-100 text-blue-700 border border-blue-300"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                >
-                  <Video className="w-5 h-5" />
-                  <span className="text-sm">Reels</span>
-                </button>
-              </div>
+
 
               {/* Main Navigation Links */}
               <div className="space-y-1 mb-4">
-                {mainMenuItems.map(({ to, label, Icon, desc }) => (
+                {mainMenuItems.filter(item => !["Notifications", "Home", "Reels"].includes(item.label)).map(({ to, label, Icon, desc }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -1190,9 +1109,8 @@ export default function Header() {
 
               {/* Profile Links */}
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Profile</h3>
                 <div className="space-y-1">
-                  {profileMenuItems.map((item) => {
+                  {profileMenuItems.filter(item => item.label !== "Profile").map((item) => {
                     if (item.label === "Portfolio") {
                       return (
                         <button
@@ -1296,19 +1214,21 @@ export default function Header() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence >
 
       {/* MOBILE OVERLAY */}
-      {mobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 lg:hidden"
-          onClick={handleMobileMenuClose}
-        />
-      )}
+      {
+        mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-40 lg:hidden"
+            onClick={handleMobileMenuClose}
+          />
+        )
+      }
 
       {/* MOBILE SEARCH */}
       <MobileSearchBar
@@ -1336,13 +1256,15 @@ export default function Header() {
       />
 
       {/* Interest Popup */}
-      {interestModalOpen && (
-        <CasualInterestPopup
-          open={interestModalOpen}
-          onClose={handleCloseInterestModal}
-          onInterestsSelected={handleInterestsSelected}
-        />
-      )}
+      {
+        interestModalOpen && (
+          <CasualInterestPopup
+            open={interestModalOpen}
+            onClose={handleCloseInterestModal}
+            onInterestsSelected={handleInterestsSelected}
+          />
+        )
+      }
 
       {/* Notification Dropdown for Mobile / Consistency */}
       <NotificationDropdown
@@ -1353,7 +1275,7 @@ export default function Header() {
       />
 
 
-    </Fragment>
+    </Fragment >
   );
 }
 

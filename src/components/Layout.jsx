@@ -8,13 +8,15 @@ import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "./BottomNav";
 
 export default function Layout() {
   const location = useLocation();
   const params = useParams();
   const navigate = useNavigate();
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Track mobile menu state
   // Get tagname from URL: /hashtag/:tagname
   const tagname = params.tagname || null;
 
@@ -60,11 +62,15 @@ export default function Layout() {
   return (
     <div className="flex flex-col bg-white dark:bg-[#121212]">
 
-      <Header />
+      <Header
+        onSidebarHoverChange={setIsSidebarHovered}
+        isHome={isHome}
+        onMobileMenuToggle={setIsMobileMenuOpen}
+      />
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
-        <div className="sticky top-14 lg:top-0 lg:left-[280px] z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 ml-0 lg:ml-[280px]">
+        <div className={`sticky top-14 lg:top-0 z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 transition-all duration-300 ${(isSidebarHovered || isHome) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <div className="flex items-center gap-3">
             <IconButton
               onClick={handleBackClick}
@@ -89,7 +95,7 @@ export default function Layout() {
       )}
 
       <main className="flex-1 w-full pt-14 lg:pt-0">
-        <div className="flex pb-20 lg:pb-0 lg:ml-[280px]">
+        <div className={`flex pb-20 lg:pb-0 transition-all duration-300 ${(isSidebarHovered || isHome) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
               <Feed tagname={tagname} />
@@ -113,8 +119,8 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
+      {/* Mobile Bottom Navigation - Hide when mobile menu is open */}
+      {!isMobileMenuOpen && <BottomNav />}
     </div>
   );
 }

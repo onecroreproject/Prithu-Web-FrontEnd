@@ -45,6 +45,48 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
     return name;
   };
 
+  // Icon mapping based on category names
+  const ICON_MAP = {
+    'Trending': '🔥',
+    'Music': '🎵',
+    'Entertainment': '🎬',
+    'Comedy': '😂',
+    'Tech': '💻',
+    'Gaming': '🎮',
+    'News': '📰',
+    'Sports': '⚽',
+    'Food': '🍳',
+    'Travel': '✈️',
+    'Photography': '📷',
+    'Education': '📚',
+    'Politics': '⚖️',
+    'Health': '🏥',
+    'Fashion': '👗',
+    'Business': '💼'
+  };
+
+  // Border & BG color mapping based on category names
+  const COLOR_MAP = {
+    'Trending': 'border-orange-400 bg-orange-50 text-orange-700',
+    'Music': 'border-pink-300 bg-pink-50 text-pink-700',
+    'Entertainment': 'border-purple-300 bg-purple-50 text-purple-700',
+    'Comedy': 'border-yellow-400 bg-yellow-50 text-yellow-700',
+    'Tech': 'border-blue-300 bg-blue-50 text-blue-700',
+    'Gaming': 'border-indigo-300 bg-indigo-50 text-indigo-700',
+    'News': 'border-gray-400 bg-gray-50 text-gray-700',
+    'Sports': 'border-green-300 bg-green-50 text-green-700',
+    'Food': 'border-orange-300 bg-orange-50 text-orange-700',
+    'Travel': 'border-cyan-300 bg-cyan-50 text-cyan-700',
+    'Photography': 'border-teal-300 bg-teal-50 text-teal-700',
+    'Education': 'border-amber-300 bg-amber-50 text-amber-700'
+  };
+
+  const getCategoryIcon = (name) => ICON_MAP[name] || '✨';
+  const getCategoryTheme = (name, isSelected) => {
+    if (isSelected) return 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm border-blue-400';
+    return COLOR_MAP[name] || 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300';
+  };
+
   // Ultra-compact padding that hugs the text
   const getPaddingClass = () => 'px-2 py-0.5';
 
@@ -90,6 +132,24 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
         <div className="space-y-1">
           {/* Categories Grid - Ultra compact */}
           <div className="grid grid-cols-3 gap-1 animate-in fade-in duration-150">
+            {/* "Trending" category - Fire Icon */}
+            <button
+              onClick={() => onSelectCategory('trending')}
+              onMouseEnter={() => setHoveredCategory('trending')}
+              onMouseLeave={() => setHoveredCategory(null)}
+              className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border ${selectedCategoryId === 'trending'
+                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm border-orange-400'
+                : 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200 hover:border-orange-400'
+                } ${getPaddingClass()}`}
+              style={{ minHeight: '24px' }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
+              <div className="flex items-center gap-1 relative z-10">
+                <span className="text-[10px]">🔥</span>
+                <span className="text-xs font-bold leading-tight">Trending</span>
+              </div>
+            </button>
+
             {/* "All" category - Tightly wrapped */}
             <button
               onClick={() => onSelectCategory(null)}
@@ -120,9 +180,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
                 onClick={() => onSelectCategory(cat.categoryId)}
                 onMouseEnter={() => setHoveredCategory(cat.categoryId)}
                 onMouseLeave={() => setHoveredCategory(null)}
-                className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border animate-in fade-in slide-in-from-bottom-1 ${selectedCategoryId === cat.categoryId
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm border-blue-400'
-                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300'
+                className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border animate-in fade-in slide-in-from-bottom-1 ${getCategoryTheme(cat.categoryName, selectedCategoryId === cat.categoryId)
                   } ${getPaddingClass()}`}
                 style={{
                   animationDelay: `${index * 20}ms`,
@@ -138,13 +196,16 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 animate-pulse-slow"></div>
                 )}
 
-                {/* Category name */}
-                <span
-                  className="relative z-10 text-xs font-medium transition-all duration-150 leading-tight"
-                  title={cat.categoryName}
-                >
-                  {truncateName(cat.categoryName)}
-                </span>
+                {/* Category Icon & Name */}
+                <div className="flex items-center gap-1 relative z-10">
+                  <span className="text-[10px]">{getCategoryIcon(cat.categoryName)}</span>
+                  <span
+                    className="text-xs font-medium transition-all duration-150 leading-tight"
+                    title={cat.categoryName}
+                  >
+                    {truncateName(cat.categoryName)}
+                  </span>
+                </div>
               </button>
             ))}
           </div>

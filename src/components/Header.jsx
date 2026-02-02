@@ -9,7 +9,7 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
-  BellRing, Home, User, Settings, LogOut, Plus, Menu, X, Search,
+  BellRing, Home, User, Settings, LogOut, Plus, Menu, X,
   Gift, Activity, HelpCircle, MessageSquare
 } from "lucide-react";
 import debounce from "lodash.debounce";
@@ -20,17 +20,11 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
 
-// Import search components
-import SearchBar from "../components/HeaderComponent/searchBar";
-import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
-
 // Import User Feedback and Report Pages
 import UserFeedbackPage from "../components/UserFeedbackPage";
 import ReportPage from "../components/ReportPage";
 
-// --- constants ---
-const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
-const MAX_HISTORY = 12;
+
 
 export default function Header() {
   const { user, token, logout, fetchUserProfile } = useAuth();
@@ -45,22 +39,10 @@ export default function Header() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(false);
 
-  // Search States
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState({
-    categories: [], people: [], jobs: []
-  });
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
-  const [history, setHistory] = useState([]);
-  const [trending, setTrending] = useState([]);
-
   // refs
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const notificationRef = useRef(null);
-  const searchRef = useRef(null);
 
   // Enhanced navItems with icons
   const navItems = [
@@ -153,32 +135,21 @@ export default function Header() {
       refreshNotifications();
     };
 
-    const handleOpenMobileSearch = () => {
-      setMobileSearchOpen(true);
-      setNotifOpen(false);
-      setMobileMenuOpen(false);
-    };
-
     document.addEventListener("socket:newNotification", handleNewNotif);
     document.addEventListener("socket:notificationRead", handleNotifRead);
     document.addEventListener("socket:notificationPulse", handlePulse);
-    window.addEventListener("openMobileSearch", handleOpenMobileSearch);
 
     return () => {
       document.removeEventListener("socket:newNotification", handleNewNotif);
       document.removeEventListener("socket:notificationRead", handleNotifRead);
       document.removeEventListener("socket:notificationPulse", handlePulse);
-      window.removeEventListener("openMobileSearch", handleOpenMobileSearch);
     };
   }, [refreshNotifications]);
 
   // Outside click handlers
   useEffect(() => {
-    const handleOutsideClick = e => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
-      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSearchDropdown(false);
-    };
+    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
@@ -209,160 +180,9 @@ export default function Header() {
     setNotifOpen(p => !p);
     setDropdownOpen(false);
     setMobileMenuOpen(false);
-    setMobileSearchOpen(false); // Close search when opening notifications
   };
 
-  // Search helpers
-  const saveToHistory = text => {
-    if (!text || !text.trim()) return;
-    const normalized = text.trim();
-    const cur = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
-    const filtered = cur.filter(s => s !== normalized);
-    filtered.unshift(normalized);
-    const trimmed = filtered.slice(0, MAX_HISTORY);
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(trimmed));
-    setHistory(trimmed);
-  };
 
-  const clearHistory = () => {
-    localStorage.removeItem(SEARCH_HISTORY_KEY);
-    setHistory([]);
-  };
-
-  const loadHistory = () => {
-    try {
-      const cur = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
-      setHistory(cur.slice(0, MAX_HISTORY));
-    } catch {
-      setHistory([]);
-    }
-  };
-
-  const scoreAndFilter = useCallback((query, items = [], keys = ["name"]) => {
-    if (!query) return items;
-    const q = query.toLowerCase();
-    return items
-      .map(it => {
-        const text = keys.map(k => (it[k] || "")).join(" ").toLowerCase();
-        let score = 0;
-        if (text === q) score += 100;
-        if (text.startsWith(q)) score += 50;
-        if (text.includes(q)) score += 20;
-        score += Math.max(0, 10 - text.length / 30);
-        return { item: it, score };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map(s => s.item);
-  }, []);
-
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
-  const performSearch = useCallback(async q => {
-    const qs = (q || "").trim();
-    if (!qs) {
-      setShowSearchDropdown(false);
-      setSearchResults({ categories: [], people: [], jobs: [] });
-      return;
-    }
-    try {
-      const { data } = await api.get(
-        `/api/global/search?q=${encodeURIComponent(qs)}`
-      );
-      if (data.success) {
-        setSearchResults({
-          categories: data.categories || [],
-          people: data.people || [],
-          jobs: data.jobs || []
-        });
-        setShowSearchDropdown(true);
-      }
-    } catch (err) {
-      console.error("❌ Global Search Failed:", err);
-    }
-  }, []);
-
-  const debouncedSearch = useMemo(
-    () => debounce(performSearch, 300),
-    [performSearch]
-  );
-
-  const scoredResults = useMemo(() => {
-    const q = (searchQuery || "").trim();
-    return {
-      categories: scoreAndFilter(q, searchResults.categories || [], ["name"]),
-      people: scoreAndFilter(q, searchResults.people || [], ["userName", "name"]),
-      jobs: scoreAndFilter(q, searchResults.jobs || [], ["title", "companyName"])
-    };
-  }, [searchResults, searchQuery, scoreAndFilter]);
-
-  const handleSelectResult = (type, payload) => {
-    const text =
-      type === "people"
-        ? payload.userName || payload.name || ""
-        : type === "categories"
-          ? payload.name || ""
-          : type === "jobs"
-            ? payload.title || ""
-            : payload;
-
-    saveToHistory(text);
-
-    if (type === "people") {
-      navigate(`/user/profile/${payload.userName}`);
-    } else if (type === "categories") {
-      navigate(`/category/${payload._id}`);
-    } else if (type === "jobs") {
-      navigate(`/job/view/${payload._id}`);
-    } else if (type === "hashtag") {
-      navigate(`/hashtag/${encodeURIComponent(payload)}`);
-    } else {
-      navigate(`/search?q=${encodeURIComponent(text)}`);
-    }
-
-    setShowSearchDropdown(false);
-    setMobileSearchOpen(false);
-    setSearchQuery("");
-  };
-
-  const handleHistoryClick = text => {
-    setSearchQuery(text);
-    debouncedSearch(text);
-    setShowSearchDropdown(true);
-  };
-
-  const handleTrendingClick = tag => {
-    setSearchQuery(`#${tag.tag || tag}`);
-    performSearch(tag.tag || tag);
-    saveToHistory(`#${tag.tag || tag}`);
-    navigate(`/hashtag/${encodeURIComponent(tag.tag || tag)}`);
-    setShowSearchDropdown(false);
-    setMobileSearchOpen(false);
-  };
-
-  const handleKeyDown = e => {
-    if (e.key === "Enter") {
-      const tab = activeTab;
-      if (tab === "people" && scoredResults.people[0]) {
-        handleSelectResult("people", scoredResults.people[0]);
-        return;
-      }
-      if (tab === "categories" && scoredResults.categories[0]) {
-        handleSelectResult("categories", scoredResults.categories[0]);
-        return;
-      }
-      if (tab === "jobs" && scoredResults.jobs[0]) {
-        handleSelectResult("jobs", scoredResults.jobs[0]);
-        return;
-      }
-      saveToHistory(searchQuery);
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setShowSearchDropdown(false);
-      setMobileSearchOpen(false);
-      setSearchQuery("");
-    }
-  };
 
   // Handle nav item clicks
   const handleNavItemClick = (item, e) => {
@@ -413,32 +233,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Center Section: Search Bar - Now takes more space */}
-        <div className="flex-1 flex justify-center px-2 md:px-4">
-          <div className="w-full max-w-2xl lg:max-w-3xl">
-            <div className="hidden md:block">
-              <SearchBar
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                handleKeyDown={handleKeyDown}
-                debouncedSearch={debouncedSearch}
-                loadHistory={loadHistory}
-                setShowSearchDropdown={setShowSearchDropdown}
-                showSearchDropdown={showSearchDropdown}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                trending={trending}
-                history={history}
-                clearHistory={clearHistory}
-                handleTrendingClick={handleTrendingClick}
-                handleHistoryClick={handleHistoryClick}
-                scoredResults={scoredResults}
-                handleSelectResult={handleSelectResult}
-                searchRef={searchRef}
-              />
-            </div>
-          </div>
-        </div>
+        <div className="flex-1" />
 
         {/* Right Section: Actions & Profile */}
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
@@ -472,7 +267,7 @@ export default function Header() {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium shadow"
+                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-start font-medium shadow"
                   >
                     {notifCount > 99 ? '99+' : notifCount}
                   </motion.span>
@@ -489,6 +284,17 @@ export default function Header() {
             >
               <User className="w-5 h-5 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Portfolio</span>
+            </motion.button>
+
+            {/* Logout Button */}
+            <motion.button
+              onClick={logout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-sm font-medium">Logout</span>
             </motion.button>
 
             {/* Profile Dropdown */}
@@ -613,7 +419,7 @@ export default function Header() {
               >
                 <BellRing className={`w-5 h-5 ${notifOpen ? "text-blue-600" : "text-gray-600"}`} />
                 {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-start font-medium">
                     {notifCount > 99 ? '99+' : notifCount}
                   </span>
                 )}
@@ -653,7 +459,7 @@ export default function Header() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 md:hidden"
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 md:hidden flex flex-col"
           >
             {/* Mobile Menu Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50/30">
@@ -673,19 +479,9 @@ export default function Header() {
             </div>
 
             {/* Mobile Menu Content */}
-            <div className="p-4 space-y-1 h-[calc(100vh-80px)] overflow-y-auto">
+            <div className="p-4 space-y-1 flex-1 overflow-y-auto">
               {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <button
-                  onClick={() => {
-                    setIsCreatePostOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="text-sm">Create Post</span>
-                </button>
+              <div className="grid grid-cols-1 gap-2 mb-4">
                 <button
                   onClick={() => {
                     handlePortfolioClick();
@@ -770,24 +566,7 @@ export default function Header() {
         />
       )}
 
-      {/* MOBILE SEARCH */}
-      <MobileSearchBar
-        mobileSearchOpen={mobileSearchOpen}
-        setMobileSearchOpen={setMobileSearchOpen}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        handleKeyDown={handleKeyDown}
-        debouncedSearch={debouncedSearch}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        trending={trending}
-        history={history}
-        clearHistory={clearHistory}
-        handleTrendingClick={handleTrendingClick}
-        handleHistoryClick={handleHistoryClick}
-        scoredResults={scoredResults}
-        handleSelectResult={handleSelectResult}
-      />
+
 
       {/* Create Post Modal (You'll need to import/create this) */}
       {/* <CreatePostModal

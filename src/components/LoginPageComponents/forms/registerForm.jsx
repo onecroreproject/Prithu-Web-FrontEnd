@@ -240,6 +240,8 @@ function RegisterForm({ switchMode }) {
     e.preventDefault();
     if (loading) return;
 
+    const validPassword = Object.values(passwordChecks).every(Boolean);
+
     if (!validPassword || form.username.length < 5)
       return alert("Please complete all requirements before registering.");
 

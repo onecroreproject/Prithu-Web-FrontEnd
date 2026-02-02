@@ -86,12 +86,17 @@ const SubscriptionPage = () => {
       if (data.success) {
         setUserSubscription(data.plan);
         if (data.plan?.planId?.planType === 'trial') {
-          updateTrialStatus({
+          const endDate = new Date(data.plan.endDate);
+          const now = new Date();
+          const isTrialStillActive = now < endDate;
+
+          setTrialStatus(prev => ({
+            ...prev,
             hasUsedTrial: true,
-            trialActive: true,
+            trialActive: isTrialStillActive,
             trialExpiresAt: data.plan.endDate,
             trialRemainingDays: calculateRemainingDays(data.plan.endDate)
-          });
+          }));
         }
       }
     } catch (err) {
@@ -103,13 +108,17 @@ const SubscriptionPage = () => {
     try {
       const data = await checkTrialEligibilityApi();
       if (data.success) {
-        setTrialStatus({
+        // Enforce date check on frontend as well
+        const isDateValid = data.trialExpiresAt ? new Date() < new Date(data.trialExpiresAt) : false;
+
+        setTrialStatus(prev => ({
+          ...prev,
           isEligible: data.isEligible,
           hasUsedTrial: data.hasUsedTrial,
           trialExpiresAt: data.trialExpiresAt,
-          trialActive: data.trialActive,
+          trialActive: data.trialActive || isDateValid, // Trust API but backup with date
           trialRemainingDays: data.trialRemainingDays || 0
-        });
+        }));
       }
     } catch (err) {
       console.error('Error checking trial eligibility:', err);
@@ -135,96 +144,96 @@ const SubscriptionPage = () => {
   };
 
   const handleSubscribe = async (planId) => {
-  if (trialStatus.hasUsedTrial && trialStatus.trialActive) {
-    toast.error('You already have an active trial subscription');
-    return;
-  }
-
-  setPaymentProcessing(true);
-  try {
-    const isLoaded = await loadRazorpayScript();
-    if (!isLoaded) {
-      toast.error('Razorpay SDK failed to load.');
-      setPaymentProcessing(false);
+    if (trialStatus.hasUsedTrial && trialStatus.trialActive) {
+      toast.error('You already have an active trial subscription');
       return;
     }
 
-    const orderData = await createOrderApi(planId);
-
-    if (!orderData.success) {
-      throw new Error(orderData.message || 'Order creation failed');
-    }
-console.log(orderData)
-    // 🔍 DEBUG (keep once, remove later)
-    console.log({
-      key: orderData.key,
-      order_id: orderData.orderId,
-      amount: orderData.amount,
-      currency: orderData.currency
-    });
-
-    const options = {
-      key: orderData.key,
-      amount: orderData.amount,          // paise
-      currency: orderData.currency,
-      name: "Prithu AI",
-      description: orderData.description,
-
-      // ✅ CRITICAL FIX
-      order_id: orderData.orderId,
-
-      handler: async function (response) {
-        try {
-          toast.loading("Verifying payment...");
-          const verification = await verifyPaymentApi({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
-          });
-
-          toast.dismiss();
-
-          if (verification.success) {
-            toast.success('Payment successful! Subscription active.');
-            fetchUserSubscription();
-            checkTrialEligibility();
-            setShowPaymentModal(false);
-          } else {
-            toast.error(verification.message || 'Verification failed');
-          }
-        } catch (err) {
-          toast.dismiss();
-          toast.error('Payment verification failed');
-        }
-      },
-
-      prefill: {
-        name: "Prithu User",
-        email: "user@example.com",
-        contact: "9999999999"
-      },
-
-      theme: {
-        color: "#8B5CF6"
-      },
-
-      modal: {
-        ondismiss: function () {
-          setPaymentProcessing(false);
-          toast.error('Payment cancelled');
-        }
+    setPaymentProcessing(true);
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        toast.error('Razorpay SDK failed to load.');
+        setPaymentProcessing(false);
+        return;
       }
-    };
 
-    const razorpay = new window.Razorpay(options);
-    razorpay.open();
+      const orderData = await createOrderApi(planId);
 
-  } catch (err) {
-    console.error('Subscription error:', err);
-    toast.error(err.message || 'Failed to initiate subscription');
-    setPaymentProcessing(false);
-  }
-};
+      if (!orderData.success) {
+        throw new Error(orderData.message || 'Order creation failed');
+      }
+      console.log(orderData)
+      // 🔍 DEBUG (keep once, remove later)
+      console.log({
+        key: orderData.key,
+        order_id: orderData.orderId,
+        amount: orderData.amount,
+        currency: orderData.currency
+      });
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,          // paise
+        currency: orderData.currency,
+        name: "Prithu AI",
+        description: orderData.description,
+
+        // ✅ CRITICAL FIX
+        order_id: orderData.orderId,
+
+        handler: async function (response) {
+          try {
+            toast.loading("Verifying payment...");
+            const verification = await verifyPaymentApi({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+
+            toast.dismiss();
+
+            if (verification.success) {
+              toast.success('Payment successful! Subscription active.');
+              fetchUserSubscription();
+              checkTrialEligibility();
+              setShowPaymentModal(false);
+            } else {
+              toast.error(verification.message || 'Verification failed');
+            }
+          } catch (err) {
+            toast.dismiss();
+            toast.error('Payment verification failed');
+          }
+        },
+
+        prefill: {
+          name: "Prithu User",
+          email: "user@example.com",
+          contact: "9999999999"
+        },
+
+        theme: {
+          color: "#8B5CF6"
+        },
+
+        modal: {
+          ondismiss: function () {
+            setPaymentProcessing(false);
+            toast.error('Payment cancelled');
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (err) {
+      console.error('Subscription error:', err);
+      toast.error(err.message || 'Failed to initiate subscription');
+      setPaymentProcessing(false);
+    }
+  };
 
   const handleActivateTrial = async () => {
     if (!trialStatus.isEligible) {
@@ -337,10 +346,10 @@ console.log(orderData)
                 </div>
               </div>
             </div>
-            
+
             {/* Progress bar */}
             <div className="mt-3 bg-white/30 rounded-full h-1.5 overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-white transition-all duration-1000"
                 style={{ width: `${((trialStatus.trialRemainingDays || 3) / 3) * 100}%` }}
               ></div>
@@ -427,7 +436,7 @@ console.log(orderData)
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 border border-white/30">
                     <div className="text-center mb-4">
                       <div className="text-4xl font-bold mb-1">₹0</div>
@@ -464,6 +473,15 @@ console.log(orderData)
             .map((plan, index) => {
               const isPopular = plan.name?.toLowerCase().includes('pro');
               const isCurrentPlan = userSubscription?.planId?._id === plan._id;
+
+              const durationLabel = plan.durationDays === 30 ? '/month' :
+                plan.durationDays === 90 ? '/3 months' :
+                  plan.durationDays === 365 ? '/1 year' :
+                    `/${plan.durationDays} Days`;
+
+              const monthlyPrice = plan.durationDays === 90 ? Math.round(plan.price / 3) :
+                plan.durationDays === 365 ? Math.round(plan.price / 12) :
+                  null;
 
               return (
                 <div
@@ -515,10 +533,15 @@ console.log(orderData)
                         <span className="text-3xl font-bold text-gray-800">
                           ₹{plan.price || 0}
                         </span>
-                        <span className="text-gray-500">
-                          / {plan.durationDays} Days
+                        <span className="text-gray-500 font-medium">
+                          {durationLabel}
                         </span>
                       </div>
+                      {monthlyPrice && (
+                        <p className="text-sm text-emerald-600 font-medium mt-1">
+                          Equivalent to ₹{monthlyPrice}/month
+                        </p>
+                      )}
                     </div>
 
                     {/* Features */}
@@ -667,7 +690,7 @@ console.log(orderData)
                 <p className="text-sm text-gray-600">Your 3-day trial includes all premium features</p>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-amber-400 rounded-full"></div>

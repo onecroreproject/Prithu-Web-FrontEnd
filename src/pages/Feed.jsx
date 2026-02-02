@@ -7,6 +7,7 @@ import {
   getAllFeeds,
   getSingleFeed,
   getFeedsByHashtag,
+  getTrendingFeeds,
 } from "../Service/feedService";
 import { useCategories } from "../hooks/useMiscellaneous";
 
@@ -107,6 +108,10 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
       const fetchCategoryId = param.categoryId || feedCategory;
 
+      if (fetchCategoryId === 'trending') {
+        return getTrendingFeeds(param.allPage, tokenRef.current || token);
+      }
+
       if (param.mode === "category" && fetchCategoryId) {
         return getAllFeeds(param.categoryPage, tokenRef.current || token, fetchCategoryId);
       } else {
@@ -125,6 +130,10 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
       if (currentParam.mode === "category") {
         if (isFullBatch) {
+          // Special case for Trending - just increment page
+          if (feedCategory === 'trending' || currentParam.categoryId === 'trending') {
+            return { ...currentParam, allPage: currentParam.allPage + 1 };
+          }
           return { ...currentParam, categoryPage: currentParam.categoryPage + 1 };
         } else {
           // Category exhausted, transition to next category

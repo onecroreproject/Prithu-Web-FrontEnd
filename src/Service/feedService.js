@@ -190,6 +190,22 @@ export const getSingleFeed = async (id, token) => {
   }
 };
 
+export const getTrendingFeeds = async (page = 1, token) => {
+  try {
+    const url = `/api/get/trending/feeds?page=${page}&limit=10`;
+    console.log(`📡 Fetching trending: ${url}`);
+    const { data } = await api.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    console.log("🎯 Trending Response:", data);
+    return data?.data?.feeds || data?.data || [];
+  } catch (error) {
+    console.error("❌ Error fetching trending feeds:", error.response?.status, error.response?.data || error.message);
+    return [];
+  }
+};
+
 export const getTopRankedJobs = async (token) => { return []; };
 export const getFeedsByHashtag = async (tag, page, token) => { return []; };
 export const userImageViewCount = async (id) => { return api.post(`/api/feed/view/image/${id}`); };

@@ -11,7 +11,7 @@ import { Bell, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification } from "../../hooks/useNotifications";
 
-export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, toggleRef }) {
+export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, toggleRef, isSidebarMode }) {
   const [selectedNotif, setSelectedNotif] = useState(null);
   const dropdownRef = useRef(null);
   const observerRef = useRef(null);
@@ -112,11 +112,13 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, t
         {isOpen && (
           <motion.div
             ref={dropdownRef}
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed sm:absolute right-0 top-14 sm:top-12 w-full sm:w-96 max-w-sm mx-auto sm:mx-0 bg-white rounded-none sm:rounded-xl shadow-2xl sm:shadow-xl border-0 sm:border border-gray-200 overflow-hidden z-50 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[80vh] flex flex-col"
+            initial={isSidebarMode ? { x: -280 } : { opacity: 0, scale: 0.95, y: -10 }}
+            animate={isSidebarMode ? { x: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={isSidebarMode ? { x: -280 } : { opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={isSidebarMode
+              ? "absolute left-0 top-0 w-full h-[100dvh] bg-white z-[60] flex flex-col overflow-hidden"
+              : "fixed sm:absolute right-0 top-14 sm:top-12 w-full sm:w-96 max-w-sm mx-auto sm:mx-0 bg-white rounded-none sm:rounded-xl shadow-2xl sm:shadow-xl border-0 sm:border border-gray-200 overflow-hidden z-50 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[80vh] flex flex-col"}
           >
             {/* Header */}
             <NotificationHeader

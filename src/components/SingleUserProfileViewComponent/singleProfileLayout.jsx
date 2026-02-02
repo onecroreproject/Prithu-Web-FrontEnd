@@ -11,7 +11,6 @@ import ProfileStats from "../../components/Profilecard/ProfileStats";
 import ProfileTab from "../../components/Profilecard/profileTabs";
 import ProfileSection from "../../components/Profilecard/ProfileSection";
 import ActivitySection from "../../components/Profilecard/ActivitySection";
-import FriendsSection from "../../components/Profilecard/followersFollowingSection";
 import GroupsSection from "../../components/Profilecard/GroupsSection";
 import Advertisement from "../../components/Profilecard/Advertisement";
 import ForumsSection from "../../components/Profilecard/FormsSection";
@@ -30,9 +29,8 @@ const SingleUserProfilelayout = () => {
 
   // Profile stats
   const [profileStats, setProfileStats] = useState({
-    followersCount: 0,
-    followingCount: 0,
-    totalPost: 0,
+    downloadCount: 0,
+    shareCount: 0,
   });
 
   // Follow-related states
@@ -67,9 +65,8 @@ const SingleUserProfilelayout = () => {
       setUserData(data);
 
       setProfileStats({
-        followersCount: data.followerCount || 0,
-        followingCount: data.followingCount || 0,
-        totalPost: data.postCount || 0,
+        downloadCount: data.downloadCount || 0,
+        shareCount: data.shareCount || 0,
       });
     } catch (err) {
       console.error("Error fetching profile overview:", err);
@@ -138,15 +135,10 @@ const SingleUserProfilelayout = () => {
       if (res.data.success) {
         setIsFollowing(true);
 
-        setProfileStats(prev => ({
-          ...prev,
-          followersCount: prev.followersCount + 1
-        }));
-
         if (userData) {
           setUserData(prev => ({
             ...prev,
-            followerCount: prev.followerCount + 1
+            followerCount: (prev.followerCount || 0) + 1
           }));
         }
 
@@ -178,16 +170,11 @@ const SingleUserProfilelayout = () => {
         setIsFollowing(false);
 
         // Update follower count
-        setProfileStats(prev => ({
-          ...prev,
-          followersCount: Math.max(0, prev.followersCount - 1)
-        }));
-
         // Update userData if it has followerCount
         if (userData) {
           setUserData(prev => ({
             ...prev,
-            followerCount: Math.max(0, prev.followerCount - 1)
+            followerCount: Math.max(0, (prev.followerCount || 0) - 1)
           }));
         }
 
@@ -259,23 +246,6 @@ const SingleUserProfilelayout = () => {
     }
   }, [id]);
 
-  const handleFollowDataUpdate = (newCounts) => {
-    setProfileStats((prev) => ({
-      ...prev,
-      followersCount: newCounts.followersCount,
-      followingCount: newCounts.followingCount,
-    }));
-
-    setUserData((prev) =>
-      prev
-        ? {
-          ...prev,
-          followerCount: newCounts.followersCount,
-          followingCount: newCounts.followingCount,
-        }
-        : null
-    );
-  };
 
   const renderActiveSection = () => {
     if (!userData) return null;
@@ -295,12 +265,6 @@ const SingleUserProfilelayout = () => {
         return <ProfileSection
           userData={userData}
           visibility={visibility}
-          id={id}
-          isFollowing={isFollowing}
-        />;
-      case "friends":
-        return <FriendsSection
-          onFollowDataUpdate={handleFollowDataUpdate}
           id={id}
           isFollowing={isFollowing}
         />;
@@ -462,9 +426,8 @@ const SingleUserProfilelayout = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
             <div className="lg:col-span-1 space-y-8">
               <ProfileStats
-                followersCount={profileStats.followersCount}
-                followingCount={profileStats.followingCount}
-                totalPost={profileStats.totalPost}
+                downloadCount={profileStats.downloadCount}
+                shareCount={profileStats.shareCount}
               />
 
               <ProfileTab id={id} activeTab={activeTab} setActiveTab={setActiveTab} />

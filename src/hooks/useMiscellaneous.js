@@ -40,6 +40,7 @@ export function useTrendingFeeds() {
         queryKey: ['trendingFeeds'],
         queryFn: async () => {
             const { data } = await api.get('/api/get/trending/feed');
+
             return data.feeds || [];
         },
         staleTime: 15 * 60 * 1000,
@@ -210,5 +211,18 @@ export function useBlockUser() {
         onError: (error) => {
             toast.error(error?.response?.data?.message || 'Failed to block user');
         },
+    });
+}
+/**
+ * Fetch main board statistics for landing page
+ */
+export function useMainBoardStats() {
+    return useQuery({
+        queryKey: ['mainBoardStats'],
+        queryFn: async () => {
+            const { data } = await api.get('/api/main/board/status');
+            return data.data || { totalUsers: 0, totalTemplates: 0, totalShares: 0 };
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
     });
 }
