@@ -409,7 +409,7 @@ function Postcard({
   const handleDownload = () => {
     if (!feedId) return toast.error("Invalid feed!");
 
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://prithubackend.1croreprojects.com';
+    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.prithu.app';
     const token = localStorage.getItem('token');
     const activeUserId = localStorage.getItem('userId');
 
