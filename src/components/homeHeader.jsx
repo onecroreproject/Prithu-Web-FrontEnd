@@ -742,9 +742,9 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
           </AnimatePresence>
         </div>
         {/* Sidebar Navigation - IMPROVED SPACING */}
-        <nav className="flex flex-col   p-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
+        <nav className="flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {/* Main Navigation */}
-          < div className="mb-3" >
+          <div className="mb-12">
             {
               mainMenuItems.map(({ to, label, Icon, desc, type }) => {
                 if (type === "notifications") {
@@ -792,7 +792,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                     onClick={label === "Reels" ? handleReelClick : undefined}
                   >
                     <div className="flex w-6 h-5 items-center justify-center">
-                      <Icon className={`w-5 h-5 shrink-0 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
+                      <Icon className={`w-7 h-7 shrink-0 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
                     </div>
                     <AnimatePresence>
                       {isSidebarExpanded && (
@@ -817,7 +817,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
 
           {/* Settings Section */}
-          <div className="mt-auto pt-3 border-t border-gray-100">
+          <div className="mt-auto pt-4 border-t border-gray-100 space-y-1">
             <AnimatePresence>
               {isSidebarExpanded && (
                 <motion.h3
@@ -839,7 +839,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                     className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
                   >
                     <div className="flex w-6 h-5 items-center justify-center">
-                      <item.Icon className="w-5 h-5 shrink-0" />
+                      <item.Icon className="w-7 h-7 shrink-0" />
                     </div>
                     <AnimatePresence>
                       {isSidebarExpanded && (
@@ -869,7 +869,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                   }
                 >
                   <div className="flex w-6 h-5 items-center justify-center">
-                    <item.Icon className="w-5 h-5 shrink-0" />
+                    <item.Icon className="w-7 h-7 shrink-0" />
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -894,7 +894,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                   className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 mb-1 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
                 >
                   <div className="flex w-6 h-5 items-center justify-center">
-                    <Icon className="w-5 h-5 shrink-0" />
+                    <Icon className="w-7 h-7 shrink-0" />
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -921,7 +921,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                   }
                 >
                   <div className="flex w-6 h-5 items-center justify-center">
-                    <Icon className="w-5 h-5 shrink-0" />
+                    <Icon className="w-7 h-7 shrink-0" />
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -945,7 +945,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
               className={`flex items-center rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
             >
               <div className="flex w-6 h-5 items-center justify-center">
-                <LogOut className="w-5 h-5 shrink-0" />
+                <LogOut className="w-7 h-7 shrink-0" />
               </div>
               <AnimatePresence>
                 {isSidebarExpanded && (
@@ -1000,7 +1000,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
               <img
                 src={PrithuLogo}
                 alt="Prithu Logo"
-                className="w-8 h-8 transition-transform duration-200 group-hover:scale-105"
+                className="w-9 h-9 transition-transform duration-200 group-hover:scale-105"
               />
             </motion.div>
             <motion.h1

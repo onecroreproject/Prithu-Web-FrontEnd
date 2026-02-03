@@ -238,12 +238,22 @@ function Postcard({
 
     if (!isVisible) {
       vid.pause();
+      setIsPlaying(false);
     } else {
-      vid.currentTime = 0;
-      setVideoSessionId((prev) => prev + 1);
-      vid.play().catch(() => { });
+      // ✅ Only autoplay if in LIST view
+      if (viewMode === 'list') {
+        vid.currentTime = 0;
+        setVideoSessionId((prev) => prev + 1);
+        vid.play().then(() => setIsPlaying(true)).catch(() => {
+          setIsPlaying(false);
+        });
+      } else {
+        // In grid view, ensure it's paused initially
+        vid.pause();
+        setIsPlaying(false);
+      }
     }
-  }, [isVisible, isVideo]);
+  }, [isVisible, isVideo, viewMode]);
 
   // Handle browser tab/window switch
   useEffect(() => {
@@ -272,9 +282,18 @@ function Postcard({
   const togglePlayPause = useCallback(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    isPlaying ? vid.pause() : vid.play();
-    setIsPlaying((p) => !p);
-  }, [isPlaying]);
+    if (vid.paused) {
+      vid.play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.error("Play failed:", err);
+          setIsPlaying(false);
+        });
+    } else {
+      vid.pause();
+      setIsPlaying(false);
+    }
+  }, []);
 
   const toggleMute = useCallback(() => {
     const vid = videoRef.current;
@@ -560,7 +579,7 @@ function Postcard({
               )}
 
               {/* ✅ OVERLAYS - Positioned relative to media area */}
-              {isTemplate && overlayElements.length > 0 && (
+              {isTemplate && overlayElements.length > 0 && (isVideo ? isVideoPlaying : true) && (
                 <div className="absolute inset-0 pointer-events-none z-30">
                   <FeedOverlayRenderer
                     overlayElements={overlayElements}

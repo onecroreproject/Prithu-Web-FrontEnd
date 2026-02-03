@@ -81,6 +81,18 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
     tokenRef.current = token;
   }, [token]);
 
+  // Force list view on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode !== "list") {
+        setViewMode("list");
+      }
+    };
+    handleResize(); // Initial check
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [viewMode, setViewMode]);
+
   const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
 
   const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all"];
@@ -478,7 +490,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
                   excludedCategoryIds={excludedCategoryIds}
                 />
               </div>
-              <div className="flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
+              <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "list" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}

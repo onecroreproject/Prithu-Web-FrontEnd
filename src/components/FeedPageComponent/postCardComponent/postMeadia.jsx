@@ -174,6 +174,17 @@ export default function PostMedia({
         }}
       />
 
+      {/* ✅ Centered Play/Pause Icon Overlay */}
+      {type === "video" && !isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm transform transition-all duration-300 scale-110">
+            <svg className="w-10 h-10 text-white fill-current" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      )}
+
       {showHeart && <HeartAnimation />}
     </div>
   );
