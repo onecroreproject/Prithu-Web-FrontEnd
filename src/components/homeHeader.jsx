@@ -744,7 +744,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
         {/* Sidebar Navigation - IMPROVED SPACING */}
         <nav className="flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {/* Main Navigation */}
-          <div className="mb-12">
+          <div className="mb-5">
             {
               mainMenuItems.map(({ to, label, Icon, desc, type }) => {
                 if (type === "notifications") {

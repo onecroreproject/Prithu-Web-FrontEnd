@@ -466,7 +466,7 @@ function Postcard({
 
   return (
     <>
-      <div className="w-full max-w-[470px] mx-auto bg-white border-b border-gray-300 mb-6 last:mb-0">
+      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0' : 'max-w-[470px] border-b border-gray-300 mb-6 last:mb-0'} mx-auto bg-white transition-all duration-300`}>
         {/* <PostHeader
           userId={userId}
           userName={userName}
@@ -762,6 +762,7 @@ function Postcard({
           token={token}
           onHideFromUI={onHideFromUI}
           onNotInterested={onNotInterested}
+          viewMode={viewMode}
         />
 
         <PostCommentsModal

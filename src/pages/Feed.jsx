@@ -517,7 +517,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.35, ease: "easeInOut" }}
             className={viewMode === 'grid'
-              ? "grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
+              ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full"
               : "flex items-center flex-col gap-5 w-full"}
           >
             {isLoading ? (

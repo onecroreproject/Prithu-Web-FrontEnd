@@ -31,6 +31,7 @@ const PostActions = ({
   onHideFromUI,
   onNotInterested,
   categoryId,
+  viewMode = "list",
 }) => {
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
@@ -95,7 +96,7 @@ const PostActions = ({
   };
 
   return (
-    <div className="px-4 py-3">
+    <div className={viewMode === 'grid' ? "px-3 py-2" : "px-4 py-3"}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
@@ -105,9 +106,9 @@ const PostActions = ({
               aria-label={localLiked ? "Unlike" : "Like"}
             >
               {localLiked ? (
-                <Favorite className="text-red-500" style={{ fontSize: 26 }} />
+                <Favorite className="text-red-500" style={{ fontSize: viewMode === 'grid' ? 20 : 26 }} />
               ) : (
-                <FavoriteBorder style={{ fontSize: 26 }} />
+                <FavoriteBorder style={{ fontSize: viewMode === 'grid' ? 20 : 26 }} />
               )}
             </button>
             {localLikesCount > 0 && (
@@ -127,7 +128,7 @@ const PostActions = ({
               className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
               aria-label="Share"
             >
-              <SendOutlined style={{ fontSize: 24 }} />
+              <SendOutlined style={{ fontSize: viewMode === 'grid' ? 18 : 24 }} />
             </button>
             {localSharesCount > 0 && (
               <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
@@ -147,7 +148,7 @@ const PostActions = ({
               aria-label="Download"
               title="Download"
             >
-              <Download style={{ fontSize: 22 }} />
+              <Download style={{ fontSize: viewMode === 'grid' ? 18 : 22 }} />
             </button>
             {localDownloadCount > 0 && (
               <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
