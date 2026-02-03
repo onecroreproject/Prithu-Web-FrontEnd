@@ -20,6 +20,8 @@ import TagIcon from "@mui/icons-material/Tag";
 
 import throttle from "lodash.throttle";
 import CategoryFeedPage from "../components/categories";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -52,7 +54,7 @@ const FeedSkeleton = () => (
   </motion.div>
 );
 
-const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
+const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) => {
   const { tagname } = useParams();
   const { token } = useContext(AuthContext);
   const location = useLocation();
@@ -458,7 +460,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
 
   return (
     <div id="feedTop">
-      <div className={`relative px-0 sm:px-4 md:px-6 py-5 max-w-[470px] mx-auto transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"}`}>
+      <div className={`relative px-0 sm:px-4 md:px-6 py-5 mx-auto transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px]'}`}>
         {isHashtagMode && (
           <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <TagIcon fontSize="inherit" />
@@ -468,23 +470,43 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
         {!isHashtagMode && (
           <>
             {/* <Stories />*/}
-            <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-2 flex items-center flex-col border-b border-gray-100/50 sm:border-none">
-              <CategoryFeedPage
-                onSelectCategory={setFeedCategory}
-                selectedCategoryId={feedCategory}
-                excludedCategoryIds={excludedCategoryIds}
-              />
+            <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-4 flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2">
+              <div className="flex-1 overflow-hidden">
+                <CategoryFeedPage
+                  onSelectCategory={setFeedCategory}
+                  selectedCategoryId={feedCategory}
+                  excludedCategoryIds={excludedCategoryIds}
+                />
+              </div>
+              <div className="flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "list" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                  title="List View"
+                >
+                  <ViewListIcon fontSize="small" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "grid" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                  title="Grid View"
+                >
+                  <ViewModuleIcon fontSize="small" />
+                </button>
+              </div>
             </div>
           </>
         )}
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           <motion.div
-            key={feedCategory || tagname || "home"}
+            key={`${feedCategory || tagname || "home"}-${viewMode}`}
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="flex items-center flex-col gap-5 w-full"
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className={viewMode === 'grid'
+              ? "grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
+              : "flex items-center flex-col gap-5 w-full"}
           >
             {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
@@ -492,9 +514,13 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
               mixed.map((item, idx) => {
                 const stableId = item._id || item.feedId || idx;
                 return (
-                  <div
+                  <motion.div
+                    layout
                     key={`${item.__kind}-${stableId}-${idx}`}
                     className="w-full"
+                    transition={{
+                      layout: { duration: 0.4, type: "spring", stiffness: 200, damping: 25 }
+                    }}
                   >
                     <PostcardWrapper
                       postData={item}
@@ -503,8 +529,9 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId }) => {
                       onHideFromUI={handleHideFromUI}
                       onNotInterested={handleNotInterestedFromUI}
                       isVisible={true}
+                      viewMode={viewMode}
                     />
-                  </div>
+                  </motion.div>
                 );
               })
             ) : (

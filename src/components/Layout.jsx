@@ -17,6 +17,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Track mobile menu state
+  const [viewMode, setViewMode] = useState("list"); // Lifted from Feed.jsx
   // Get tagname from URL: /hashtag/:tagname
   const tagname = params.tagname || null;
 
@@ -32,7 +33,8 @@ export default function Layout() {
   const isHashtagPage = location.pathname.startsWith("/hashtag/");
   const isHome = location.pathname === "/home" || isRetrieveFeed || isHashtagPage;
 
-  const showRightColumn = !isFullWidth && isHome;
+  const shouldSidebarStayExpanded = isHome && viewMode !== 'grid';
+  const showRightColumn = !isFullWidth && isHome && viewMode !== 'grid';
 
   const handleBackClick = () => {
     navigate("/home");
@@ -64,13 +66,13 @@ export default function Layout() {
 
       <Header
         onSidebarHoverChange={setIsSidebarHovered}
-        isHome={isHome}
+        isHome={shouldSidebarStayExpanded}
         onMobileMenuToggle={setIsMobileMenuOpen}
       />
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
-        <div className={`sticky top-14 lg:top-0 z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 transition-all duration-300 ${(isSidebarHovered || isHome) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`sticky top-14 lg:top-0 z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <div className="flex items-center gap-3">
             <IconButton
               onClick={handleBackClick}
@@ -95,14 +97,14 @@ export default function Layout() {
       )}
 
       <main className="flex-1 w-full pt-14 lg:pt-0">
-        <div className={`flex pb-20 lg:pb-0 transition-all duration-300 ${(isSidebarHovered || isHome) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`flex pb-20 lg:pb-0 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
-              <Feed tagname={tagname} />
+              <Feed tagname={tagname} viewMode={viewMode} setViewMode={setViewMode} />
             ) : isRetrieveFeed ? (
-              <Feed notifyfeedid={notifyfeedid} />
+              <Feed notifyfeedid={notifyfeedid} viewMode={viewMode} setViewMode={setViewMode} />
             ) : location.pathname === "/home" ? (
-              <Feed />
+              <Feed viewMode={viewMode} setViewMode={setViewMode} />
             ) : (
               <Outlet />
             )}

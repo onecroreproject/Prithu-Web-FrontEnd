@@ -148,32 +148,8 @@ const AnimatedCounter = ({ end, duration = 2500, label, icon }) => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !hasAnimated.current) {
+        if (entries[0].isIntersecting) {
           setIsVisible(true);
-          hasAnimated.current = true;
-          let startTime = null;
-
-          const animateCount = (timestamp) => {
-            if (!startTime) startTime = timestamp;
-            const progress = timestamp - startTime;
-            const percentage = Math.min(progress / duration, 1);
-
-            // Elastic easing for bouncy effect
-            const easeOutElastic = (x) => {
-              const c4 = (2 * Math.PI) / 3;
-              return x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
-            };
-
-            const easedPercentage = easeOutElastic(percentage);
-            const currentCount = Math.floor(easedPercentage * end);
-
-            setCount(currentCount);
-
-            if (percentage < 1) {
-              requestAnimationFrame(animateCount);
-            }
-          };
-          requestAnimationFrame(animateCount);
         }
       },
       { threshold: 0.2 }
@@ -184,10 +160,39 @@ const AnimatedCounter = ({ end, duration = 2500, label, icon }) => {
     }
 
     return () => observer.disconnect();
-  }, [end, duration]);
+  }, []);
+
+  useEffect(() => {
+    if (isVisible) {
+      let startTime = null;
+      const startValue = count; // Start from current count to avoid jumps
+      const endValue = parseInt(end) || 0;
+
+      const animateCount = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percentage = Math.min(progress / duration, 1);
+
+        const easeOutElastic = (x) => {
+          const c4 = (2 * Math.PI) / 3;
+          return x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+        };
+
+        const easedPercentage = easeOutElastic(percentage);
+        const currentCount = Math.floor(startValue + easedPercentage * (endValue - startValue));
+
+        setCount(currentCount);
+
+        if (percentage < 1) {
+          requestAnimationFrame(animateCount);
+        }
+      };
+      requestAnimationFrame(animateCount);
+    }
+  }, [end, isVisible, duration]);
 
   return (
-    <div ref={counterRef} className="text-center group">
+    <div ref={counterRef} className=" flex flex-col text-center group">
       <div className="relative inline-block">
         <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 bg-clip-text text-transparent">
           {count.toLocaleString()}
@@ -220,6 +225,15 @@ const AnimatedIcon = ({ icon, className = "" }) => (
 
 const LandingPage = () => {
   const containerRef = useRef();
+  const [showDecorations, setShowDecorations] = React.useState(false);
+
+  useEffect(() => {
+    // Delay decorative elements to improve LCP
+    const timer = setTimeout(() => {
+      setShowDecorations(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     AOS.init({
@@ -239,14 +253,14 @@ const LandingPage = () => {
   };
 
   const handleSignUpClick = () => {
-    window.location.href = '/register';
+    window.location.href = '/signup';
   };
 
   const { data: stats } = useMainBoardStats();
 
   const handleShareClick = () => {
-    // Navigate to register page as per request "user click Earn Refering Friends nav to register page"
-    window.location.href = '/register';
+    // Navigate to signup page to open registration section
+    window.location.href = '/signup';
   };
 
   // Happy emotion icons for decoration
@@ -261,7 +275,7 @@ const LandingPage = () => {
           className="group relative px-6 py-2 bg-white/80 backdrop-blur-md border border-amber-200 rounded-full text-sm font-bold text-amber-700 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-2"
         >
           <span className="relative z-10 flex items-center gap-2">
-            <span>Enter your world</span>
+            <span>Expolre your world</span>
             <span className="text-lg">✨</span>
           </span>
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -316,23 +330,26 @@ const LandingPage = () => {
         </Canvas>
       </div>
 
-      {/* 2D Flying Icons Layer */}
-      <div className="fixed inset-0 z-1 pointer-events-none">
-        {happyIcons.map((icon, index) => (
-          <div
-            key={index}
-            className="absolute animate-float text-2xl opacity-30"
-            style={{
-              left: `${(index * 37) % 100}%`,
-              top: `${(index * 23) % 100}%`,
-              animationDelay: `${index * 0.2}s`,
-              animationDuration: `${3 + (index % 3)}s`,
-            }}
-          >
-            {icon}
-          </div>
-        ))}
-      </div>
+      {/* 2D Flying Icons Layer - Deferred for LCP Performance */}
+      {showDecorations && (
+        <div className="fixed inset-0 z-1 pointer-events-none">
+          {happyIcons.map((icon, index) => (
+            <div
+              key={index}
+              className="absolute animate-float text-2xl opacity-30"
+              style={{
+                left: `${(index * 37) % 100}%`,
+                top: `${(index * 23) % 100}%`,
+                animationDelay: `${index * 0.2}s`,
+                animationDuration: `${3 + (index % 3)}s`,
+                willChange: 'transform'
+              }}
+            >
+              {icon}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       <div className="relative z-10">
@@ -341,8 +358,6 @@ const LandingPage = () => {
           <div className="max-w-6xl mx-auto text-center">
             {/* Logo/Title with enhanced effect */}
             <div
-              data-aos="zoom-in"
-              data-aos-delay="100"
               className="relative inline-block mb-8"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 blur-2xl opacity-50 rounded-full animate-pulse"></div>
@@ -651,10 +666,6 @@ const LandingPage = () => {
                       <div className="absolute inset-0 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
                     </button>
 
-                    <div className="text-center">
-                      <div className="text-sm text-gray-600 mb-2">Limited Time Offer</div>
-                      <div className="text-amber-600 font-bold text-lg">🎁 Get 100 Free Credits!</div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -663,9 +674,9 @@ const LandingPage = () => {
             {/* Final Enhanced Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
-                { label: "Templates", value: "500+", icon: "🎨", color: "from-pink-500 to-rose-500" },
-                { label: "Users", value: "50K+", icon: "😊", color: "from-amber-500 to-orange-500" },
-                { label: "Posts Created", value: "10K+", icon: "✨", color: "from-blue-500 to-cyan-500" },
+                { label: "Templates", value: stats?.totalTemplates || 500, icon: "🎨", color: "from-pink-500 to-rose-500" },
+                { label: "Users", value: stats?.totalUsers || 50000, icon: "😊", color: "from-amber-500 to-orange-500" },
+                { label: "Posts Created", value: stats?.totalShares || 10000, icon: "✨", color: "from-blue-500 to-cyan-500" },
                 { label: "Countries", value: "150+", icon: "🌎", color: "from-green-500 to-emerald-500" }
               ].map((stat, index) => (
                 <div
@@ -678,7 +689,7 @@ const LandingPage = () => {
                     {stat.icon}
                   </div>
                   <div className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
-                    {stat.value}
+                    {typeof stat.value === 'number' ? <AnimatedCounter end={stat.value} duration={1500} /> : stat.value}
                   </div>
                   <div className="text-gray-700 font-medium">{stat.label}</div>
                 </div>
@@ -698,7 +709,7 @@ const LandingPage = () => {
               ))}
             </div>
             <p className="font-bold text-xl text-gray-800 mb-2">
-              © 2024 Prithu. Turn everyday sharing into something valuable.
+              © 2026 Prithu. Turn everyday sharing into something valuable.
             </p>
             <p className="text-lg">
               Your content. <span className="text-amber-600 font-semibold">Your identity.</span> Shared your way.
@@ -721,11 +732,12 @@ const LandingPage = () => {
           animation: gradient 3s ease infinite;
         }
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+          0%, 100% { transform: translateY(0px) translateZ(0); }
+          50% { transform: translateY(-20px) translateZ(0); }
         }
         .animate-float {
           animation: float 3s ease-in-out infinite;
+          will-change: transform;
         }
       `}</style>
     </div>

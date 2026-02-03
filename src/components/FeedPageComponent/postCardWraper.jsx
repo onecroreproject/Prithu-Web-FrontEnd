@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import Postcard from "./Postcard";
 import { observeElement } from "../../utils/intersectionObserver";
 
-const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInterested }) => {
+const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInterested, viewMode }) => {
   const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -24,7 +24,7 @@ const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInteres
   }, []);
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-full h-full">
       <Postcard
         postData={postData}
         authUser={authUser}
@@ -32,6 +32,7 @@ const PostcardWrapper = ({ postData, authUser, token, onHideFromUI, onNotInteres
         isVisible={isVisible}
         onHideFromUI={onHideFromUI}
         onNotInterested={onNotInterested}
+        viewMode={viewMode}
       />
     </div>
   );

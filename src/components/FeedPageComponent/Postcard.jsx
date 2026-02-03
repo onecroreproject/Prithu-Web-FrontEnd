@@ -42,6 +42,7 @@ function Postcard({
   isVisible,
   onHideFromUI,
   onNotInterested,
+  viewMode = "list",
 }) {
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -73,7 +74,7 @@ function Postcard({
     designMetadata = {},
     category = "",
   } = postData || {};
-  console.log("footer", designMetadata)
+
   const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
 
   const isTemplate = uploadMode === "template" || postData.uploadType === "template";
@@ -442,6 +443,7 @@ function Postcard({
       </div>
     );
   }
+
 
   return (
     <>
