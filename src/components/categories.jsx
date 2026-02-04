@@ -73,7 +73,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
     'Comedy': 'border-yellow-400 bg-yellow-50 text-yellow-700',
     'Tech': 'border-blue-300 bg-blue-50 text-blue-700',
     'Gaming': 'border-indigo-300 bg-indigo-50 text-indigo-700',
-    'News': 'border-gray-400 bg-gray-50 text-gray-700',
+    'News': 'border-gray-500 bg-gray-50 text-gray-700',
     'Sports': 'border-green-300 bg-green-50 text-green-700',
     'Food': 'border-orange-300 bg-orange-50 text-orange-700',
     'Travel': 'border-cyan-300 bg-cyan-50 text-cyan-700',
@@ -81,10 +81,37 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
     'Education': 'border-amber-300 bg-amber-50 text-amber-700'
   };
 
+  // Expanded color palette for unique colors
+  const COLOR_PALETTE = [
+    'border-pink-300 bg-pink-50 text-pink-700',
+    'border-purple-300 bg-purple-50 text-purple-700',
+    'border-blue-300 bg-blue-50 text-blue-700',
+    'border-indigo-300 bg-indigo-50 text-indigo-700',
+    'border-green-300 bg-green-50 text-green-700',
+    'border-orange-300 bg-orange-50 text-orange-700',
+    'border-cyan-300 bg-cyan-50 text-cyan-700',
+    'border-teal-300 bg-teal-50 text-teal-700',
+    'border-amber-300 bg-amber-50 text-amber-700',
+    'border-rose-300 bg-rose-50 text-rose-700',
+    'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700',
+    'border-violet-300 bg-violet-50 text-violet-700',
+    'border-sky-300 bg-sky-50 text-sky-700',
+    'border-emerald-300 bg-emerald-50 text-emerald-700',
+    'border-lime-300 bg-lime-50 text-lime-700',
+    'border-red-300 bg-red-50 text-red-700',
+    'border-slate-300 bg-slate-50 text-slate-700',
+  ];
+
   const getCategoryIcon = (name) => ICON_MAP[name] || '✨';
-  const getCategoryTheme = (name, isSelected) => {
+  const getCategoryTheme = (name, isSelected, index) => {
     if (isSelected) return 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm border-blue-400';
-    return COLOR_MAP[name] || 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300';
+
+    // First try mapping by name to keep some specific branding
+    if (COLOR_MAP[name]) return `${COLOR_MAP[name]} hover:border-blue-300`;
+
+    // Fallback to palette based on index to ensure uniqueness for dynamic categories
+    const colorStyle = COLOR_PALETTE[index % COLOR_PALETTE.length];
+    return `${colorStyle} hover:border-blue-300`;
   };
 
   // Ultra-compact padding that hugs the text
@@ -180,7 +207,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
                 onClick={() => onSelectCategory(cat.categoryId)}
                 onMouseEnter={() => setHoveredCategory(cat.categoryId)}
                 onMouseLeave={() => setHoveredCategory(null)}
-                className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border animate-in fade-in slide-in-from-bottom-1 ${getCategoryTheme(cat.categoryName, selectedCategoryId === cat.categoryId)
+                className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border animate-in fade-in slide-in-from-bottom-1 ${getCategoryTheme(cat.categoryName, selectedCategoryId === cat.categoryId, index)
                   } ${getPaddingClass()}`}
                 style={{
                   animationDelay: `${index * 20}ms`,
