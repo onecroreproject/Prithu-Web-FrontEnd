@@ -12,6 +12,7 @@ import {
   BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
   Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign
 } from "lucide-react";
+import SidebarThreeBackground from "./SidebarThreeBackground";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
 import api from "../api/axios";
@@ -178,42 +179,45 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
   // Main menu items to show directly in sidebar
   const mainMenuItems = [
-    { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
-    { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos" },
+    { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
+    { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
   ];
 
   // Profile menu items
   const profileMenuItems = [
-    { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
-    // { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
+    { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile", color: "green" },
   ];
 
   // Settings menu items
   const settingsMenuItems = [
-    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
+    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings", color: "slate" },
     {
       to: "/home/subscriptions",
       label: "Subscriptions",
       Icon: CircleDollarSign,
-      desc: "Manage subscriptions"
+      desc: "Manage subscriptions",
+      color: "amber"
     },
     {
       to: "/home/referral",
       label: "Referral",
       Icon: Gift,
-      desc: "Referral program"
+      desc: "Referral program",
+      color: "purple"
     },
     {
       to: "/home/help",
       label: "Help",
       Icon: HelpCircle,
-      desc: "Get help and support"
+      desc: "Get help and support",
+      color: "cyan"
     },
     {
       to: "/home/feedback-support",
       label: "Feedback & Support",
       Icon: MessageSquare,
-      desc: "Share feedback or report issues"
+      desc: "Share feedback or report issues",
+      color: "indigo"
     },
   ];
 
@@ -642,7 +646,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     <Fragment>
       {/* DESKTOP SIDEBAR - UPDATED WIDTH */}
       <motion.aside
-        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-gray-100 z-50 overflow-visible"
+        className="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white/95 border-r border-gray-100 z-50 overflow-visible backdrop-blur-sm"
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1, width: isSidebarExpanded ? 280 : 80 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -655,8 +659,11 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
           onSidebarHoverChange?.(false);
         }}
       >
+        {/* Three.js Background with z-0, other content needs relative z-10 */}
+        <SidebarThreeBackground />
+
         {/* Logo Section - Responsive */}
-        <div className={`flex items-center ${isSidebarExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 border-b border-gray-100 h-[65px] relative`}>
+        <div className={`relative z-10 flex items-center ${isSidebarExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 border-b border-gray-100 h-[65px]`}>
           <div
             onClick={() => {
               if (window.location.pathname === "/") {
@@ -742,104 +749,49 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
           </AnimatePresence>
         </div>
         {/* Sidebar Navigation - IMPROVED SPACING */}
-        <nav className="flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+        <nav className="relative z-10 flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {/* Main Navigation */}
-          <div className="mb-5">
-            {
-              mainMenuItems.map(({ to, label, Icon, desc, type }) => {
-                if (type === "notifications") {
-                  return (
-                    <button
-                      key="notifications"
-                      onClick={handleBellClick}
-                      ref={notificationRef}
-                      className={`flex  items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${notifOpen ? "bg-blue-50 text-blue-600" : "text-gray-700 hover:bg-gray-50"}`}
-                    >
-                      <div className="flex w-6 h-5 items-center justify-center relative">
-                        <Icon className="w-5 h-5 shrink-0" />
-                        {notifCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] rounded-full min-w-[14px] h-3.5 flex items-center  px-0.5 z-10">
-                            {notifCount > 99 ? '99+' : notifCount}
-                          </span>
-                        )}
-                      </div>
-                      <AnimatePresence>
-                        {isSidebarExpanded && (
-                          <motion.span
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            className="text-sm font-medium whitespace-nowrap"
-                          >
-                            {label}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </button>
-                  );
-                }
+          <div className="space-y-1">
+            {mainMenuItems.map(({ to, label, Icon, desc, type, color }) => {
+              const colorClasses = {
+                blue: "text-blue-600 hover:bg-blue-50 active:bg-blue-100",
+                pink: "text-pink-600 hover:bg-pink-50 active:bg-pink-100",
+                green: "text-green-600 hover:bg-green-50 active:bg-green-100",
+              };
+              const activeColorClasses = {
+                blue: "bg-blue-50 text-blue-700 from-blue-500/10 to-transparent",
+                pink: "bg-pink-50 text-pink-700 from-pink-500/10 to-transparent",
+                green: "bg-green-50 text-green-700 from-green-500/10 to-transparent",
+              };
 
-                return (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    className={({ isActive }) =>
-                      `flex items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-gray-700 hover:bg-gray-50"
-                      }`
-                    }
-                    onClick={label === "Reels" ? handleReelClick : undefined}
-                  >
-                    <div className="flex w-6 h-5 items-center justify-center">
-                      <Icon className={`w-7 h-7 shrink-0 ${label === "Reels" && isReelsActive ? "text-blue-600" : ""}`} />
-                    </div>
-                    <AnimatePresence>
-                      {isSidebarExpanded && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          className="text-sm font-medium  whitespace-nowrap"
-                        >
-                          {label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </NavLink>
-                );
-              })
-            }
+              const isReels = label === "Reels";
+              const activeClass = isActive => isActive
+                ? `${activeColorClasses[color] || "bg-gray-100 text-gray-900"} font-bold shadow-sm bg-gradient-to-r`
+                : `${colorClasses[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]`;
 
-          </div >
-
-          {/* Profile Section */}
-
-
-          {/* Settings Section */}
-          <div className="mt-auto pt-4 border-t border-gray-100 space-y-1">
-            <AnimatePresence>
-              {isSidebarExpanded && (
-                <motion.h3
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2 whitespace-nowrap"
-                >
-                  Profile
-                </motion.h3>
-              )}
-            </AnimatePresence>
-            {profileMenuItems.map((item) => {
-              if (item.label === "Portfolio") {
+              // NOTIFICATIONS special case
+              if (type === "notifications") {
                 return (
                   <button
-                    key={item.label}
-                    onClick={handlePortfolioClick}
-                    className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
+                    key="notifications"
+                    onClick={handleBellClick}
+                    ref={notificationRef}
+                    className={`relative flex items-center rounded-xl transition-all duration-200 w-full text-left group
+                        ${isSidebarExpanded ? "px-3 gap-3 py-3 justify-start" : "px-0 justify-center py-3"} 
+                        ${notifOpen ? "bg-amber-50 text-amber-600 font-bold shadow-sm" : "text-gray-600 hover:bg-amber-50 hover:text-amber-600 hover:shadow-md hover:scale-[1.02]"}
+                      `}
                   >
-                    <div className="flex w-6 h-5 items-center justify-center">
-                      <item.Icon className="w-7 h-7 shrink-0" />
+                    <div className="relative flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                      <Icon
+                        className="w-6 h-6 shrink-0 filter drop-shadow-sm"
+                        strokeWidth={2.5}
+                        style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.15))" }}
+                      />
+                      {notifCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center border-2 border-white shadow-sm z-10">
+                          {notifCount > 99 ? '99+' : notifCount}
+                        </span>
+                      )}
                     </div>
                     <AnimatePresence>
                       {isSidebarExpanded && (
@@ -847,9 +799,9 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -10 }}
-                          className="text-sm font-medium whitespace-nowrap"
+                          className="text-sm font-bold tracking-wide"
                         >
-                          {item.label}
+                          {label}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -859,17 +811,20 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
               return (
                 <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center rounded-lg transition-all w-full text-left ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
-                    }`
-                  }
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => `flex items-center rounded-xl transition-all duration-200 w-full text-left group
+                      ${isSidebarExpanded ? "px-3 gap-3 py-3 justify-start" : "px-0 justify-center py-3"} 
+                      ${activeClass(isActive)}
+                    `}
+                  onClick={isReels ? handleReelClick : undefined}
                 >
-                  <div className="flex w-6 h-5 items-center justify-center">
-                    <item.Icon className="w-7 h-7 shrink-0" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                    <Icon
+                      className={`w-6 h-6 shrink-0 filter drop-shadow-sm transition-colors duration-300 ${isReels && isReelsActive ? "text-pink-600 fill-pink-100" : ""}`}
+                      strokeWidth={2.5}
+                      style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.15))" }}
+                    />
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -877,51 +832,130 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="text-sm font-medium whitespace-nowrap"
+                        className="text-sm font-bold tracking-wide"
                       >
-                        {item.label}
+                        {label}
                       </motion.span>
                     )}
                   </AnimatePresence>
                 </NavLink>
               );
             })}
-            {settingsMenuItems.map(({ to, label, Icon, onClick }) => (
-              onClick ? (
-                <button
-                  key={label}
-                  onClick={onClick}
-                  className={`flex items-center rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50 mb-1 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
+          </div>
+
+          {/* Profile Section */}
+
+
+          {/* Settings Section */}
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
+            <AnimatePresence>
+              {isSidebarExpanded && (
+                <motion.h3
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest px-3 mb-2"
                 >
-                  <div className="flex w-6 h-5 items-center justify-center">
-                    <Icon className="w-7 h-7 shrink-0" />
-                  </div>
-                  <AnimatePresence>
-                    {isSidebarExpanded && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        className="text-sm font-medium whitespace-nowrap"
-                      >
-                        {label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </button>
-              ) : (
+                  Explore & Account
+                </motion.h3>
+              )}
+            </AnimatePresence>
+
+            {[...profileMenuItems, ...settingsMenuItems].map(({ to, label, Icon, desc, color, onClick }) => {
+              const colorMap = {
+                green: "text-green-600 hover:bg-green-50",
+                slate: "text-slate-600 hover:bg-slate-50",
+                amber: "text-amber-600 hover:bg-amber-50",
+                purple: "text-purple-600 hover:bg-purple-50",
+                cyan: "text-cyan-600 hover:bg-cyan-50",
+                indigo: "text-indigo-600 hover:bg-indigo-50",
+              };
+              const activeColorMap = {
+                green: "bg-green-50 text-green-700 border-l-4 border-green-500",
+                slate: "bg-slate-50 text-slate-700 border-l-4 border-slate-500",
+                amber: "bg-amber-50 text-amber-700 border-l-4 border-amber-500",
+                purple: "bg-purple-50 text-purple-700 border-l-4 border-purple-500",
+                cyan: "bg-cyan-50 text-cyan-700 border-l-4 border-cyan-500",
+                indigo: "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500",
+              };
+
+              // PORTFOLIO SPECIAL CASE
+              if (label === "Portfolio") {
+                return (
+                  <button
+                    key={label}
+                    onClick={handlePortfolioClick}
+                    className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group mb-1
+                        ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
+                        text-gray-600 hover:bg-purple-50 hover:text-purple-600 hover:shadow-md hover:scale-[1.02]
+                      `}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                      <Icon className="w-5 h-5 shrink-0" strokeWidth={2} style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.1))" }} />
+                    </div>
+                    <AnimatePresence>
+                      {isSidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="text-sm font-medium"
+                        >
+                          {label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              }
+
+              // If explicit onClick is provided
+              if (onClick) {
+                return (
+                  <button
+                    key={label}
+                    onClick={onClick}
+                    className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group mb-1
+                        ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
+                         ${colorMap[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]
+                      `}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                      <Icon className="w-5 h-5 shrink-0" strokeWidth={2} style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.1))" }} />
+                    </div>
+                    <AnimatePresence>
+                      {isSidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="text-sm font-medium"
+                        >
+                          {label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              }
+
+              return (
                 <NavLink
                   key={to}
                   to={to}
-                  className={({ isActive }) =>
-                    `flex items-center rounded-lg transition-all w-full text-left mb-1 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} ${isActive
-                      ? "bg-blue-50 text-blue-700 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50"
-                    }`
-                  }
+                  className={({ isActive }) => `flex items-center rounded-xl transition-all duration-200 w-full text-left group mb-1
+                      ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
+                      ${isActive
+                      ? `${activeColorMap[color] || "bg-gray-50 text-gray-900"} font-semibold shadow-sm`
+                      : `${colorMap[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]`}
+                    `}
                 >
-                  <div className="flex w-6 h-5 items-center justify-center">
-                    <Icon className="w-7 h-7 shrink-0" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                    <Icon
+                      className="w-5 h-5 shrink-0 transition-colors"
+                      strokeWidth={2}
+                      style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.1))" }}
+                    />
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -929,23 +963,26 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="text-sm font-medium whitespace-nowrap"
+                        className="text-sm font-medium"
                       >
                         {label}
                       </motion.span>
                     )}
                   </AnimatePresence>
                 </NavLink>
-              )
-            ))}
+              );
+            })}
 
             {/* Logout Button */}
             <button
               onClick={logout}
-              className={`flex items-center rounded-lg transition-all w-full text-left text-red-600 hover:bg-red-50 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"}`}
+              className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group mt-4
+                 ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
+                 text-red-500 hover:bg-red-50 hover:text-red-600 hover:shadow-md hover:scale-[1.02]
+               `}
             >
-              <div className="flex w-6 h-5 items-center justify-center">
-                <LogOut className="w-7 h-7 shrink-0" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                <LogOut className="w-5 h-5 shrink-0" strokeWidth={2} style={{ filter: "drop-shadow(1px 2px 2px rgba(220, 38, 38, 0.2))" }} />
               </div>
               <AnimatePresence>
                 {isSidebarExpanded && (
@@ -953,7 +990,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="text-sm font-medium whitespace-nowrap"
+                    className="text-sm font-bold"
                   >
                     Logout
                   </motion.span>
@@ -1267,12 +1304,14 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       }
 
       {/* Notification Dropdown for Mobile / Consistency */}
-      <NotificationDropdown
-        isOpen={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        onUpdateCount={refreshNotifications}
-        toggleRef={notificationRef}
-      />
+      <div className="lg:hidden">
+        <NotificationDropdown
+          isOpen={notifOpen}
+          onClose={() => setNotifOpen(false)}
+          onUpdateCount={refreshNotifications}
+          toggleRef={notificationRef}
+        />
+      </div>
 
 
     </Fragment >

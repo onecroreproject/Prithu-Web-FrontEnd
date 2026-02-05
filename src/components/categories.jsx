@@ -22,7 +22,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   }, []);
 
   const calculateVisibleCount = () => {
-    const itemsPerRow = 3;
+    const itemsPerRow = 4;
     const rows = 2;
     setVisibleCount(itemsPerRow * rows);
   };
@@ -120,8 +120,8 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   if (loading) {
     return (
       <div className="w-full py-1 animate-in fade-in duration-200">
-        <div className="grid grid-cols-3 gap-1">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-4 gap-1">
+          {[...Array(8)].map((_, i) => (
             <div key={i} className="h-6 bg-gradient-to-r from-gray-200 to-gray-100 rounded-full animate-pulse-glow"
               style={{ animationDelay: `${i * 30}ms` }}></div>
           ))}
@@ -158,7 +158,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
       {categories.length > 0 ? (
         <div className="space-y-1">
           {/* Categories Grid - Ultra compact */}
-          <div className="grid grid-cols-3 gap-1 animate-in fade-in duration-150">
+          <div className="grid grid-cols-4 gap-1 animate-in fade-in duration-150">
             {/* "Trending" category - Fire Icon */}
             <button
               onClick={() => onSelectCategory('trending')}
@@ -373,14 +373,14 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
         
         /* Responsive adjustments */
         @media (max-width: 640px) {
-          .grid-cols-3 {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+          .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
           }
         }
         
         @media (max-width: 480px) {
-          .grid-cols-3 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+          .grid-cols-4 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
       `}</style>

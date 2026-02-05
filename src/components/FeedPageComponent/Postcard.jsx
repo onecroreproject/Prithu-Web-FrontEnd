@@ -747,6 +747,7 @@ function Postcard({
           likesCount={likesCount}
           shareCount={sharesCount}
           downloadCount={downloadCount}
+          viewsCount={postData.stats?.views || postData.viewsCount || 0}
           post={postData}
           handleLikeFeed={handleLikeFeed}
           handleShare={handleShare}

@@ -7,6 +7,7 @@ import {
   BookmarkBorder,
   Bookmark,
   Download,
+  Visibility,
 } from "@mui/icons-material";
 import PostOptionsMenu from "../PostOptionsMenu";
 
@@ -15,6 +16,7 @@ const PostActions = ({
   likesCount = 0,
   shareCount = 0,
   downloadCount = 0,
+  viewsCount = 0,
   handleLikeFeed,
   handleShare,
   handleSave,
@@ -132,7 +134,7 @@ const PostActions = ({
             </button>
             {localSharesCount > 0 && (
               <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
-                {localSharesCount > 999
+                {localSharesCount > 1000
                   ? `${(localSharesCount / 1000).toFixed(1)}k`
                   : localSharesCount}
               </span>
@@ -141,7 +143,23 @@ const PostActions = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Eye Icon for Views Count */}
           <div className="flex items-center gap-1">
+            <button
+              className="p-1 focus:outline-none hover:opacity-70 transition-opacity cursor-default"
+              aria-label="Views"
+            >
+              <Visibility style={{ fontSize: viewMode === 'grid' ? 18 : 22, color: "#666" }} />
+            </button>
+            <span className="text-sm font-semibold text-gray-800 min-w-[20px]">
+              {viewsCount > 1000
+                ? `${(viewsCount / 1000).toFixed(1)}k`
+                : viewsCount}
+            </span>
+          </div>
+
+          {/* Download hidden per user request */}
+          {/* <div className="flex items-center gap-1">
             <button
               onClick={instantDownload}
               className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
@@ -157,7 +175,7 @@ const PostActions = ({
                   : localDownloadCount}
               </span>
             )}
-          </div>
+          </div> */}
 
           <PostOptionsMenu
             feedId={feedId}

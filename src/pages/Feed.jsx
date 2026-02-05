@@ -142,39 +142,18 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
       const currentParam = lastPageParam || initialPageParam;
       const isFullBatch = lastPage && lastPage.length >= 10;
 
-      if (currentParam.mode === "category") {
-        if (isFullBatch) {
-          // Special case for Trending - just increment page
-          if (feedCategory === 'trending' || currentParam.categoryId === 'trending') {
-            return { ...currentParam, allPage: currentParam.allPage + 1 };
-          }
-          return { ...currentParam, categoryPage: currentParam.categoryPage + 1 };
-        } else {
-          // Category exhausted, transition to next category
-          const currentCatId = currentParam.categoryId || feedCategory;
-          const currentIndex = categories.findIndex(c => (c._id || c.id) === currentCatId);
+      // If batch is not full, we reached the end -> "You're all caught up"
+      if (!isFullBatch) return undefined;
 
-          if (currentIndex !== -1 && currentIndex < categories.length - 1) {
-            const nextCat = categories[currentIndex + 1];
-            return {
-              ...currentParam,
-              mode: "category",
-              categoryPage: 1,
-              categoryId: nextCat._id || nextCat.id
-            };
-          } else {
-            // No more categories, switch to 'all' (mixed)
-            return { ...currentParam, mode: "all", allPage: 1, categoryId: null };
-          }
+      if (currentParam.mode === "category") {
+        // Special case for Trending - just increment page
+        if (feedCategory === 'trending' || currentParam.categoryId === 'trending') {
+          return { ...currentParam, allPage: currentParam.allPage + 1 };
         }
+        return { ...currentParam, categoryPage: currentParam.categoryPage + 1 };
       } else {
         // mode === "all"
-        if (isFullBatch) {
-          return { ...currentParam, allPage: currentParam.allPage + 1 };
-        } else {
-          // 'all' exhausted, restart 'all' feeds again (Persistent Loop)
-          return { ...currentParam, allPage: 1 };
-        }
+        return { ...currentParam, allPage: currentParam.allPage + 1 };
       }
     },
     enabled: !!(tokenRef.current || token),
@@ -557,6 +536,18 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
         {isFetchingNextPage && (
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+          </div>
+        )}
+
+        {!hasNextPage && !isLoading && mixed.length > 0 && (
+          <div className="flex flex-col items-center justify-center py-10 opacity-75">
+            <div className="bg-green-100 p-3 rounded-full mb-3">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800">You're all caught up</h3>
+            <p className="text-gray-500 text-sm mt-1">Check back later for more updates!</p>
           </div>
         )}
       </div>
