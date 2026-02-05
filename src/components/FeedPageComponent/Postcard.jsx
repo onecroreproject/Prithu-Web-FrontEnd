@@ -188,8 +188,7 @@ function Postcard({
   // IMAGE VIEW COUNT
   useEffect(() => {
     if (type !== "image") return;
-    if (!feedId || !token) return;
-    if (!isVisible) return;
+    if (!feedId || !isVisible) return;
     if (imageViewCounted) return;
 
     userImageViewCount(feedId)
@@ -199,31 +198,49 @@ function Postcard({
       .catch((err) =>
         console.error("❌ Image view failed →", feedId, err)
       );
-  }, [type, feedId, token, isVisible, imageViewCounted]);
+  }, [type, feedId, isVisible, imageViewCounted]);
 
   // VIDEO VIEW COUNT
   useEffect(() => {
     if (type !== "video") return;
-    if (!feedId || !token) return;
-    if (!isVisible) return;
+    if (!feedId || !isVisible) return;
     if (videoViewCounted) return;
 
     const video = videoRef.current;
     if (!video) return;
 
-    const handleEnded = () => {
+    let watchThresholdMet = false;
+
+    const handleVideoTracking = () => {
+      if (videoViewCounted || watchThresholdMet) return;
+
       userVideoViewCount(feedId)
         .then(() => {
           setVideoViewCounted(true);
+          watchThresholdMet = true;
         })
         .catch((err) =>
           console.error("❌ Video view failed →", feedId, err)
         );
     };
 
-    video.addEventListener("ended", handleEnded);
-    return () => video.removeEventListener("ended", handleEnded);
-  }, [type, feedId, token, isVisible, videoViewCounted]);
+    // Trigger on 'ended'
+    video.addEventListener("ended", handleVideoTracking);
+
+    // Trigger after 3 seconds of watch time (or when 50% reached for short videos)
+    const handleTimeUpdate = () => {
+      if (!videoViewCounted && video.currentTime >= Math.min(3, video.duration / 2)) {
+        handleVideoTracking();
+        video.removeEventListener("timeupdate", handleTimeUpdate);
+      }
+    };
+    video.addEventListener("timeupdate", handleTimeUpdate);
+
+    return () => {
+      video.removeEventListener("ended", handleVideoTracking);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, [type, feedId, isVisible, videoViewCounted]);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 180);
