@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Search, Video, User, PlusCircle } from "lucide-react";
+import { Home, Search, Video, Image, User, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const BottomNav = () => {
@@ -15,6 +15,7 @@ const BottomNav = () => {
             isAction: true
         },
         { to: "/home/reels", Icon: Video, label: "Reels" },
+        { to: "/home/images", Icon: Image, label: "Images" },
         { to: "/home/profile", Icon: User, label: "Profile" },
     ];
 

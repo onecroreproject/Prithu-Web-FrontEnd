@@ -17,22 +17,29 @@ import {
   Wallet,
   Bell,
   Download,
-  Filter
+  Filter,
+  AlertCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ReferralSharePopUp from '../components/Referral/ReferralSharePopUp';
 import ReferralQRCodePopUp from '../components/Referral/ReferralQRCodePopUp';
+import WithdrawalModal from '../components/Referral/WithdrawalModal';
 import {
   getUserReferralCode,
   getUserEarningsTotal,
   getReferredPeople,
   logReferralActivity,
   getRecentActivities,
-  getWithdrawalDetails
+  getWithdrawalDetails,
+  getReferralCycles,
+  getCycleDetails
 } from '../API_Services/referralServices';
+import { checkUserActiveSubscription } from '../API_Services/subscriptionServices';
 import toast from 'react-hot-toast';
 import ReferralSharePopup from '../components/ReferralSharePopup';
 
 const ReferralPage = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEarnings: 0,
@@ -41,6 +48,7 @@ const ReferralPage = () => {
     referralCode: '',
     successfulReferrals: 0
   });
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   const [referrals, setReferrals] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
@@ -51,6 +59,13 @@ const ReferralPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [cycles, setCycles] = useState([]);
+  const [activeCycle, setActiveCycle] = useState(null);
+  const [expandedCycle, setExpandedCycle] = useState(null); // ID of expanded cycle
+  const [cycleDetails, setCycleDetails] = useState({}); // { cycleId: [referrals] }
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [editingWithdrawal, setEditingWithdrawal] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -59,13 +74,17 @@ const ReferralPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [codeRes, earningsRes, peopleRes, activityRes, withdrawalRes] = await Promise.all([
+      const [codeRes, earningsRes, peopleRes, activityRes, withdrawalRes, subRes, cyclesRes] = await Promise.all([
         getUserReferralCode(),
         getUserEarningsTotal(),
         getReferredPeople(pagination.page),
         getRecentActivities(),
-        getWithdrawalDetails()
+        getWithdrawalDetails(),
+        checkUserActiveSubscription(),
+        getReferralCycles()
       ]);
+
+      setIsSubscribed(subRes.success && subRes.isActive);
 
       setStats({
         totalEarnings: earningsRes.totalEarnings || 0,
@@ -79,11 +98,65 @@ const ReferralPage = () => {
       setPagination(prev => ({ ...prev, total: peopleRes.pagination?.total || 0 }));
       setRecentActivity(activityRes.data || []);
       setWithdrawals(withdrawalRes.data || []);
+
+      if (cyclesRes.success) {
+        setCycles(cyclesRes.data || []);
+        const active = cyclesRes.data?.find(c => c.status === 'active' || c.status === 'completed');
+        setActiveCycle(active || null);
+      }
     } catch (error) {
       console.error("Error fetching referral data:", error);
       toast.error("Failed to load referral data");
     } finally {
       setLoading(false);
+    }
+  };
+  const toggleCycle = async (cycleId) => {
+    if (expandedCycle === cycleId) {
+      setExpandedCycle(null);
+      return;
+    }
+
+    setExpandedCycle(cycleId);
+    if (!cycleDetails[cycleId]) {
+      setLoadingDetails(true);
+      try {
+        const res = await getCycleDetails(cycleId);
+        if (res.success) {
+          setCycleDetails(prev => ({ ...prev, [cycleId]: res.data }));
+        }
+      } catch (error) {
+        console.error("Error fetching cycle details:", error);
+        toast.error("Failed to load referral details");
+      } finally {
+        setLoadingDetails(false);
+      }
+    }
+  };
+
+  const handleEditWithdrawal = (withdrawal) => {
+    setEditingWithdrawal(withdrawal);
+    setIsWithdrawModalOpen(true);
+  };
+
+  const closeWithdrawModal = () => {
+    setIsWithdrawModalOpen(false);
+    setEditingWithdrawal(null);
+  };
+
+  const handleSubscriptionRestrictedAction = async (action) => {
+    try {
+      const res = await checkUserActiveSubscription();
+      const isActive = res.success && res.isActive;
+      setIsSubscribed(isActive);
+      if (isActive) {
+        action();
+      } else {
+        navigate('/home/subscriptions?highlight=premium');
+      }
+    } catch (error) {
+      console.error("Subscription check failed:", error);
+      toast.error("Unable to verify subscription status");
     }
   };
 
@@ -135,16 +208,21 @@ const ReferralPage = () => {
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Refer & Earn
             </h1>
-            <p className="text-gray-600 mt-2">Invite friends and earn ₹25 for each successful referral</p>
+            <p className="text-gray-600 mt-2">Invite friends and earn ₹100 for each successful referral</p>
           </div>
 
           <div className="flex items-center gap-3 animate-in slide-in-from-right duration-500 delay-100">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:scale-105 active:scale-95">
-              <Download className="w-4 h-4" />
-              <span className="font-medium">Export</span>
-            </button>
+            {activeCycle?.status === 'completed' && stats.balance > 0 && (
+              <button
+                onClick={() => setIsWithdrawModalOpen(true)}
+                className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-green-500 text-green-600 rounded-2xl hover:bg-green-50 transition-all duration-300 hover:-translate-y-1 active:scale-95 group font-bold animate-bounce"
+              >
+                <Wallet className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                Withdraw ₹{stats.balance}
+              </button>
+            )}
             <button
-              onClick={() => setIsSharePopupOpen(true)}
+              onClick={() => handleSubscriptionRestrictedAction(() => setIsSharePopupOpen(true))}
               className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:shadow-xl hover:shadow-blue-500/25 transition-all duration-300 hover:-translate-y-1 active:scale-95 group"
             >
               <Gift className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
@@ -153,8 +231,58 @@ const ReferralPage = () => {
           </div>
         </div>
 
+        {/* Current Cycle Progress */}
+        {activeCycle && (
+          <div className="mb-8 bg-gradient-to-r from-blue-600/90 to-purple-600/90 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+              <TrendingUp className="w-40 h-40" />
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-5 h-5 text-blue-200" />
+                    <span className="text-blue-100 font-medium">Current 30-Day Cycle</span>
+                  </div>
+                  <h2 className="text-3xl font-bold mb-1">
+                    {activeCycle.referralCount} / 25 <span className="text-lg font-normal text-blue-100 ml-2">Referrals</span>
+                  </h2>
+                  <p className="text-blue-100">
+                    Ends on {new Date(activeCycle.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <div className="flex-1 max-w-md">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-semibold text-blue-100">Progress to Eligibility</span>
+                    <span className="font-bold">{Math.min(100, Math.round((activeCycle.referralCount / 25) * 100))}%</span>
+                  </div>
+                  <div className="h-4 w-full bg-white/20 rounded-full overflow-hidden border border-white/10 backdrop-blur-sm">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(34,211,238,0.5)]"
+                      style={{ width: `${Math.min(100, (activeCycle.referralCount / 25) * 100)}%` }}
+                    />
+                  </div>
+                  {activeCycle.referralCount < 25 ? (
+                    <p className="mt-3 text-sm text-blue-100 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Get {25 - activeCycle.referralCount} more referrals to unlock withdrawal
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-sm text-green-300 flex items-center gap-2 font-bold animate-pulse">
+                      <Trophy className="w-4 h-4" />
+                      Eligibility Reached! You can now withdraw your earnings.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
@@ -165,7 +293,7 @@ const ReferralPage = () => {
             <h3 className="text-3xl font-bold text-gray-800 mb-1">₹{stats.totalEarnings}</h3>
             <p className="text-gray-600 text-sm">Total Earnings</p>
             <div className="mt-4 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 w-3/4 transition-all duration-700"></div>
+              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 w-full transition-all duration-700"></div>
             </div>
           </div>
 
@@ -179,21 +307,7 @@ const ReferralPage = () => {
             <h3 className="text-3xl font-bold text-gray-800 mb-1">{stats.successfulReferrals}</h3>
             <p className="text-gray-600 text-sm">Total Referrals</p>
             <div className="mt-4 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 w-2/3 transition-all duration-700"></div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 delay-150 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <Wallet className="w-6 h-6 text-purple-500" />
-              </div>
-              <DollarSign className="w-5 h-5 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-1">₹{stats.balance}</h3>
-            <p className="text-gray-600 text-sm">Current Balance</p>
-            <div className="mt-4 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-400 w-1/2 transition-all duration-700"></div>
+              <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 w-full transition-all duration-700"></div>
             </div>
           </div>
 
@@ -207,7 +321,7 @@ const ReferralPage = () => {
             <h3 className="text-3xl font-bold text-gray-800 mb-1">₹{stats.totalWithdrawn}</h3>
             <p className="text-gray-600 text-sm">Withdrawn</p>
             <div className="mt-4 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-amber-500 to-orange-400 w-5/6 transition-all duration-700"></div>
+              <div className="h-full bg-gradient-to-r from-amber-500 to-orange-400 w-full transition-all duration-700"></div>
             </div>
           </div>
         </div>
@@ -236,29 +350,29 @@ const ReferralPage = () => {
                 <div className="flex flex-col sm:flex-row gap-4 items-center mb-8">
                   <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                     <div className="flex items-center justify-between">
-                      <code className="text-2xl font-mono font-bold text-white tracking-wider">
-                        {stats.referralCode}
+                      <code className="text-xl font-mono font-bold text-white tracking-wider">
+                        {isSubscribed ? stats.referralCode : "Subscribe to earn"}
                       </code>
                       <button
-                        onClick={() => copyToClipboard('Copy Link')}
+                        onClick={() => handleSubscriptionRestrictedAction(() => copyToClipboard('Copy Link'))}
                         className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95"
                       >
-                        <Copy className="w-4 h-4" />
-                        {copied ? 'Copied!' : 'Copy'}
+                        {isSubscribed && <Copy className="w-4 h-4" />}
+                        {!isSubscribed ? 'Subscribe' : (copied ? 'Copied!' : 'Copy')}
                       </button>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setIsSharePopupOpen(true)}
+                      onClick={() => handleSubscriptionRestrictedAction(() => setIsSharePopupOpen(true))}
                       className="flex items-center gap-2 px-5 py-3 bg-white text-blue-600 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:scale-105 active:scale-95 font-medium"
                     >
                       <Share2 className="w-4 h-4" />
                       Share
                     </button>
                     <button
-                      onClick={() => setIsQRModalOpen(true)}
+                      onClick={() => handleSubscriptionRestrictedAction(() => setIsQRModalOpen(true))}
                       className="flex items-center gap-2 px-5 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all duration-300 hover:scale-105 active:scale-95 border border-white/30"
                     >
                       <QrCode className="w-4 h-4" />
@@ -275,7 +389,7 @@ const ReferralPage = () => {
                       </div>
                       <div>
                         <p className="text-blue-100 text-sm">Per Referral</p>
-                        <p className="text-white font-bold text-lg">₹25</p>
+                        <p className="text-white font-bold text-lg">₹100</p>
                       </div>
                     </div>
                   </div>
@@ -291,6 +405,99 @@ const ReferralPage = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Referral Cycle History / Expired Earnings Section */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 p-6 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Referral Cycle History</h3>
+                  <p className="text-gray-600 text-sm mt-1">30-day windows to reach 25 referrals</p>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-xl">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {cycles.length > 0 ? cycles.map((cycle) => (
+                  <div key={cycle._id} className="border border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-200">
+                    <div className="p-4 bg-gray-50/50 flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${cycle.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                            cycle.status === 'completed' ? 'bg-green-100 text-green-600' :
+                              cycle.status === 'expired' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                            {cycle.status}
+                          </span>
+                          <span className="text-sm text-gray-400 font-medium">
+                            {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm">
+                            <span className="text-gray-500 italic">Referrals: </span>
+                            <span className="font-bold text-gray-800">{cycle.referralCount}</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-500 italic">Earned: </span>
+                            <span className="font-bold text-green-600">₹{cycle.earnedAmount}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => toggleCycle(cycle._id)}
+                        className="p-2 hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
+                      >
+                        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${expandedCycle === cycle._id ? 'rotate-90' : ''}`} />
+                      </button>
+                    </div>
+
+                    {expandedCycle === cycle._id && (
+                      <div className="p-4 bg-white border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
+                        {loadingDetails ? (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : cycleDetails[cycle._id]?.length > 0 ? (
+                          <div className="space-y-3">
+                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cycle Referrals</h4>
+                            <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                              {cycleDetails[cycle._id].map((detail) => (
+                                <div key={detail._id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 mb-2 last:mb-0">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-xs">
+                                      {detail.userName.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-gray-800 text-xs">{detail.userName}</p>
+                                      <p className="text-[10px] text-gray-500">{detail.mobileNumber}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-gray-400">{new Date(detail.referralDate).toLocaleDateString()}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-400 text-sm italic">
+                            No referrals recorded in this cycle.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )) : (
+                  <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>No referral cycles found.</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -391,6 +598,7 @@ const ReferralPage = () => {
                       <th className="text-left p-4 text-sm font-medium text-gray-600">Date</th>
                       <th className="text-left p-4 text-sm font-medium text-gray-600">Status</th>
                       <th className="text-left p-4 text-sm font-medium text-gray-600">Invoice</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -410,6 +618,16 @@ const ReferralPage = () => {
                             </a>
                           ) : (
                             <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          {w.status === 'pending' && (
+                            <button
+                              onClick={() => handleEditWithdrawal(w)}
+                              className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all"
+                            >
+                              Modify
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -510,6 +728,13 @@ const ReferralPage = () => {
         isOpen={isQRModalOpen}
         onClose={() => setIsQRModalOpen(false)}
         referralCode={stats.referralCode}
+      />
+      <WithdrawalModal
+        isOpen={isWithdrawModalOpen}
+        onClose={closeWithdrawModal}
+        balance={stats.balance}
+        initialData={editingWithdrawal}
+        onWithdrawalSuccess={fetchData}
       />
     </div>
   );

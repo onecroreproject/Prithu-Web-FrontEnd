@@ -92,6 +92,8 @@ function AppRoutes() {
       >
         {/* Home Feed */}
         <Route index element={<Feed />} />
+        <Route path="/home/reels" element={<Feed />} />
+        <Route path="/home/images" element={<Feed />} />
         <Route path="/home/retrivefeed/:notifyfeedid" element={<Feed />} />
         <Route path="/home/hashtag/:tagname" element={<Feed />} />
 

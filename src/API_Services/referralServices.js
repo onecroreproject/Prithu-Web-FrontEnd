@@ -122,3 +122,81 @@ export const validateReferralCode = async (code) => {
         throw error.response?.data || error;
     }
 };
+
+/**
+ * Fetch user's bank details
+ */
+export const getBankDetails = async () => {
+    try {
+        const res = await api.get(`/api/user/bank/details`);
+        return res.data;
+    } catch (error) {
+        console.error("Error fetching bank details:", error);
+        throw error.response?.data || error;
+    }
+};
+
+/**
+ * Save or update user's bank details
+ */
+export const saveBankDetails = async (bankData) => {
+    try {
+        const res = await api.post(`/api/user/bank/save`, bankData);
+        return res.data;
+    } catch (error) {
+        console.error("Error saving bank details:", error);
+        throw error.response?.data || error;
+    }
+};
+
+/**
+ * Initiate a full-amount withdrawal
+ */
+export const initiateWithdrawal = async (notes = "") => {
+    try {
+        const res = await api.post(`/api/user/withdrawal/request`, { notes });
+        return res.data;
+    } catch (error) {
+        console.error("Error initiating withdrawal:", error);
+        throw error.response?.data || error;
+    }
+};
+
+/**
+ * Update a pending withdrawal request
+ */
+export const updateWithdrawalRequest = async (requestId, data) => {
+    try {
+        const res = await api.patch(`/api/user/withdrawal/update/${requestId}`, data);
+        return res.data;
+    } catch (error) {
+        console.error("Error updating withdrawal request:", error);
+        throw error.response?.data || error;
+    }
+};
+
+/**
+ * Fetch all referral cycles
+ */
+export const getReferralCycles = async () => {
+    try {
+        const res = await api.get(`/api/user/referral/cycles`);
+        return res.data;
+    } catch (error) {
+        console.error("Error fetching referral cycles:", error);
+        throw error.response?.data || error;
+    }
+};
+
+/**
+ * Fetch detailed referral users for a specific cycle
+ */
+export const getCycleDetails = async (cycleId) => {
+    try {
+        const res = await api.get(`/api/user/referral/cycle/${cycleId}/details`);
+        return res.data;
+    } catch (error) {
+        console.error("Error fetching cycle details:", error);
+        throw error.response?.data || error;
+    }
+};

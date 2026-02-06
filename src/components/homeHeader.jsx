@@ -9,7 +9,7 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
-  BellRing, Search, Home, Video, User, Gift, Settings, LogOut, Plus, Menu, X,
+  BellRing, Search, Home, Video, Image, User, Gift, Settings, LogOut, Plus, Menu, X,
   Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign
 } from "lucide-react";
 import SidebarThreeBackground from "./SidebarThreeBackground";
@@ -53,7 +53,13 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   }, [mobileMenuOpen, onMobileMenuToggle]);
 
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-  const [isReelsActive, setIsReelsActive] = useState(false);
+  const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
+  const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
+
+  useEffect(() => {
+    setIsReelsActive(location.pathname === "/home/reels");
+    setIsImagesActive(location.pathname === "/home/images");
+  }, [location.pathname]);
 
   // Posting permission states
   const [postStatus, setPostStatus] = useState(null);
@@ -181,6 +187,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
+    { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", color: "blue" },
   ];
 
   // Profile menu items
@@ -190,7 +197,6 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
   // Settings menu items
   const settingsMenuItems = [
-    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings", color: "slate" },
     {
       to: "/home/subscriptions",
       label: "Subscriptions",
@@ -205,13 +211,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       desc: "Referral program",
       color: "purple"
     },
-    {
-      to: "/home/help",
-      label: "Help",
-      Icon: HelpCircle,
-      desc: "Get help and support",
-      color: "cyan"
-    },
+    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings", color: "slate" },
     {
       to: "/home/feedback-support",
       label: "Feedback & Support",
@@ -425,7 +425,18 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     }
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
+    if (nextState) setIsImagesActive(false);
     window.dispatchEvent(new CustomEvent("toggleReels", { detail: { isActive: nextState } }));
+  };
+
+  const handleImageClick = (e) => {
+    if (location.pathname === "/home" || location.pathname === "/") {
+      e.preventDefault();
+    }
+    const nextState = !isImagesActive;
+    setIsImagesActive(nextState);
+    if (nextState) setIsReelsActive(false);
+    window.dispatchEvent(new CustomEvent("toggleImages", { detail: { isActive: nextState } }));
   };
 
   const handleBellClick = () => {
@@ -765,6 +776,8 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
               };
 
               const isReels = label === "Reels";
+              const isImages = label === "Image Feed";
+              const isAnyFilterActive = (isReels && isReelsActive) || (isImages && isImagesActive);
               const activeClass = isActive => isActive
                 ? `${activeColorClasses[color] || "bg-gray-100 text-gray-900"} font-bold shadow-sm bg-gradient-to-r`
                 : `${colorClasses[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]`;
@@ -813,15 +826,20 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 <NavLink
                   key={to}
                   to={to}
-                  className={({ isActive }) => `flex items-center rounded-xl transition-all duration-200 w-full text-left group
+                  className={({ isActive }) => {
+                    const effectivelyActive = isActive || (isReels && isReelsActive) || (isImages && isImagesActive);
+                    return `flex items-center rounded-xl transition-all duration-200 w-full text-left group
                       ${isSidebarExpanded ? "px-3 gap-3 py-3 justify-start" : "px-0 justify-center py-3"} 
-                      ${activeClass(isActive)}
-                    `}
-                  onClick={isReels ? handleReelClick : undefined}
+                      ${activeClass(effectivelyActive)}
+                    `;
+                  }}
+                  onClick={isReels ? handleReelClick : (isImages ? handleImageClick : undefined)}
                 >
                   <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
                     <Icon
-                      className={`w-6 h-6 shrink-0 filter drop-shadow-sm transition-colors duration-300 ${isReels && isReelsActive ? "text-pink-600 fill-pink-100" : ""}`}
+                      className={`w-6 h-6 shrink-0 filter drop-shadow-sm transition-colors duration-300 ${(isReels && isReelsActive) ? "text-pink-600 fill-pink-100" :
+                        (isImages && isImagesActive) ? "text-blue-600 fill-blue-100" : ""
+                        }`}
                       strokeWidth={2.5}
                       style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.15))" }}
                     />
@@ -1121,7 +1139,42 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
               {/* Main Navigation Links */}
               <div className="space-y-1 mb-4">
-                {mainMenuItems.filter(item => !["Notifications", "Home", "Reels"].includes(item.label)).map(({ to, label, Icon, desc }) => (
+                {/* Manual Filter Items for Mobile */}
+                <button
+                  onClick={(e) => {
+                    handleReelClick(e);
+                    handleMobileMenuClose();
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${isReelsActive ? "bg-pink-50 text-pink-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  <div className={`p-2 rounded-lg ${isReelsActive ? "bg-pink-100" : "bg-gray-100"}`}>
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Reels</p>
+                    <p className="text-xs text-gray-500">Watch short videos</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    handleImageClick(e);
+                    handleMobileMenuClose();
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${isImagesActive ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  <div className={`p-2 rounded-lg ${isImagesActive ? "bg-blue-100" : "bg-gray-100"}`}>
+                    <Image className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Image Feed</p>
+                    <p className="text-xs text-gray-500">Browse images only</p>
+                  </div>
+                </button>
+
+                {mainMenuItems.filter(item => !["Notifications", "Home", "Reels", "Image Feed"].includes(item.label)).map(({ to, label, Icon, desc }) => (
                   <NavLink
                     key={to}
                     to={to}

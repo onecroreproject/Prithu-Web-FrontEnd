@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function FeedOverlayRenderer({
     overlayElements = [],
     viewer = {},
+    visibilityConfig = {},
     prithuLogoUrl = "",
     playSessionId = 0,
     isVisible = false,
@@ -88,6 +89,13 @@ export default function FeedOverlayRenderer({
             );
         } else if (el.type === "avatar") {
             const avatarUrl = viewer?.modifyAvatar || viewer?.profileAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+            // Check if name visibility is public to show avatar? 
+            // Usually avatars are separate, but if the user wants to be private, maybe hide avatar too?
+            // The schema doesn't have a specific "profileAvatar" visibility, but "name" is often the proxy.
+            const showAvatar = visibilityConfig.name !== false;
+
+            if (!showAvatar) return null;
+
             content = (
                 <div style={{ width: "100%", height: "100%" }}>
                     <img
@@ -112,6 +120,11 @@ export default function FeedOverlayRenderer({
             );
         } else if (el.type === "username" || el.type === "text") {
             const textConfig = el.textConfig || {};
+            const isUsername = el.type === "username";
+
+            // Guard for username visibility
+            if (isUsername && visibilityConfig.userName === false) return null;
+
             content = (
                 <div style={{
                     color: textConfig.color || "white",
@@ -123,7 +136,7 @@ export default function FeedOverlayRenderer({
                     lineHeight: textConfig.lineHeight || 1.2,
                     whiteSpace: "nowrap",
                 }}>
-                    {el.type === "username" ? (viewer?.userName || viewer?.name || "User") : (textConfig.content || el.content || "")}
+                    {isUsername ? (viewer?.userName || viewer?.name || "User") : (textConfig.content || el.content || "")}
                 </div>
             );
         }

@@ -68,7 +68,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
     return m ? decodeURIComponent(m[1].split("?")[0]) : null;
   })();
 
-  const [showReels, setShowReels] = useState(false);
+  const [showReels, setShowReels] = useState(location.pathname === "/home/reels");
+  const [showImages, setShowImages] = useState(location.pathname === "/home/images");
   const [feedCategory, setFeedCategory] = useState(null);
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
@@ -400,8 +401,48 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
     return () => document.removeEventListener("socket:newFeed", handleSocketNewFeed);
   }, [normalizeSingleFeed, injectSingleFeedIntoCache]);
 
+  useEffect(() => {
+    const handleToggleReels = (e) => {
+      const isActive = e.detail.isActive;
+      setShowReels(isActive);
+      if (isActive) setShowImages(false);
+    };
+    const handleToggleImages = (e) => {
+      const isActive = e.detail.isActive;
+      setShowImages(isActive);
+      if (isActive) setShowReels(false);
+    };
+
+    window.addEventListener("toggleReels", handleToggleReels);
+    window.addEventListener("toggleImages", handleToggleImages);
+    return () => {
+      window.removeEventListener("toggleReels", handleToggleReels);
+      window.removeEventListener("toggleImages", handleToggleImages);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/home/reels") {
+      setShowReels(true);
+      setShowImages(false);
+    } else if (location.pathname === "/home/images") {
+      setShowImages(true);
+      setShowReels(false);
+    } else if (location.pathname === "/home" || location.pathname === "/") {
+      // Keep current state if toggled via events
+    } else {
+      setShowReels(false);
+      setShowImages(false);
+    }
+  }, [location.pathname]);
 
   let mixed = feeds.map(f => ({ ...f, __kind: "feed" }));
+
+  if (showReels) {
+    mixed = mixed.filter(item => item.type === "video");
+  } else if (showImages) {
+    mixed = mixed.filter(item => item.type === "image");
+  }
 
   const handleHideFromUI = (feedId) => {
     queryClient.setQueryData(feedsQueryKey, (oldData) => {
@@ -451,7 +492,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
 
   return (
     <div id="feedTop">
-      <div className={`relative px-0 sm:px-4 md:px-6 py-5 mx-auto transition-all duration-300 ${showReels ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px]'}`}>
+      <div className={`relative px-0 sm:px-4 md:px-6 py-5 mx-auto transition-all duration-300 ${(showReels || showImages) ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px]'}`}>
         {isHashtagMode && (
           <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <TagIcon fontSize="inherit" />

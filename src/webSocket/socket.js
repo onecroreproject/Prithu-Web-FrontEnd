@@ -18,7 +18,7 @@ export const connectSocket = (token, sessionId) => {
   }
 
   // Extract only the origin (protocol + host + port) to avoid "Invalid namespace" error
-  // if VITE_BACKEND_URL contains a path like "/web"
+  // if VITE_API_BASE_URL contains a path like "/web"
   let socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
   try {
     const url = new URL(socketUrl);

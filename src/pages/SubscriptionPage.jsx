@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Check,
   Crown,
@@ -39,9 +40,14 @@ import {
 import { toast } from 'react-hot-toast';
 
 const SubscriptionPage = () => {
+  const location = useLocation();
   const [subscriptions, setSubscriptions] = useState([]);
   const [userSubscription, setUserSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Parse query parameters
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const highlightParam = queryParams.get('highlight');
   const [error, setError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -489,7 +495,7 @@ const SubscriptionPage = () => {
                   className={`relative rounded-2xl bg-white border transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl animate-in fade-in slide-in-from-bottom ${isPopular
                     ? 'border-blue-300 shadow-xl shadow-blue-500/10'
                     : 'border-gray-200 shadow-lg'
-                    }`}
+                    } ${highlightParam === 'premium' ? 'ring-4 ring-purple-400 ring-offset-2 animate-pulse shadow-2xl shadow-purple-500/20' : ''}`}
                   style={{ animationDelay: `${index * 150}ms` }}
                 >
                   {isPopular && (

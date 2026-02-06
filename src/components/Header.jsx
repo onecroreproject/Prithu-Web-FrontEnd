@@ -9,7 +9,7 @@ import React, {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
-  BellRing, Home, User, Settings, LogOut, Plus, Menu, X,
+  BellRing, Home, Video, Image, User, Settings, LogOut, Plus, Menu, X,
   Gift, Activity, HelpCircle, MessageSquare
 } from "lucide-react";
 import debounce from "lodash.debounce";
@@ -37,7 +37,13 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-  const [isReelsActive, setIsReelsActive] = useState(false);
+  const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
+  const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
+
+  useEffect(() => {
+    setIsReelsActive(window.location.pathname === "/home/reels");
+    setIsImagesActive(window.location.pathname === "/home/images");
+  }, [window.location.pathname]);
 
   // refs
   const dropdownRef = useRef(null);
@@ -48,8 +54,6 @@ export default function Header() {
   const navItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed" },
     { to: "/home/profile", label: "Profile", Icon: User, desc: "View your profile" },
-    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
-    { to: "/home/help", label: "Help", Icon: HelpCircle, desc: "Get help and support" },
     {
       to: "/home/subscriptions",
       label: "Subscriptions",
@@ -62,13 +66,16 @@ export default function Header() {
       Icon: Gift,
       desc: "Referral program"
     },
+    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
     {
       to: "/home/feedback-support",
       label: "Feedback & Support",
       Icon: MessageSquare,
       desc: "Share feedback or report issues"
     },
-    { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" }
+    { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
+    { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", isReels: true },
+    { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", isImages: true }
   ];
 
   useEffect(() => {
@@ -158,10 +165,23 @@ export default function Header() {
   const handleReelClick = () => {
     const nextState = !isReelsActive;
     setIsReelsActive(nextState);
+    if (nextState) setIsImagesActive(false);
     navigate("/home");
     setTimeout(() => {
       window.dispatchEvent(
         new CustomEvent("toggleReels", { detail: { isActive: nextState } })
+      );
+    }, 50);
+  };
+
+  const handleImageClick = () => {
+    const nextState = !isImagesActive;
+    setIsImagesActive(nextState);
+    if (nextState) setIsReelsActive(false);
+    navigate("/home");
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("toggleImages", { detail: { isActive: nextState } })
       );
     }, 50);
   };
@@ -186,7 +206,11 @@ export default function Header() {
 
   // Handle nav item clicks
   const handleNavItemClick = (item, e) => {
-    if (item.onClick) {
+    if (item.isReels) {
+      handleReelClick();
+    } else if (item.isImages) {
+      handleImageClick();
+    } else if (item.onClick) {
       item.onClick(e);
     } else {
       navigate(item.to);
@@ -352,13 +376,18 @@ export default function Header() {
                     {/* Navigation Links */}
                     <div className="p-2 space-y-1">
                       {navItems.map((item) => (
-                        item.onClick ? (
+                        (item.onClick || item.isReels || item.isImages) ? (
                           <button
                             key={item.label}
                             onClick={(e) => handleNavItemClick(item, e)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all w-full text-left ${(item.isReels && isReelsActive) || (item.isImages && isImagesActive)
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-700 hover:bg-gray-50"
+                              }`}
                           >
-                            <div className="p-1.5 rounded-lg bg-gray-100">
+                            <div className={`p-1.5 rounded-lg ${(item.isReels && isReelsActive) ? "bg-pink-100" :
+                              (item.isImages && isImagesActive) ? "bg-blue-100" : "bg-gray-100"
+                              }`}>
                               <item.Icon className="w-4 h-4" />
                             </div>
                             <div className="flex-1">
@@ -497,16 +526,21 @@ export default function Header() {
               {/* Navigation Links */}
               <div className="space-y-1 mb-4">
                 {navItems.map((item) => (
-                  item.onClick ? (
+                  (item.onClick || item.isReels || item.isImages) ? (
                     <button
                       key={item.label}
                       onClick={(e) => {
-                        item.onClick(e);
+                        handleNavItemClick(item, e);
                         setMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${(item.isReels && isReelsActive) || (item.isImages && isImagesActive)
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-50"
+                        }`}
                     >
-                      <div className="p-2 rounded-lg bg-gray-100">
+                      <div className={`p-2 rounded-lg ${(item.isReels && isReelsActive) ? "bg-pink-100" :
+                        (item.isImages && isImagesActive) ? "bg-blue-100" : "bg-gray-100"
+                        }`}>
                         <item.Icon className="w-4 h-4" />
                       </div>
                       <div>

@@ -601,6 +601,7 @@ function Postcard({
                   <FeedOverlayRenderer
                     overlayElements={overlayElements}
                     viewer={viewer}
+                    visibilityConfig={postData.footerDisplay?.showElements}
                     prithuLogoUrl={prithuLogo}
                     playSessionId={isVideo ? videoSessionId : playSessionId}
                     isVisible={isVisible}
@@ -674,7 +675,7 @@ function Postcard({
                       : "justify-center"
                       }`}
                   >
-                    {showElements.name && (
+                    {showElements.userName && (
                       <span
                         className="font-bold text-white truncate"
                         style={{ fontSize: "14px" }}
