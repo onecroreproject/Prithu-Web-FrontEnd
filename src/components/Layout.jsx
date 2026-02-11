@@ -17,7 +17,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Track mobile menu state
-  const [viewMode, setViewMode] = useState("list"); // Lifted from Feed.jsx
+  const [viewMode, setViewMode] = useState("grid"); // Lifted from Feed.jsx
   // Get tagname from URL: /hashtag/:tagname
   const tagname = params.tagname || null;
 
@@ -62,7 +62,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#121212]">
+    <div className="flex flex-col bg-white dark:bg-[#121212] min-h-screen">
 
       <Header
         onSidebarHoverChange={setIsSidebarHovered}
@@ -106,7 +106,7 @@ export default function Layout() {
             ) : location.pathname === "/home" ? (
               <Feed viewMode={viewMode} setViewMode={setViewMode} />
             ) : (
-              <Outlet />
+              <Outlet context={{ viewMode, setViewMode }} />
             )}
           </section>
 

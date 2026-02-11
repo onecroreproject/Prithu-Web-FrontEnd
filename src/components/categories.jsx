@@ -11,6 +11,9 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   const [hoveredCategory, setHoveredCategory] = useState(null);
 
   useEffect(() => {
+    const handleResize = () => calculateVisibleCount();
+    window.addEventListener('resize', handleResize);
+
     axios.get(`/api/get/feed/category`)
       .then(res => {
         const categoriesData = res.data.categories || [];
@@ -19,12 +22,16 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const calculateVisibleCount = () => {
-    const itemsPerRow = 4;
-    const rows = 2;
-    setVisibleCount(itemsPerRow * rows);
+    const isMobile = window.innerWidth <= 480;
+    const itemsPerRow = isMobile ? 3 : 4;
+    const rows = 3;
+    // We have 2 static items (Trending, All), so we subtract them from the total visible slots
+    setVisibleCount((itemsPerRow * rows) - 2);
   };
 
   const getDisplayCategories = () => {
@@ -115,7 +122,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   };
 
   // Ultra-compact padding that hugs the text
-  const getPaddingClass = () => 'px-2 py-0.5';
+  const getPaddingClass = () => 'px-2 py-0.5 sm:px-2 sm:py-0.5';
 
   if (loading) {
     return (
@@ -138,7 +145,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
         <div className="mb-1 flex justify-end">
           <button
             onClick={() => setShowAll(!showAll)}
-            className="group flex items-center gap-0.5 text-[10px] text-gray-500 hover:text-gray-700 font-medium px-1.5 py-0.5 rounded-full hover:bg-gray-100 transition-all duration-150 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-right-1 duration-150"
+            className="group flex items-center gap-0.5 text-[9px] sm:text-[10px] text-gray-500 hover:text-gray-700 font-medium px-1 py-0.5 rounded-full hover:bg-gray-100 transition-all duration-150 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-right-1 duration-150"
           >
             {showAll ? (
               <>
@@ -172,8 +179,8 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
               <div className="flex items-center gap-1 relative z-10">
-                <span className="text-[10px]">🔥</span>
-                <span className="text-xs font-bold leading-tight">Trending</span>
+                <span className="text-[9px] sm:text-[10px]">🔥</span>
+                <span className="text-[10px] sm:text-xs font-bold leading-tight">Trending</span>
               </div>
             </button>
 
@@ -191,7 +198,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
               {/* Hover effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
 
-              <span className="relative z-10 text-xs font-medium transition-all duration-150 leading-tight">
+              <span className="relative z-10 text-[10px] sm:text-xs font-medium transition-all duration-150 leading-tight">
                 All
               </span>
 
@@ -225,9 +232,9 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
 
                 {/* Category Icon & Name */}
                 <div className="flex items-center gap-1 relative z-10">
-                  <span className="text-[10px]">{getCategoryIcon(cat.categoryName)}</span>
+                  <span className="text-[9px] sm:text-[10px]">{getCategoryIcon(cat.categoryName)}</span>
                   <span
-                    className="text-xs font-medium transition-all duration-150 leading-tight"
+                    className="text-[10px] sm:text-xs font-medium transition-all duration-150 leading-tight"
                     title={cat.categoryName}
                   >
                     {truncateName(cat.categoryName)}
@@ -250,15 +257,6 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
             </div>
           )}
 
-          {/* Compact expanded view message */}
-          {showAll && (
-            <div className="text-center pt-1 animate-in fade-in duration-150">
-              <div className="inline-flex items-center gap-0.5 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
-                <span className="font-medium">{categories.length} total</span>
-                <ChevronUp className="w-2 h-2 animate-bounce-slow" />
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <div className="text-center py-2 animate-in fade-in duration-150">

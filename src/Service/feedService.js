@@ -4,10 +4,10 @@ import { getMediaUrl } from "../utils/urlHelper";
 
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-export const getAllFeeds = async (page = 1, token, categoryId = null) => {
+export const getAllFeeds = async (page = 1, token, categoryId = null, postType = null) => {
   try {
     const { data } = await api.get(
-      `/api/get/all/feeds/user?page=${page}&limit=10${categoryId ? `&categoryId=${categoryId}` : ""}`,
+      `/api/get/all/feeds/user?page=${page}&limit=10${categoryId ? `&categoryId=${categoryId}` : ""}${postType ? `&postType=${postType}` : ""}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -190,9 +190,9 @@ export const getSingleFeed = async (id, token) => {
   }
 };
 
-export const getTrendingFeeds = async (page = 1, token) => {
+export const getTrendingFeeds = async (page = 1, token, postType = null) => {
   try {
-    const url = `/api/get/trending/feeds?page=${page}&limit=10`;
+    const url = `/api/get/trending/feeds?page=${page}&limit=10${postType ? `&postType=${postType}` : ""}`;
     console.log(`📡 Fetching trending: ${url}`);
     const { data } = await api.get(url, {
       headers: { Authorization: `Bearer ${token}` }

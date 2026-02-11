@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getAllFeeds,
@@ -54,7 +54,10 @@ const FeedSkeleton = () => (
   </motion.div>
 );
 
-const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) => {
+const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, setViewMode: propsSetViewMode }) => {
+  const context = useOutletContext() || {};
+  const viewMode = propsViewMode || context.viewMode;
+  const setViewMode = propsSetViewMode || context.setViewMode;
   const { tagname } = useParams();
   const { token } = useContext(AuthContext);
   const location = useLocation();
@@ -76,6 +79,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
 
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
   const [excludedCategoryIds, setExcludedCategoryIds] = useState([]);
+  const [activeVideoId, setActiveVideoId] = useState(null);
 
   const tokenRef = useRef(token);
   useEffect(() => {
@@ -96,13 +100,15 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
 
   const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
 
-  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all"];
+  const fetchPostType = showReels ? "video" : (showImages ? "image" : null);
+  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all", fetchPostType || "all"];
 
   const initialPageParam = {
     categoryPage: 1,
     allPage: 1,
     mode: feedCategory ? "category" : "all",
     categoryId: feedCategory || null,
+    postType: fetchPostType || null
   };
 
   const {
@@ -124,13 +130,13 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
       const fetchCategoryId = param.categoryId || feedCategory;
 
       if (fetchCategoryId === 'trending') {
-        return getTrendingFeeds(param.allPage, tokenRef.current || token);
+        return getTrendingFeeds(param.allPage, tokenRef.current || token, param.postType);
       }
 
       if (param.mode === "category" && fetchCategoryId) {
-        return getAllFeeds(param.categoryPage, tokenRef.current || token, fetchCategoryId);
+        return getAllFeeds(param.categoryPage, tokenRef.current || token, fetchCategoryId, param.postType);
       } else {
-        return getAllFeeds(param.allPage, tokenRef.current || token, null);
+        return getAllFeeds(param.allPage, tokenRef.current || token, null, param.postType);
       }
     },
     initialPageParam,
@@ -436,13 +442,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
     }
   }, [location.pathname]);
 
-  let mixed = feeds.map(f => ({ ...f, __kind: "feed" }));
+  let mixed = feeds.map(f => ({ ...normalizeSingleFeed(f), __kind: "feed" }));
 
-  if (showReels) {
-    mixed = mixed.filter(item => item.type === "video");
-  } else if (showImages) {
-    mixed = mixed.filter(item => item.type === "image");
-  }
 
   const handleHideFromUI = (feedId) => {
     queryClient.setQueryData(feedsQueryKey, (oldData) => {
@@ -491,8 +492,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
   }, [location.state, setFeedCategory]);
 
   return (
-    <div id="feedTop">
-      <div className={`relative px-0 sm:px-4 md:px-6 py-5 mx-auto transition-all duration-300 ${(showReels || showImages) ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px]'}`}>
+    <div id="feedTop" className="min-h-screen flex flex-col">
+      <div className={`relative px-0 sm:px-4 md:px-6 md:py-5 mx-auto transition-all duration-300 ${(showReels || showImages) ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px] sm:max-w-[800px]'} w-full flex flex-col`}>
         {isHashtagMode && (
           <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
             <TagIcon fontSize="inherit" />
@@ -500,97 +501,110 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode, setViewMode }) =
           </div>
         )}
         {!isHashtagMode && (
-          <>
-            {/* <Stories />*/}
-            <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-2 mb-4 flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2">
-              <div className="flex-1 overflow-hidden">
-                <CategoryFeedPage
-                  onSelectCategory={setFeedCategory}
-                  selectedCategoryId={feedCategory}
-                  excludedCategoryIds={excludedCategoryIds}
-                />
-              </div>
-              <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "list" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
-                  title="List View"
-                >
-                  <ViewListIcon fontSize="small" />
-                </button>
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "grid" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
-                  title="Grid View"
-                >
-                  <ViewModuleIcon fontSize="small" />
-                </button>
-              </div>
+          <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-1 mb-1 flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2 shrink-0">
+            <div className="flex-1 overflow-hidden">
+              <CategoryFeedPage
+                onSelectCategory={setFeedCategory}
+                selectedCategoryId={feedCategory}
+                excludedCategoryIds={excludedCategoryIds}
+              />
             </div>
-          </>
-        )}
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={`${feedCategory || tagname || "home"}-${viewMode}`}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className={viewMode === 'grid'
-              ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full"
-              : "flex items-center flex-col gap-5 w-full"}
-          >
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
-            ) : mixed.length > 0 ? (
-              mixed.map((item, idx) => {
-                const stableId = item._id || item.feedId || idx;
-                return (
-                  <motion.div
-                    layout
-                    key={`${item.__kind}-${stableId}-${idx}`}
-                    className="w-full"
-                    transition={{
-                      layout: { duration: 0.4, type: "spring", stiffness: 200, damping: 25 }
-                    }}
-                  >
-                    <PostcardWrapper
-                      postData={item}
-                      authUser={authUser}
-                      token={tokenRef.current || token}
-                      onHideFromUI={handleHideFromUI}
-                      onNotInterested={handleNotInterestedFromUI}
-                      isVisible={true}
-                      viewMode={viewMode}
-                    />
-                  </motion.div>
-                );
-              })
-            ) : (
-              <p className="text-center text-gray-500 py-8">
-                {feedsError ? "⚠️ Failed to load content." : "No content available."}
-              </p>
-            )}
-          </motion.div>
-        </AnimatePresence>
-
-        {isFetchingNextPage && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "list" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                title="List View"
+              >
+                <ViewListIcon fontSize="small" />
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-full transition-all duration-300 ${viewMode === "grid" ? "bg-white text-green-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                title="Grid View"
+              >
+                <ViewModuleIcon fontSize="small" />
+              </button>
+            </div>
           </div>
         )}
 
-        {!hasNextPage && !isLoading && mixed.length > 0 && (
-          <div className="flex flex-col items-center justify-center py-10 opacity-75">
-            <div className="bg-green-100 p-3 rounded-full mb-3">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
+        {/* Scrollable Feed Container */}
+        <div className={`flex-1 ${viewMode === 'list' ? 'snap-y snap-mandatory scroll-smooth' : ''} no-scrollbar`}>
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={`${feedCategory || tagname || "home"}-${viewMode}`}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className={viewMode === 'grid'
+                ? "grid grid-cols-2 md:grid-cols-4 gap-4 w-full"
+                : "flex items-center flex-col gap-0 w-full"}
+            >
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
+              ) : mixed.length > 0 ? (
+                mixed.map((item, idx) => {
+                  const stableId = item._id || item.feedId || idx;
+                  return (
+                    <motion.div
+                      layout
+                      key={`${item.__kind}-${stableId}-${idx}`}
+                      className="w-full"
+                      transition={{
+                        layout: { duration: 0.4, type: "spring", stiffness: 200, damping: 25 }
+                      }}
+                    >
+                      <PostcardWrapper
+                        postData={item}
+                        authUser={authUser}
+                        token={tokenRef.current || token}
+                        onHideFromUI={handleHideFromUI}
+                        onNotInterested={handleNotInterestedFromUI}
+                        isVisible={true}
+                        viewMode={viewMode}
+                        activeVideoId={activeVideoId}
+                        setActiveVideoId={setActiveVideoId}
+                      />
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <p className="text-center text-gray-500 py-8">
+                  {feedsError ? "⚠️ Failed to load content." : "No content available."}
+                </p>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4 shrink-0">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-800">You're all caught up</h3>
-            <p className="text-gray-500 text-sm mt-1">Check back later for more updates!</p>
-          </div>
-        )}
+          )}
+
+          {!hasNextPage && !isLoading && mixed.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-10 opacity-75 shrink-0">
+              <div className="bg-green-100 p-3 rounded-full mb-3">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800">You're all caught up</h3>
+              <p className="text-gray-500 text-sm mt-1">Check back later for more updates!</p>
+            </div>
+          )}
+        </div>
+
+        <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       </div>
     </div>
   );
