@@ -10,10 +10,33 @@ const MobileFeedView = ({
     handleNotInterestedFromUI,
     activeVideoId,
     setActiveVideoId,
-    viewMode
+    viewMode,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage
 }) => {
+    const containerRef = React.useRef(null);
+
+    const handleScroll = React.useCallback(() => {
+        if (!containerRef.current || !hasNextPage || isFetchingNextPage) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+        if (scrollTop + clientHeight >= scrollHeight - 200) {
+            fetchNextPage();
+        }
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    React.useEffect(() => {
+        const container = containerRef.current;
+        if (container) {
+            container.addEventListener("scroll", handleScroll);
+            return () => container.removeEventListener("scroll", handleScroll);
+        }
+    }, [handleScroll]);
+
     return (
         <motion.div
+            ref={containerRef}
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}

@@ -575,6 +575,9 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
                   activeVideoId={activeVideoId}
                   setActiveVideoId={setActiveVideoId}
                   viewMode={viewMode}
+                  hasNextPage={hasNextPage}
+                  isFetchingNextPage={isFetchingNextPage}
+                  fetchNextPage={fetchNextPage}
                 />
               ) : (
                 <DesktopListFeedView
