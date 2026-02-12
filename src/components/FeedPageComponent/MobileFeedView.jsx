@@ -18,15 +18,18 @@ const MobileFeedView = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="flex items-center flex-col gap-0 w-full snap-y snap-mandatory overflow-y-auto h-screen"
+            className="flex items-center flex-col gap-0 w-full h-[calc(100svh-110px)] overflow-y-scroll snap-y snap-mandatory no-scrollbar"
+            style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
         >
+            {console.log("MobileFeedView.jsx: Rendering snap container. Feeds count:", feeds.length)}
             {feeds.map((item, idx) => {
                 const stableId = item._id || item.feedId || idx;
                 return (
                     <motion.div
                         layout
                         key={`mobile-${item.__kind}-${stableId}-${idx}`}
-                        className="w-full snap-start"
+                        className="w-full h-[calc(100svh-110px)] snap-start snap-always flex-shrink-0"
+                        style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
                         transition={{
                             layout: { duration: 0.4, type: "spring", stiffness: 200, damping: 25 }
                         }}

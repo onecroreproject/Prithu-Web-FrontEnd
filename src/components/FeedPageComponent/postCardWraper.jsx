@@ -39,7 +39,7 @@ const PostcardWrapper = ({
   }, [feedId, postData.type, setActiveVideoId]);
 
   return (
-    <div ref={containerRef} className="w-full h-auto">
+    <div ref={containerRef} className="w-full h-full">
       <Postcard
         postData={postData}
         authUser={authUser}

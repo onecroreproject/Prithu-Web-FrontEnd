@@ -535,8 +535,9 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
           </div>
         )}
 
-        {/* Scrollable Feed Container */}
-        <div className={`flex-1 ${viewMode === 'list' ? 'snap-y snap-mandatory scroll-smooth' : ''} no-scrollbar`}>
+        {/* Outer Feed Container (Scrolling delegated to inner views) */}
+        <div className={`flex-1 ${viewMode === 'list' ? 'min-h-0' : ''} no-scrollbar`}>
+          {console.log("Feed.jsx: Rendering outer container. viewMode:", viewMode, "isMobile:", isMobile)}
           <AnimatePresence mode="popLayout">
             {isLoading ? (
               <motion.div

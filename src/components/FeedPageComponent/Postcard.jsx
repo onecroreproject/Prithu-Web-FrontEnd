@@ -103,7 +103,7 @@ function Postcard({
   const [isSaved, setIsSaved] = useState(userInteractions.isSaved || postData.isSaved || false);
   const [comments, setComments] = useState([]);
   const [commentCount, setCommentCount] = useState(initialComments);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [hasAnimatedOnce, setHasAnimatedOnce] = useState(false);
@@ -142,7 +142,7 @@ function Postcard({
     currentTime,
     duration
   } = useFeedAudioPlayer({
-    audioConfig: isTemplate ? audioConfig : null,
+    audioConfig: audioConfig,
     isVisible,
   });
 
@@ -501,7 +501,7 @@ function Postcard({
 
   return (
     <>
-      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-[calc(100dvh-140px)] sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-300`}>
+      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] sm:border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-full sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-300`}>
         {/* ✅ 1. USER HEADER (Restored) */}
         {!isTemplate && viewMode === 'list' && (
           <div className="shrink-0 w-full">
@@ -580,7 +580,7 @@ function Postcard({
                   )}
 
                   {/* ✅ OVERLAYS - Positioned absolute OVER the media pixels ONLY */}
-                  {isTemplate && overlayElements.length > 0 && (isVideo ? isVideoPlaying : true) && (
+                  {overlayElements?.length > 0 && (isVideo ? isVideoPlaying : true) && (
                     <div className="absolute inset-0 pointer-events-none z-30">
                       <FeedOverlayRenderer
                         overlayElements={overlayElements}
@@ -589,7 +589,7 @@ function Postcard({
                         prithuLogoUrl={prithuLogo}
                         playSessionId={isVideo ? videoSessionId : playSessionId}
                         isVisible={isVisible && (isVideo ? isVideoPlaying : true)}
-                        freezeAtEnd={isTemplate && !isVisible}
+                        freezeAtEnd={!isVisible}
                       />
                     </div>
                   )}

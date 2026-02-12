@@ -254,6 +254,7 @@ export default function PostMedia({
           <MediaWrapper
             naturalAspectRatio={naturalAspectRatio}
             viewMode={viewMode}
+            overlaySlot={overlaySlot}
             footerSlot={footerSlot}
             onClick={onCommentsClick}
           >
