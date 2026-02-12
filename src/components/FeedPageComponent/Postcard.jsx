@@ -3,6 +3,7 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
@@ -12,6 +13,7 @@ import PostActions from "./postCardComponent/postsActions";
 import PostCommentsModal from "./PostCommentsModal";
 import SharePopup from "./sharePopUp";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 import { useComments } from "../../hooks/useComments";
 
 import {
@@ -103,7 +105,9 @@ function Postcard({
   const [isSaved, setIsSaved] = useState(userInteractions.isSaved || postData.isSaved || false);
   const [comments, setComments] = useState([]);
   const [commentCount, setCommentCount] = useState(initialComments);
-  const [isMuted, setIsMuted] = useState(true);
+  const { isGlobalMuted, setIsGlobalMuted } = useAuth();
+  const isMuted = isGlobalMuted; // Alias for cleaner diff
+  const setIsMuted = setIsGlobalMuted; // Alias for cleaner diff
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [hasAnimatedOnce, setHasAnimatedOnce] = useState(false);
@@ -150,23 +154,18 @@ function Postcard({
 
   const [dominantColor, setDominantColor] = useState("#1a1a1a");
 
-  const extractColorFromURL = (url) => {
-    if (!url) return "#1a1a1a";
-    let hash = 0;
-    for (let i = 0; i < url.length; i++) {
-      hash = url.charCodeAt(i) + ((hash << 5) - hash);
+  // ✅ Stable callback for color extraction from PostMedia
+  const handleColorExtract = useCallback((color) => {
+    if (color) {
+      setDominantColor(color);
     }
-    const r = (hash & 0xff0000) >> 16;
-    const g = (hash & 0x00ff00) >> 8;
-    const b = hash & 0x0000ff;
-    return `rgb(${Math.abs(r)}, ${Math.abs(g)}, ${Math.abs(b)})`;
-  };
+  }, []);
 
-  useEffect(() => {
-    if (contentUrl) {
-      setDominantColor(extractColorFromURL(contentUrl));
-    }
-  }, [contentUrl]);
+  // ✅ Stabilize editMetadata to prevent constant re-renders/re-extractions in PostMedia
+  const stabilizedEditMetadata = useMemo(() => ({
+    ...editMetadata,
+    onColorExtract: handleColorExtract
+  }), [editMetadata, handleColorExtract]);
 
   // ✅ FINAL animation switch: video animates ONCE per viewport session
   const isAnimating = isVideo
@@ -331,10 +330,8 @@ function Postcard({
   }, [feedId, setActiveVideoId]);
 
   const toggleMute = useCallback(() => {
-    const vid = videoRef.current;
-    if (vid) vid.muted = !isMuted;
-    setIsMuted((p) => !p);
-  }, [isMuted]);
+    setIsGlobalMuted((p) => !p);
+  }, [setIsGlobalMuted]);
 
   const stableFeedId = useRef(feedId);
   useEffect(() => {
@@ -518,6 +515,13 @@ function Postcard({
         <div
           ref={mediaContainerRef}
           className="relative bg-white w-full flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden"
+          onClick={() => {
+            if (isVideo) {
+              togglePlayPause();
+            } else {
+              setShowCommentsModal(true);
+            }
+          }}
         >
           {/* 1. MEDIA PART */}
           <div className="relative w-full flex-1 min-h-0 flex flex-col items-center overflow-hidden">
@@ -532,10 +536,7 @@ function Postcard({
               toggleMute={toggleMute}
               onDoubleTap={handleDoubleTapLike}
               aspectRatio={(designMetadata?.canvasSettings?.aspectRatio || postAspectRatio || "1:1")}
-              editMetadata={{
-                ...editMetadata,
-                onColorExtract: (color) => setDominantColor(color)
-              }}
+              editMetadata={stabilizedEditMetadata}
               isTemplate={isTemplate}
               viewMode={viewMode}
               onVideoPlay={() => {
@@ -642,68 +643,95 @@ function Postcard({
                   if (!hasAnyElementEnabled) return null;
 
                   return (
-                    <div
-                      className="relative w-full z-30 py-2 shrink-0 flex flex-col gap-1 border-t border-white/10"
-                      style={{
-                        backgroundColor: footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000"),
-                        background: footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000"),
-                        boxSizing: 'border-box',
-                      }}
-                    >
-                      {/* Top Row: Username + Social Icons */}
-                      <div
-                        className={`flex items-center gap-2 px-4 ${showElements.userName && showElements.socialIcons && icons.length > 0
-                          ? "justify-between"
-                          : "justify-center"
-                          }`}
-                      >
-                        {showElements.userName && (
-                          <span
-                            className="font-bold text-white truncate"
-                            style={{ fontSize: "14px" }}
+                    (() => {
+                      const footerBg = footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000");
+
+                      // Helper to determine if color is light
+                      const isLight = (() => {
+                        if (!footerBg) return false;
+                        let r, g, b;
+                        if (footerBg.startsWith("rgb")) {
+                          const values = footerBg.match(/\d+/g);
+                          if (!values) return false;
+                          [r, g, b] = values.map(Number);
+                        } else {
+                          const hex = footerBg.replace("#", "");
+                          r = parseInt(hex.substring(0, 2), 16) || 0;
+                          g = parseInt(hex.substring(2, 4), 16) || 0;
+                          b = parseInt(hex.substring(4, 6), 16) || 0;
+                        }
+                        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                        return luminance > 0.6;
+                      })();
+
+                      const textColor = isLight ? "text-gray-900" : "text-white";
+                      const subTextColor = isLight ? "text-gray-700" : "text-white/90";
+
+                      return (
+                        <div
+                          className={`relative w-full z-30 py-2 shrink-0 flex flex-col gap-1 border-t ${isLight ? 'border-black/10' : 'border-white/10'}`}
+                          style={{
+                            backgroundColor: footerBg,
+                            background: footerBg,
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {/* Top Row: Username + Social Icons */}
+                          <div
+                            className={`flex items-center gap-2 px-4 ${showElements.userName && showElements.socialIcons && icons.length > 0
+                              ? "justify-between"
+                              : "justify-center"
+                              }`}
                           >
-                            {viewer?.userName || "Username"}
-                          </span>
-                        )}
-
-                        {showElements.socialIcons && icons.length > 0 && (
-                          <div className="flex items-center gap-2.5">
-                            {icons.map((icon, idx) => (
-                              <a
-                                key={idx}
-                                href={icon.urlTemplate || icon.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-white/20 hover:bg-white/40 p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer"
+                            {showElements.userName && (
+                              <span
+                                className={`font-bold truncate ${textColor}`}
+                                style={{ fontSize: "14px" }}
                               >
-                                <img
-                                  src={`https://cdn.simpleicons.org/${icon.platform === "twitter" ? "x" : icon.platform}`}
-                                  className="w-3.5 h-3.5 object-contain invert"
-                                  alt={icon.platform}
-                                  onError={(e) => { e.currentTarget.src = defaultAvatar; }}
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                                {viewer?.userName || "Username"}
+                              </span>
+                            )}
 
-                      {/* Bottom Row: Email + Phone */}
-                      {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
-                        <div className="flex items-center justify-between gap-4 w-full px-4">
-                          {showElements.email && viewer?.email && (
-                            <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "12px" }}>
-                              {viewer.email}
-                            </span>
-                          )}
-                          {showElements.phone && viewer?.phoneNumber && (
-                            <span className="text-white font-medium truncate opacity-95" style={{ fontSize: "12px" }}>
-                              {viewer.phoneNumber}
-                            </span>
+                            {showElements.socialIcons && icons.length > 0 && (
+                              <div className="flex items-center gap-2.5">
+                                {icons.map((icon, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={icon.urlTemplate || icon.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${isLight ? 'bg-black/10 hover:bg-black/20' : 'bg-white/20 hover:bg-white/40'} p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer`}
+                                  >
+                                    <img
+                                      src={`https://cdn.simpleicons.org/${icon.platform === "twitter" ? "x" : icon.platform}`}
+                                      className={`w-3.5 h-3.5 object-contain ${isLight ? "" : "invert"}`}
+                                      alt={icon.platform}
+                                      onError={(e) => { e.currentTarget.src = defaultAvatar; }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bottom Row: Email + Phone */}
+                          {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
+                            <div className="flex items-center justify-between gap-4 w-full px-4">
+                              {showElements.email && viewer?.email && (
+                                <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                                  {viewer.email}
+                                </span>
+                              )}
+                              {showElements.phone && viewer?.phoneNumber && (
+                                <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                                  {viewer.phoneNumber}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()
                   );
                 })()
               }

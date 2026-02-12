@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   const [resetEmail, setResetEmail] = useState(null);
+  const [isGlobalMuted, setIsGlobalMuted] = useState(false); // Default to unmuted per user request
   // ---------------------------------------------------------------------------
   // 👤 Normalize User (_id / userId compatibility)
   // ---------------------------------------------------------------------------
@@ -46,9 +47,9 @@ export const AuthProvider = ({ children }) => {
     : null;
 
 
-    // -----------------------------------------------------------
-// 🔄 Refresh Access Token (Used by AutoLogin + PresenceTracker)
-// -----------------------------------------------------------
+  // -----------------------------------------------------------
+  // 🔄 Refresh Access Token (Used by AutoLogin + PresenceTracker)
+  // -----------------------------------------------------------
   const refreshAccessToken = async () => {
     try {
       const refreshToken = localStorage.getItem("refreshToken");
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   // ---------------------------------------------------------------------------
   // 🚀 AutoLogin Hook
   // ---------------------------------------------------------------------------
-    useAutoLogin({ setToken, setUser, setSessionId, navigate });
+  useAutoLogin({ setToken, setUser, setSessionId, navigate });
 
   // ---------------------------------------------------------------------------
   // ❤️ Presence Tracker (Runs *only after* socket + user + session ready)
@@ -352,7 +353,9 @@ export const AuthProvider = ({ children }) => {
     sendOtpForReset,
     verifyOtpForReset,
     resetPassword,
- refreshAccessToken,
+    refreshAccessToken,
+    isGlobalMuted,
+    setIsGlobalMuted,
     fetchUserProfile,
   };
 

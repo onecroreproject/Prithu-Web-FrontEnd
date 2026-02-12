@@ -146,18 +146,18 @@ export default function PostMedia({
   const lastTap = useRef(0);
 
   const extractColor = useCallback((element) => {
-    if (!element) return;
+    if (!element) return false;
     try {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      canvas.width = 10; // Small size for faster processing
+      canvas.width = 10;
       canvas.height = 10;
       ctx.drawImage(element, 0, 0, 10, 10);
       const data = ctx.getImageData(0, 0, 10, 10).data;
 
       let r = 0, g = 0, b = 0, count = 0;
       for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] < 128) continue; // Skip semi-transparent pixels
+        if (data[i + 3] < 128) continue;
         r += data[i];
         g += data[i + 1];
         b += data[i + 2];
@@ -165,16 +165,50 @@ export default function PostMedia({
       }
 
       if (count > 0) {
-        const rgb = `rgb(${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)})`;
+        const avgR = r / count;
+        const avgG = g / count;
+        const avgB = b / count;
+
+        // Detection: If it's pure black or extremely dark, it's likely a fade-in or empty frame
+        const isTooDark = avgR < 15 && avgG < 15 && avgB < 15;
+
+        const rgb = `rgb(${Math.round(avgR)}, ${Math.round(avgG)}, ${Math.round(avgB)})`;
         setDominantColor(rgb);
         editMetadata?.onColorExtract?.(rgb);
+
+        return !isTooDark; // Return true if we got a valid "content" color
       }
+      return false;
     } catch (e) {
       console.warn("Dominant color extraction failed:", e);
+      return false;
     }
   }, [editMetadata]);
 
+  // Use a ref to track if we've found a "good" color for this specific video source
+  const hasGoodColor = useRef(false);
+  const extractionTimeoutRef = useRef(null);
+
+  const runExtractionWithRetry = useCallback((element, attempt = 1) => {
+    if (hasGoodColor.current || attempt > 4) return;
+
+    const success = extractColor(element);
+    if (!success) {
+      // Retry with increasing delays
+      const nextDelay = attempt === 1 ? 800 : (attempt === 2 ? 1500 : 3000);
+      extractionTimeoutRef.current = setTimeout(() => {
+        runExtractionWithRetry(element, attempt + 1);
+      }, nextDelay);
+    } else {
+      hasGoodColor.current = true;
+    }
+  }, [extractColor]);
+
   useEffect(() => {
+    // Reset color status when content changes
+    hasGoodColor.current = false;
+    if (extractionTimeoutRef.current) clearTimeout(extractionTimeoutRef.current);
+
     if (type === "image" && contentUrl) {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -188,16 +222,31 @@ export default function PostMedia({
     }
   }, [type, contentUrl, extractColor]);
 
-  // For video, extract when it starts playing
+  // For video, extract when it starts playing or when metadata is ready
   const handleVideoMetadata = useCallback((e) => {
-    // Extract color from first frame
-    setTimeout(() => extractColor(e.target), 500);
-    // Detect natural aspect ratio
-    if (e.target.videoWidth && e.target.videoHeight) {
-      setNaturalAspectRatio(e.target.videoWidth / e.target.videoHeight);
-    }
-  }, [extractColor]);
+    const video = e.target;
+    // Attempt 1: Just as metadata arrives
+    runExtractionWithRetry(video, 1);
 
+    // Detect natural aspect ratio
+    if (video.videoWidth && video.videoHeight) {
+      setNaturalAspectRatio(video.videoWidth / video.videoHeight);
+    }
+  }, [runExtractionWithRetry]);
+
+  // Additional trigger: When video actually starts playing
+  const handleVideoPlaying = useCallback((e) => {
+    if (!hasGoodColor.current) {
+      runExtractionWithRetry(e.target, 1);
+    }
+  }, [runExtractionWithRetry]);
+
+  // ✅ Sync muted property directly to DOM element (React's muted attribute only sets defaultMuted)
+  useEffect(() => {
+    if (videoRef && videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted, videoRef]);
 
 
   const handleTap = () => {
@@ -212,6 +261,7 @@ export default function PostMedia({
   };
 
   const handleClick = (e) => {
+    if (e) e.stopPropagation();
     if (type === "video") {
       togglePlayPause();
     } else {
@@ -243,7 +293,7 @@ export default function PostMedia({
 
   if (type === "image") {
     return (
-      <div onClick={onCommentsClick} className="w-full flex-1 min-h-0 flex items-center justify-center">
+      <div onClick={handleClick} className="w-full flex-1 min-h-0 flex items-center justify-center">
         <div
           ref={containerRef}
           onClick={handleTap}
@@ -307,6 +357,7 @@ export default function PostMedia({
             transform: `scale(${zoomLevel})`
           }}
           onLoadedMetadata={handleVideoMetadata}
+          onPlaying={handleVideoPlaying}
           onPlay={() => onVideoPlay?.()}
           onPause={() => onVideoPause?.()}
           onEnded={() => onVideoEnded?.()}
