@@ -124,7 +124,22 @@ export default function PostMedia({
 }) {
   const containerRef = useRef(null);
   const [showHeart, setShowHeart] = useState(false);
-  const [dominantColor, setDominantColor] = useState("#222");
+  const lastTap = useRef(0);
+
+  // ✅ Immediate "Best Guess" Color to avoid initial black flicker
+  const getInitialColor = (url) => {
+    if (!url) return "#1a1a1a";
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      hash = url.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const r = (hash & 0xff0000) >> 16;
+    const g = (hash & 0x00ff00) >> 8;
+    const b = hash & 0x0000ff;
+    return `rgb(${Math.abs(r % 120 + 20)}, ${Math.abs(g % 120 + 20)}, ${Math.abs(b % 120 + 20)})`;
+  };
+
+  const [dominantColor, setDominantColor] = useState(() => getInitialColor(contentUrl));
 
   // Natural ratio detection for perfect width-matching and adaptive scaling
   const [naturalAspectRatio, setNaturalAspectRatio] = useState(() => {
@@ -142,8 +157,6 @@ export default function PostMedia({
   // Always use object-contain to prevent cropping
   // MediaWrapper handles width matching between media and footer
   const objectFitClass = "fit-content";
-
-  const lastTap = useRef(0);
 
   const extractColor = useCallback((element) => {
     if (!element) return false;
@@ -208,6 +221,9 @@ export default function PostMedia({
     // Reset color status when content changes
     hasGoodColor.current = false;
     if (extractionTimeoutRef.current) clearTimeout(extractionTimeoutRef.current);
+
+    // Immediately set a fresh "guess" color for the new content to avoid flicker
+    setDominantColor(getInitialColor(contentUrl));
 
     if (type === "image" && contentUrl) {
       const img = new Image();
@@ -275,7 +291,7 @@ export default function PostMedia({
 
     return (
       <div
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 transition-colors duration-1000 ease-in-out"
         style={{
           background: isMobileList
             ? 'transparent'

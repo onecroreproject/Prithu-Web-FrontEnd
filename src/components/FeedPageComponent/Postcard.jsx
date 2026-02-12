@@ -152,7 +152,25 @@ function Postcard({
 
   const audioProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const [dominantColor, setDominantColor] = useState("#1a1a1a");
+  // ✅ Immediate "Best Guess" Color to avoid initial black flicker
+  const getInitialColor = (url) => {
+    if (!url) return "#1a1a1a";
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      hash = url.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const r = (hash & 0xff0000) >> 16;
+    const g = (hash & 0x00ff00) >> 8;
+    const b = hash & 0x0000ff;
+    return `rgb(${Math.abs(r % 120 + 20)}, ${Math.abs(g % 120 + 20)}, ${Math.abs(b % 120 + 20)})`;
+  };
+
+  const [dominantColor, setDominantColor] = useState(() => getInitialColor(contentUrl));
+
+  // ✅ Immediately sync color when URL changes to avoid seeing previous post's color
+  useEffect(() => {
+    setDominantColor(getInitialColor(contentUrl));
+  }, [contentUrl]);
 
   // ✅ Stable callback for color extraction from PostMedia
   const handleColorExtract = useCallback((color) => {
@@ -268,7 +286,7 @@ function Postcard({
           vid.currentTime = 0;
           setVideoSessionId((prev) => prev + 1);
           vid.play().then(() => setIsPlaying(true)).catch((err) => {
-            if (err.name !== 'AbortError') {
+            if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
               console.error("Autoplay failed:", err);
             }
             setIsPlaying(false);
@@ -281,6 +299,11 @@ function Postcard({
       }
     }
   }, [isVisible, isVideo, viewMode, activeVideoId, feedId]);
+
+  // ✅ Immediately sync color when URL changes to avoid seeing previous post's color
+  useEffect(() => {
+    setDominantColor(getInitialColor(contentUrl));
+  }, [contentUrl]);
 
   // Handle browser tab/window switch
   useEffect(() => {
@@ -553,7 +576,9 @@ function Postcard({
                   vid.currentTime = 0;
                   setVideoSessionId((prev) => prev + 1);
                   vid.play().catch((err) => {
-                    if (err.name !== 'AbortError') console.error("Loop play failed:", err);
+                    if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+                      console.error("Loop play failed:", err);
+                    }
                   });
                 }
               }}
@@ -642,96 +667,92 @@ function Postcard({
 
                   if (!hasAnyElementEnabled) return null;
 
+                  const footerBg = footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000");
+
+                  // Helper to determine if color is light
+                  const isLight = (() => {
+                    if (!footerBg) return false;
+                    let r, g, b;
+                    if (footerBg.startsWith("rgb")) {
+                      const values = footerBg.match(/\d+/g);
+                      if (!values) return false;
+                      [r, g, b] = values.map(Number);
+                    } else {
+                      const hex = footerBg.replace("#", "");
+                      r = parseInt(hex.substring(0, 2), 16) || 0;
+                      g = parseInt(hex.substring(2, 4), 16) || 0;
+                      b = parseInt(hex.substring(4, 6), 16) || 0;
+                    }
+                    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    return luminance > 0.6;
+                  })();
+
+                  const textColor = isLight ? "text-gray-900" : "text-white";
+                  const subTextColor = isLight ? "text-gray-700" : "text-white/90";
+
                   return (
-                    (() => {
-                      const footerBg = footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000");
-
-                      // Helper to determine if color is light
-                      const isLight = (() => {
-                        if (!footerBg) return false;
-                        let r, g, b;
-                        if (footerBg.startsWith("rgb")) {
-                          const values = footerBg.match(/\d+/g);
-                          if (!values) return false;
-                          [r, g, b] = values.map(Number);
-                        } else {
-                          const hex = footerBg.replace("#", "");
-                          r = parseInt(hex.substring(0, 2), 16) || 0;
-                          g = parseInt(hex.substring(2, 4), 16) || 0;
-                          b = parseInt(hex.substring(4, 6), 16) || 0;
-                        }
-                        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                        return luminance > 0.6;
-                      })();
-
-                      const textColor = isLight ? "text-gray-900" : "text-white";
-                      const subTextColor = isLight ? "text-gray-700" : "text-white/90";
-
-                      return (
-                        <div
-                          className={`relative w-full z-30 py-2 shrink-0 flex flex-col gap-1 border-t ${isLight ? 'border-black/10' : 'border-white/10'}`}
-                          style={{
-                            backgroundColor: footerBg,
-                            background: footerBg,
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          {/* Top Row: Username + Social Icons */}
-                          <div
-                            className={`flex items-center gap-2 px-4 ${showElements.userName && showElements.socialIcons && icons.length > 0
-                              ? "justify-between"
-                              : "justify-center"
-                              }`}
+                    <div
+                      className={`relative w-full z-30 py-2 shrink-0 flex flex-col gap-1 border-t transition-colors duration-1000 ease-in-out ${isLight ? 'border-black/10' : 'border-white/10'}`}
+                      style={{
+                        backgroundColor: footerBg,
+                        background: footerBg,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {/* Top Row: Username + Social Icons */}
+                      <div
+                        className={`flex items-center gap-2 px-4 ${showElements.userName && showElements.socialIcons && icons.length > 0
+                          ? "justify-between"
+                          : "justify-center"
+                          }`}
+                      >
+                        {showElements.userName && (
+                          <span
+                            className={`font-bold truncate ${textColor}`}
+                            style={{ fontSize: "14px" }}
                           >
-                            {showElements.userName && (
-                              <span
-                                className={`font-bold truncate ${textColor}`}
-                                style={{ fontSize: "14px" }}
+                            {viewer?.userName || "Username"}
+                          </span>
+                        )}
+
+                        {showElements.socialIcons && icons.length > 0 && (
+                          <div className="flex items-center gap-2.5">
+                            {icons.map((icon, idx) => (
+                              <a
+                                key={idx}
+                                href={icon.urlTemplate || icon.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${isLight ? 'bg-black/10 hover:bg-black/20' : 'bg-white/20 hover:bg-white/40'} p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer`}
                               >
-                                {viewer?.userName || "Username"}
-                              </span>
-                            )}
-
-                            {showElements.socialIcons && icons.length > 0 && (
-                              <div className="flex items-center gap-2.5">
-                                {icons.map((icon, idx) => (
-                                  <a
-                                    key={idx}
-                                    href={icon.urlTemplate || icon.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`${isLight ? 'bg-black/10 hover:bg-black/20' : 'bg-white/20 hover:bg-white/40'} p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer`}
-                                  >
-                                    <img
-                                      src={`https://cdn.simpleicons.org/${icon.platform === "twitter" ? "x" : icon.platform}`}
-                                      className={`w-3.5 h-3.5 object-contain ${isLight ? "" : "invert"}`}
-                                      alt={icon.platform}
-                                      onError={(e) => { e.currentTarget.src = defaultAvatar; }}
-                                    />
-                                  </a>
-                                ))}
-                              </div>
-                            )}
+                                <img
+                                  src={`https://cdn.simpleicons.org/${icon.platform === "twitter" ? "x" : icon.platform}`}
+                                  className={`w-3.5 h-3.5 object-contain ${isLight ? "" : "invert"}`}
+                                  alt={icon.platform}
+                                  onError={(e) => { e.currentTarget.src = defaultAvatar; }}
+                                />
+                              </a>
+                            ))}
                           </div>
+                        )}
+                      </div>
 
-                          {/* Bottom Row: Email + Phone */}
-                          {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
-                            <div className="flex items-center justify-between gap-4 w-full px-4">
-                              {showElements.email && viewer?.email && (
-                                <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
-                                  {viewer.email}
-                                </span>
-                              )}
-                              {showElements.phone && viewer?.phoneNumber && (
-                                <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
-                                  {viewer.phoneNumber}
-                                </span>
-                              )}
-                            </div>
+                      {/* Bottom Row: Email + Phone */}
+                      {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
+                        <div className="flex items-center justify-between gap-4 w-full px-4">
+                          {showElements.email && viewer?.email && (
+                            <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                              {viewer.email}
+                            </span>
+                          )}
+                          {showElements.phone && viewer?.phoneNumber && (
+                            <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                              {viewer.phoneNumber}
+                            </span>
                           )}
                         </div>
-                      );
-                    })()
+                      )}
+                    </div>
                   );
                 })()
               }

@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   const [resetEmail, setResetEmail] = useState(null);
-  const [isGlobalMuted, setIsGlobalMuted] = useState(false); // Default to unmuted per user request
+  const [isGlobalMuted, setIsGlobalMuted] = useState(true); // Default to muted to ensure autoplay works across all browsers
   // ---------------------------------------------------------------------------
   // 👤 Normalize User (_id / userId compatibility)
   // ---------------------------------------------------------------------------
