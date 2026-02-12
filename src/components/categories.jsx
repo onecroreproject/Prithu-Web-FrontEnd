@@ -27,11 +27,13 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   }, []);
 
   const calculateVisibleCount = () => {
-    const isMobile = window.innerWidth <= 480;
+    const isMobile = window.innerWidth <= 768;
     const itemsPerRow = isMobile ? 3 : 4;
-    const rows = 3;
+    const rows = isMobile ? 2 : 3; // Only 2 rows on mobile
     // We have 2 static items (Trending, All), so we subtract them from the total visible slots
-    setVisibleCount((itemsPerRow * rows) - 2);
+    // On mobile, also reserve 1 slot for the More button if there are more categories
+    const reservedSlots = isMobile ? 3 : 2; // Trending, All, and More button on mobile
+    setVisibleCount((itemsPerRow * rows) - reservedSlots);
   };
 
   const getDisplayCategories = () => {
@@ -141,26 +143,7 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-1 duration-200">
-      {hasMoreCategories && (
-        <div className="mb-1 flex justify-end">
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="group flex items-center gap-0.5 text-[9px] sm:text-[10px] text-gray-500 hover:text-gray-700 font-medium px-1 py-0.5 rounded-full hover:bg-gray-100 transition-all duration-150 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-right-1 duration-150"
-          >
-            {showAll ? (
-              <>
-                <ChevronUp className="w-2.5 h-2.5 transition-transform duration-150 group-hover:-translate-y-0.5" />
-                <span>Less</span>
-              </>
-            ) : (
-              <>
-                <span>More</span>
-                <ChevronDown className="w-2.5 h-2.5 transition-transform duration-150 group-hover:translate-y-0.5" />
-              </>
-            )}
-          </button>
-        </div>
-      )}
+
 
       {categories.length > 0 ? (
         <div className="space-y-1">
@@ -242,20 +225,29 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
                 </div>
               </button>
             ))}
-          </div>
 
-          {/* "Show More" indicator when collapsed */}
-          {hasMoreCategories && !showAll && categories.length > visibleCount && (
-            <div className="text-center pt-1 animate-in fade-in duration-150">
+            {/* More button - Only on mobile when there are more categories */}
+            {hasMoreCategories && !showAll && typeof window !== 'undefined' && window.innerWidth <= 768 && (
               <button
                 onClick={() => setShowAll(true)}
-                className="group inline-flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 px-2 py-0.5 rounded-full transition-all duration-150 hover:scale-105 active:scale-95"
+                className="group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300 px-2 py-0.5 sm:px-2 sm:py-0.5"
+                style={{ minHeight: '24px' }}
               >
-                <span>+{categories.length - visibleCount}</span>
-                <ChevronDown className="w-2 h-2 transition-transform duration-150 group-hover:translate-y-0.5" />
+                <span className="text-[10px] sm:text-xs font-medium">More....</span>
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Show Less button when expanded on mobile */}
+            {showAll && typeof window !== 'undefined' && window.innerWidth <= 768 && (
+              <button
+                onClick={() => setShowAll(false)}
+                className="group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300 px-2 py-0.5 sm:px-2 sm:py-0.5"
+                style={{ minHeight: '24px' }}
+              >
+                <span className="text-[10px] sm:text-xs font-medium">Less</span>
+              </button>
+            )}
+          </div>
 
         </div>
       ) : (

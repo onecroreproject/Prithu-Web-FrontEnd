@@ -29,39 +29,77 @@ const MediaWrapper = ({
   overlaySlot,
   footerSlot,
   onClick
-}) => (
-  <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">
-    <div
-      className="relative flex flex-col transition-all duration-300 pointer-events-auto cursor-pointer"
-      onClick={onClick}
-      style={{
-        width: 'fit-content',
-        height: 'fit-content',
-        maxWidth: '100%',
-        maxHeight: '100%',
-      }}
-    >
-      {/* 1. MEDIA CONTAINER: This box calculates its width based on height * ratio. */}
+}) => {
+  const mediaRef = useRef(null);
+  const [mediaWidth, setMediaWidth] = useState(null);
+
+  useEffect(() => {
+    if (!mediaRef.current) return;
+
+    const updateWidth = () => {
+      if (mediaRef.current) {
+        const width = mediaRef.current.offsetWidth;
+        setMediaWidth(width);
+      }
+    };
+
+    // Initial measurement
+    updateWidth();
+
+    // Observe size changes
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(mediaRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Determine width based on view mode and screen size
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const containerWidth = (viewMode === 'list' && isMobile) ? '75%' : '100%';
+
+  return (
+    <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">
       <div
-        className="relative shadow-2xl overflow-hidden flex items-center justify-center flex-1 min-h-0"
+        className="relative flex flex-col transition-all duration-300 pointer-events-auto cursor-pointer shadow-2xl "
+        onClick={onClick}
         style={{
-          aspectRatio: naturalAspectRatio ? `${naturalAspectRatio}` : undefined,
-          width: 'auto',
+          width: containerWidth,
+          height: 'fit-content',
           maxWidth: '100%',
-          maxHeight: '100%', // Explicitly bound height to parent
-          height: 'auto',
+          maxHeight: '100%',
         }}
       >
-        {children}
-        {overlaySlot}
-      </div>
+        <div
+          ref={mediaRef}
+          className="relative flex  items-center justify-center flex-1 min-h-0"
+          style={{
+            aspectRatio: naturalAspectRatio ? `${naturalAspectRatio}` : undefined,
+            width: 'auto',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            height: 'auto',
+          }}
+        >
+          {children}
+          {overlaySlot}
+        </div>
 
-      <div className="relative w-0 min-w-full shrink-0">
-        {footerSlot}
+        {/* Footer with dynamically measured width */}
+        {footerSlot && (
+          <div
+            className="relative shrink-0"
+            style={{
+              width: mediaWidth ? `${mediaWidth}px` : '100%',
+              boxSizing: 'border-box'
+            }}
+          >
+            {footerSlot}
+          </div>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function PostMedia({
   type = "image",
@@ -100,7 +138,10 @@ export default function PostMedia({
   const filterPreset = editMetadata?.filters?.preset || 'original';
   const filterStyle = FILTER_STYLES[filterPreset] || '';
   const zoomLevel = editMetadata?.crop?.zoomLevel || 1;
-  const objectFitClass = isTemplate ? "object-contain" : "object-contain";
+
+  // Always use object-contain to prevent cropping
+  // MediaWrapper handles width matching between media and footer
+  const objectFitClass = "fit-content";
 
   const lastTap = useRef(0);
 
@@ -178,20 +219,27 @@ export default function PostMedia({
     }
   };
 
-  const ColorBackground = ({ isImage, contentUrl }) => (
-    <div
-      className="absolute inset-0 z-0"
-      style={{
-        background: isImage
-          ? `url(${contentUrl})`
-          : `radial-gradient(circle, ${dominantColor}55, ${dominantColor}EE)`,
-        backgroundSize: isImage ? 'cover' : undefined,
-        backgroundPosition: isImage ? 'center' : undefined,
-        filter: isImage ? "blur(50px)" : "blur(40px)",
-        transform: "scale(1.25)",
-      }}
-    />
-  );
+  const ColorBackground = ({ isImage, contentUrl, viewMode }) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const isMobileList = viewMode === 'list' && isMobile;
+
+    return (
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background: isMobileList
+            ? 'transparent'
+            : isImage
+              ? `url(${contentUrl})`
+              : `radial-gradient(circle, ${dominantColor}55, ${dominantColor}EE)`,
+          backgroundSize: isImage && !isMobileList ? 'cover' : undefined,
+          backgroundPosition: isImage && !isMobileList ? 'center' : undefined,
+          filter: isMobileList ? 'none' : (isImage ? "blur(50px)" : "blur(40px)"),
+          transform: isMobileList ? 'none' : "scale(1.25)",
+        }}
+      />
+    );
+  };
 
   if (type === "image") {
     return (
@@ -199,9 +247,9 @@ export default function PostMedia({
         <div
           ref={containerRef}
           onClick={handleTap}
-          className="relative w-full h-full flex items-center justify-center overflow-hidden"
+          className="relative w-full h-full flex items-center justify-center "
         >
-          <ColorBackground isImage={true} contentUrl={contentUrl} />
+          <ColorBackground isImage={true} contentUrl={contentUrl} viewMode={viewMode} />
 
           <MediaWrapper
             naturalAspectRatio={naturalAspectRatio}
@@ -233,7 +281,7 @@ export default function PostMedia({
       onClick={handleClick}
       className="relative w-full flex-1 min-h-0 flex items-center justify-center overflow-hidden cursor-pointer"
     >
-      <ColorBackground />
+      <ColorBackground viewMode={viewMode} />
 
       <MediaWrapper
         naturalAspectRatio={naturalAspectRatio}

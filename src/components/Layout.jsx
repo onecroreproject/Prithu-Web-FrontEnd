@@ -9,7 +9,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import BottomNav from "./BottomNav";
+
 
 export default function Layout() {
   const location = useLocation();
@@ -97,7 +97,7 @@ export default function Layout() {
       )}
 
       <main className="flex-1 w-full pt-14 lg:pt-0">
-        <div className={`flex pb-20 lg:pb-0 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`flex lg:pb-0 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
               <Feed tagname={tagname} viewMode={viewMode} setViewMode={setViewMode} />
@@ -121,8 +121,7 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation - Hide when mobile menu is open */}
-      {!isMobileMenuOpen && <BottomNav />}
+
     </div>
   );
 }

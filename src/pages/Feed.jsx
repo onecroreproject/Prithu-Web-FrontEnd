@@ -23,6 +23,10 @@ import CategoryFeedPage from "../components/categories";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 
+import MobileFeedView from "../components/FeedPageComponent/MobileFeedView";
+import DesktopListFeedView from "../components/FeedPageComponent/DesktopListFeedView";
+import DesktopGridFeedView from "../components/FeedPageComponent/DesktopGridFeedView";
+
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const timeAgoFrom = (iso) => {
@@ -80,6 +84,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
   const [excludedCategoryIds, setExcludedCategoryIds] = useState([]);
   const [activeVideoId, setActiveVideoId] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const tokenRef = useRef(token);
   useEffect(() => {
@@ -89,7 +94,9 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   // Force list view on mobile
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768 && viewMode !== "list") {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile && viewMode !== "list") {
         setViewMode("list");
       }
     };
@@ -531,50 +538,66 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
         {/* Scrollable Feed Container */}
         <div className={`flex-1 ${viewMode === 'list' ? 'snap-y snap-mandatory scroll-smooth' : ''} no-scrollbar`}>
           <AnimatePresence mode="popLayout">
-            <motion.div
-              key={`${feedCategory || tagname || "home"}-${viewMode}`}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.35, ease: "easeInOut" }}
-              className={viewMode === 'grid'
-                ? "grid grid-cols-2 md:grid-cols-4 gap-4 w-full"
-                : "flex items-center flex-col gap-0 w-full"}
-            >
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)
-              ) : mixed.length > 0 ? (
-                mixed.map((item, idx) => {
-                  const stableId = item._id || item.feedId || idx;
-                  return (
-                    <motion.div
-                      layout
-                      key={`${item.__kind}-${stableId}-${idx}`}
-                      className="w-full"
-                      transition={{
-                        layout: { duration: 0.4, type: "spring", stiffness: 200, damping: 25 }
-                      }}
-                    >
-                      <PostcardWrapper
-                        postData={item}
-                        authUser={authUser}
-                        token={tokenRef.current || token}
-                        onHideFromUI={handleHideFromUI}
-                        onNotInterested={handleNotInterestedFromUI}
-                        isVisible={true}
-                        viewMode={viewMode}
-                        activeVideoId={activeVideoId}
-                        setActiveVideoId={setActiveVideoId}
-                      />
-                    </motion.div>
-                  );
-                })
+            {isLoading ? (
+              <motion.div
+                key="loading-skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={viewMode === 'grid'
+                  ? "grid grid-cols-2 md:grid-cols-4 gap-4 w-full"
+                  : "flex items-center flex-col gap-0 w-full"}
+              >
+                {Array.from({ length: 4 }).map((_, i) => <FeedSkeleton key={i} />)}
+              </motion.div>
+            ) : mixed.length > 0 ? (
+              viewMode === 'grid' ? (
+                <DesktopGridFeedView
+                  key={`grid-${feedCategory || tagname || "home"}`}
+                  feeds={mixed}
+                  authUser={authUser}
+                  token={tokenRef.current || token}
+                  handleHideFromUI={handleHideFromUI}
+                  handleNotInterestedFromUI={handleNotInterestedFromUI}
+                  activeVideoId={activeVideoId}
+                  setActiveVideoId={setActiveVideoId}
+                  viewMode={viewMode}
+                />
+              ) : isMobile ? (
+                <MobileFeedView
+                  key={`mobile-${feedCategory || tagname || "home"}`}
+                  feeds={mixed}
+                  authUser={authUser}
+                  token={tokenRef.current || token}
+                  handleHideFromUI={handleHideFromUI}
+                  handleNotInterestedFromUI={handleNotInterestedFromUI}
+                  activeVideoId={activeVideoId}
+                  setActiveVideoId={setActiveVideoId}
+                  viewMode={viewMode}
+                />
               ) : (
-                <p className="text-center text-gray-500 py-8">
-                  {feedsError ? "⚠️ Failed to load content." : "No content available."}
-                </p>
-              )}
-            </motion.div>
+                <DesktopListFeedView
+                  key={`desktop-list-${feedCategory || tagname || "home"}`}
+                  feeds={mixed}
+                  authUser={authUser}
+                  token={tokenRef.current || token}
+                  handleHideFromUI={handleHideFromUI}
+                  handleNotInterestedFromUI={handleNotInterestedFromUI}
+                  activeVideoId={activeVideoId}
+                  setActiveVideoId={setActiveVideoId}
+                  viewMode={viewMode}
+                />
+              )
+            ) : (
+              <motion.div
+                key="no-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="w-full text-center text-gray-500 py-8"
+              >
+                {feedsError ? "⚠️ Failed to load content." : "No content available."}
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {isFetchingNextPage && (

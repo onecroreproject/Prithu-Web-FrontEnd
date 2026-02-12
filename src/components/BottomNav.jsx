@@ -8,15 +8,8 @@ const BottomNav = () => {
 
     const navItems = [
         { to: "/home", Icon: Home, label: "Home" },
-        {
-            onClick: () => window.dispatchEvent(new CustomEvent("openMobileSearch")),
-            Icon: Search,
-            label: "Search",
-            isAction: true
-        },
         { to: "/home/reels", Icon: Video, label: "Reels" },
         { to: "/home/images", Icon: Image, label: "Images" },
-        { to: "/home/profile", Icon: User, label: "Profile" },
     ];
 
     return (
