@@ -55,7 +55,7 @@ const MediaWrapper = ({
 
   // Determine width based on view mode and screen size
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const containerWidth = (viewMode === 'list' && isMobile) ? '75%' : '100%';
+  const containerWidth = (viewMode === 'list' && isMobile) ? '72%' : '100%';
 
   return (
     <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">

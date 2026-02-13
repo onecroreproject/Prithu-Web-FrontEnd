@@ -459,7 +459,7 @@ function Postcard({
 
   // Download Logic
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!feedId) return toast.error("Invalid feed!");
 
     const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.prithu.app';
@@ -470,13 +470,30 @@ function Postcard({
       return toast.error("Please login to download");
     }
 
-    setDownloadCount((p) => p + 1);
+    try {
+      // PROACTIVELY CHECK DOWNLOAD LIMIT
+      const checkRes = await fetch(`${BACKEND_URL}/api/user/feed/check-limit?userId=${activeUserId}&token=${token}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const checkData = await checkRes.json();
 
-    // Trigger direct browser download
-    const downloadUrl = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
+      if (checkData.isLimitReached) {
+        return toast.error("Download limit reached (Max 5 feeds)");
+      }
 
-    toast.success("Download started!");
-    window.location.href = downloadUrl;
+      setDownloadCount((p) => p + 1);
+
+      // Trigger direct browser download
+      const downloadUrl = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
+
+      toast.success("Download started!");
+      window.location.href = downloadUrl;
+    } catch (err) {
+      console.error("[DownloadCheck] Error:", err);
+      toast.error("Download failed to initiate");
+    }
   };
 
   const handleFollow = useCallback(() => {

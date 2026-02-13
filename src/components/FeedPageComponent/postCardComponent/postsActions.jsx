@@ -85,13 +85,10 @@ const PostActions = ({
   };
 
   const instantDownload = async () => {
-    const currentCount = localDownloadCount;
-    setLocalDownloadCount(currentCount + 1);
     try {
       await handleDownload();
     } catch (error) {
       console.error("Download failed:", error);
-      setLocalDownloadCount(currentCount);
     }
   };
 
