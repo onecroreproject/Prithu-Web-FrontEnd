@@ -471,7 +471,8 @@ function Postcard({
     }
 
     try {
-      // PROACTIVELY CHECK DOWNLOAD LIMIT
+      // TEMPORARILY DISABLED PROACTIVE CHECK DOWNLOAD LIMIT
+      /*
       const checkRes = await fetch(`${BACKEND_URL}/api/user/feed/check-limit?userId=${activeUserId}&token=${token}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -482,6 +483,7 @@ function Postcard({
       if (checkData.isLimitReached) {
         return toast.error("Download limit reached (Max 5 feeds)");
       }
+      */
 
       setDownloadCount((p) => p + 1);
 
