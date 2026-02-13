@@ -5,6 +5,7 @@ import { OrbitControls, Stars, Sphere, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import SEO from '../components/SEO';
 
 // Floating Icon Component - for emojis in 3D space
 function FloatingIcon({ emoji, position, speed, scale = 1 }) {
@@ -268,6 +269,12 @@ const LandingPage = () => {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-blue-50 text-gray-800 overflow-x-hidden relative">
+      <SEO
+        title="Prithu – Earn Rewards & App Services"
+        description="Join Prithu app to earn rewards, connect with services and enjoy exclusive features. Sign up, invite friends & unlock benefits with every action."
+        name="Prithu"
+        type="website"
+      />
       {/* Login Button - Top Right */}
       <div className="absolute top-6 right-6 z-50">
         <button

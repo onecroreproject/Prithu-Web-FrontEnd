@@ -22,8 +22,6 @@ const PostActions = ({
   handleSave,
   handleDownload,
   post,
-  commentCount,
-  onCommentsClick,
   caption = "",
   userName = "",
   isSaved = false,
@@ -158,8 +156,7 @@ const PostActions = ({
             </span>
           </div>
 
-          {/* Download hidden per user request */}
-          {/* <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <button
               onClick={instantDownload}
               className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
@@ -175,7 +172,7 @@ const PostActions = ({
                   : localDownloadCount}
               </span>
             )}
-          </div> */}
+          </div>
 
           <PostOptionsMenu
             feedId={feedId}
@@ -197,16 +194,7 @@ const PostActions = ({
         </div>
       )}
 
-      {commentCount > 0 && (
-        <button
-          onClick={onCommentsClick}
-          className="mb-2"
-        >
-          <span className="text-sm text-gray-500">
-            View all {commentCount} comments
-          </span>
-        </button>
-      )}
+
     </div>
   );
 };

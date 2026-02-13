@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense, memo } from "react";
 import { motion } from "framer-motion";
+import SEO from "./SEO";
 
 // ✅ Lazy load for performance
 const LeftPanel = lazy(() => import("./LoginPageComponents/leftPanel"));
@@ -10,6 +11,21 @@ function LoginPage({ initialMode = "login" }) {
 
   return (
     <div className="relative min-h-screen flex justify-center items-center overflow-hidden text-gray-800 bg-black">
+      {mode === 'register' ? (
+        <SEO
+          title="Prithu App Sign Up – Earn Rewards & Join Now"
+          description="Create your Prithu account to enjoy personalized features, earn rewards, connect with friends, and start sharing moments instantly with the community."
+          name="Prithu"
+          type="website"
+        />
+      ) : (
+        <SEO
+          title="Prithu - Login"
+          description="Login to your Prithu account."
+          name="Prithu"
+          type="website"
+        />
+      )}
       {/* ✅ Optimized Video Background */}
       <video
         autoPlay

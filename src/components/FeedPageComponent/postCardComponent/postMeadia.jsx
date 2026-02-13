@@ -110,7 +110,6 @@ export default function PostMedia({
   togglePlayPause,
   toggleMute,
   onDoubleTap,
-  onCommentsClick,
   preloadNext,
   onVideoPlay,
   onVideoPause,
@@ -280,8 +279,6 @@ export default function PostMedia({
     if (e) e.stopPropagation();
     if (type === "video") {
       togglePlayPause();
-    } else {
-      onCommentsClick?.();
     }
   };
 
@@ -322,7 +319,6 @@ export default function PostMedia({
             viewMode={viewMode}
             overlaySlot={overlaySlot}
             footerSlot={footerSlot}
-            onClick={onCommentsClick}
           >
             <img
               src={contentUrl}

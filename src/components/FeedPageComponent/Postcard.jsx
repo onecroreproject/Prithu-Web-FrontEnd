@@ -10,11 +10,9 @@ import api from "../../api/axios";
 import PostHeader from "./postCardComponent/postHeader";
 import PostMedia from "./postCardComponent/postMeadia";
 import PostActions from "./postCardComponent/postsActions";
-import PostCommentsModal from "./PostCommentsModal";
 import SharePopup from "./sharePopUp";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import { useComments } from "../../hooks/useComments";
 
 import {
   useDownloadFeed,
@@ -92,7 +90,7 @@ function Postcard({
   const audioConfig = designMetadata?.audioConfig || null;
 
   // v3: Stats Fallbacks
-  const initialComments = stats.comments || postData.commentsCount || 0;
+  // const initialComments = stats.comments || postData.commentsCount || 0;
 
   const tempUser = authUser || { _id: "guest", userName: "You" };
 
@@ -103,8 +101,8 @@ function Postcard({
   // Local state
   const [isLiked, setIsLiked] = useState(userInteractions.isLiked || postData.isLiked || false);
   const [isSaved, setIsSaved] = useState(userInteractions.isSaved || postData.isSaved || false);
-  const [comments, setComments] = useState([]);
-  const [commentCount, setCommentCount] = useState(initialComments);
+  // const [comments, setComments] = useState([]);
+  // const [commentCount, setCommentCount] = useState(initialComments);
   const { isGlobalMuted, setIsGlobalMuted } = useAuth();
   const isMuted = isGlobalMuted; // Alias for cleaner diff
   const setIsMuted = setIsGlobalMuted; // Alias for cleaner diff
@@ -118,7 +116,7 @@ function Postcard({
     userInteractions.isFollowing || postData?.isFollowing || false
   );
   const [loading, setLoading] = useState(true);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  // const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const [showSharePopup, setShowSharePopup] = useState(false);
@@ -127,7 +125,7 @@ function Postcard({
   const [videoViewCounted, setVideoViewCounted] = useState(false);
   const [videoSessionId, setVideoSessionId] = useState(0);
 
-  const { data: commentsData } = useComments(feedId, showCommentsModal);
+  // const { data: commentsData } = useComments(feedId, showCommentsModal);
 
   const likeMutation = useLikePost();
   const saveMutation = useSavePost(feedId);
@@ -198,11 +196,11 @@ function Postcard({
   }, [isVisible]);
 
   // Update comments
-  useEffect(() => {
-    if (commentsData) {
-      setComments(commentsData.slice(0, 10));
-    }
-  }, [commentsData]);
+  // useEffect(() => {
+  //   if (commentsData) {
+  //     setComments(commentsData.slice(0, 10));
+  //   }
+  // }, [commentsData]);
 
   // IMAGE VIEW COUNT
   useEffect(() => {
@@ -495,7 +493,7 @@ function Postcard({
       {
         onSuccess: () => {
           if (optimistic) {
-            setShowCommentsModal(true);
+            // setShowCommentsModal(true);
           }
         },
         onError: () => {
@@ -542,7 +540,7 @@ function Postcard({
             if (isVideo) {
               togglePlayPause();
             } else {
-              setShowCommentsModal(true);
+              // setShowCommentsModal(true);
             }
           }}
         >
@@ -553,7 +551,7 @@ function Postcard({
               contentUrl={contentUrl}
               videoRef={videoRef}
               isMuted={isMuted}
-              onCommentsClick={() => setShowCommentsModal(true)}
+              // onCommentsClick={() => setShowCommentsModal(true)}
               isPlaying={isPlaying}
               togglePlayPause={togglePlayPause}
               toggleMute={toggleMute}
@@ -794,9 +792,8 @@ function Postcard({
               handleSave={handleSave}
               caption={caption}
               userName={userName}
-              commentCount={commentCount}
               handleDownload={handleDownload}
-              onCommentsClick={() => setShowCommentsModal(true)}
+              // onCommentsClick={() => setShowCommentsModal(true)}
               feedId={feedId}
               categoryId={postData.category}
               tempUser={tempUser}
@@ -807,18 +804,18 @@ function Postcard({
             />
           </div>
 
-          <PostCommentsModal
-            open={showCommentsModal}
-            onClose={() => setShowCommentsModal(false)}
-            post={postData}
-            authUser={tempUser}
-            feedId={feedId}
-            setCommentCount={setCommentCount}
-            comments={comments}
-            setComments={setComments}
-            onFollowUpdate={setIsFollowing}
-            isFollowing={isFollowing}
-          />
+          {/* <PostCommentsModal
+             open={showCommentsModal}
+             onClose={() => setShowCommentsModal(false)}
+             post={postData}
+             authUser={tempUser}
+             feedId={feedId}
+             setCommentCount={setCommentCount}
+             comments={comments}
+             setComments={setComments}
+             onFollowUpdate={setIsFollowing}
+             isFollowing={isFollowing}
+           /> */}
 
           <SharePopup
             isOpen={showSharePopup}
