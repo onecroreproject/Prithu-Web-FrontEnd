@@ -38,6 +38,7 @@ import {
   verifyPaymentApi
 } from '../API_Services/subscriptionServices';
 import { toast } from 'react-hot-toast';
+import SEO from "../components/SEO";
 
 const SubscriptionPage = () => {
   const location = useLocation();
@@ -329,6 +330,12 @@ const SubscriptionPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50 p-4 md:p-6">
+      <SEO
+        title="Prithu Subscriptions - Premium Video Access"
+        description="Upgrade your Prithu experience with subscriptions for exclusive status videos, motivational, spiritual & premium reels. Enjoy ad-free and special content perks."
+        keywords="Prithu subscriptions, premium reels, ad-free video status, exclusive content, motivational reels, spiritual status"
+        canonical="https://prithu.app/home/subscriptions"
+      />
       {/* Trial Status Banner - Only show when active */}
       {trialStatus.trialActive && (
         <div className="max-w-6xl mx-auto mb-6 animate-in slide-in-from-top duration-500">

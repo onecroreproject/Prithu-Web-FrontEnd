@@ -25,6 +25,7 @@ import {
   Trash2,
   ExternalLink
 } from 'lucide-react';
+import SEO from "../components/SEO";
 
 const FeedbackPage = () => {
   const [activeTab, setActiveTab] = useState('submit'); // 'submit' or 'history'
@@ -124,7 +125,7 @@ const FeedbackPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    
+
     try {
       // Auto-detect device/platform
       const deviceInfo = {
@@ -138,7 +139,7 @@ const FeedbackPage = () => {
       };
 
       const response = await axios.post('/api/feedback/submit', payload);
-      
+
       // Reset form on success
       setFormData({
         section: '',
@@ -152,11 +153,11 @@ const FeedbackPage = () => {
 
       // Show success message
       alert('Thank you! Your feedback has been submitted.');
-      
+
       // Switch to history to show the new submission
       setActiveTab('history');
       fetchHistory();
-      
+
     } catch (error) {
       console.error('Error submitting feedback:', error);
       alert('Failed to submit feedback. Please try again.');
@@ -216,6 +217,12 @@ const FeedbackPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Prithu Feedback & Support - Help & Contact"
+        description="Give feedback or get help with Prithu app - report issues, ask questions, and share suggestions to improve your status videos, reels & motivational experience."
+        keywords="Prithu help, feedback, report issue, customer support, video status app help, suggest features"
+        canonical="https://prithu.app/home/feedback-support"
+      />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -227,11 +234,10 @@ const FeedbackPage = () => {
         <div className="flex border-b border-gray-200 mb-8">
           <button
             onClick={() => setActiveTab('submit')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 ${
-              activeTab === 'submit'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'submit'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <span className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
@@ -240,11 +246,10 @@ const FeedbackPage = () => {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 ${
-              activeTab === 'history'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'history'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
           >
             <span className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -278,18 +283,16 @@ const FeedbackPage = () => {
                   <button
                     type="button"
                     onClick={() => handleInputChange({ target: { name: 'type', value: 'feedback' } })}
-                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${
-                      formData.type === 'feedback'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${formData.type === 'feedback'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded ${
-                        formData.type === 'feedback'
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
+                      <div className={`p-2 rounded ${formData.type === 'feedback'
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'bg-gray-100 text-gray-600'
+                        }`}>
                         <MessageSquare className="w-5 h-5" />
                       </div>
                       <div>
@@ -302,18 +305,16 @@ const FeedbackPage = () => {
                   <button
                     type="button"
                     onClick={() => handleInputChange({ target: { name: 'type', value: 'report' } })}
-                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${
-                      formData.type === 'report'
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${formData.type === 'report'
+                      ? 'border-red-500 bg-red-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded ${
-                        formData.type === 'report'
-                          ? 'bg-red-100 text-red-600'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
+                      <div className={`p-2 rounded ${formData.type === 'report'
+                        ? 'bg-red-100 text-red-600'
+                        : 'bg-gray-100 text-gray-600'
+                        }`}>
                         <AlertTriangle className="w-5 h-5" />
                       </div>
                       <div>
@@ -357,21 +358,19 @@ const FeedbackPage = () => {
                       key={category.value}
                       type="button"
                       onClick={() => handleInputChange({ target: { name: 'category', value: category.value } })}
-                      className={`p-3 border rounded-lg text-center transition-all duration-200 ${
-                        formData.category === category.value
-                          ? formData.type === 'feedback'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-red-500 bg-red-50'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
+                      className={`p-3 border rounded-lg text-center transition-all duration-200 ${formData.category === category.value
+                        ? formData.type === 'feedback'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-red-500 bg-red-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                        }`}
                     >
-                      <div className={`p-2 rounded-lg mb-2 mx-auto w-fit ${
-                        formData.category === category.value
-                          ? formData.type === 'feedback'
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-red-100 text-red-600'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
+                      <div className={`p-2 rounded-lg mb-2 mx-auto w-fit ${formData.category === category.value
+                        ? formData.type === 'feedback'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'bg-red-100 text-red-600'
+                        : 'bg-gray-100 text-gray-600'
+                        }`}>
                         {category.icon}
                       </div>
                       <span className="text-sm font-medium text-gray-900">{category.label}</span>
@@ -419,13 +418,12 @@ const FeedbackPage = () => {
                 <button
                   type="submit"
                   disabled={submitting || !formData.message}
-                  className={`px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-                    submitting || !formData.message
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : formData.type === 'feedback'
+                  className={`px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${submitting || !formData.message
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : formData.type === 'feedback'
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
+                    }`}
                 >
                   {submitting ? (
                     <span className="flex items-center gap-2">
@@ -613,9 +611,8 @@ const FeedbackPage = () => {
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-start gap-3 mb-3">
-                          <div className={`p-2 rounded-lg ${
-                            item.type === 'feedback' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'
-                          }`}>
+                          <div className={`p-2 rounded-lg ${item.type === 'feedback' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'
+                            }`}>
                             {item.type === 'feedback' ? (
                               <MessageSquare className="w-5 h-5" />
                             ) : (
@@ -632,9 +629,8 @@ const FeedbackPage = () => {
                                   {statusIcons[item.status]}
                                   {item.status.replace('_', ' ')}
                                 </span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  item.type === 'feedback' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                                }`}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.type === 'feedback' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                                  }`}>
                                   {item.type}
                                 </span>
                               </div>
@@ -656,7 +652,7 @@ const FeedbackPage = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Admin Response */}
                         {item.adminNote && (
                           <div className="mt-4 pt-4 border-t border-gray-100">

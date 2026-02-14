@@ -270,10 +270,12 @@ const LandingPage = () => {
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-blue-50 text-gray-800 overflow-x-hidden relative">
       <SEO
-        title="Prithu – Earn Rewards & App Services"
-        description="Join Prithu app to earn rewards, connect with services and enjoy exclusive features. Sign up, invite friends & unlock benefits with every action."
+        title="Prithu - Best Status & Motivational Video App"
+        description="Explore Prithu - watch status videos, motivational, spiritual & educational reels, movie dialogues & daily life impressions with smart personalization and instant sharing."
+        keywords="Prithu, status videos, motivational videos, spiritual reels, educational reels, video creator, share rewards"
         name="Prithu"
         type="website"
+        canonical="https://prithu.app"
       />
       {/* Login Button - Top Right */}
       <div className="absolute top-6 right-6 z-50">

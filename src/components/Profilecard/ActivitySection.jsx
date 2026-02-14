@@ -145,8 +145,13 @@ function FavouritesTab({ id }) {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMins = Math.floor(diffTime / (1000 * 60));
+    const diffHrs = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHrs < 24) return `${diffHrs}h ago`;
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays}d ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;
@@ -197,7 +202,18 @@ function FavouritesTab({ id }) {
             className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200"
           >
             {/* Media Container */}
-            <div className="relative aspect-square bg-gray-100 overflow-hidden">
+            <div className="relative aspect-square bg-gray-100 overflow-hidden cursor-pointer" onClick={(e) => {
+              const video = e.currentTarget.querySelector('video');
+              if (video) {
+                if (video.paused) {
+                  video.play();
+                  e.currentTarget.querySelector('.play-overlay').style.opacity = '0';
+                } else {
+                  video.pause();
+                  e.currentTarget.querySelector('.play-overlay').style.opacity = '1';
+                }
+              }
+            }}>
               {feed.type === "image" ? (
                 <img
                   src={feed.contentUrl}
@@ -209,8 +225,11 @@ function FavouritesTab({ id }) {
                   <video
                     src={feed.contentUrl}
                     className="w-full h-full object-cover"
+                    loop
+                    muted
+                    playsInline
                   />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="play-overlay absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
                       <Play className="w-5 h-5 text-gray-800 ml-1" />
                     </div>
@@ -370,8 +389,13 @@ function HiddenTab({ id }) {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMins = Math.floor(diffTime / (1000 * 60));
+    const diffHrs = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHrs < 24) return `${diffHrs}h ago`;
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays}d ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;

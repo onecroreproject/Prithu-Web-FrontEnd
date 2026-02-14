@@ -37,6 +37,7 @@ import {
 import { checkUserActiveSubscription } from '../API_Services/subscriptionServices';
 import toast from 'react-hot-toast';
 import ReferralSharePopup from '../components/ReferralSharePopup';
+import SEO from "../components/SEO";
 
 const ReferralPage = () => {
   const navigate = useNavigate();
@@ -201,6 +202,12 @@ const ReferralPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6 animate-in fade-in duration-500">
+      <SEO
+        title="Prithu Referral - Invite & Earn Rewards"
+        description="Share your referral code on Prithu to invite friends, earn rewards, unlock benefits & enjoy more status videos, motivational & trending reels together."
+        keywords="Prithu referral, earn rewards, invite friends, referral code, trending reels, status videos rewards"
+        canonical="https://prithu.app/home/referral"
+      />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

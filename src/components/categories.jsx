@@ -9,18 +9,29 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   const [showAll, setShowAll] = useState(false);
   const [visibleCount, setVisibleCount] = useState(6); // 2 rows × 3 columns
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [persistentExcludedIds, setPersistentExcludedIds] = useState([]); // Fetched from backend
+
 
   useEffect(() => {
     const handleResize = () => calculateVisibleCount();
     window.addEventListener('resize', handleResize);
 
-    axios.get(`/api/get/feed/category`)
-      .then(res => {
-        const categoriesData = res.data.categories || [];
+    const fetchCategories = axios.get(`/api/get/feed/category`);
+    const fetchExclusions = axios.get(`/api/get/non-interested-categories`).catch(() => ({ data: { nonInterestedCategories: [] } }));
+
+    Promise.all([fetchCategories, fetchExclusions])
+      .then(([catRes, exclRes]) => {
+        const categoriesData = catRes.data.categories || [];
+        const excludedIds = exclRes.data.nonInterestedCategories || [];
+
         setCategories(categoriesData);
+        setPersistentExcludedIds(excludedIds.map(id => (id._id || id).toString()));
         calculateVisibleCount();
       })
-      .catch(err => setError(err.message))
+      .catch(err => {
+        console.error("Failed to load categories or exclusions:", err);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
 
     return () => window.removeEventListener('resize', handleResize);
@@ -37,14 +48,28 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
   };
 
   const getDisplayCategories = () => {
-    const filtered = categories.filter(cat => !excludedCategoryIds.includes(cat.categoryId));
+    const combinedExclusions = [...new Set([
+      ...excludedCategoryIds.map(id => id.toString()),
+      ...persistentExcludedIds
+    ])];
+    const filtered = categories.filter(cat => {
+      const id = (cat.categoryId || cat._id)?.toString();
+      return !combinedExclusions.includes(id);
+    });
     if (showAll) {
       return filtered;
     }
     return filtered.slice(0, visibleCount);
   };
 
-  const filteredCategoriesLen = categories.filter(cat => !excludedCategoryIds.includes(cat.categoryId)).length;
+  const combinedExclusions = [...new Set([
+    ...excludedCategoryIds.map(id => id.toString()),
+    ...persistentExcludedIds
+  ])];
+  const filteredCategoriesLen = categories.filter(cat => {
+    const id = (cat.categoryId || cat._id)?.toString();
+    return !combinedExclusions.includes(id);
+  }).length;
   const hasMoreCategories = filteredCategoriesLen > visibleCount;
 
   const truncateName = (name) => {

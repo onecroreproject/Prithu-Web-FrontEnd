@@ -1,6 +1,7 @@
 import api from "../api/axios";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import SEO from "../components/SEO";
 
 // Components
 import PostHeader from "../components/Profilecard/ProfileHeader";
@@ -117,6 +118,12 @@ const Profilelayout = () => {
   // 🔹 Main Render
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-4 py-4">
+      <SEO
+        title="Prithu Profile - Personalize Your Video Status Hub"
+        description="Manage your Prithu profile, customize preferences, save favorite status videos, reels & inspirations - all in one place to express your style and personality."
+        keywords="Prithu profile, video status hub, personalized status, save reels, video inspirations, customize preferences"
+        canonical="https://prithu.app/home/profile"
+      />
       <PostHeader
         coverImage={userData.coverPhoto}
         profileImage={userData.profileAvatar}

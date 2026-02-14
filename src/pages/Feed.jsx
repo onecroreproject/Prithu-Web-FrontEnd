@@ -27,6 +27,8 @@ import MobileFeedView from "../components/FeedPageComponent/MobileFeedView";
 import DesktopListFeedView from "../components/FeedPageComponent/DesktopListFeedView";
 import DesktopGridFeedView from "../components/FeedPageComponent/DesktopGridFeedView";
 
+import SEO from "../components/SEO";
+
 const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const timeAgoFrom = (iso) => {
@@ -464,28 +466,57 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   };
 
   const handleNotInterestedFromUI = (feedId, categoryId) => {
+    // 1. Determine categories to exclude
+    let newExcludedIds = [];
     if (categoryId) {
-      setExcludedCategoryIds((prev) => [...prev, categoryId]);
-
-      // Cache update: Remove all feeds with matching category
-      queryClient.setQueryData(feedsQueryKey, (oldData) => {
-        if (!oldData) return oldData;
-        const catIdStr = categoryId.toString();
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page) =>
-            page.filter((item) => {
-              const itemCatId = (item.category || item.categoryId)?.toString();
-              return itemCatId !== catIdStr;
-            })
-          ),
-          pageParams: oldData.pageParams ?? [1],
-        };
-      });
-    } else {
-      // Fallback
-      handleHideFromUI(feedId);
+      if (Array.isArray(categoryId)) {
+        newExcludedIds = categoryId.map(id => id.toString());
+      } else {
+        newExcludedIds = [categoryId.toString()];
+      }
     }
+
+    // 2. Update Local State (for Category Bar and future fetches)
+    if (newExcludedIds.length > 0) {
+      setExcludedCategoryIds((prev) => {
+        const unique = new Set([...prev, ...newExcludedIds]);
+        return Array.from(unique);
+      });
+    }
+
+    // 3. Update React Query Cache (Instant UI Removal)
+    queryClient.setQueryData(feedsQueryKey, (oldData) => {
+      if (!oldData) return oldData;
+
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) =>
+          page.filter((item) => {
+            // A. Remove the specific feed
+            if ((item._id || item.feedId) === feedId) return false;
+
+            // B. Remove if item has ANY of the newly excluded categories
+            if (newExcludedIds.length > 0) {
+              const itemCats = item.category || item.categoryId;
+              let itemCatIds = [];
+
+              if (Array.isArray(itemCats)) {
+                itemCatIds = itemCats.map(c => c.toString());
+              } else if (itemCats) {
+                itemCatIds = [itemCats.toString()];
+              }
+
+              // If item has ANY excluded category -> Remove it
+              const hasExcluded = itemCatIds.some(id => newExcludedIds.includes(id));
+              if (hasExcluded) return false;
+            }
+
+            return true;
+          })
+        ),
+        pageParams: oldData.pageParams ?? [1],
+      };
+    });
   };
 
   const isLoading = isFeedsLoading || isCreatorModeLoading;
@@ -500,6 +531,14 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
 
   return (
     <div id="feedTop" className="min-h-screen flex flex-col">
+      <SEO
+        title="Prithu - Best Status & Motivational Video App"
+        description="Explore Prithu - watch status videos, motivational, spiritual & educational reels, movie dialogues & daily life impressions with smart personalization and instant sharing."
+        keywords="Prithu, status videos, motivational videos, spiritual reels, educational reels, video creator, share rewards"
+        name="Prithu"
+        type="website"
+        canonical="https://prithu.app"
+      />
       <div className={`relative px-0 sm:px-4 md:px-6 md:py-5 mx-auto transition-all duration-300 ${(showReels || showImages) ? "bg-gray-50" : "bg-white"} ${viewMode === 'grid' ? 'max-w-[1400px]' : 'max-w-[470px] sm:max-w-[800px]'} w-full flex flex-col`}>
         {isHashtagMode && (
           <div className="absolute mb-2 top-1 right-1 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">

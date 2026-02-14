@@ -11,10 +11,12 @@ const timeAgoFrom = (iso) => {
     if (!iso) return "Recently posted";
     const diffMs = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diffMs / (1000 * 60));
+    if (mins < 1) return "Just now";
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
+    if (days === 1) return "Yesterday";
     return `${days}d ago`;
 };
 
@@ -23,6 +25,7 @@ const FavoriteFeedSection = ({ onBack }) => {
     const user = rawUser ? { ...rawUser, _id: rawUser._id || rawUser.userId, userId: rawUser.userId || rawUser._id } : null;
     const [feeds, setFeeds] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeVideoId, setActiveVideoId] = useState(null);
 
     const normalizeSingleFeed = useCallback((raw) => {
         if (!raw) return null;
@@ -48,7 +51,7 @@ const FavoriteFeedSection = ({ onBack }) => {
             type: raw.type || raw.postType || "image",
             contentUrl: raw.contentUrl || raw.mediaUrl || (raw.files?.[0]?.url) || "",
             caption: raw.caption || raw.dec || "",
-            timeAgo: raw.timeAgo || timeAgoFrom(raw.createdAt),
+            timeAgo: timeAgoFrom(raw.likedAt || raw.createdAt),
             postedBy: {
                 id: creator._id || creator.id || raw.createdByAccount || null,
                 name: creator.userName || creator.name || creator.displayName || "Unknown",
@@ -79,9 +82,13 @@ const FavoriteFeedSection = ({ onBack }) => {
         const fetchLikedFeeds = async () => {
             try {
                 const res = await api.get("/api/user/feed/liked");
-                if (res.data.success && Array.isArray(res.data.feeds)) {
-                    // Limit to 10 as per user request
-                    const normalized = res.data.feeds.slice(0, 10).map(normalizeSingleFeed);
+                // The backend returns success: true and feeds array
+                if (res.data && res.data.feeds) {
+                    const normalized = res.data.feeds.slice(0, 10).map(normalizeSingleFeed).filter(Boolean);
+                    setFeeds(normalized);
+                } else if (Array.isArray(res.data)) {
+                    // Fallback in case it returns raw array
+                    const normalized = res.data.slice(0, 10).map(normalizeSingleFeed).filter(Boolean);
                     setFeeds(normalized);
                 }
             } catch (err) {
@@ -104,9 +111,9 @@ const FavoriteFeedSection = ({ onBack }) => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-transparent pb-20">
             {/* Header with Back Button */}
-            <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
                 <h2 className="text-lg font-bold text-gray-800">Favorite Feeds</h2>
                 <button
                     onClick={onBack}
@@ -122,7 +129,7 @@ const FavoriteFeedSection = ({ onBack }) => {
                     {feeds.length > 0 ? (
                         feeds.map((feed, index) => (
                             <motion.div
-                                key={feed.feedId}
+                                key={feed.feedId || index}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.1 }}
@@ -131,6 +138,8 @@ const FavoriteFeedSection = ({ onBack }) => {
                                     postData={feed}
                                     authUser={user}
                                     token={token}
+                                    activeVideoId={activeVideoId}
+                                    setActiveVideoId={setActiveVideoId}
                                 />
                             </motion.div>
                         ))

@@ -14,14 +14,14 @@ function LoginPage({ initialMode = "login" }) {
       {mode === 'register' ? (
         <SEO
           title="Prithu App Sign Up – Earn Rewards & Join Now"
-          description="Create your Prithu account to enjoy personalized features, earn rewards, connect with friends, and start sharing moments instantly with the community."
+          description="Explore Prithu — watch status videos, motivational, spiritual & educational reels, movie dialogues & daily life impressions with smart personalization and instant sharing."
           name="Prithu"
           type="website"
         />
       ) : (
         <SEO
           title="Prithu - Login"
-          description="Login to your Prithu account."
+          description="Explore Prithu — watch status videos, motivational, spiritual & educational reels, movie dialogues & daily life impressions with smart personalization and instant sharing."
           name="Prithu"
           type="website"
         />
