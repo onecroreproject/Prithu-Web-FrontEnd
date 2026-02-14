@@ -29,8 +29,8 @@ export default function Layout() {
   const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
 
   // Home page or hashtag page or retrivefeed page
-  const isRetrieveFeed = location.pathname.startsWith("/retrivefeed");
-  const isHashtagPage = location.pathname.startsWith("/hashtag/");
+  const isRetrieveFeed = location.pathname.includes("/retrivefeed");
+  const isHashtagPage = location.pathname.includes("/hashtag/");
   const isHome = location.pathname === "/home" || isRetrieveFeed || isHashtagPage;
 
   const shouldSidebarStayExpanded = isHome && viewMode !== 'grid';

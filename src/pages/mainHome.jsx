@@ -254,14 +254,14 @@ const LandingPage = () => {
   };
 
   const handleSignUpClick = () => {
-    window.location.href = '/signup';
+    window.location.href = '/login';
   };
 
   const { data: stats } = useMainBoardStats();
 
   const handleShareClick = () => {
-    // Navigate to signup page to open registration section
-    window.location.href = '/signup';
+    // Navigate to login page
+    window.location.href = '/login';
   };
 
   // Happy emotion icons for decoration

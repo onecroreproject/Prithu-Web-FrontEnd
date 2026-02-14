@@ -56,9 +56,49 @@ export default function ActivitySection({ id }) {
 /* 🌟 2. Favourites Tab (Loads saved feeds)           */
 /* -------------------------------------------------- */
 
+import PostcardWrapper from "../../components/FeedPageComponent/postCardWraper";
+import { useAuth } from "../../context/AuthContext";
+
+const normalizeFeed = (raw, viewer) => {
+  const id = raw._id || raw.feedId;
+  const type = raw.type || raw.postType;
+
+  // Normalize overlays
+  const overlayElements = (raw.designMetadata?.overlayElements || []).map(el => ({
+    ...el,
+    x: Number(el.xPercent ?? el.x ?? 0),
+    y: Number(el.yPercent ?? el.y ?? 0),
+    w: Number(el.wPercent ?? el.w ?? 20),
+    h: Number(el.hPercent ?? el.h ?? 20),
+  }));
+
+  // Ensure footerDisplay
+  const footerDisplay = raw.footerDisplay || (raw.designMetadata?.footerConfig ? {
+    ...raw.designMetadata.footerConfig,
+    enabled: true,
+  } : { enabled: false });
+
+  return {
+    ...raw,
+    _id: id,
+    feedId: id, // Crucial for uniqueness in Postcard & Playback Control
+    type,
+    overlayElements, // Crucial for Overlays
+    footerDisplay,
+    isLiked: raw.isLiked ?? true, // Since it's in favourites/liked list
+    isSaved: true,
+    viewer: viewer || raw.viewer || {}, // Pass viewer for personalized overlays
+    // Add other normalizations if needed matches Feed.jsx
+  };
+};
+
 function FavouritesTab({ id }) {
+
   const [savedFeeds, setSavedFeeds] = useState([]);
+  const [viewer, setViewer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeVideoId, setActiveVideoId] = useState(null);
+  const { authUser, token } = useAuth();
 
   // ❌ Other user → Do not show favorites
   if (id) {
@@ -85,7 +125,14 @@ function FavouritesTab({ id }) {
     const fetchSavedFeeds = async () => {
       try {
         const res = await api.get("/api/user/get/saved/feeds");
-        setSavedFeeds(res.data.savedFeeds || []);
+        // Handle new nested data structure
+        if (res.data.success && res.data.data) {
+          setSavedFeeds(res.data.data.savedFeeds || []);
+          setViewer(res.data.data.viewer || null);
+        } else {
+          // Fallback for legacy structure if any
+          setSavedFeeds(res.data.savedFeeds || []);
+        }
       } catch (err) {
         console.error("Error fetching saved feeds:", err);
       } finally {
@@ -141,23 +188,6 @@ function FavouritesTab({ id }) {
     );
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffMins = Math.floor(diffTime / (1000 * 60));
-    const diffHrs = Math.floor(diffTime / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHrs < 24) return `${diffHrs}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header Stats */}
@@ -194,103 +224,24 @@ function FavouritesTab({ id }) {
         </div>
       </div>
 
-      {/* Grid Layout */}
+      {/* Grid Layout using PostcardWrapper */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {savedFeeds.map((feed) => (
-          <div
-            key={feed._id}
-            className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200"
-          >
-            {/* Media Container */}
-            <div className="relative aspect-square bg-gray-100 overflow-hidden cursor-pointer" onClick={(e) => {
-              const video = e.currentTarget.querySelector('video');
-              if (video) {
-                if (video.paused) {
-                  video.play();
-                  e.currentTarget.querySelector('.play-overlay').style.opacity = '0';
-                } else {
-                  video.pause();
-                  e.currentTarget.querySelector('.play-overlay').style.opacity = '1';
-                }
-              }
-            }}>
-              {feed.type === "image" ? (
-                <img
-                  src={feed.contentUrl}
-                  alt="Saved content"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              ) : (
-                <div className="relative w-full h-full">
-                  <video
-                    src={feed.contentUrl}
-                    className="w-full h-full object-cover"
-                    loop
-                    muted
-                    playsInline
-                  />
-                  <div className="play-overlay absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                      <Play className="w-5 h-5 text-gray-800 ml-1" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Media Type Badge */}
-              <div className="absolute top-3 left-3">
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${feed.type === 'image'
-                  ? 'bg-blue-500/90 text-white'
-                  : 'bg-purple-500/90 text-white'
-                  }`}>
-                  {feed.type === 'image' ? (
-                    <Image className="w-3 h-3" />
-                  ) : (
-                    <Play className="w-3 h-3" />
-                  )}
-                  {feed.type}
-                </div>
-              </div>
-
-              {/* Overlay on Hover */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-end">
-                <div className="w-full p-4 transform translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Heart className="w-4 h-4 fill-current" />
-                        <span>{feed.likeCount || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(feed.savedAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        {savedFeeds.map((rawFeed) => {
+          const feed = normalizeFeed(rawFeed, viewer);
+          return (
+            <div key={feed.feedId} className="w-full">
+              <PostcardWrapper
+                postData={feed}
+                authUser={authUser}
+                token={token}
+                viewMode="grid"
+                activeVideoId={activeVideoId}
+                setActiveVideoId={setActiveVideoId}
+                isVisible={true}
+              />
             </div>
-
-            {/* Content Info */}
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Saved {formatDate(feed.savedAt)}
-                </span>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Heart className="w-3 h-3 fill-red-500 text-red-500" />
-                  <span>{feed.likeCount || 0}</span>
-                </div>
-              </div>
-
-              {feed.caption && (
-                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
-                  {feed.caption}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -302,7 +253,10 @@ function FavouritesTab({ id }) {
 
 function HiddenTab({ id }) {
   const [hiddenPosts, setHiddenPosts] = useState([]);
+  const [viewer, setViewer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeVideoId, setActiveVideoId] = useState(null);
+  const { authUser, token } = useAuth();
 
   // ❌ Other user → Do not show hidden content
   if (id) {
@@ -329,7 +283,12 @@ function HiddenTab({ id }) {
     const fetchHiddenPosts = async () => {
       try {
         const res = await api.get("/api/get/hidden-posts");
-        setHiddenPosts(res.data.hidden || []);
+        if (res.data.success && res.data.data) {
+          setHiddenPosts(res.data.data.hidden || []);
+          setViewer(res.data.data.viewer || null);
+        } else {
+          setHiddenPosts(res.data.hidden || []);
+        }
       } catch (err) {
         console.error("Error fetching hidden posts:", err);
       } finally {
@@ -385,23 +344,6 @@ function HiddenTab({ id }) {
     );
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffMins = Math.floor(diffTime / (1000 * 60));
-    const diffHrs = Math.floor(diffTime / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHrs < 24) return `${diffHrs}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)}w ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const handleUnhide = async (postId) => {
     try {
       await api.post("/api/remove/hidden-post", { postId });
@@ -409,22 +351,6 @@ function HiddenTab({ id }) {
     } catch (err) {
       console.error("Error unhiding post:", err);
     }
-  };
-
-  // Helper function to get media type and URL
-  const getMediaInfo = (feed) => {
-    if (!feed) return { type: 'unknown', url: '' };
-
-    // Check for contentUrl or media field in feed
-    if (feed.contentUrl) {
-      const url = feed.contentUrl.toLowerCase();
-      return {
-        type: url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') ? 'video' : 'image',
-        url: feed.contentUrl
-      };
-    }
-
-    return { type: 'unknown', url: '' };
   };
 
   return (
@@ -447,20 +373,14 @@ function HiddenTab({ id }) {
               <div className="w-px h-8 bg-gray-200"></div>
               <div className="text-center">
                 <div className="font-bold text-gray-800">
-                  {hiddenPosts.filter(post => {
-                    const media = getMediaInfo(post.feed);
-                    return media.type === 'image';
-                  }).length}
+                  {hiddenPosts.filter(post => post.type === 'image').length}
                 </div>
                 <div className="text-gray-500 text-xs">Photos</div>
               </div>
               <div className="w-px h-8 bg-gray-200"></div>
               <div className="text-center">
                 <div className="font-bold text-gray-800">
-                  {hiddenPosts.filter(post => {
-                    const media = getMediaInfo(post.feed);
-                    return media.type === 'video';
-                  }).length}
+                  {hiddenPosts.filter(post => post.type === 'video').length}
                 </div>
                 <div className="text-gray-500 text-xs">Videos</div>
               </div>
@@ -469,95 +389,41 @@ function HiddenTab({ id }) {
         </div>
       </div>
 
-      {/* Grid Layout */}
+      {/* Grid Layout using PostcardWrapper */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {hiddenPosts.map((hidden) => {
-          const media = getMediaInfo(hidden.feed);
-          const feed = hidden.feed || {};
-
+        {hiddenPosts.map((rawFeed) => {
+          const feed = normalizeFeed(rawFeed, viewer);
           return (
-            <div
-              key={hidden.hiddenId}
-              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-gray-200"
-            >
-              {/* Media Container */}
-              <div className="relative aspect-square bg-gray-100 overflow-hidden">
-                {media.type === "image" ? (
-                  <img
-                    src={media.url}
-                    alt="Hidden content"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : media.type === "video" ? (
-                  <div className="relative w-full h-full">
-                    <video
-                      src={media.url}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                        <Play className="w-5 h-5 text-gray-800 ml-1" />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <Image className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
+            <div key={feed.feedId} className="w-full relative group">
+              <PostcardWrapper
+                postData={feed}
+                authUser={authUser}
+                token={token}
+                viewMode="grid"
+                activeVideoId={activeVideoId}
+                setActiveVideoId={setActiveVideoId}
+                isVisible={true}
+              />
 
-                {/* Hidden Badge */}
-                <div className="absolute top-3 left-3">
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-500/90 text-white">
-                    <EyeOff className="w-3 h-3" />
-                    Hidden
-                  </div>
-                </div>
-
-                {/* Overlay with Unhide Button */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                  <button
-                    onClick={() => handleUnhide(hidden.postId)}
-                    className="transform translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-lg"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Unhide
-                  </button>
-                </div>
+              {/* Unhide Overlay Button */}
+              <div className="absolute top-4 right-4 z-40">
+                <button
+                  onClick={() => handleUnhide(feed.postId)}
+                  className="bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2 group-hover:scale-110"
+                  title="Unhide from Feed"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Content Info */}
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Hidden {formatDate(hidden.hiddenAt)}
-                  </span>
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <Heart className="w-3 h-3" />
-                    <span>{feed.statsId?.likes || 0}</span>
+              {/* Reason Badge if exists */}
+              {feed.reason && (
+                <div className="absolute bottom-4 left-4 z-40 right-4">
+                  <div className="bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded truncate">
+                    Reason: {feed.reason}
                   </div>
                 </div>
-
-                {feed.caption && (
-                  <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
-                    {feed.caption}
-                  </p>
-                )}
-
-                {feed.category && (
-                  <div className="mt-2 flex items-center gap-1">
-                    <Tag className="w-3 h-3 text-gray-400" />
-                    <span className="text-xs text-gray-500">{feed.category.name}</span>
-                  </div>
-                )}
-
-                {hidden.reason && (
-                  <div className="mt-2">
-                    <span className="text-xs text-gray-500">Reason: </span>
-                    <span className="text-xs text-gray-700">{hidden.reason}</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           );
         })}

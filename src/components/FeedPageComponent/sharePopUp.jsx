@@ -5,7 +5,6 @@ import {
   WhatsApp,
   Email,
   Twitter,
-  LinkedIn,
   Telegram,
   Message,
   Image as ImageIcon,
@@ -69,7 +68,6 @@ const SharePopup = ({
         'whatsapp': 'whatsapp',
         'facebook': 'facebook',
         'twitter': 'twitter',
-        'linkedin': 'linkedin',
         'telegram': 'telegram',
         'email': 'email',
         'messenger': 'messenger',
@@ -90,7 +88,6 @@ const SharePopup = ({
     { id: "whatsapp", name: "WhatsApp", icon: <WhatsApp />, color: "#25D366" },
     { id: "facebook", name: "Facebook", icon: <Facebook />, color: "#1877F2" },
     { id: "twitter", name: "Twitter", icon: <Twitter />, color: "#1DA1F2" },
-    { id: "linkedin", name: "LinkedIn", icon: <LinkedIn />, color: "#0A66C2" },
     { id: "telegram", name: "Telegram", icon: <Telegram />, color: "#0088cc" },
     { id: "email", name: "Email", icon: <Email />, color: "#EA4335" },
     { id: "messenger", name: "Messenger", icon: <Message />, color: "#006AFF" },
@@ -125,7 +122,6 @@ const SharePopup = ({
       case "messenger": window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank", "width=600,height=500"); break;
       case "twitter": window.open(`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(caption)}`, "_blank"); break;
       case "telegram": window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(caption)}`, "_blank"); break;
-      case "linkedin": window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, "_blank"); break;
       case "email": {
         const mailto = `mailto:?subject=${encodeURIComponent("Check out this post")}&body=${encodeURIComponent(`${caption}\n\n${urlToShare}`)}`;
         window.location.href = mailto;

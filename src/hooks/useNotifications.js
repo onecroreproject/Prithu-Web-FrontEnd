@@ -42,7 +42,7 @@ export function useMarkNotificationRead() {
 
     return useMutation({
         mutationFn: async (notificationId) => {
-            return await api.post('/api/mark/notification/read', { notificationId });
+            return await api.put('/api/notifications/read', { notificationId });
         },
         onSuccess: () => {
             // Invalidate notifications to refetch
@@ -58,8 +58,8 @@ export function useMarkAllNotificationsRead() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (userId) => {
-            return await api.post('/api/mark/all/notifications/read', { userId });
+        mutationFn: async () => {
+            return await api.put('/api/notifications/mark-all-read');
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -75,7 +75,7 @@ export function useDeleteNotification() {
 
     return useMutation({
         mutationFn: async (notificationId) => {
-            return await api.delete(`/api/delete/notification/${notificationId}`);
+            return await api.delete('/api/notifications/delete', { data: { notificationId } });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });

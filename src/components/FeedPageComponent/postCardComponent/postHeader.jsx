@@ -58,7 +58,7 @@ const PostHeader = ({
           ) : (
             <div className="w-full h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
               <span className="text-xs font-semibold text-white">
-                {userName.charAt(0).toUpperCase()}
+                {(userName || "U").charAt(0).toUpperCase()}
               </span>
             </div>
           )}

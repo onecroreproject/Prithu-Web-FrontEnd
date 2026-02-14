@@ -6,17 +6,16 @@ import api from "../../api/axios";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationHeader from "./notificationHeader";
 import NotificationItem from "./notificationItem";
-import NotificationPopup from "./notificationPopUpReader";
 import { Bell, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification } from "../../hooks/useNotifications";
 
 export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, toggleRef, isSidebarMode }) {
-  const [selectedNotif, setSelectedNotif] = useState(null);
+  const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const observerRef = useRef(null);
   const token = localStorage.getItem("token");
-  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
   const {
     data,
@@ -82,7 +81,6 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, t
   };
 
   const handleNotificationClick = async (notif) => {
-    setSelectedNotif({ ...notif });
     if (!notif.isRead) {
       try {
         await markRead.mutateAsync(notif._id);
@@ -90,6 +88,13 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, t
       } catch (err) {
         console.error("❌ Mark read error:", err);
       }
+    }
+
+    // ✅ Direct Navigation if it's related to a feed/post
+    const feedId = notif.entityId || notif.feedInfo?._id || notif.meta?.postId;
+    if (feedId) {
+      navigate(`/home/retrivefeed/${feedId}`);
+      onClose();
     }
   };
 
@@ -186,13 +191,6 @@ export default function NotificationDropdown({ isOpen, onClose, onUpdateCount, t
         <div
           className="fixed inset-0 bg-black/20 z-40 sm:hidden"
           onClick={onClose}
-        />
-      )}
-
-      {selectedNotif && (
-        <NotificationPopup
-          notification={selectedNotif}
-          onClose={() => setSelectedNotif(null)}
         />
       )}
     </>

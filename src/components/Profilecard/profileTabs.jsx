@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useUserProfile } from "../../hooks/userProfile";
-import { User, Activity, Heart } from "lucide-react";
+import { User, Activity, Heart, Settings, LogOut } from "lucide-react";
 
 /**
  * ProfileTabs Component
@@ -45,11 +45,23 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
       label: "Favorite Videos",
       mobileLabel: "Favorites",
       Icon: Heart
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      mobileLabel: "Settings",
+      Icon: Settings
+    },
+    {
+      id: "close-account",
+      label: "Close Account",
+      mobileLabel: "Close",
+      Icon: LogOut
     }
   ].filter((section) => {
     // Hide Activity and Favorite for other users' profiles (if id is present and not matching mine)
     // For now, simpler: hide if id exists (meaning we're viewing someone else)
-    if (id && (section.id === "activity" || section.id === "favorite")) return false;
+    if (id && (section.id === "activity" || section.id === "favorite" || section.id === "close-account")) return false;
     return true;
   });
 

@@ -4,12 +4,10 @@ import {
   ChevronDown,
   ChevronUp,
   User2,
-  Share2,
-  Copy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
-import { useUserProfile, useTogglePublish } from "../../../hooks/userProfile";
+import { useUserProfile } from "../../../hooks/userProfile";
 import { toast } from "react-hot-toast";
 import EditProfile from "./editProfile";
 
@@ -19,39 +17,10 @@ export default function ProfilePage(id) {
   const [expandedSection, setExpandedSection] = useState("profile");
   const { token } = useAuth();
   const { data: profile, isLoading } = useUserProfile(token);
-  const toggleMutation = useTogglePublish(token);
   const [localProfile, setLocalProfile] = useState(profile);
 
   const handleSectionToggle = (section) =>
     setExpandedSection((prev) => (prev === section ? null : section));
-
-  // ✅ Publish / Unpublish Resume
-  const handleTogglePublish = async () => {
-    try {
-      const newState = !localProfile?.isPublished;
-      const response = await toggleMutation.mutateAsync(newState);
-
-      // ✅ Update local state instantly
-      if (response?.success) {
-        const updatedProfile = {
-          ...localProfile,
-          isPublished: response.isPublished,
-          shareableLink: response.shareableLink,
-        };
-        setLocalProfile(updatedProfile);
-        toast.success(
-          response.isPublished
-            ? "✅ Resume published successfully!"
-            : "🔒 Resume unpublished!"
-        );
-      }
-    } catch (error) {
-      toast.error("❌ Error toggling publish state");
-    }
-  };
-
-  const shareLink = localProfile?.shareableLink;
-  const isPublished = localProfile?.isPublished;
 
   if (isLoading)
     return (
@@ -79,60 +48,12 @@ export default function ProfilePage(id) {
       transition={{ duration: 0.4 }}
       className="space-y-4 sm:space-y-6 p-4"
     >
-      {/* 🔝 Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl font-bold text-gray-900 text-center sm:text-left">
           {hasId ? "User Profile" : "My Profile"}
         </h2>
-
-        {/* 🌐 Share Resume Toggle - Only show for own profile */}
-        {!hasId && (
-          <div className="flex items-center justify-center gap-3 bg-blue-50 rounded-lg p-3 sm:p-3 border border-blue-100">
-            <Share2 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-            <label className="flex items-center gap-3 cursor-pointer">
-              <span className="text-sm text-gray-700 whitespace-nowrap">Share Resume</span>
-              <input
-                type="checkbox"
-                checked={isPublished}
-                onChange={handleTogglePublish}
-                className="toggle toggle-primary"
-              />
-            </label>
-          </div>
-        )}
       </div>
 
-      {/* ✅ Show shareable link when published - Only for own profile */}
-      {!hasId && isPublished && shareLink && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-50 border border-blue-200 p-4 rounded-lg"
-        >
-          <p className="text-sm text-gray-700 mb-3 text-center sm:text-left">
-            🎉 Your resume is live! Share this link:
-          </p>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <a
-              href={shareLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-700 font-medium hover:underline break-all text-sm text-center sm:text-left"
-            >
-              {shareLink}
-            </a>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(shareLink);
-                toast.success("📋 Link copied to clipboard!");
-              }}
-              className="flex items-center justify-center gap-2 text-sm bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0 w-full sm:w-auto"
-            >
-              <Copy className="w-4 h-4" /> Copy Link
-            </button>
-          </div>
-        </motion.div>
-      )}
 
       {/* 📂 Profile Sections */}
       <div className="space-y-4">

@@ -211,7 +211,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       desc: "Referral program",
       color: "purple"
     },
-    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings", color: "slate" },
+    // Settings removed as per request
     {
       to: "/home/feedback-support",
       label: "Feedback & Support",

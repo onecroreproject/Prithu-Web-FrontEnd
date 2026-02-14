@@ -66,7 +66,7 @@ export default function Header() {
       Icon: Gift,
       desc: "Referral program"
     },
-    { to: "/home/settings", label: "Settings", Icon: Settings, desc: "Account settings" },
+    // Settings removed as per request
     {
       to: "/home/feedback-support",
       label: "Feedback & Support",

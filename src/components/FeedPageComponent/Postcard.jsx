@@ -536,18 +536,29 @@ function Postcard({
   }
 
 
+  const isHighlighted = postData.__highlight || postData._id === activeVideoId; // activeVideoId could also be used but __highlight is specifically for notification/share
+
   return (
     <>
-      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] sm:border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-full sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-300`}>
+      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] sm:border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-full sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-500 ${postData.__highlight ? 'ring-4 ring-blue-500/50 shadow-2xl relative z-50 scale-[1.02]' : ''}`}>
         {/* ✅ 1. USER HEADER (Restored) */}
         {!isTemplate && viewMode === 'list' && (
           <div className="shrink-0 w-full">
             <PostHeader
-              authUser={authUser}
-              data={postData}
-              onUnfollow={handleUnfollow}
+              userId={userId}
+              userName={userName}
+              post={postData}
+              profileAvatar={profileAvatar}
+              timeAgo={timeAgo}
+              navigate={navigate}
+              feedId={feedId}
+              tempUser={tempUser}
+              token={token}
               onHideFromUI={onHideFromUI}
               onNotInterested={onNotInterested}
+              isFollowing={isFollowing}
+              onFollow={handleFollow}
+              onUnfollow={handleUnfollow}
             />
           </div>
         )}

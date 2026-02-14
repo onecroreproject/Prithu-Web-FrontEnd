@@ -1,85 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCategoryIds = [] }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAll, setShowAll] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(6); // 2 rows × 3 columns
-  const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [persistentExcludedIds, setPersistentExcludedIds] = useState([]); // Fetched from backend
-
+  const [persistentExcludedIds, setPersistentExcludedIds] = useState([]);
 
   useEffect(() => {
-    const handleResize = () => calculateVisibleCount();
-    window.addEventListener('resize', handleResize);
-
     const fetchCategories = axios.get(`/api/get/feed/category`);
     const fetchExclusions = axios.get(`/api/get/non-interested-categories`).catch(() => ({ data: { nonInterestedCategories: [] } }));
 
     Promise.all([fetchCategories, fetchExclusions])
       .then(([catRes, exclRes]) => {
-        const categoriesData = catRes.data.categories || [];
+        let categoriesData = catRes.data.categories || [];
         const excludedIds = exclRes.data.nonInterestedCategories || [];
+
+        // Shuffle categories (Fisher-Yates shuffle)
+        for (let i = categoriesData.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [categoriesData[i], categoriesData[j]] = [categoriesData[j], categoriesData[i]];
+        }
 
         setCategories(categoriesData);
         setPersistentExcludedIds(excludedIds.map(id => (id._id || id).toString()));
-        calculateVisibleCount();
       })
       .catch(err => {
         console.error("Failed to load categories or exclusions:", err);
         setError(err.message);
       })
       .finally(() => setLoading(false));
-
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const calculateVisibleCount = () => {
-    const isMobile = window.innerWidth <= 768;
-    const itemsPerRow = isMobile ? 3 : 4;
-    const rows = isMobile ? 2 : 3; // Only 2 rows on mobile
-    // We have 2 static items (Trending, All), so we subtract them from the total visible slots
-    // On mobile, also reserve 1 slot for the More button if there are more categories
-    const reservedSlots = isMobile ? 3 : 2; // Trending, All, and More button on mobile
-    setVisibleCount((itemsPerRow * rows) - reservedSlots);
+  // Auto-collapse on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showAll) {
+        setShowAll(false);
+      }
+    };
+
+    // Listen for both window scroll (Desktop/Normal) 
+    // and custom feedScroll (Mobile snap container)
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('feedScroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('feedScroll', handleScroll);
+    };
+  }, [showAll]);
+
+  const handleCategorySelect = (id) => {
+    onSelectCategory(id);
+    setShowAll(false); // Auto-collapse on selection
   };
 
-  const getDisplayCategories = () => {
+  const getFilteredCategories = () => {
     const combinedExclusions = [...new Set([
       ...excludedCategoryIds.map(id => id.toString()),
       ...persistentExcludedIds
     ])];
-    const filtered = categories.filter(cat => {
+
+    let filtered = categories.filter(cat => {
       const id = (cat.categoryId || cat._id)?.toString();
       return !combinedExclusions.includes(id);
     });
-    if (showAll) {
-      return filtered;
+
+    // Move selected category to the front
+    if (selectedCategoryId && selectedCategoryId !== 'trending') {
+      const selectedIndex = filtered.findIndex(cat => (cat.categoryId || cat._id)?.toString() === selectedCategoryId.toString());
+      if (selectedIndex > -1) {
+        const selectedCat = filtered[selectedIndex];
+        filtered.splice(selectedIndex, 1);
+        filtered.unshift(selectedCat);
+      }
     }
-    return filtered.slice(0, visibleCount);
+
+    return filtered;
   };
 
-  const combinedExclusions = [...new Set([
-    ...excludedCategoryIds.map(id => id.toString()),
-    ...persistentExcludedIds
-  ])];
-  const filteredCategoriesLen = categories.filter(cat => {
-    const id = (cat.categoryId || cat._id)?.toString();
-    return !combinedExclusions.includes(id);
-  }).length;
-  const hasMoreCategories = filteredCategoriesLen > visibleCount;
+  const filteredCategories = getFilteredCategories();
+  const hasMoreCategories = filteredCategories.length > 4;
 
-  const truncateName = (name) => {
-    if (name.length > 10) {
-      return name.substring(0, 8) + '..';
-    }
-    return name;
-  };
-
-  // Icon mapping based on category names
+  // Icon mapping
   const ICON_MAP = {
     'Trending': '🔥',
     'Music': '🎵',
@@ -99,306 +105,125 @@ const CategoryFeedPage = ({ onSelectCategory, selectedCategoryId, excludedCatego
     'Business': '💼'
   };
 
-  // Border & BG color mapping based on category names
   const COLOR_MAP = {
-    'Trending': 'border-orange-400 bg-orange-50 text-orange-700',
-    'Music': 'border-pink-300 bg-pink-50 text-pink-700',
-    'Entertainment': 'border-purple-300 bg-purple-50 text-purple-700',
-    'Comedy': 'border-yellow-400 bg-yellow-50 text-yellow-700',
-    'Tech': 'border-blue-300 bg-blue-50 text-blue-700',
-    'Gaming': 'border-indigo-300 bg-indigo-50 text-indigo-700',
-    'News': 'border-gray-500 bg-gray-50 text-gray-700',
-    'Sports': 'border-green-300 bg-green-50 text-green-700',
-    'Food': 'border-orange-300 bg-orange-50 text-orange-700',
-    'Travel': 'border-cyan-300 bg-cyan-50 text-cyan-700',
-    'Photography': 'border-teal-300 bg-teal-50 text-teal-700',
-    'Education': 'border-amber-300 bg-amber-50 text-amber-700'
+    'Trending': 'bg-orange-600 text-white border-orange-700 font-bold',
+    'Music': 'bg-pink-600 text-white border-pink-700',
+    'Entertainment': 'bg-purple-600 text-white border-purple-700',
+    'Comedy': 'bg-amber-500 text-black border-amber-600',
+    'Tech': 'bg-blue-600 text-white border-blue-700',
+    'Gaming': 'bg-indigo-600 text-white border-indigo-700',
+    'News': 'bg-slate-700 text-white border-slate-800',
+    'Sports': 'bg-green-600 text-white border-green-700',
+    'Food': 'bg-orange-500 text-white border-orange-600',
+    'Travel': 'bg-cyan-600 text-white border-cyan-700',
+    'Photography': 'bg-teal-600 text-white border-teal-700',
+    'Education': 'bg-amber-600 text-white border-amber-700'
   };
 
-  // Expanded color palette for unique colors
   const COLOR_PALETTE = [
-    'border-pink-300 bg-pink-50 text-pink-700',
-    'border-purple-300 bg-purple-50 text-purple-700',
-    'border-blue-300 bg-blue-50 text-blue-700',
-    'border-indigo-300 bg-indigo-50 text-indigo-700',
-    'border-green-300 bg-green-50 text-green-700',
-    'border-orange-300 bg-orange-50 text-orange-700',
-    'border-cyan-300 bg-cyan-50 text-cyan-700',
-    'border-teal-300 bg-teal-50 text-teal-700',
-    'border-amber-300 bg-amber-50 text-amber-700',
-    'border-rose-300 bg-rose-50 text-rose-700',
-    'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700',
-    'border-violet-300 bg-violet-50 text-violet-700',
-    'border-sky-300 bg-sky-50 text-sky-700',
-    'border-emerald-300 bg-emerald-50 text-emerald-700',
-    'border-lime-300 bg-lime-50 text-lime-700',
-    'border-red-300 bg-red-50 text-red-700',
-    'border-slate-300 bg-slate-50 text-slate-700',
+    'bg-rose-600 text-white border-rose-700',
+    'bg-fuchsia-600 text-white border-fuchsia-700',
+    'bg-violet-600 text-white border-violet-700',
+    'bg-sky-600 text-white border-sky-700',
+    'bg-emerald-600 text-white border-emerald-700',
+    'bg-lime-600 text-black border-lime-700',
+    'bg-red-600 text-white border-red-700',
+    'bg-indigo-500 text-white border-indigo-600',
+    'bg-teal-500 text-white border-teal-600',
+    'bg-cyan-500 text-white border-cyan-600',
   ];
 
   const getCategoryIcon = (name) => ICON_MAP[name] || '✨';
+
   const getCategoryTheme = (name, isSelected, index) => {
-    if (isSelected) return 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm border-blue-400';
-
-    // First try mapping by name to keep some specific branding
-    if (COLOR_MAP[name]) return `${COLOR_MAP[name]} hover:border-blue-300`;
-
-    // Fallback to palette based on index to ensure uniqueness for dynamic categories
+    if (isSelected) {
+      return 'bg-white text-blue-600 shadow-xl border-blue-400 scale-105 z-20 ring-4 ring-blue-500/20 font-black';
+    }
+    if (COLOR_MAP[name]) return `${COLOR_MAP[name]} hover:opacity-90 active:scale-95`;
     const colorStyle = COLOR_PALETTE[index % COLOR_PALETTE.length];
-    return `${colorStyle} hover:border-blue-300`;
+    return `${colorStyle} hover:opacity-90 active:scale-95`;
   };
-
-  // Ultra-compact padding that hugs the text
-  const getPaddingClass = () => 'px-2 py-0.5 sm:px-2 sm:py-0.5';
 
   if (loading) {
     return (
-      <div className="w-full py-1 animate-in fade-in duration-200">
-        <div className="grid grid-cols-4 gap-1">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-6 bg-gradient-to-r from-gray-200 to-gray-100 rounded-full animate-pulse-glow"
-              style={{ animationDelay: `${i * 30}ms` }}></div>
-          ))}
-        </div>
+      <div className="w-full py-1 flex flex-wrap gap-1.5 animate-pulse">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-6 w-16 bg-gray-200 rounded-full"></div>
+        ))}
       </div>
     );
   }
 
-  if (error) return <div className="p-2 text-xs text-red-500 bg-red-50 rounded-lg animate-in fade-in">{error}</div>;
+  if (error) return <div className="p-2 text-[10px] text-red-500">{error}</div>;
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-bottom-1 duration-200">
+    <div className="w-full">
+      <motion.div
+        layout
+        initial={false}
+        animate={{ height: showAll ? 'auto' : 66 }}
+        className="flex flex-wrap items-center gap-1 px-0.5 overflow-hidden"
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
+        {/* Fixed: Trending */}
+        <button
+          onClick={() => handleCategorySelect('trending')}
+          className={`px-3 py-1 rounded-full border transition-all duration-200 whitespace-nowrap text-[11px] flex items-center gap-1.5 ${selectedCategoryId === 'trending'
+            ? 'bg-white text-orange-600 shadow-md border-orange-100 scale-105 z-20 ring-2 ring-orange-500/10 font-bold'
+            : 'bg-orange-600 text-white border-orange-700 hover:bg-orange-700 font-bold'
+            }`}
+        >
+          <span>🔥</span>
+          <span>Trending</span>
+        </button>
 
+        {/* Fixed: All */}
+        <button
+          onClick={() => handleCategorySelect(null)}
+          className={`px-3 py-1 rounded-full border transition-all duration-200 whitespace-nowrap text-[11px] font-bold flex items-center gap-1.5 ${!selectedCategoryId
+            ? 'bg-white text-blue-600 shadow-md border-blue-100 scale-105 z-20 ring-2 ring-blue-500/10'
+            : 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+            }`}
+        >
+          <span>All</span>
+        </button>
 
-      {categories.length > 0 ? (
-        <div className="space-y-1">
-          {/* Categories Grid - Ultra compact */}
-          <div className="grid grid-cols-4 gap-1 animate-in fade-in duration-150">
-            {/* "Trending" category - Fire Icon */}
-            <button
-              onClick={() => onSelectCategory('trending')}
-              onMouseEnter={() => setHoveredCategory('trending')}
-              onMouseLeave={() => setHoveredCategory(null)}
-              className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border ${selectedCategoryId === 'trending'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm border-orange-400'
-                : 'bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200 hover:border-orange-400'
-                } ${getPaddingClass()}`}
-              style={{ minHeight: '24px' }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-              <div className="flex items-center gap-1 relative z-10">
-                <span className="text-[9px] sm:text-[10px]">🔥</span>
-                <span className="text-[10px] sm:text-xs font-bold leading-tight">Trending</span>
-              </div>
-            </button>
+        {/* Dynamic Categories */}
+        <AnimatePresence>
+          {filteredCategories.map((cat, index) => {
+            const isVisible = showAll || index < 4;
+            if (!isVisible) return null;
 
-            {/* "All" category - Tightly wrapped */}
-            <button
-              onClick={() => onSelectCategory(null)}
-              onMouseEnter={() => setHoveredCategory('all')}
-              onMouseLeave={() => setHoveredCategory(null)}
-              className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border ${!selectedCategoryId
-                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-sm border-blue-400'
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300'
-                } ${getPaddingClass()}`}
-              style={{ minHeight: '24px' }}
-            >
-              {/* Hover effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-
-              <span className="relative z-10 text-[10px] sm:text-xs font-medium transition-all duration-150 leading-tight">
-                All
-              </span>
-
-              {!selectedCategoryId && (
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 animate-pulse-slow"></div>
-              )}
-            </button>
-
-            {/* Other categories - Inline style */}
-            {getDisplayCategories().map((cat, index) => (
-              <button
-                key={cat.categoryId}
-                onClick={() => onSelectCategory(cat.categoryId)}
-                onMouseEnter={() => setHoveredCategory(cat.categoryId)}
-                onMouseLeave={() => setHoveredCategory(null)}
-                className={`group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border animate-in fade-in slide-in-from-bottom-1 ${getCategoryTheme(cat.categoryName, selectedCategoryId === cat.categoryId, index)
-                  } ${getPaddingClass()}`}
-                style={{
-                  animationDelay: `${index * 20}ms`,
-                  animationFillMode: 'backwards',
-                  minHeight: '24px'
-                }}
+            return (
+              <motion.button
+                layout
+                key={cat.categoryId || cat._id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => handleCategorySelect(cat.categoryId)}
+                className={`px-3 py-1 rounded-full border transition-all duration-200 whitespace-nowrap text-[11px] font-semibold flex items-center gap-1.5 ${getCategoryTheme(cat.categoryName, selectedCategoryId === cat.categoryId, index)
+                  }`}
               >
-                {/* Hover effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
+                <span>{getCategoryIcon(cat.categoryName)}</span>
+                <span>{cat.categoryName}</span>
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
 
-                {/* Selection glow */}
-                {selectedCategoryId === cat.categoryId && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 animate-pulse-slow"></div>
-                )}
-
-                {/* Category Icon & Name */}
-                <div className="flex items-center gap-1 relative z-10">
-                  <span className="text-[9px] sm:text-[10px]">{getCategoryIcon(cat.categoryName)}</span>
-                  <span
-                    className="text-[10px] sm:text-xs font-medium transition-all duration-150 leading-tight"
-                    title={cat.categoryName}
-                  >
-                    {truncateName(cat.categoryName)}
-                  </span>
-                </div>
-              </button>
-            ))}
-
-            {/* More button - Only on mobile when there are more categories */}
-            {hasMoreCategories && !showAll && typeof window !== 'undefined' && window.innerWidth <= 768 && (
-              <button
-                onClick={() => setShowAll(true)}
-                className="group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300 px-2 py-0.5 sm:px-2 sm:py-0.5"
-                style={{ minHeight: '24px' }}
-              >
-                <span className="text-[10px] sm:text-xs font-medium">More....</span>
-              </button>
-            )}
-
-            {/* Show Less button when expanded on mobile */}
-            {showAll && typeof window !== 'undefined' && window.innerWidth <= 768 && (
-              <button
-                onClick={() => setShowAll(false)}
-                className="group relative inline-flex items-center justify-center rounded-full transition-all duration-150 overflow-hidden whitespace-nowrap border bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-300 hover:border-blue-300 px-2 py-0.5 sm:px-2 sm:py-0.5"
-                style={{ minHeight: '24px' }}
-              >
-                <span className="text-[10px] sm:text-xs font-medium">Less</span>
-              </button>
-            )}
-          </div>
-
-        </div>
-      ) : (
-        <div className="text-center py-2 animate-in fade-in duration-150">
-          <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg border border-gray-200">
-            <span className="text-xs text-gray-500">No categories</span>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(2px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes slideInFromBottom {
-          from {
-            opacity: 0;
-            transform: translateY(5px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes slideInFromRight {
-          from {
-            opacity: 0;
-            transform: translateX(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-        
-        @keyframes pulse-glow {
-          0%, 100% {
-            opacity: 0.7;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-        
-        @keyframes bounce-slow {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-1px);
-          }
-        }
-        
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-        
-        .animate-in {
-          animation-fill-mode: both;
-        }
-        
-        .fade-in {
-          animation: fadeIn 0.15s ease-out;
-        }
-        
-        .slide-in-from-bottom-1 {
-          animation: slideInFromBottom 0.2s ease-out;
-        }
-        
-        .slide-in-from-right-1 {
-          animation: slideInFromRight 0.2s ease-out;
-        }
-        
-        .animate-pulse-glow {
-          animation: pulse-glow 1s ease-in-out infinite;
-        }
-        
-        .animate-bounce-slow {
-          animation: bounce-slow 1s ease-in-out infinite;
-        }
-        
-        .animate-pulse-slow {
-          animation: pulse-slow 1s ease-in-out infinite;
-        }
-        
-        /* Ultra-fast transitions */
-        button, div {
-          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Ensure inline layout */
-        button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          height: fit-content;
-          min-width: fit-content;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-          .grid-cols-4 {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .grid-cols-4 {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-      `}</style>
+        {/* Standard Button Style for More/Less */}
+        {hasMoreCategories && (
+          <motion.button
+            layout
+            onClick={() => setShowAll(!showAll)}
+            className="px-3 py-1 rounded-full border bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100 transition-all text-[11px] font-black tracking-wider shadow-sm flex items-center h-[26px]"
+          >
+            {showAll ? 'LESS ↑' : 'MORE...'}
+          </motion.button>
+        )}
+      </motion.div>
     </div>
   );
 };

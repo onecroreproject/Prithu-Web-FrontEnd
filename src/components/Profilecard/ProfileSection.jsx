@@ -14,7 +14,6 @@ import {
 import ProfilePage from "./ProfileSectionComponents/profilePage";
 import ChangeProfilePhoto from "./ProfileSectionComponents/changeProfilePhoto";
 import ChangeCoverImage from "./ProfileSectionComponents/changeCoverPhoto";
-import ProfileSettings from "./ProfileSectionComponents/profileSettings";
 import { useAuth } from "../../context/AuthContext";
 
 export default function PostSection({ id, visibility }) {
@@ -79,7 +78,6 @@ export default function PostSection({ id, visibility }) {
       { id: "profilePage", label: "Profile View" },
       { id: "profile-photo", label: "Change Profile Photo" },
       { id: "cover-image", label: "Change Cover Image" },
-      { id: "settings", label: "Settings" },
     ];
 
   // -----------------------------------------------------
@@ -104,9 +102,6 @@ export default function PostSection({ id, visibility }) {
             uploadCoverImage={(file) => updateCoverMutation.mutate(file)}
           />
         );
-
-      case "settings":
-        return <ProfileSettings user={user} id={id} />;
 
       default:
         return <ProfilePage id={id} />;

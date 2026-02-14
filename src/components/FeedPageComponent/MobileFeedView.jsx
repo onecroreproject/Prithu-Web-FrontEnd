@@ -18,7 +18,12 @@ const MobileFeedView = ({
     const containerRef = React.useRef(null);
 
     const handleScroll = React.useCallback(() => {
-        if (!containerRef.current || !hasNextPage || isFetchingNextPage) return;
+        if (!containerRef.current) return;
+
+        // Dispatch custom event to signal scroll for category bar auto-collapse
+        window.dispatchEvent(new CustomEvent('feedScroll'));
+
+        if (!hasNextPage || isFetchingNextPage) return;
 
         const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
         if (scrollTop + clientHeight >= scrollHeight - 200) {

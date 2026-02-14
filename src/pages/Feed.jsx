@@ -82,6 +82,25 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   const [feedCategory, setFeedCategory] = useState(null);
   const [highlightedFeedId, setHighlightedFeedId] = useState(null);
   const [hasScrolledToNotifyFeed, setHasScrolledToNotifyFeed] = useState(false);
+  const prevNotifyId = useRef(null);
+  const prevCurrentFeedId = useRef(null);
+
+  // Reset scroll flag if IDs change
+  useEffect(() => {
+    if ((notifyfeedid && notifyfeedid !== prevNotifyId.current) ||
+      (currentFeedId && currentFeedId !== prevCurrentFeedId.current)) {
+      console.log("🔔 [Feed] Notification Feed ID Changed:", { notifyfeedid, currentFeedId });
+      console.log("🔄 [Feed] Resetting scroll flag and filters");
+      setHasScrolledToNotifyFeed(false);
+      // ✅ Reset ALL filters to ensure the feed is visible in the main "All" view
+      setFeedCategory(null);
+      setShowReels(false);
+      setShowImages(false);
+
+      prevNotifyId.current = notifyfeedid;
+      prevCurrentFeedId.current = currentFeedId;
+    }
+  }, [notifyfeedid, currentFeedId]);
 
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
   const [excludedCategoryIds, setExcludedCategoryIds] = useState([]);
@@ -112,6 +131,11 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   const fetchPostType = showReels ? "video" : (showImages ? "image" : null);
   const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all", fetchPostType || "all"];
 
+  // Log query key changes
+  useEffect(() => {
+    console.log("🔑 [Feed] Query Key Changed:", { tagname, feedCategory, fetchPostType, queryKey: feedsQueryKey });
+  }, [tagname, feedCategory, fetchPostType]);
+
   const initialPageParam = {
     categoryPage: 1,
     allPage: 1,
@@ -131,6 +155,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     queryKey: feedsQueryKey,
     queryFn: ({ pageParam }) => {
       const param = pageParam || initialPageParam;
+      console.log("🌐 [Feed] queryFn called - Fetching feeds from API", { pageParam: param, tagname, feedCategory, fetchPostType });
 
       if (tagname) {
         return getFeedsByHashtag(tagname, param.page || 1, tokenRef.current || token);
@@ -174,24 +199,63 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     },
     enabled: !!(tokenRef.current || token),
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false, // Prevent refetch on socket reconnection
   });
 
   const feeds = (() => {
-    return feedPages?.pages.flat() || [];
+    const result = feedPages?.pages.flat() || [];
+    return result;
   })();
-  console.log(feeds)
 
   const normalizeSingleFeed = useCallback((raw) => {
-    console.log(raw)
-    if (!raw) return null;
-    const creator = raw.creatorData || raw.creatorInfo || raw.creator || raw.postedBy || {};
-    const designMetadata = raw.designMetadata || {};
-    const editMetadata = raw.editMetadata || designMetadata.editMetadata || {};
-    const footerSrc = raw.footerDisplay || designMetadata.footerConfig || {};
-    const isTemplate = raw.uploadMode === "template" || designMetadata.isTemplate || (designMetadata.overlayElements?.length > 0);
+    const id = raw._id || raw.feedId;
+    const type = raw.type || raw.postType;
+
+    let mediaUrl = raw.mediaUrl || raw.contentUrl;
+    if (Array.isArray(mediaUrl)) {
+      mediaUrl = mediaUrl[0];
+    }
+
+    // Extract creator data from multiple possible locations
+    const rawCreatorData = raw.creatorData || raw.postedBy || raw.creator || {};
+
+    // Extract userName with comprehensive fallback chain
+    const extractedUserName =
+      rawCreatorData.userName ||
+      rawCreatorData.name ||
+      rawCreatorData.displayName ||
+      raw.userName ||
+      raw.creatorName ||
+      "Unknown User";
+
+    // Extract avatar with comprehensive fallback chain
+    const extractedAvatar =
+      rawCreatorData.profileAvatar ||
+      rawCreatorData.avatar ||
+      raw.profileAvatar ||
+      raw.avatarToUse;
+
+    const creatorData = {
+      ...rawCreatorData,
+      userName: extractedUserName,
+      profileAvatar: extractedAvatar,
+    };
+
+    const stats = raw.stats || {
+      likes: raw.likesCount || 0,
+      views: raw.viewsCount || 0,
+      comments: raw.commentsCount || 0,
+      shares: raw.shareCount || 0,
+      downloads: raw.downloadCount || 0,
+    };
+
+    const footerDisplay = raw.footerDisplay || (raw.designMetadata?.footerConfig ? {
+      ...raw.designMetadata.footerConfig,
+      enabled: true,
+    } : { enabled: false });
 
     // Normalize overlays for the renderer
-    const overlayElements = (designMetadata.overlayElements || []).map(el => ({
+    const overlayElements = (raw.designMetadata?.overlayElements || []).map(el => ({
       ...el,
       x: Number(el.xPercent ?? el.x ?? 0),
       y: Number(el.yPercent ?? el.y ?? 0),
@@ -200,27 +264,37 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     }));
 
     // Calculate aspect ratio
-    let postAspectRatio = editMetadata?.crop?.ratio || designMetadata.canvasSettings?.aspectRatio || "1:1";
+    let postAspectRatio = raw.editMetadata?.crop?.ratio || raw.designMetadata?.canvasSettings?.aspectRatio || "1:1";
     if (postAspectRatio === "original") {
-      postAspectRatio = designMetadata.canvasSettings?.aspectRatio || "1:1";
+      postAspectRatio = raw.designMetadata?.canvasSettings?.aspectRatio || "1:1";
     }
 
     return {
       ...raw,
-      type: raw.type || raw.postType || "image",
-      contentUrl: raw.contentUrl || raw.mediaUrl || (raw.files?.[0]?.url) || "",
-      postedBy: {
-        id: creator._id || creator.id || raw.createdByAccount || null,
-        name: creator.userName || creator.name || creator.displayName || "Unknown",
-        avatar: creator.profileAvatar || creator.avatar || defaultAvatar,
-        modifyAvatar: creator.modifyAvatar || null,
-        role: creator.role || raw.roleRef || "User",
-      },
+      _id: id,
+      feedId: id,
+      type,
+      mediaUrl,
+      creatorData,
+      stats,
+      footerDisplay,
+      isLiked: raw.isLiked || false,
+      isSaved: raw.isSaved || false,
+      __highlight: raw.__highlight || false,
       overlayElements,
-      editMetadata,
-      hasFooter: Boolean(footerSrc.enabled || footerSrc.visible || raw.hasFooter),
-      uploadMode: isTemplate ? "template" : "normal",
       aspectRatio: postAspectRatio,
+      // Top-level user properties for PostHeader component
+      userName: extractedUserName,
+      profileAvatar: extractedAvatar,
+      postedBy: {
+        id: creatorData._id || creatorData.id || raw.createdByAccount || null,
+        name: extractedUserName,
+        avatar: extractedAvatar || defaultAvatar,
+        modifyAvatar: creatorData.modifyAvatar || null,
+        role: creatorData.role || raw.roleRef || "User",
+      },
+      hasFooter: Boolean(footerDisplay.enabled || footerDisplay.visible || raw.hasFooter),
+      uploadMode: raw.uploadMode === "template" || raw.designMetadata?.isTemplate || (raw.designMetadata?.overlayElements?.length > 0) ? "template" : "normal",
     };
   }, []);
 
@@ -244,22 +318,18 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
 
   const moveFeedToTop = useCallback(
     (feedId) => {
-      if (!feedId) return;
       queryClient.setQueryData(feedsQueryKey, (oldData) => {
-        if (!oldData || !oldData.pages) return oldData;
-        const idCheck = (it) => (it._id || it.feedId) === feedId;
-        let removedItem = null;
-        const newPages = oldData.pages.map((page) => {
-          if (removedItem) return page;
-          const idx = page.findIndex(idCheck);
-          if (idx === -1) return page;
-          removedItem = page[idx];
-          return [...page.slice(0, idx), ...page.slice(idx + 1)];
-        });
-        if (!removedItem) return oldData;
-        const highlighted = { ...removedItem, __highlight: true };
-        const firstPage = newPages[0] ? [highlighted, ...newPages[0]] : [highlighted];
-        return { ...oldData, pages: [firstPage, ...newPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
+        if (!oldData) return oldData;
+        const seenId = feedId;
+        const cleanedPages = oldData.pages.map((page) =>
+          page.filter((it) => (it._id || it.feedId) !== seenId)
+        );
+        const targetFeed = oldData.pages
+          .flat()
+          .find((it) => (it._id || it.feedId) === seenId);
+        if (!targetFeed) return oldData;
+        const newFirstPage = [{ ...targetFeed, __highlight: true }, ...(cleanedPages[0] || [])];
+        return { ...oldData, pages: [newFirstPage, ...cleanedPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
       });
     },
     [queryClient, feedsQueryKey]
@@ -292,94 +362,157 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     [moveFeedToTop, queryClient, feedsQueryKey]
   );
 
+  // Consolidate "Link Handling" (Notifications & Shared Posts)
   useEffect(() => {
-    if (!currentFeedId) return;
-    const params = new URLSearchParams(location.search);
-    const isShare = params.get("ref") === "share";
-    if (!isShare) return;
+    const targetId = notifyfeedid || currentFeedId;
+    console.log("🎯 [Feed] Link Handling Effect Triggered:", { targetId, notifyfeedid, currentFeedId, hasScrolledToNotifyFeed });
+
+    // Check if cache is empty - if so, reset scroll flag to allow re-fetch after socket reconnection
+    const homeQueryKey = ["feeds", tokenRef.current || token, "all", "all", "all"];
+    const cache = queryClient.getQueryData(homeQueryKey);
+    const pages = cache?.pages ?? [];
+    const totalFeeds = pages.flat().length;
+
+    if (targetId && hasScrolledToNotifyFeed && totalFeeds === 0) {
+      console.log("🔄 [Feed] Cache is empty but we have targetId - resetting scroll flag to re-fetch");
+      setHasScrolledToNotifyFeed(false);
+      return;
+    }
+
+    if (!targetId || hasScrolledToNotifyFeed) {
+      console.log("⏭️ [Feed] Skipping link handling:", { hasTargetId: !!targetId, hasScrolledToNotifyFeed });
+      return;
+    }
+
     let cancelled = false;
-    (async () => {
+
+    const run = async () => {
+      console.log("🚀 [Feed] Starting notification feed handling for:", targetId);
+
+      // 1. Reset Filters Immediately to ensure we are in "All/Home" view
+      console.log("🔄 [Feed] Current filters:", { feedCategory, showReels, showImages });
+      if (feedCategory !== null) {
+        console.log("🔄 [Feed] Resetting feedCategory to null");
+        setFeedCategory(null);
+      }
+      if (showReels) {
+        console.log("🔄 [Feed] Resetting showReels to false");
+        setShowReels(false);
+      }
+      if (showImages) {
+        console.log("🔄 [Feed] Resetting showImages to false");
+        setShowImages(false);
+      }
+
+      // 2. Determine target cache key (Home All All All)
+      const homeQueryKey = ["feeds", tokenRef.current || token, "all", "all", "all"];
+      console.log("🔑 [Feed] Using query key:", homeQueryKey);
+
       try {
-        if (hasScrolledToNotifyFeed) return;
-        const cache = queryClient.getQueryData(feedsQueryKey);
+        const cache = queryClient.getQueryData(homeQueryKey);
+        console.log("💾 [Feed] Current cache:", cache);
+
         const pages = cache?.pages ?? [];
         const flat = pages.flat();
-        const matchIndex = flat.findIndex((it) => (it._id || it.feedId) === currentFeedId);
-        let single = null;
-        if (matchIndex !== -1) {
-          single = flat[matchIndex];
-        } else {
-          const raw = await getSingleFeed(currentFeedId, tokenRef.current || token);
+        console.log("📄 [Feed] Total feeds in cache:", flat.length);
+
+        const found = flat.find((it) => (it._id || it.feedId) === targetId);
+        console.log("🔍 [Feed] Feed found in cache:", !!found, found ? { id: found._id || found.feedId, type: found.type } : null);
+
+        let targetFeed = found;
+
+        if (!targetFeed) {
+          console.log("📡 [Feed] Feed not in cache, fetching from API...");
+          const raw = await getSingleFeed(targetId, tokenRef.current || token);
+          console.log("📡 [Feed] API Response:", raw);
+
           if (!raw) {
+            console.error("❌ [Feed] Feed not found in API, marking as scrolled");
             setHasScrolledToNotifyFeed(true);
             return;
           }
-          single = normalizeSingleFeed(raw);
+          targetFeed = normalizeSingleFeed(raw);
+          console.log("✅ [Feed] Feed normalized:", targetFeed);
         }
-        if (cancelled) return;
-        injectSingleFeedIntoCache(single);
-        setHighlightedFeedId(currentFeedId);
+
+        if (cancelled) {
+          console.log("🛑 [Feed] Operation cancelled");
+          return;
+        }
+
+        // 3. Inject/Move to top Directly on homeQueryKey
+        console.log("⬆️ [Feed] Moving feed to top of cache...");
+        queryClient.setQueryData(homeQueryKey, (oldData) => {
+          if (!oldData || !oldData.pages) {
+            console.log("📝 [Feed] Creating new cache with single feed");
+            return { pages: [[{ ...targetFeed, __highlight: true }]], pageParams: [1] };
+          }
+          const seenId = targetFeed._id || targetFeed.feedId;
+          console.log("🧹 [Feed] Removing duplicates of feed:", seenId);
+
+          const cleanedPages = oldData.pages.map((page) =>
+            page.filter((it) => (it._id || it.feedId) !== seenId)
+          );
+          const newFirstPage = [{ ...targetFeed, __highlight: true }, ...(cleanedPages[0] || [])];
+          console.log("✅ [Feed] Feed moved to top. New first page length:", newFirstPage.length);
+
+          return { ...oldData, pages: [newFirstPage, ...cleanedPages.slice(1)], pageParams: oldData.pageParams ?? [1] };
+        });
+
+        console.log("🎨 [Feed] Setting highlighted feed ID:", targetId);
+        setHighlightedFeedId(targetId);
+
+        // 4. Scroll and Mark as done
         setTimeout(() => {
+          if (cancelled) return;
+          console.log("📜 [Feed] Attempting to scroll to feedTop...");
+
           const feedTop = document.getElementById("feedTop");
-          feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (feedTop) {
+            const yOffset = -80; // Small offset for header
+            const element = feedTop;
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            console.log("📜 [Feed] Scrolling to position:", y);
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          } else {
+            console.warn("⚠️ [Feed] feedTop element not found");
+          }
+
+          console.log("✅ [Feed] Marking as scrolled");
           setHasScrolledToNotifyFeed(true);
-        }, 250);
+        }, 400);
+
+        // 5. Cleanup highlight after delay
         setTimeout(() => {
+          if (cancelled) return;
+          console.log("🎨 [Feed] Removing highlight from feed:", targetId);
           setHighlightedFeedId(null);
-          queryClient.setQueryData(feedsQueryKey, (oldData) => {
+          queryClient.setQueryData(homeQueryKey, (oldData) => {
             if (!oldData) return oldData;
             return {
               ...oldData,
               pages: oldData.pages.map((page) =>
-                page.map((item) => (item._id || item.feedId) === currentFeedId ? { ...item, __highlight: false } : item)
+                page.map((item) => (item._id || item.feedId) === targetId ? { ...item, __highlight: false } : item)
               ),
               pageParams: oldData.pageParams ?? [1],
             };
           });
-        }, 3500);
-      } catch (err) {
-        setHasScrolledToNotifyFeed(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [currentFeedId, location.search, feedsQueryKey, queryClient, injectSingleFeedIntoCache, normalizeSingleFeed, token, hasScrolledToNotifyFeed]);
+          console.log("✅ [Feed] Highlight removed");
+        }, 4000);
 
-  useEffect(() => {
-    if (!notifyfeedid || hasScrolledToNotifyFeed) return;
-    let cancelled = false;
-    const run = async () => {
-      const cache = queryClient.getQueryData(feedsQueryKey);
-      const flat = cache?.pages?.flat?.() || [];
-      const found = flat.find((it) => (it._id || it.feedId) === notifyfeedid);
-      if (found) {
-        moveFeedToTop(notifyfeedid);
-        setHighlightedFeedId(notifyfeedid);
-        setTimeout(() => {
-          if (cancelled) return;
-          const feedTop = document.getElementById("feedTop");
-          feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
-          setHasScrolledToNotifyFeed(true);
-        }, 300);
-        return;
-      }
-      try {
-        const raw = await getSingleFeed(notifyfeedid, tokenRef.current || token);
-        if (!raw) { setHasScrolledToNotifyFeed(true); return; }
-        const normalized = normalizeSingleFeed(raw);
-        injectSingleFeedIntoCache(normalized);
-        setTimeout(() => {
-          if (cancelled) return;
-          const feedTop = document.getElementById("feedTop");
-          feedTop?.scrollIntoView({ behavior: "smooth", block: "start" });
-          setHasScrolledToNotifyFeed(true);
-        }, 300);
       } catch (err) {
+        console.error("❌ [Feed] Highlighting error:", err);
+        console.error("❌ [Feed] Error stack:", err.stack);
         setHasScrolledToNotifyFeed(true);
       }
     };
+
     run();
-    return () => { cancelled = true; };
-  }, [notifyfeedid, feedPages, hasScrolledToNotifyFeed, token, queryClient, feedsQueryKey, moveFeedToTop, injectSingleFeedIntoCache, normalizeSingleFeed]);
+    return () => {
+      console.log("🧹 [Feed] Cleanup: Cancelling notification feed handling");
+      cancelled = true;
+    };
+  }, [notifyfeedid, currentFeedId, hasScrolledToNotifyFeed, token, queryClient, normalizeSingleFeed]);
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -547,7 +680,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
           </div>
         )}
         {!isHashtagMode && (
-          <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-1 mb-1 flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2 shrink-0">
+          <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-1 mb-[-1] flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2 shrink-0">
             <div className="flex-1 overflow-hidden">
               <CategoryFeedPage
                 onSelectCategory={setFeedCategory}

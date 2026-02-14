@@ -47,10 +47,7 @@ export default function EditProfile({ id, visibility }) {
       facebook: "",
       instagram: "",
       twitter: "",
-      linkedin: "",
-      github: "",
       youtube: "",
-      website: "",
     },
   });
 
@@ -118,10 +115,7 @@ export default function EditProfile({ id, visibility }) {
         facebook: user.socialLinks?.facebook || "",
         instagram: user.socialLinks?.instagram || "",
         twitter: user.socialLinks?.twitter || "",
-        linkedin: user.socialLinks?.linkedin || "",
-        github: user.socialLinks?.github || "",
         youtube: user.socialLinks?.youtube || "",
-        website: user.socialLinks?.website || "",
       },
     };
     setFormData(updated);
@@ -289,8 +283,8 @@ export default function EditProfile({ id, visibility }) {
                 form="profile-form"
                 disabled={mutation.isLoading || !hasUnsavedChanges}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${mutation.isLoading || !hasUnsavedChanges
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md"
                   }`}
               >
                 <Save className="w-4 h-4" />
@@ -920,8 +914,8 @@ function DateInputField({ label, value, onChange, disabled }) {
           onChange={handleDateChange}
           disabled={disabled}
           className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 pl-10 ${disabled
-              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+            : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             }`}
         />
       </div>
@@ -965,8 +959,8 @@ function SelectField({ label, options, value, onChange, disabled }) {
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           className={`w-full p-3 border border-gray-300 rounded-lg transition-colors duration-200 appearance-none ${disabled
-              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+            : "bg-white hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             }`}
         >
           {options.map((opt) => (

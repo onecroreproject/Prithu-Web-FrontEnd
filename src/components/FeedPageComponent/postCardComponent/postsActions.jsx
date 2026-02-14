@@ -182,14 +182,7 @@ const PostActions = ({
         </div>
       </div>
 
-      {caption && (
-        <div className="mb-2">
-          <p className="text-sm text-gray-900">
-            <span className="font-semibold mr-2">{userName}</span>
-            {caption}
-          </p>
-        </div>
-      )}
+     
 
 
     </div>

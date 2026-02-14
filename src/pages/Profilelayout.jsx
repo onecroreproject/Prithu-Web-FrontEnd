@@ -10,6 +10,8 @@ import ProfileTab from "../components/Profilecard/profileTabs";
 import ProfileSection from "../components/Profilecard/ProfileSection";
 import ActivitySection from "../components/Profilecard/ActivitySection";
 import FavoriteFeedSection from "../components/Profilecard/FavoriteFeedSection";
+import ProfileSettings from "../components/Profilecard/ProfileSectionComponents/profileSettings";
+import CloseAccountSettings from "../components/Settings/CloseAccountSettings";
 
 const Profilelayout = () => {
   const [activeTab, setActiveTab] = useState("activity");
@@ -70,6 +72,10 @@ const Profilelayout = () => {
         return <ProfileSection userData={userData} />;
       case "favorite":
         return <FavoriteFeedSection onBack={() => setActiveTab("activity")} />;
+      case "settings":
+        return <ProfileSettings />;
+      case "close-account":
+        return <CloseAccountSettings />;
       default:
         return (
           <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-lg">
