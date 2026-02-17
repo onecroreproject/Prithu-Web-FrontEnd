@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../api/axios';
 import {
   MessageSquare,
@@ -27,8 +28,21 @@ import {
 } from 'lucide-react';
 import SEO from "../components/SEO";
 
+import { useAuth } from '../context/AuthContext';
+
 const FeedbackPage = () => {
-  const [activeTab, setActiveTab] = useState('submit'); // 'submit' or 'history'
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!user) {
+      // Redirect to login and save current location
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, navigate, location]);
+
+  const [activeTab, setActiveTab] = useState('submit');
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -43,14 +57,22 @@ const FeedbackPage = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    section: '',
-    type: 'feedback',
-    category: 'other',
-    title: '',
-    message: '',
-    device: '',
-    platform: 'web'
+    name: user?.name || user?.userName || '',
+    email: user?.email || '',
+    subject: '',
+    message: ''
   });
+
+  // Update auto-fill when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || user.userName || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user]);
 
   const sections = [
     { value: 'post', label: 'Post', icon: <FileText className="w-4 h-4" /> },
@@ -112,7 +134,7 @@ const FeedbackPage = () => {
       if (filters.status) params.status = filters.status;
       if (searchQuery) params.search = searchQuery;
 
-      const response = await axios.get('/api/feedback/my', { params });
+      const response = await axios.get('/api/support/my', { params });
 
       setHistoryData(response.data.data);
     } catch (error) {
@@ -127,40 +149,26 @@ const FeedbackPage = () => {
     setSubmitting(true);
 
     try {
-      // Auto-detect device/platform
-      const deviceInfo = {
-        device: navigator.userAgent,
-        platform: /mobile/i.test(navigator.userAgent) ? 'mobile' : 'web'
-      };
+      const response = await axios.post('/api/support', formData);
 
-      const payload = {
-        ...formData,
-        ...deviceInfo
-      };
-
-      const response = await axios.post('/api/feedback/submit', payload);
-
-      // Reset form on success
+      // Reset form on success but keep guest details for logged in user
       setFormData({
-        section: '',
-        type: 'feedback',
-        category: 'other',
-        title: '',
-        message: '',
-        device: '',
-        platform: 'web'
+        name: user?.name || user?.userName || '',
+        email: user?.email || '',
+        subject: '',
+        message: ''
       });
 
       // Show success message
-      alert('Thank you! Your feedback has been submitted.');
+      alert('Thank you! Your support request has been submitted.');
 
       // Switch to history to show the new submission
       setActiveTab('history');
       fetchHistory();
 
     } catch (error) {
-      console.error('Error submitting feedback:', error);
-      alert('Failed to submit feedback. Please try again.');
+      console.error('Error submitting support request:', error);
+      alert('Failed to submit support request. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -267,129 +275,57 @@ const FeedbackPage = () => {
         {activeTab === 'submit' && (
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Submit Feedback</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Submit Support Query</h2>
               <p className="text-gray-600 text-sm">
-                Your feedback helps us improve Prithu. Whether it's a bug report, feature request, or general feedback, we appreciate your input.
+                Get help with Prithu. Whether it's a technical issue, account question, or general enquiry, we're here to help.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Type Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
-                  What would you like to submit?
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => handleInputChange({ target: { name: 'type', value: 'feedback' } })}
-                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${formData.type === 'feedback'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded ${formData.type === 'feedback'
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-gray-100 text-gray-600'
-                        }`}>
-                        <MessageSquare className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">Feedback</h3>
-                        <p className="text-gray-600 text-sm mt-1">Suggest improvements or share your experience</p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleInputChange({ target: { name: 'type', value: 'report' } })}
-                    className={`p-4 border rounded-lg text-left transition-all duration-200 ${formData.type === 'report'
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded ${formData.type === 'report'
-                        ? 'bg-red-100 text-red-600'
-                        : 'bg-gray-100 text-gray-600'
-                        }`}>
-                        <AlertTriangle className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">Report Issue</h3>
-                        <p className="text-gray-600 text-sm mt-1">Report bugs, spam, or inappropriate content</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Section Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
-                  Where does this apply?
-                </label>
-                <select
-                  name="section"
-                  value={formData.section}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                >
-                  <option value="">Select a section</option>
-                  {sections.map((section) => (
-                    <option key={section.value} value={section.value}>
-                      {section.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Category Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
-                  Category
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {(formData.type === 'feedback' ? categories.feedback : categories.report).map((category) => (
-                    <button
-                      key={category.value}
-                      type="button"
-                      onClick={() => handleInputChange({ target: { name: 'category', value: category.value } })}
-                      className={`p-3 border rounded-lg text-center transition-all duration-200 ${formData.category === category.value
-                        ? formData.type === 'feedback'
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-red-500 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                    >
-                      <div className={`p-2 rounded-lg mb-2 mx-auto w-fit ${formData.category === category.value
-                        ? formData.type === 'feedback'
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'bg-red-100 text-red-600'
-                        : 'bg-gray-100 text-gray-600'
-                        }`}>
-                        {category.icon}
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">{category.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Title */}
+              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Title (Optional)
+                  Name
                 </label>
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Brief summary of your feedback"
+                  required
+                  placeholder="Your full name"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="your@email.com"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="What is this regarding?"
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
@@ -397,7 +333,7 @@ const FeedbackPage = () => {
               {/* Message */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Message *
+                  Message
                 </label>
                 <textarea
                   name="message"
@@ -405,12 +341,9 @@ const FeedbackPage = () => {
                   onChange={handleInputChange}
                   required
                   rows={5}
-                  placeholder="Please provide detailed feedback or describe the issue..."
+                  placeholder="Please describe your query in detail..."
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                 />
-                <p className="text-gray-500 text-xs mt-2">
-                  Be as specific as possible. Include steps to reproduce if reporting a bug.
-                </p>
               </div>
 
               {/* Submit Button */}
@@ -420,9 +353,7 @@ const FeedbackPage = () => {
                   disabled={submitting || !formData.message}
                   className={`px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${submitting || !formData.message
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : formData.type === 'feedback'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                 >
                   {submitting ? (
@@ -432,17 +363,8 @@ const FeedbackPage = () => {
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      {formData.type === 'feedback' ? (
-                        <>
-                          <MessageSquare className="w-4 h-4" />
-                          Submit Feedback
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="w-4 h-4" />
-                          Report Issue
-                        </>
-                      )}
+                      <MessageSquare className="w-4 h-4" />
+                      Submit Query
                     </span>
                   )}
                 </button>
@@ -622,7 +544,7 @@ const FeedbackPage = () => {
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
                               <h3 className="font-semibold text-gray-900 text-sm">
-                                {item.title || 'No Title'}
+                                {item.subject || 'No Subject'}
                               </h3>
                               <div className="flex items-center gap-2">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusColors[item.status]}`}>

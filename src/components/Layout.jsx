@@ -4,6 +4,7 @@ import Feed from "../pages/Feed";
 import Birthdays from "./Birthdays";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftColumn from "./LeftColumn";
+import Footer from "./Footer";
 import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
@@ -121,6 +122,11 @@ export default function Layout() {
         </div>
       </main>
 
+      {!["/home", "/home/reels", "/home/images"].includes(location.pathname) && (
+        <div className={`transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+          <Footer />
+        </div>
+      )}
 
     </div>
   );

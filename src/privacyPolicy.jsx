@@ -1,111 +1,126 @@
 import React from "react";
+import SEO from "./components/SEO";
 
 const PrivacyPolicy = () => {
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto text-gray-800">
-      <h1 className="text-3xl font-bold mb-4">Privacy Policy for Prithu App</h1>
-      <p className="mb-4 font-semibold">Last updated: October 29, 2025</p>
+    <div className="p-6 md:p-10 max-w-4xl mx-auto text-gray-800 min-h-screen">
+      <SEO title="Privacy Policy | Prithu App" description="Read the Prithu App Privacy Policy to understand how we handle your data." />
 
-      <p className="mb-4">
-        Welcome to <strong>Prithu App</strong> (“we”, “our”, “us”). Your privacy is important to us.
-        This Privacy Policy explains how we collect, use, and protect your personal information
-        when you use our mobile application <strong>Prithu App</strong> (the “App”).
+      <h1 className="text-3xl md:text-4xl font-extrabold mb-8 border-b pb-6 border-gray-100">Privacy Policy</h1>
+
+      <p className="mb-8 text-lg leading-relaxed text-gray-600">
+        At <strong>Prithu App</strong>, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information when you use our application.
       </p>
 
-      <p className="mb-4">
-        By using the App, you agree to the collection and use of information in accordance with this policy.
-      </p>
+      <div className="space-y-10">
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">1</span>
+            Information We Collect
+          </h2>
+          <p className="mb-4 text-gray-600">We may collect the following information:</p>
+          <ul className="list-disc pl-12 space-y-3 text-gray-600">
+            <li><strong>Voluntary Details:</strong> Name, email address, or basic details (if provided voluntarily).</li>
+            <li><strong>Device Information:</strong> Such as device type, OS version, app usage data.</li>
+            <li><strong>Analytics:</strong> Anonymous analytics data to improve app performance.</li>
+          </ul>
+          <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 text-sm rounded-r-lg">
+            <strong>Note:</strong> We do not collect or store your personal status content from messaging apps. The app only accesses media files with your permission to enable downloading features.
+          </div>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">1. Information We Collect</h2>
-      <ul className="list-disc ml-6 space-y-2">
-        <li>
-          <strong>Personal Information:</strong> Name, Email address, Phone number, Profile photo and bio, Date of birth (optional).
-        </li>
-        <li>
-          <strong>Account & Login Information:</strong> Email and password for authentication, Referral code (if used).
-        </li>
-        <li>
-          <strong>User-Generated Content:</strong> Posts, comments, likes, shares, saved items, reels, and media uploaded by users.
-        </li>
-        <li>
-          <strong>Usage Information:</strong> App activity such as posts viewed, liked, or shared, time spent, interactions with other users.
-        </li>
-        <li>
-          <strong>Device & Technical Information:</strong> Device model, OS, IP address, app version, crash logs, diagnostic data.
-        </li>
-      </ul>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">2</span>
+            How We Use Your Information
+          </h2>
+          <p className="mb-4 text-gray-600">We use collected data to:</p>
+          <ul className="list-disc pl-12 space-y-2 text-gray-600">
+            <li>Provide status downloading and motivation video downloading services.</li>
+            <li>Improve app performance and user experience.</li>
+            <li>Fix technical issues and enhance security.</li>
+            <li>Show relevant in-app updates or improvements.</li>
+          </ul>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">2. How We Use Your Information</h2>
-      <ul className="list-disc ml-6 space-y-2">
-        <li>Create and manage your account</li>
-        <li>Display posts, reels, and user profiles</li>
-        <li>Allow likes, comments, shares, and saves</li>
-        <li>Provide referral and reward (coin earning) features</li>
-        <li>Show trending and personalized feeds</li>
-        <li>Improve app performance and experience</li>
-        <li>Communicate updates or support</li>
-        <li>Prevent fraud and ensure platform safety</li>
-      </ul>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">3</span>
+            Content Policy
+          </h2>
+          <ul className="list-disc pl-12 space-y-3 text-gray-600">
+            <li>Prithu App does not support or promote 18+ content.</li>
+            <li>If any inappropriate or adult content is identified, it will be immediately removed.</li>
+            <li>All motivational images and videos available inside the app are created and prepared by our team.</li>
+            <li>We respect original content owners and do not claim ownership of third-party status content downloaded by users.</li>
+          </ul>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">3. Sharing of Information</h2>
-      <p className="mb-4">
-        We do not sell or rent your personal data to third parties. We may share information with:
-      </p>
-      <ul className="list-disc ml-6 space-y-2">
-        <li>Service providers (hosting, analytics, cloud storage)</li>
-        <li>Authorities when required by law or for safety</li>
-        <li>Other users, with your consent (e.g., public posts)</li>
-      </ul>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">4</span>
+            Data Protection
+          </h2>
+          <ul className="list-disc pl-12 space-y-2 text-gray-600">
+            <li>We do not sell, rent, or share your personal information with third parties.</li>
+            <li>Your data is protected using standard security measures.</li>
+            <li>Media downloaded through the app is stored only on your device.</li>
+          </ul>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">4. Security of Your Data</h2>
-      <p className="mb-4">
-        We use industry-standard encryption and secure protocols. However, no online platform is 100% secure.
-        You are responsible for maintaining the confidentiality of your login credentials.
-      </p>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">5</span>
+            Permissions
+          </h2>
+          <p className="mb-4 text-gray-600">Prithu App may request the following permissions:</p>
+          <ul className="list-disc pl-12 space-y-2 text-gray-600">
+            <li><strong>Storage access:</strong> To save downloaded images and videos.</li>
+            <li><strong>Media access:</strong> To detect and download status content available on your device.</li>
+          </ul>
+          <p className="mt-4 text-gray-600">These permissions are used strictly for app functionality.</p>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">5. Your Rights and Choices</h2>
-      <ul className="list-disc ml-6 space-y-2">
-        <li>Access or update your profile information</li>
-        <li>Delete your account and associated data</li>
-        <li>Control who can see your posts and profile</li>
-        <li>Disable notifications if desired</li>
-      </ul>
-      <p className="mt-2">
-        To delete your account or request data removal, contact us at{" "}
-        <a href="mailto:prithuapp@gmail.com" className="text-blue-600 underline">
-          prithuapp@gmail.com
-        </a>.
-      </p>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">6</span>
+            Cookies & Analytics
+          </h2>
+          <p className="text-gray-600 pl-10">We may use basic analytics tools to understand user behavior and improve app features. No personally identifiable information is sold or misused.</p>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">6. Children’s Privacy</h2>
-      <p className="mb-4">
-        Our App is intended for users aged 13 and above. We do not knowingly collect data from children under 13.
-        If we discover such data, we will delete it immediately.
-      </p>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">7</span>
+            Third-Party Services
+          </h2>
+          <p className="text-gray-600 pl-10">The app may contain advertisements or third-party services. These services may collect limited data as per their own privacy policies. We are not responsible for the privacy practices of third-party services.</p>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">7. Third-Party Services</h2>
-      <p className="mb-4">
-        The App may use third-party services such as Google Analytics or Firebase for analytics, authentication,
-        storage, or ads. These services have their own privacy policies, which we encourage you to review.
-      </p>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">8</span>
+            Children's Privacy
+          </h2>
+          <p className="text-gray-600 pl-10">Prithu App is not intended for children under 13 years of age. We do not knowingly collect personal data from children.</p>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">8. Updates to This Policy</h2>
-      <p className="mb-4">
-        We may update this Privacy Policy from time to time. Updates will be reflected in the “Last updated” date above.
-        Continued use of the App means you accept those changes.
-      </p>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">9</span>
+            Changes to This Policy
+          </h2>
+          <p className="text-gray-600 pl-10">We may update this Privacy Policy from time to time. Users are encouraged to review this page periodically for any changes.</p>
+        </section>
 
-      <h2 className="text-xl font-semibold mt-8 mb-3">9. Contact Us</h2>
-      <ul className="list-none space-y-1">
-        <li>
-          <strong>Email:</strong>{" "}
-          <a href="mailto:prithuapp@gmail.com" className="text-blue-600 underline">
-            prithuapp@gmail.com
-          </a>
-        </li>
-        <li><strong>Developer:</strong> DLK Technologies</li>
-        <li><strong>App Name:</strong> Prithu App</li>
-      </ul>
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">10</span>
+            Contact Us
+          </h2>
+          <p className="text-gray-600 pl-10">If you have any questions about this Privacy Policy, you may contact us through the official app contact section.</p>
+        </section>
+      </div>
     </div>
   );
 };

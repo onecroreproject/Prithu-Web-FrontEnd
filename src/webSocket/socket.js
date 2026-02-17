@@ -126,9 +126,11 @@ const stopHeartbeat = () => {
 
 export const disconnectSocket = () => {
   if (socket) {
-    stopHeartbeat();
     socket.disconnect();
-    console.log("🔌 Socket disconnected manually");
     socket = null;
+    console.warn("🔌 Socket manually disconnected");
   }
+  stopHeartbeat();
 };
+
+export const getSocket = () => socket;

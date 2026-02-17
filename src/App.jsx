@@ -37,6 +37,14 @@ import FAQPage from "./pages/HelpPageLayout.jsx";
 import FeedbackSupportPage from "./pages/FeedbackSupportPage.jsx";
 import FeedbackPage from "./pages/FeedbackSupportPage.jsx";
 import ReferralPage from "./pages/ReferralPage.jsx";
+import ContactPage from "./pages/ContactPage.jsx";
+
+// Static Pages
+import AboutUs from "./pages/AboutUs.jsx";
+import TermsAndConditions from "./pages/TermsAndConditions.jsx";
+import RefundPolicy from "./pages/RefundPolicy.jsx";
+import SubscriptionDetailPage from "./pages/SubscriptionDetailPage.jsx";
+import ReferralDetailPage from "./pages/ReferralDetailPage.jsx";
 
 // React Query Client
 const queryClient = new QueryClient();
@@ -79,6 +87,14 @@ function AppRoutes() {
       <Route path="/create/account" element={<RegisterForm />} />
       <Route path="/search" element={<SearchResultsScreen />} />
       <Route path="/post/:id" element={<PostDetails />} />
+      <Route path="/contact" element={<ContactPage />} />
+
+      {/* Static Footer Pages */}
+      <Route path="/about-us" element={<AboutUs />} />
+      <Route path="/terms-conditions" element={<TermsAndConditions />} />
+      <Route path="/refund-policy" element={<RefundPolicy />} />
+      <Route path="/subscription-detail" element={<SubscriptionDetailPage />} />
+      <Route path="/referral-detail" element={<ReferralDetailPage />} />
 
 
       {/* ================= PROTECTED ROUTES ================= */}

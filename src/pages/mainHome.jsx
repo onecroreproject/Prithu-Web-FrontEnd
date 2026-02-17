@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import SEO from '../components/SEO';
+import Footer from '../components/Footer';
 
 // Floating Icon Component - for emojis in 3D space
 function FloatingIcon({ emoji, position, speed, scale = 1 }) {
@@ -708,26 +709,7 @@ const LandingPage = () => {
         </section>
 
         {/* Footer */}
-        <footer className="py-10 px-4 border-t border-amber-100 bg-white/80 text-center text-gray-600">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-wrap justify-center gap-6 mb-6">
-              {["✨", "🎉", "❤️", "🚀", "💰", "🌟", "🎨", "📱"].map((icon, idx) => (
-                <div key={idx} className="text-2xl animate-pulse" style={{ animationDelay: `${idx * 0.2}s` }}>
-                  {icon}
-                </div>
-              ))}
-            </div>
-            <p className="font-bold text-xl text-gray-800 mb-2">
-              © 2026 Prithu. Turn everyday sharing into something valuable.
-            </p>
-            <p className="text-lg">
-              Your content. <span className="text-amber-600 font-semibold">Your identity.</span> Shared your way.
-            </p>
-            <div className="mt-6 text-sm text-gray-500">
-              Made with ❤️ for creative minds worldwide
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
 
       {/* Custom CSS for animations */}
