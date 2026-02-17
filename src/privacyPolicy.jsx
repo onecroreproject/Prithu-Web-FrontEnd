@@ -7,7 +7,9 @@ const PrivacyPolicy = () => {
       <SEO title="Privacy Policy | Prithu App" description="Read the Prithu App Privacy Policy to understand how we handle your data." />
 
       <h1 className="text-3xl md:text-4xl font-extrabold mb-8 border-b pb-6 border-gray-100">Privacy Policy</h1>
-
+<p className="text-sm text-gray-500 mb-8">
+  Last Updated: <span className="font-medium text-gray-700">February 17, 2026</span>
+</p>
       <p className="mb-8 text-lg leading-relaxed text-gray-600">
         At <strong>Prithu App</strong>, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information when you use our application.
       </p>
