@@ -1,7 +1,6 @@
 import React, { useState, lazy, Suspense, memo } from "react";
 import { motion } from "framer-motion";
 import SEO from "./SEO";
-import Footer from "./Footer";
 
 // ✅ Lazy load for performance
 const LeftPanel = lazy(() => import("./LoginPageComponents/leftPanel"));
@@ -74,9 +73,6 @@ function LoginPage({ initialMode = "login" }) {
         </motion.div>
 
       </div>
-
-      {/* Refined Footer */}
-      <Footer />
     </div>
   );
 }

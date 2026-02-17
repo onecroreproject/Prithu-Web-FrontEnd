@@ -122,7 +122,7 @@ export default function Layout() {
         </div>
       </main>
 
-      {!["/home", "/home/reels", "/home/images"].includes(location.pathname) && (
+      {!["/home", "/home/reels", "/home/images", "/login", "/signup", "/create/account"].includes(location.pathname) && (
         <div className={`transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
           <Footer />
         </div>
