@@ -44,7 +44,7 @@ const FeedSliderSection = () => {
                     return array;
                 };
 
-                setAllVideos(shuffleArray(combined));
+                setAllVideos(shuffleArray(combined).slice(0, 18));
             } catch (error) {
                 console.error('Error fetching video pool:', error);
             } finally {
@@ -120,23 +120,12 @@ const VideoCard = ({ video, idx }) => {
     const mediaUrl = video.mediaUrl || video.url || video.contentUrl;
     const posterUrl = video.thumbnailUrl || video.thumb;
 
+    // Removal of lazy loading to ensure immediate visibility of posters and faster buffering
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setShouldLoad(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: '400px' } // Load well before it enters view to avoid gray cards
-        );
-
-        if (containerRef.current) {
-            observer.observe(containerRef.current);
+        if (mediaUrl) {
+            setShouldLoad(true);
         }
-
-        return () => observer.disconnect();
-    }, []);
+    }, [mediaUrl]);
 
     // Handle auto-playing when the card is hovered, and ensure it's muted
     const handleMouseEnter = () => {
@@ -154,35 +143,26 @@ const VideoCard = ({ video, idx }) => {
     return (
         <div
             ref={containerRef}
-            className="relative aspect-[9/16] overflow-hidden rounded-xl bg-neutral-200 border border-amber-100/20 shadow-sm group"
+            className="relative aspect-[9/16] overflow-hidden rounded-xl bg-transparent border border-amber-500/10 shadow-sm group"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
             {/* Always render video element but use shouldLoad for src and preload */}
             <video
                 ref={videoRef}
-                src={shouldLoad ? mediaUrl : undefined}
-                className={`w-full h-full object-cover transition-opacity duration-500 ${shouldLoad ? 'opacity-100' : 'opacity-0'}`}
+                src={mediaUrl}
+                className="w-full h-full object-cover transition-opacity duration-300"
                 muted
                 playsInline
                 loop
                 autoPlay
-                preload={shouldLoad ? "metadata" : "none"}
+                preload="metadata"
                 poster={posterUrl}
             />
 
-            {/* Fallback Poster Image - Always visible until video is ready */}
-            {!shouldLoad && posterUrl && (
-                <img
-                    src={posterUrl}
-                    className="absolute inset-0 w-full h-full object-cover opacity-60"
-                    alt=""
-                />
-            )}
-
-            {/* Loading Placeholder */}
-            {!shouldLoad && !posterUrl && (
-                <div className="absolute inset-0 animate-pulse bg-neutral-300" />
+            {/* Simple Loading Placeholder with matching color if no poster */}
+            {!posterUrl && (
+                <div className="absolute inset-0 animate-pulse bg-amber-500/5" />
             )}
 
             {/* Overlay Info */}

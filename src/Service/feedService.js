@@ -67,7 +67,15 @@ const normalizeFeedItem = (feed, viewer = null, viewerSocialLinks = []) => {
     type: feed.type || feed.postType || "image",
     contentUrl: getMediaUrl(feed.contentUrl || feed.mediaUrl || primaryFile.url),
     mediaUrl: getMediaUrl(feed.mediaUrl || feed.contentUrl || primaryFile.url),
-    thumbnailUrl: getMediaUrl(feed.thumbnailUrl || feed.contentUrl || feed.mediaUrl || primaryFile.url),
+    thumbnailUrl: getMediaUrl(
+      feed.thumbnailUrl ||
+      feed.thumb ||
+      feed.preview ||
+      feed.thumbnail ||
+      feed.contentUrl ||
+      feed.mediaUrl ||
+      primaryFile.url
+    ),
     caption: feed.caption || feed.dec || "",
     description: feed.dec || feed.description || "",
 
