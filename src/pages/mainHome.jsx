@@ -1,230 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { useMainBoardStats } from '../hooks/useMiscellaneous';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, Sphere, Text } from '@react-three/drei';
-import * as THREE from 'three';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import SEO from '../components/SEO';
 import Footer from '../components/Footer';
 import FeedSliderSection from '../components/FeedSliderSection';
+import { AnimatedCounter, AnimatedIcon } from '../components/HomeComponents/LandingSubComponents';
 
-// Floating Icon Component - for emojis in 3D space
-function FloatingIcon({ emoji, position, speed, scale = 1 }) {
-  const meshRef = useRef();
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    meshRef.current.position.y = position[1] + Math.sin(time * speed) * 0.4;
-    meshRef.current.position.x = position[0] + Math.cos(time * speed * 0.7) * 0.2;
-    meshRef.current.rotation.y = time * 0.5;
-    meshRef.current.rotation.x = Math.sin(time * 0.3) * 0.2;
-  });
-
-  return (
-    <Text
-      ref={meshRef}
-      position={position}
-      fontSize={0.5 * scale}
-      color="#f59e0b"
-      anchorX="center"
-      anchorY="middle"
-      outlineWidth={0.01}
-      outlineColor="#ffffff"
-    >
-      {emoji}
-    </Text>
-  );
-}
-
-// Floating Orb Component
-function FloatingOrb({ color, position, speed, size = 0.12 }) {
-  const meshRef = useRef();
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    meshRef.current.position.y = position[1] + Math.sin(time * speed) * 0.3;
-    meshRef.current.position.x = position[0] + Math.cos(time * speed * 0.5) * 0.1;
-    meshRef.current.rotation.x = time * 0.3;
-    meshRef.current.rotation.y = time * 0.2;
-  });
-
-  return (
-    <Sphere ref={meshRef} position={position} args={[size, 32, 32]}>
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={0.5}
-        roughness={0.1}
-        metalness={0.9}
-        transparent
-        opacity={0.8}
-      />
-    </Sphere>
-  );
-}
-
-// Particle Field Component with different colors
-function ParticleField() {
-  const particlesRef = useRef();
-  const count = 2000;
-
-  const positions = React.useMemo(() => {
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 20;
-      positions[i + 1] = (Math.random() - 0.5) * 20;
-      positions[i + 2] = (Math.random() - 0.5) * 20;
-    }
-    return positions;
-  }, [count]);
-
-  const colors = React.useMemo(() => {
-    const colors = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i += 3) {
-      // Vibrant colors
-      const hue = Math.random();
-      if (hue < 0.33) {
-        // Amber/Yellow particles
-        colors[i] = 0.9; // R
-        colors[i + 1] = 0.6; // G
-        colors[i + 2] = 0.1; // B
-      } else if (hue < 0.66) {
-        // Blue particles
-        colors[i] = 0.1; // R
-        colors[i + 1] = 0.4; // G
-        colors[i + 2] = 0.9; // B
-      } else {
-        // Pink particles
-        colors[i] = 0.9; // R
-        colors[i + 1] = 0.2; // G
-        colors[i + 2] = 0.5; // B
-      }
-    }
-    return colors;
-  }, [count]);
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    if (particlesRef.current) {
-      particlesRef.current.rotation.y = time * 0.02;
-      particlesRef.current.rotation.x = Math.sin(time * 0.01) * 0.1;
-    }
-  });
-
-  return (
-    <points ref={particlesRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={count}
-          array={colors}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.04}
-        vertexColors
-        transparent
-        opacity={0.7}
-        sizeAttenuation
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-}
-
-// Enhanced Animated Counter Component
-const AnimatedCounter = ({ end, duration = 2500, label, icon }) => {
-  const [count, setCount] = React.useState(0);
-  const counterRef = useRef(null);
-  const hasAnimated = useRef(false);
-  const [isVisible, setIsVisible] = React.useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.2 }
-    );
-
-    if (counterRef.current) {
-      observer.observe(counterRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (isVisible) {
-      let startTime = null;
-      const startValue = count; // Start from current count to avoid jumps
-      const endValue = parseInt(end) || 0;
-
-      const animateCount = (timestamp) => {
-        if (!startTime) startTime = timestamp;
-        const progress = timestamp - startTime;
-        const percentage = Math.min(progress / duration, 1);
-
-        const easeOutElastic = (x) => {
-          const c4 = (2 * Math.PI) / 3;
-          return x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
-        };
-
-        const easedPercentage = easeOutElastic(percentage);
-        const currentCount = Math.floor(startValue + easedPercentage * (endValue - startValue));
-
-        setCount(currentCount);
-
-        if (percentage < 1) {
-          requestAnimationFrame(animateCount);
-        }
-      };
-      requestAnimationFrame(animateCount);
-    }
-  }, [end, isVisible, duration]);
-
-  return (
-    <div ref={counterRef} className=" flex flex-col text-center group">
-      <div className="relative inline-block">
-        <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-pink-500 bg-clip-text text-transparent">
-          {count.toLocaleString()}
-          <span className="text-amber-400">+</span>
-        </div>
-        {icon && (
-          <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
-            {icon}
-          </div>
-        )}
-        {/* Glowing effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      </div>
-      <div className="text-gray-700 mt-3 text-base font-medium bg-gradient-to-r from-amber-100 to-orange-50 rounded-lg py-2 px-3 inline-block">
-        {label}
-      </div>
-    </div>
-  );
-};
-
-// Animated Icon Component for 2D animations
-const AnimatedIcon = ({ icon, className = "" }) => (
-  <span className={`inline-block ${className}`}>
-    <span className="relative group">
-      <span className="text-2xl animate-pulse">{icon}</span>
-      <span className="absolute inset-0 bg-current opacity-20 blur-md group-hover:blur-xl transition-all duration-300"></span>
-    </span>
-  </span>
-);
+// Lazy load the heavy 3D background
+const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
 
 const LandingPage = () => {
   const containerRef = useRef();
@@ -279,55 +63,12 @@ const LandingPage = () => {
         type="website"
         canonical="https://prithu.app"
       />
-   
 
-      {/* Three.js Background with flying icons */}
-      <div className="fixed inset-0 z-0 opacity-70">
-        <Canvas
-          camera={{ position: [0, 0, 8], fov: 75 }}
-          gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
-        >
-          <color attach="background" args={['#fef3c7']} />
 
-          <ambientLight intensity={0.9} />
-          <pointLight position={[10, 10, 10]} intensity={1.5} color="#fbbf24" />
-          <pointLight position={[-10, -10, 5]} intensity={0.8} color="#3b82f6" />
-
-          <ParticleField />
-
-          {/* Floating orbs */}
-          <FloatingOrb color="#f59e0b" position={[-3, 2, 0]} speed={0.4} size={0.15} />
-          <FloatingOrb color="#3b82f6" position={[3, -1, 0]} speed={0.6} size={0.12} />
-          <FloatingOrb color="#ef4444" position={[-2, -2, 0]} speed={0.5} size={0.1} />
-          <FloatingOrb color="#10b981" position={[2, 1, 0]} speed={0.7} size={0.13} />
-          <FloatingOrb color="#8b5cf6" position={[0, 3, 0]} speed={0.3} size={0.08} />
-
-          {/* Flying happy icons */}
-          {happyIcons.slice(0, 8).map((icon, index) => (
-            <FloatingIcon
-              key={index}
-              emoji={icon}
-              position={[
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 6,
-                (Math.random() - 0.5) * 4
-              ]}
-              speed={0.3 + Math.random() * 0.4}
-              scale={0.4 + Math.random() * 0.6}
-            />
-          ))}
-
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate
-            autoRotateSpeed={0.2}
-            maxPolarAngle={Math.PI}
-            minPolarAngle={0}
-          />
-          <Stars radius={100} depth={50} count={1500} factor={3} fade speed={0.8} />
-        </Canvas>
-      </div>
+      {/* Lazy-loaded Three.js Background with flying icons */}
+      <Suspense fallback={<div className="fixed inset-0 bg-[#fef3c7] z-0" />}>
+        <HeroBackground3D />
+      </Suspense>
 
       {/* 2D Flying Icons Layer - Deferred for LCP Performance */}
       {showDecorations && (
@@ -598,29 +339,58 @@ const LandingPage = () => {
               <div className="relative bg-white/95 backdrop-blur-lg rounded-3xl p-10 border border-amber-100 shadow-2xl">
                 <div className="text-5xl mb-6">"</div>
                 <p className="text-2xl mb-8 leading-relaxed text-gray-700 italic">
-                  <span className="text-amber-600 font-semibold">Prithu transformed</span> my simple moments into{' '}
-                  <span className="text-pink-500 font-semibold">beautiful memories</span> that everyone loved.
-                  The best part? <span className="text-green-600 font-semibold">I earned rewards</span> while sharing joy with my loved ones!
+                  I used to spend hours trying to make my photos look professional. Now with Prithu, it takes seconds! My friends are always asking how I make such beautiful status updates.
                 </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-lg"></div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 flex items-center justify-center text-white">
-                      ❤️
-                    </div>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 flex items-center justify-center text-2xl shadow-lg border-2 border-white">
+                    👩
                   </div>
                   <div className="text-left">
-                    <div className="font-bold text-xl text-gray-800">Sarah M.</div>
-                    <div className="text-gray-600">Prithu Super User • 500+ Posts Created</div>
-                    <div className="flex items-center mt-2">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className="text-amber-400 text-xl">★</span>
-                      ))}
-                      <span className="ml-2 text-gray-600 font-medium">5.0 Rating</span>
-                    </div>
+                    <div className="font-bold text-xl text-gray-800">Priya Sharma</div>
+                    <div className="text-amber-600">Power Creator</div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Download App Section */}
+        <section className="py-24 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 bg-blue-600 transform -skew-y-3 origin-right scale-110"></div>
+          <div className="max-w-6xl mx-auto relative z-10 text-center text-white">
+            <h2
+              data-aos="fade-up"
+              className="text-5xl md:text-7xl font-black mb-8 leading-tight"
+            >
+              Ready to Spark <br />
+              <span className="text-amber-400">Your Creativity?</span>
+            </h2>
+            <p
+              data-aos="fade-up"
+              data-aos-delay="100"
+              className="text-2xl mb-12 text-blue-100 max-w-3xl mx-auto"
+            >
+              Join 50,000+ creators who are making their digital life more beautiful every day.
+            </p>
+            <div
+              data-aos="zoom-in"
+              data-aos-delay="200"
+              className="flex flex-col sm:flex-row gap-6 justify-center"
+            >
+              <button
+                onClick={handleSignUpClick}
+                className="group px-12 py-6 bg-white text-blue-600 rounded-full text-2xl font-black shadow-2xl hover:bg-amber-50 transition-all duration-300 hover:scale-110 active:scale-105 flex items-center justify-center gap-4"
+              >
+                <span>Download App Now</span>
+                <span className="group-hover:translate-x-2 transition-transform duration-300">⚡</span>
+              </button>
+              <button
+                onClick={handleLoginClick}
+                className="group px-12 py-6 border-4 border-white text-white rounded-full text-2xl font-black hover:bg-white/10 transition-all duration-300 hover:scale-110 active:scale-105"
+              >
+                Sign In 🔓
+              </button>
             </div>
           </div>
         </section>

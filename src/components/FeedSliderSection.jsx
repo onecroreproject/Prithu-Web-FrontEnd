@@ -9,18 +9,20 @@ const FeedSliderSection = () => {
     const [allVideos, setAllVideos] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Fetch a combined pool of videos from the first few categories
+    // Fetch a combined pool of videos from random categories
     useEffect(() => {
         const fetchInitialPool = async () => {
             if (categories.length === 0) return;
             setIsLoading(true);
             try {
-                // Fetch from top 4 categories to get a good mix
-                const categorySamples = categories.slice(0, 4);
+                // Shuffle categories and pick a larger set (6-8) for better variety
+                const shuffledCategories = [...categories].sort(() => 0.5 - Math.random());
+                const categorySamples = shuffledCategories.slice(0, 8);
+
                 const promises = categorySamples.map(cat => getPublicFeeds(1, cat.categoryId, 'video'));
                 const results = await Promise.all(promises);
 
-                // Loosen filter to be more resilient to different data formats
+                // Filter valid videos from all categories
                 const combined = results.flat()
                     .filter(v => {
                         const isVideo = v && (
@@ -31,10 +33,18 @@ const FeedSliderSection = () => {
                         return isVideo && (v.mediaUrl || v.url || v.contentUrl);
                     });
 
-                console.log(`[FeedSlider] Fetched ${results.flat().length} items, ${combined.length} are valid videos.`);
+                console.log(`[FeedSlider] Fetched from ${categorySamples.length} categories. Total: ${combined.length} valid videos.`);
 
-                // Shuffle the pool
-                setAllVideos(combined.sort(() => 0.5 - Math.random()));
+                // Fisher-Yates shuffle for better randomness
+                const shuffleArray = (array) => {
+                    for (let i = array.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [array[i], array[j]] = [array[j], array[i]];
+                    }
+                    return array;
+                };
+
+                setAllVideos(shuffleArray(combined));
             } catch (error) {
                 console.error('Error fetching video pool:', error);
             } finally {
@@ -73,8 +83,8 @@ const FeedSliderSection = () => {
 const VideoTicker = ({ videos }) => {
     if (!videos || videos.length === 0) return null;
 
-    // Duplicate the content multiple times to ensure the ticker is long enough for the loop
-    const displayVideos = [...videos, ...videos, ...videos];
+    // Use a memoized array to prevent re-shuffling on every render
+    const displayVideos = React.useMemo(() => [...videos, ...videos, ...videos], [videos]);
 
     return (
         <div className="flex w-full overflow-hidden">
@@ -84,7 +94,7 @@ const VideoTicker = ({ videos }) => {
                     x: ["0%", "-33.333%"]
                 }}
                 transition={{
-                    duration: 150, // Slightly faster than 200 for better energy, still slow
+                    duration: 150,
                     ease: "linear",
                     repeat: Infinity
                 }}
@@ -102,18 +112,31 @@ const VideoTicker = ({ videos }) => {
     );
 };
 
-// Robust Video Card
+// Robust Lazy-Loading Video Card
 const VideoCard = ({ video, idx }) => {
     const videoRef = React.useRef(null);
+    const containerRef = React.useRef(null);
+    const [shouldLoad, setShouldLoad] = useState(false);
     const mediaUrl = video.mediaUrl || video.url || video.contentUrl;
     const posterUrl = video.thumbnailUrl || video.thumb;
 
     useEffect(() => {
-        // Log once to see what's going on
-        if (idx === 0) {
-            console.log("[VideoCard Debug] mediaUrl:", mediaUrl, "posterUrl:", posterUrl);
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setShouldLoad(true);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: '400px' } // Load well before it enters view to avoid gray cards
+        );
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
         }
-    }, [mediaUrl, posterUrl, idx]);
+
+        return () => observer.disconnect();
+    }, []);
 
     // Handle auto-playing when the card is hovered, and ensure it's muted
     const handleMouseEnter = () => {
@@ -130,21 +153,38 @@ const VideoCard = ({ video, idx }) => {
 
     return (
         <div
-            className="relative aspect-[9/16] overflow-hidden rounded-xl bg-gray-200 border border-amber-100/20 shadow-sm group"
+            ref={containerRef}
+            className="relative aspect-[9/16] overflow-hidden rounded-xl bg-neutral-200 border border-amber-100/20 shadow-sm group"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
+            {/* Always render video element but use shouldLoad for src and preload */}
             <video
                 ref={videoRef}
-                src={mediaUrl}
-                className="w-full h-full object-cover"
+                src={shouldLoad ? mediaUrl : undefined}
+                className={`w-full h-full object-cover transition-opacity duration-500 ${shouldLoad ? 'opacity-100' : 'opacity-0'}`}
                 muted
                 playsInline
                 loop
                 autoPlay
-                preload="auto"
+                preload={shouldLoad ? "metadata" : "none"}
                 poster={posterUrl}
             />
+
+            {/* Fallback Poster Image - Always visible until video is ready */}
+            {!shouldLoad && posterUrl && (
+                <img
+                    src={posterUrl}
+                    className="absolute inset-0 w-full h-full object-cover opacity-60"
+                    alt=""
+                />
+            )}
+
+            {/* Loading Placeholder */}
+            {!shouldLoad && !posterUrl && (
+                <div className="absolute inset-0 animate-pulse bg-neutral-300" />
+            )}
+
             {/* Overlay Info */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
                 <p className="text-white text-[9px] font-bold line-clamp-1">{video.caption || video.description || video.dec || "Trending Feed"}</p>
