@@ -161,6 +161,19 @@ export const getAllFeeds = async (page = 1, token, categoryId = null, postType =
   }
 };
 
+export const getPublicFeeds = async (page = 1, categoryId = null, postType = null) => {
+  try {
+    const { data } = await api.get(
+      `/api/get/all/public/feeds?page=${page}&limit=10${categoryId ? `&categoryId=${categoryId}` : ""}${postType ? `&postType=${postType}` : ""}`
+    );
+    const feedsArray = data?.data?.feeds || [];
+    return feedsArray.map(feed => normalizeFeedItem(feed));
+  } catch (error) {
+    console.error("❌ Error fetching public feeds:", error.response?.data || error.message);
+    return [];
+  }
+};
+
 const isTemplateMode = (feed) => {
   return (
     feed.uploadMode === "template" ||

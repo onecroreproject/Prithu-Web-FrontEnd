@@ -160,7 +160,7 @@ const Footer = () => {
                     </div>
                 </div>
             </div>
-            <style jsx>{`
+            <style>{`
                 @keyframes pulse-subtle {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.8; }

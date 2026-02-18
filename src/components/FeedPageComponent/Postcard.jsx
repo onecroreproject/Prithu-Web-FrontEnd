@@ -303,7 +303,7 @@ function Postcard({
     setDominantColor(getInitialColor(contentUrl));
   }, [contentUrl]);
 
-  // Handle browser tab/window switch
+  // Handle browser tab/window switch (Tab focus/blur)
   useEffect(() => {
     if (!isVideo) return;
 
@@ -313,17 +313,28 @@ function Postcard({
 
       if (document.hidden) {
         vid.pause();
-      } else if (isVisible) {
-        // Only restart if it's currently visible in the feed
-        vid.currentTime = 0;
-        setVideoSessionId((prev) => prev + 1);
-        vid.play().catch(() => { });
+        setIsPlaying(false);
+      } else {
+        // ✅ Coordination logic: Only resume if VISIBLE AND (EITHER active OR in list-mode with no other active)
+        const isCurrentActive = activeVideoId === feedId;
+        const canAutoplayInList = viewMode === "list" && activeVideoId === null;
+
+        if (isVisible && (isCurrentActive || canAutoplayInList)) {
+          // Restart/Resume
+          vid.currentTime = 0;
+          setVideoSessionId((prev) => prev + 1);
+          vid.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => {
+              setIsPlaying(false);
+            });
+        }
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isVideo, isVisible]);
+  }, [isVideo, isVisible, activeVideoId, feedId, viewMode]);
 
   /* ---------------------------- ACTION HANDLERS ---------------------------- */
 
@@ -386,13 +397,14 @@ function Postcard({
   const handleDoubleTapLike = useCallback((tapX, tapY) => {
     if (isLiked) return;
 
-    if (mediaContainerRef.current) {
+    if (mediaContainerRef.current && tapX !== undefined && tapY !== undefined) {
       const rect = mediaContainerRef.current.getBoundingClientRect();
       const x = tapX - rect.left;
       const y = tapY - rect.top;
       setHeartPosition({ x, y });
     } else {
-      setHeartPosition({ x: 0, y: 0 });
+      // Fallback to center
+      setHeartPosition({ x: 235, y: 235 }); // Generic center for list view
     }
 
     setShowHeartAnimation(true);

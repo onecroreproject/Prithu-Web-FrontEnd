@@ -122,7 +122,6 @@ export default function PostMedia({
   viewMode = "list"
 }) {
   const containerRef = useRef(null);
-  const [showHeart, setShowHeart] = useState(false);
   const lastTap = useRef(0);
 
   // ✅ Immediate "Best Guess" Color to avoid initial black flicker
@@ -264,13 +263,18 @@ export default function PostMedia({
   }, [isMuted, videoRef]);
 
 
-  const handleTap = () => {
+  const handleTap = (e) => {
     const now = Date.now();
 
-    if (now - lastTap.current < 250) {
-      setShowHeart(true);
-      onDoubleTap?.();
-      setTimeout(() => setShowHeart(false), 600);
+    if (now - lastTap.current < 300) {
+      if (onDoubleTap) {
+        // Pass coordinates if event is available
+        if (e && e.clientX !== undefined) {
+          onDoubleTap(e.clientX, e.clientY);
+        } else {
+          onDoubleTap();
+        }
+      }
     }
     lastTap.current = now;
   };
@@ -309,7 +313,10 @@ export default function PostMedia({
       <div onClick={handleClick} className="w-full flex-1 min-h-0 flex items-center justify-center">
         <div
           ref={containerRef}
-          onClick={handleTap}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleTap(e);
+          }}
           className="relative w-full h-full flex items-center justify-center "
         >
           <ColorBackground isImage={true} contentUrl={contentUrl} viewMode={viewMode} />
@@ -331,8 +338,6 @@ export default function PostMedia({
               }}
             />
           </MediaWrapper>
-
-          {showHeart && <HeartAnimation />}
         </div>
       </div>
     );
@@ -375,7 +380,7 @@ export default function PostMedia({
           onEnded={() => onVideoEnded?.()}
           onDoubleClick={(e) => {
             e.stopPropagation();
-            handleTap();
+            handleTap(e);
           }}
         />
         {/* Play/Pause Overlay should be absolute relative to this video-containing div */}
@@ -389,24 +394,6 @@ export default function PostMedia({
           </div>
         )}
       </MediaWrapper>
-
-      {showHeart && <HeartAnimation />}
     </div>
   );
 }
-
-const HeartAnimation = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-    <div className="text-white text-6xl animate-pop-heart">❤️</div>
-    <style>{`
-      .animate-pop-heart {
-        animation: popHeart 0.6s ease forwards;
-      }
-      @keyframes popHeart {
-        0% { transform: scale(0.4); opacity: 0.6; }
-        60% { transform: scale(1.15); opacity: 1; }
-        100% { transform: scale(1); opacity: 0; }
-      }
-    `}</style>
-  </div>
-);

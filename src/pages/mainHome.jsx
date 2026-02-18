@@ -7,6 +7,7 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import SEO from '../components/SEO';
 import Footer from '../components/Footer';
+import FeedSliderSection from '../components/FeedSliderSection';
 
 // Floating Icon Component - for emojis in 3D space
 function FloatingIcon({ emoji, position, speed, scale = 1 }) {
@@ -217,12 +218,12 @@ const AnimatedCounter = ({ end, duration = 2500, label, icon }) => {
 
 // Animated Icon Component for 2D animations
 const AnimatedIcon = ({ icon, className = "" }) => (
-  <div className={`inline-block ${className}`}>
-    <div className="relative group">
+  <span className={`inline-block ${className}`}>
+    <span className="relative group">
       <span className="text-2xl animate-pulse">{icon}</span>
-      <div className="absolute inset-0 bg-current opacity-20 blur-md group-hover:blur-xl transition-all duration-300"></div>
-    </div>
-  </div>
+      <span className="absolute inset-0 bg-current opacity-20 blur-md group-hover:blur-xl transition-all duration-300"></span>
+    </span>
+  </span>
 );
 
 const LandingPage = () => {
@@ -278,19 +279,7 @@ const LandingPage = () => {
         type="website"
         canonical="https://prithu.app"
       />
-      {/* Login Button - Top Right */}
-      <div className="absolute top-6 right-6 z-50">
-        <button
-          onClick={handleLoginClick}
-          className="group relative px-6 py-2 bg-white/80 backdrop-blur-md border border-amber-200 rounded-full text-sm font-bold text-amber-700 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-2"
-        >
-          <span className="relative z-10 flex items-center gap-2">
-            <span>Expolre your world</span>
-            <span className="text-lg">✨</span>
-          </span>
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </button>
-      </div>
+   
 
       {/* Three.js Background with flying icons */}
       <div className="fixed inset-0 z-0 opacity-70">
@@ -382,7 +371,7 @@ const LandingPage = () => {
 
             {/* Tagline with floating icons */}
             <div className="relative">
-              <p
+              <h2
                 data-aos="fade-up"
                 data-aos-delay="150"
                 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800"
@@ -402,7 +391,7 @@ const LandingPage = () => {
                 </span>
                 .
                 <AnimatedIcon icon="💰" className="ml-2" />
-              </p>
+              </h2>
 
               <p
                 data-aos="fade-up"
@@ -479,6 +468,9 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Full-width Auto-Sliding Feed Section */}
+        <FeedSliderSection />
 
         {/* Features Section with enhanced design */}
         <section className="py-20 px-4">
@@ -687,7 +679,6 @@ const LandingPage = () => {
                 { label: "Templates", value: stats?.totalTemplates || 500, icon: "🎨", color: "from-pink-500 to-rose-500" },
                 { label: "Users", value: stats?.totalUsers || 50000, icon: "😊", color: "from-amber-500 to-orange-500" },
                 { label: "Posts Created", value: stats?.totalShares || 10000, icon: "✨", color: "from-blue-500 to-cyan-500" },
-                { label: "Countries", value: "150+", icon: "🌎", color: "from-green-500 to-emerald-500" }
               ].map((stat, index) => (
                 <div
                   key={index}
@@ -713,7 +704,7 @@ const LandingPage = () => {
       </div>
 
       {/* Custom CSS for animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes gradient {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
