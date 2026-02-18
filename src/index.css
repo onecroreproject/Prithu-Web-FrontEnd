@@ -17,6 +17,7 @@
 html,
 body {
   overflow-y: auto;
+  background-color: #fef5d5 !important;
 }
 
 /* Smooth scroll for anchors */

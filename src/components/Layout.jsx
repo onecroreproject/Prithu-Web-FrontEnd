@@ -63,7 +63,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#121212] min-h-screen">
+    <div className="flex flex-col bg-[#fef5d5] dark:bg-[#121212] min-h-screen">
 
       <Header
         onSidebarHoverChange={setIsSidebarHovered}

@@ -54,7 +54,7 @@ const LandingPage = () => {
   const happyIcons = ["😊", "🥰", "😍", "🤩", "🎉", "✨", "🌟", "💫", "❤️", "💖", "💝", "🎁", "📱", "📸", "🎨", "💰", "🚀", "⭐", "🌈"];
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-blue-50 text-gray-800 overflow-x-hidden relative">
+    <div ref={containerRef} className="min-h-screen bg-[#fef5d5] text-gray-800 overflow-x-hidden relative">
       <SEO
         title="Prithu - Best Status & Motivational Video App"
         description="Explore Prithu - watch status videos, motivational, spiritual & educational reels, movie dialogues & daily life impressions with smart personalization and instant sharing."
@@ -66,7 +66,7 @@ const LandingPage = () => {
 
 
       {/* Lazy-loaded Three.js Background with flying icons */}
-      <Suspense fallback={<div className="fixed inset-0 bg-[#fef3c7] z-0" />}>
+      <Suspense fallback={<div className="fixed inset-0 bg-[#fef5d5] z-0" />}>
         <HeroBackground3D />
       </Suspense>
 
@@ -307,7 +307,7 @@ const LandingPage = () => {
         </section>
 
         {/* Testimonial Section with enhanced emotion */}
-        <section className="py-20 px-4 bg-gradient-to-r from-amber-50/80 via-orange-50/80 to-rose-50/80">
+        <section className="py-20 px-4 bg-[#fef5d5]">
           <div className="max-w-4xl mx-auto text-center">
             <h2
               data-aos="fade-up"

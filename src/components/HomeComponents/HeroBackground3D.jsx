@@ -58,9 +58,9 @@ function FloatingOrb({ color, position, speed, size = 0.12 }) {
 // Particle Field Component with different colors
 function ParticleField() {
     const particlesRef = useRef();
-    // Reduced count for better performance, adaptive if needed
+    // Further reduced count for maximum stability
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const count = isMobile ? 800 : 1500;
+    const count = isMobile ? 400 : 800;
 
     const positions = useMemo(() => {
         const positions = new Float32Array(count * 3);
@@ -126,49 +126,65 @@ function ParticleField() {
 
 const HeroBackground3D = () => {
     const happyIcons = ["😊", "🥰", "😍", "🤩", "🎉", "✨", "🌟", "💫"];
+    const [isRendererActive, setIsRendererActive] = React.useState(true);
+
+    const handleContextLost = (event) => {
+        event.preventDefault();
+        console.warn("WebGL Context Lost! Falling back to static background.");
+        setIsRendererActive(false);
+    };
 
     return (
-        <div className="fixed inset-0 z-0 opacity-70 pointer-events-none">
-            <Canvas
-                camera={{ position: [0, 0, 8], fov: 75 }}
-                gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
-                dpr={[1, 2]} // Performance: lock to maximum 2x dpr
-            >
-                <color attach="background" args={['#fef3c7']} />
+        <div className="fixed inset-0 z-0 bg-[#fef5d5] pointer-events-none">
+            {isRendererActive && (
+                <Canvas
+                    camera={{ position: [0, 0, 8], fov: 75 }}
+                    gl={{
+                        alpha: true,
+                        antialias: false, // Antialias: false for better performance
+                        powerPreference: "high-performance",
+                        preserveDrawingBuffer: false
+                    }}
+                    dpr={[1, 1.5]} // Performance: limit even more to 1.5x dpr
+                    onCreated={({ gl }) => {
+                        gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
+                    }}
+                >
+                    {/* Use CSS background instead of Three.js background for resilience */}
 
-                <ambientLight intensity={0.9} />
-                <pointLight position={[10, 10, 10]} intensity={1.5} color="#fbbf24" />
-                <pointLight position={[-10, -10, 5]} intensity={0.8} color="#3b82f6" />
+                    <ambientLight intensity={0.8} />
+                    <pointLight position={[10, 10, 10]} intensity={1.2} color="#fbbf24" />
+                    <pointLight position={[-10, -10, 5]} intensity={0.6} color="#3b82f6" />
 
-                <ParticleField />
+                    <ParticleField />
 
-                <FloatingOrb color="#f59e0b" position={[-3, 2, 0]} speed={0.4} size={0.15} />
-                <FloatingOrb color="#3b82f6" position={[3, -1, 0]} speed={0.6} size={0.12} />
-                <FloatingOrb color="#ef4444" position={[-2, -2, 0]} speed={0.5} size={0.1} />
-                <FloatingOrb color="#10b981" position={[2, 1, 0]} speed={0.7} size={0.13} />
+                    <FloatingOrb color="#f59e0b" position={[-3, 2, 0]} speed={0.4} size={0.15} />
+                    <FloatingOrb color="#3b82f6" position={[3, -1, 0]} speed={0.6} size={0.12} />
+                    <FloatingOrb color="#ef4444" position={[-2, -2, 0]} speed={0.5} size={0.1} />
+                    <FloatingOrb color="#10b981" position={[2, 1, 0]} speed={0.7} size={0.13} />
 
-                {happyIcons.map((icon, index) => (
-                    <FloatingIcon
-                        key={index}
-                        emoji={icon}
-                        position={[
-                            (Math.random() - 0.5) * 8,
-                            (Math.random() - 0.5) * 6,
-                            (Math.random() - 0.5) * 4
-                        ]}
-                        speed={0.3 + Math.random() * 0.4}
-                        scale={0.4 + Math.random() * 0.6}
+                    {happyIcons.map((icon, index) => (
+                        <FloatingIcon
+                            key={index}
+                            emoji={icon}
+                            position={[
+                                (Math.random() - 0.5) * 8,
+                                (Math.random() - 0.5) * 6,
+                                (Math.random() - 0.5) * 4
+                            ]}
+                            speed={0.3 + Math.random() * 0.4}
+                            scale={0.4 + Math.random() * 0.6}
+                        />
+                    ))}
+
+                    <OrbitControls
+                        enableZoom={false}
+                        enablePan={false}
+                        autoRotate
+                        autoRotateSpeed={0.2}
                     />
-                ))}
-
-                <OrbitControls
-                    enableZoom={false}
-                    enablePan={false}
-                    autoRotate
-                    autoRotateSpeed={0.2}
-                />
-                <Stars radius={100} depth={50} count={800} factor={3} fade speed={0.8} />
-            </Canvas>
+                </Canvas>
+            )}
         </div>
     );
 };
