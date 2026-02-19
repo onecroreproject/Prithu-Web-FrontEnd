@@ -169,10 +169,10 @@ export const getAllFeeds = async (page = 1, token, categoryId = null, postType =
   }
 };
 
-export const getPublicFeeds = async (page = 1, categoryId = null, postType = null) => {
+export const getPublicFeeds = async (page = 1, categoryId = null, postType = null, limit = 10, random = false) => {
   try {
     const { data } = await api.get(
-      `/api/get/all/public/feeds?page=${page}&limit=10${categoryId ? `&categoryId=${categoryId}` : ""}${postType ? `&postType=${postType}` : ""}`
+      `/api/get/all/public/feeds?page=${page}&limit=${limit}${categoryId ? `&categoryId=${categoryId}` : ""}${postType ? `&postType=${postType}` : ""}${random ? `&random=true` : ""}`
     );
     const feedsArray = data?.data?.feeds || [];
     return feedsArray.map(feed => normalizeFeedItem(feed));

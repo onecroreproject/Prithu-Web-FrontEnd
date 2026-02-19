@@ -3,12 +3,16 @@ import { useMainBoardStats } from '../hooks/useMiscellaneous';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import SEO from '../components/SEO';
-import Footer from '../components/Footer';
-import FeedSliderSection from '../components/FeedSliderSection';
+// import Footer from '../components/Footer';
+// import FeedSliderSection from '../components/FeedSliderSection';
+
+// Lazy load heavy components
+const Footer = lazy(() => import('../components/Footer'));
+const FeedSliderSection = lazy(() => import('../components/FeedSliderSection'));
+const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
+
 import { AnimatedCounter, AnimatedIcon } from '../components/HomeComponents/LandingSubComponents';
 
-// Lazy load the heavy 3D background
-const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
 
 const LandingPage = () => {
   const containerRef = useRef();
@@ -211,7 +215,10 @@ const LandingPage = () => {
         </section>
 
         {/* Full-width Auto-Sliding Feed Section */}
-        <FeedSliderSection />
+        <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>}>
+          <FeedSliderSection />
+        </Suspense>
+
 
         {/* Features Section with enhanced design */}
         <section className="py-20 px-4">
@@ -363,7 +370,6 @@ const LandingPage = () => {
               data-aos="fade-up"
               className="text-5xl md:text-7xl font-black mb-8 leading-tight"
             >
-              Ready to Spark <br />
               <span className="text-amber-400">Your Creativity?</span>
             </h2>
             <p
@@ -470,8 +476,11 @@ const LandingPage = () => {
         </section>
 
         {/* Footer */}
-        <Footer />
+        <Suspense fallback={<div className="h-20" />}>
+          <Footer />
+        </Suspense>
       </div>
+
 
       {/* Custom CSS for animations */}
       <style>{`

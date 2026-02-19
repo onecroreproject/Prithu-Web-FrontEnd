@@ -238,55 +238,7 @@ const ReferralPage = () => {
           </div>
         </div>
 
-        {/* Current Cycle Progress */}
-        {activeCycle && (
-          <div className="mb-8 bg-gradient-to-r from-blue-600/90 to-purple-600/90 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
-              <TrendingUp className="w-40 h-40" />
-            </div>
 
-            <div className="relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-5 h-5 text-blue-200" />
-                    <span className="text-blue-100 font-medium">Current 30-Day Cycle</span>
-                  </div>
-                  <h2 className="text-3xl font-bold mb-1">
-                    {activeCycle.referralCount} / 25 <span className="text-lg font-normal text-blue-100 ml-2">Referrals</span>
-                  </h2>
-                  <p className="text-blue-100">
-                    Ends on {new Date(activeCycle.endDate).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="flex-1 max-w-md">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-semibold text-blue-100">Progress to Eligibility</span>
-                    <span className="font-bold">{Math.min(100, Math.round((activeCycle.referralCount / 25) * 100))}%</span>
-                  </div>
-                  <div className="h-4 w-full bg-white/20 rounded-full overflow-hidden border border-white/10 backdrop-blur-sm">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(34,211,238,0.5)]"
-                      style={{ width: `${Math.min(100, (activeCycle.referralCount / 25) * 100)}%` }}
-                    />
-                  </div>
-                  {activeCycle.referralCount < 25 ? (
-                    <p className="mt-3 text-sm text-blue-100 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      Get {25 - activeCycle.referralCount} more referrals to unlock withdrawal
-                    </p>
-                  ) : (
-                    <p className="mt-3 text-sm text-green-300 flex items-center gap-2 font-bold animate-pulse">
-                      <Trophy className="w-4 h-4" />
-                      Eligibility Reached! You can now withdraw your earnings.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

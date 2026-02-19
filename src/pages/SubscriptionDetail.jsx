@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { ArrowLeft } from "lucide-react"; // import back icon
+import InvoiceHistory from '../components/Subscription/InvoiceHistory';
+
 
 export default function SubscriptionDetails() {
   const navigate = useNavigate(); // for back navigation
@@ -33,7 +35,7 @@ export default function SubscriptionDetails() {
 
   return (
     <div className="relative flex flex-col min-h-screen bg-gray-50 p-8">
-      
+
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)} // go back
@@ -125,11 +127,10 @@ export default function SubscriptionDetails() {
               <button
                 onClick={handleCancel}
                 disabled={loading}
-                className={`px-4 py-2 rounded-md text-white ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-red-500 hover:bg-red-600"
-                }`}
+                className={`px-4 py-2 rounded-md text-white ${loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-red-500 hover:bg-red-600"
+                  }`}
               >
                 {loading ? "Cancelling..." : "Yes, Cancel"}
               </button>
@@ -137,6 +138,13 @@ export default function SubscriptionDetails() {
           </div>
         </div>
       )}
+
+      {/* Invoice History Section */}
+      <div className="mt-10 max-w-4xl">
+        <InvoiceHistory />
+      </div>
     </div>
   );
 }
+
+

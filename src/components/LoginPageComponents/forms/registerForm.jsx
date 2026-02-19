@@ -54,39 +54,72 @@ function RegisterForm({ switchMode }) {
   }, [timer]);
 
   /* --------------------------- REFERRAL CHECK --------------------------- */
+  // 1. Listen to URL params only once to set the initial form state
   useEffect(() => {
     const refCode = searchParams.get("ref");
-    if (refCode) {
+    if (refCode && !form.referralCode) {
       setForm((p) => ({ ...p, referralCode: refCode }));
-      handleValidateReferral(refCode);
     }
   }, [searchParams]);
 
+  // 2. Debounced Validator: Single source of truth for triggering validation
+  useEffect(() => {
+    if (!form.referralCode || referrer.isLocked || referrer.status === "loading") return;
+
+    // Fast track URL-based code, debounce manual entry
+    const isUrlCode = form.referralCode === searchParams.get("ref");
+    const delay = isUrlCode ? 0 : 800;
+
+    const timeout = setTimeout(() => {
+      handleValidateReferral(form.referralCode);
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, [form.referralCode, searchParams]);
+
   const handleValidateReferral = async (code) => {
+    if (!code || referrer.status === "loading") return;
+
     setReferrer((p) => ({ ...p, status: "loading", isLocked: true }));
     try {
       const data = await validateReferralCode(code);
-      if (data.success) {
+
+      if (data.success && data.referrerActive) {
         setReferrer({
           name: data.referrerName,
           status: "valid",
           isLocked: true,
         });
       } else {
-        setReferrer({
-          name: null,
-          status: "invalid",
-          isLocked: true,
-        });
+        // Referral issues (Either invalid or inactive referrer)
+        const message = !data.success
+          ? "This referral link is invalid."
+          : `This referral link from "${data.referrerName}" is not active.`;
+
+        const proceed = window.confirm(`${message}\n\nDo you want to continue without a referral code?`);
+
+        if (proceed) {
+          setForm(p => ({ ...p, referralCode: "" }));
+          setReferrer({ name: null, status: "idle", isLocked: false });
+        } else {
+          // Keep the code but unlock so they can edit it
+          setReferrer({
+            name: data.referrerName || null,
+            status: "invalid",
+            isLocked: false,
+          });
+        }
       }
     } catch (err) {
       setReferrer({
         name: null,
         status: "invalid",
-        isLocked: true,
+        isLocked: false,
       });
     }
   };
+
+
 
   /* --------------------------- CHANGE EMAIL --------------------------- */
   const handleChangeEmail = () => {
@@ -240,6 +273,14 @@ function RegisterForm({ switchMode }) {
     e.preventDefault();
     if (loading) return;
 
+    if (referrer.status === "loading") {
+      return alert("Please wait while we validate your referral code.");
+    }
+
+    if (referrer.status === "invalid") {
+      return alert("Please provide a valid referral code or continue without one.");
+    }
+
     const validPassword = Object.values(passwordChecks).every(Boolean);
 
     if (!validPassword || form.username.length < 5)
@@ -265,6 +306,7 @@ function RegisterForm({ switchMode }) {
     }
   };
 
+
   /* --------------------------- ANIMATION --------------------------- */
   const fadeSlide = {
     hidden: { opacity: 0, y: 10 },
@@ -274,14 +316,17 @@ function RegisterForm({ switchMode }) {
 
   /* --------------------------- UI --------------------------- */
   return (
-    <div className="w-full bg-white/5 rounded-2xl backdrop-blur-md border border-white/20">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-5 text-gray-900">
+    <div className="w-full max-w-sm mx-auto bg-white/5 rounded-2xl backdrop-blur-md border border-white/20 p-3 sm:p-4">
+      <h1 className="text-lg sm:text-xl font-bold text-center mb-3 text-gray-900">
         Create Free Account
       </h1>
 
+
+
       <form
-        className="space-y-4"
+        className="space-y-3"
         onSubmit={
+
           step === "email"
             ? handleSendOtp
             : step === "otp"
@@ -302,20 +347,22 @@ function RegisterForm({ switchMode }) {
                 placeholder="Enter your email"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                 required
               />
 
               {/* Stable response area */}
-              <p className="text-sm mt-1 min-h-[48px] flex items-center">
+              <p className="text-sm mt-0.5 min-h-[28px] flex items-center">
+
                 {status.checkingEmail && (
-                  <span className="text-gray-500">Checking email availability...</span>
+                  <span className="text-gray-500">Checking...</span>
                 )}
 
                 {!status.checkingEmail && status.email === "taken" && (
-                  <span className="text-red-500 flex flex-col gap-1">
+                  <span className="text-red-500 flex flex-col gap-0.5">
                     ❌ Email already registered.
-                    <span className="flex justify-between mt-2">
+                    <span className="flex justify-between mt-1">
+
                       <button
                         type="button"
                         onClick={() => switchMode("login")}
@@ -368,9 +415,10 @@ function RegisterForm({ switchMode }) {
                 placeholder="Enter OTP"
                 value={form.otp}
                 onChange={(e) => setForm((p) => ({ ...p, otp: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
+                className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-1"
                 required
               />
+
 
               <button
                 type="submit"
@@ -418,9 +466,10 @@ function RegisterForm({ switchMode }) {
                 placeholder="Min 5 characters"
                 value={form.username}
                 onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-2"
+                className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none mb-1"
                 required
               />
+
 
               <p className="text-sm min-h-[20px]">
                 {form.username && form.username.length < 5 && <span className="text-red-500">❌ Too short</span>}
@@ -429,55 +478,62 @@ function RegisterForm({ switchMode }) {
               </p>
 
 
-              {/* Phone + WhatsApp */}
-              <div className=" sm:flex-row gap-3">
+              {/* Phone + WhatsApp (Row Layout) */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 {/* Mobile */}
                 <div className="flex-1">
-                  <label className="block font-medium text-gray-700 mb-1">Mobile</label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={form.phone}
-                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "") }))}
-                    placeholder="Enter mobile"
-                    className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-                  />
+                  <label className="block font-medium text-gray-700 mb-0.5 text-sm">Mobile</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={form.phone}
+                      onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, "") }))}
+                      placeholder="Mobile"
+                      className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                    />
+                  </div>
                 </div>
 
                 {/* WhatsApp */}
                 <div className="flex-1">
-                  <label className="block font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <label className="block font-medium text-gray-700 mb-0.5 text-sm">WhatsApp</label>
                   <div className="relative">
                     <input
                       type="tel"
                       maxLength={10}
                       value={form.whatsapp}
                       onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value.replace(/\D/g, "") }))}
-                      placeholder="Enter WhatsApp"
-                      className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                      placeholder="WhatsApp"
+                      className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
                     />
                     <span
                       onClick={() => setSameAsWhatsapp((prev) => !prev)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-green-600 cursor-pointer hover:underline"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-green-600 cursor-pointer hover:underline"
                     >
-                      Same as Phone
+                      Same
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Password */}
-              <label className="block font-medium text-gray-700 mt-2 mb-1">Password</label>
+              <div className="mt-1">
+                <label className="block font-medium text-gray-700 mb-0.5 text-sm">Password</label>
 
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={form.password}
-                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                className="w-full px-4 py-2 border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
-              />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full px-3 py-1.5 text-sm border rounded-full focus:ring-2 focus:ring-green-400 outline-none"
+                />
+              </div>
 
-              <motion.div className="text-xs sm:text-sm text-gray-700 mt-2 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+
+              <motion.div className="text-[11px] text-gray-700 mt-1 space-y-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+
+
                 {Object.entries({
                   length: "At least 8 characters",
                   uppercase: "One uppercase",
@@ -491,41 +547,46 @@ function RegisterForm({ switchMode }) {
                 ))}
               </motion.div>
 
-              {/* Referral Code */}
-              <div className="mt-4">
-                <label className="block font-medium text-gray-700 mb-1">Referral Code (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="Enter referral code"
-                  value={form.referralCode}
-                  onChange={(e) => setForm((p) => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
-                  readOnly={referrer.isLocked}
-                  className={`w-full px-4 py-2 border rounded-full outline-none transition-all ${referrer.isLocked ? "bg-gray-100 cursor-not-allowed border-gray-200" : "focus:ring-2 focus:ring-green-400"
-                    }`}
-                />
+              {/* Referral Code (Shown only if user comes with a link or is validating) */}
+              {(form.referralCode || referrer.status !== "idle") && (
+                <div className="mt-4">
+                  <label className="block font-medium text-gray-700 mb-0.5 text-sm">Referral Code</label>
+                  <input
+                    type="text"
+                    placeholder="Referral code"
+                    value={form.referralCode}
+                    onChange={(e) => setForm((p) => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
+                    readOnly={referrer.isLocked}
+                    className={`w-full px-3 py-1.5 text-sm border rounded-full outline-none transition-all ${referrer.isLocked ? "bg-gray-100 cursor-not-allowed border-gray-200" : "focus:ring-2 focus:ring-green-400"
+                      }`}
+                  />
 
-                {referrer.status === "loading" && (
-                  <p className="text-xs text-gray-500 mt-1 animate-pulse">Validating referral code...</p>
-                )}
-                {referrer.status === "valid" && referrer.name && (
-                  <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">
-                    ✅ Referred by: <span className="font-bold">{referrer.name}</span>
-                  </p>
-                )}
-                {referrer.status === "invalid" && (
-                  <p className="text-xs text-red-500 mt-1 font-medium">❌ Invalid referral code</p>
-                )}
-              </div>
+
+                  {referrer.status === "loading" && (
+                    <p className="text-xs text-gray-500 mt-1 animate-pulse">Validating referral code...</p>
+                  )}
+                  {referrer.status === "valid" && referrer.name && (
+                    <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">
+                      ✅ Referred by: <span className="font-bold">{referrer.name}</span>
+                    </p>
+                  )}
+                  {referrer.status === "invalid" && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">❌ Invalid referral code</p>
+                  )}
+                </div>
+              )}
+
 
               {/* Register Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full mt-4 py-2 rounded-full font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
+                className={`w-full mt-3 py-2 rounded-full font-semibold text-white transition ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-600 to-emerald-500 hover:opacity-90"
                   }`}
               >
                 {loading ? "Registering..." : "Register"}
               </button>
+
             </motion.div>
           )}
         </AnimatePresence>

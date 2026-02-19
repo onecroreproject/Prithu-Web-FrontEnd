@@ -35,10 +35,13 @@ import {
   activateTrialPlanApi,
   checkTrialEligibilityApi,
   createOrderApi,
-  verifyPaymentApi
+  verifyPaymentApi,
+  recordPaymentFailureApi
 } from '../API_Services/subscriptionServices';
 import { toast } from 'react-hot-toast';
 import SEO from "../components/SEO";
+import InvoiceHistory from '../components/Subscription/InvoiceHistory';
+
 
 const SubscriptionPage = () => {
   const location = useLocation();
@@ -207,10 +210,24 @@ const SubscriptionPage = () => {
               setShowPaymentModal(false);
             } else {
               toast.error(verification.message || 'Verification failed');
+              // Record failure in backend
+              await recordPaymentFailureApi({
+                razorpay_order_id: response.razorpay_order_id,
+                error_code: 'VERIFICATION_FAILED',
+                error_description: verification.message
+              });
             }
           } catch (err) {
             toast.dismiss();
             toast.error('Payment verification failed');
+            // Record failure in backend
+            if (response?.razorpay_order_id) {
+              await recordPaymentFailureApi({
+                razorpay_order_id: response.razorpay_order_id,
+                error_code: 'VERIFICATION_EXCEPTION',
+                error_description: err.message
+              });
+            }
           }
         },
 
@@ -225,9 +242,21 @@ const SubscriptionPage = () => {
         },
 
         modal: {
-          ondismiss: function () {
+          ondismiss: async function () {
             setPaymentProcessing(false);
             toast.error('Payment cancelled');
+            // Record failure in backend
+            if (orderData?.orderId) {
+              try {
+                await recordPaymentFailureApi({
+                  razorpay_order_id: orderData.orderId,
+                  error_code: 'MODAL_DISMISSED',
+                  error_description: 'User closed the payment modal'
+                });
+              } catch (e) {
+                console.error("Failed to record cancellation:", e);
+              }
+            }
           }
         }
       };
@@ -371,8 +400,8 @@ const SubscriptionPage = () => {
         </div>
       )}
 
-      {/* Trial Expired Banner - Only show if used but not active */}
-      {trialStatus.hasUsedTrial && !trialStatus.trialActive && (
+      {/* Trial Expired Banner - Only show if used but not active and NO active paid plan */}
+      {trialStatus.hasUsedTrial && !trialStatus.trialActive && !userSubscription && (
         <div className="max-w-6xl mx-auto mb-6 animate-in slide-in-from-top duration-500">
           <div className="bg-gradient-to-r from-amber-400 to-orange-400 rounded-xl p-4 text-white shadow-lg">
             <div className="flex items-center gap-3">
@@ -389,21 +418,24 @@ const SubscriptionPage = () => {
       )}
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10 animate-in fade-in duration-500">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full mb-4">
-            <Crown className="w-5 h-5 text-blue-500" />
-            <span className="text-sm font-semibold text-blue-600">
-              PREMIUM MEMBERSHIP
-            </span>
+        {/* Header - Hide if already subscribed to a paid plan */}
+        {!(userSubscription && userSubscription.planId?.planType !== 'trial') && (
+          <div className="text-center mb-10 animate-in fade-in duration-500">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full mb-4">
+              <Crown className="w-5 h-5 text-blue-500" />
+              <span className="text-sm font-semibold text-blue-600">
+                PREMIUM MEMBERSHIP
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent mb-3">
+              Choose Your Plan
+            </h1>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Unlock exclusive features and take your experience to the next level
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent mb-3">
-            Choose Your Plan
-          </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Unlock exclusive features and take your experience to the next level
-          </p>
-        </div>
+        )}
+
 
         {/* Trial Offer Card - Only show if eligible */}
         {!trialStatus.hasUsedTrial && (
@@ -479,153 +511,156 @@ const SubscriptionPage = () => {
           </div>
         )}
 
-        {/* Subscription Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {subscriptions
-            .filter(plan => plan.planType !== 'trial')
-            .map((plan, index) => {
-              const isPopular = plan.name?.toLowerCase().includes('pro');
-              const isCurrentPlan = userSubscription?.planId?._id === plan._id;
+        {/* Subscription Plans Grid - Hide if already subscribed to a paid plan */}
+        {!(userSubscription && userSubscription.planId?.planType !== 'trial') && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {subscriptions
+              .filter(plan => plan.planType !== 'trial')
+              .map((plan, index) => {
+                const isPopular = plan.name?.toLowerCase().includes('pro');
+                const isCurrentPlan = userSubscription?.planId?._id === plan._id;
 
-              const durationLabel = plan.durationDays === 30 ? '/month' :
-                plan.durationDays === 90 ? '/3 months' :
-                  plan.durationDays === 365 ? '/1 year' :
-                    `/${plan.durationDays} Days`;
+                const durationLabel = plan.durationDays === 30 ? '/month' :
+                  plan.durationDays === 90 ? '/3 months' :
+                    plan.durationDays === 365 ? '/1 year' :
+                      `/${plan.durationDays} Days`;
 
-              const monthlyPrice = plan.durationDays === 90 ? Math.round(plan.price / 3) :
-                plan.durationDays === 365 ? Math.round(plan.price / 12) :
-                  null;
+                const monthlyPrice = plan.durationDays === 90 ? Math.round(plan.price / 3) :
+                  plan.durationDays === 365 ? Math.round(plan.price / 12) :
+                    null;
 
-              return (
-                <div
-                  key={plan._id}
-                  className={`relative rounded-2xl bg-white border transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl animate-in fade-in slide-in-from-bottom ${isPopular
-                    ? 'border-blue-300 shadow-xl shadow-blue-500/10'
-                    : 'border-gray-200 shadow-lg'
-                    } ${highlightParam === 'premium' ? 'ring-4 ring-purple-400 ring-offset-2 animate-pulse shadow-2xl shadow-purple-500/20' : ''}`}
-                  style={{ animationDelay: `${index * 150}ms` }}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-to-r from-blue-400 to-purple-400 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
-                        <Star className="w-3 h-3" fill="white" />
-                        POPULAR CHOICE
-                      </div>
-                    </div>
-                  )}
-
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        ACTIVE PLAN
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-6">
-                    {/* Plan Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-3 rounded-xl ${plan.planType === 'basic' ? 'bg-blue-100 text-blue-500' :
-                        plan.planType === 'pro' ? 'bg-purple-100 text-purple-500' :
-                          'bg-amber-100 text-amber-500'
-                        }`}>
-                        {plan.planType === 'basic' ? <Zap className="w-6 h-6" /> :
-                          plan.planType === 'pro' ? <TrendingUp className="w-6 h-6" /> :
-                            <Rocket className="w-6 h-6" />}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
-                        <p className="text-gray-600 text-sm">{plan.description || "Premium features included"}</p>
-                      </div>
-                    </div>
-
-                    {/* Price */}
-                    <div className="mb-6">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-800">
-                          ₹{plan.price || 0}
-                        </span>
-                        <span className="text-gray-500 font-medium">
-                          {durationLabel}
-                        </span>
-                      </div>
-                      {monthlyPrice && (
-                        <p className="text-sm text-emerald-600 font-medium mt-1">
-                          Equivalent to ₹{monthlyPrice}/month
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Features */}
-                    <div className="space-y-3 mb-8 min-h-[120px]">
-                      {[
-                        plan.limits?.downloadLimit ? `${plan.limits.downloadLimit} Downloads` : null,
-                        plan.limits?.deviceLimit ? `${plan.limits.deviceLimit} Devices` : null,
-                        plan.limits?.adFree ? "Ad-Free Experience" : null,
-                        plan.durationDays ? `${plan.durationDays} Days Access` : null,
-                        "24/7 Priority Support",
-                        "Cancel Anytime"
-                      ].filter(Boolean).map((feature, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Check className="w-3 h-3 text-emerald-500" />
-                          </div>
-                          <span className="text-sm text-gray-700">{feature}</span>
+                return (
+                  <div
+                    key={plan._id}
+                    className={`relative rounded-2xl bg-white border transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl animate-in fade-in slide-in-from-bottom ${isPopular
+                      ? 'border-blue-300 shadow-xl shadow-blue-500/10'
+                      : 'border-gray-200 shadow-lg'
+                      } ${highlightParam === 'premium' ? 'ring-4 ring-purple-400 ring-offset-2 animate-pulse shadow-2xl shadow-purple-500/20' : ''}`}
+                    style={{ animationDelay: `${index * 150}ms` }}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-gradient-to-r from-blue-400 to-purple-400 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
+                          <Star className="w-3 h-3" fill="white" />
+                          POPULAR CHOICE
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
 
-                    {/* Action Button */}
-                    <button
-                      onClick={() => {
-                        if (trialStatus.trialActive) {
-                          toast.error('Your trial is still active');
-                          return;
-                        }
-                        setSelectedPlan(plan);
-                        setShowPaymentModal(true);
-                      }}
-                      disabled={isCurrentPlan || paymentProcessing || trialStatus.trialActive}
-                      className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${isCurrentPlan
-                        ? 'bg-gray-100 text-gray-600 cursor-default'
-                        : isPopular
-                          ? 'bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:shadow-lg hover:shadow-blue-500/25'
-                          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white hover:shadow-lg'
-                        } ${!isCurrentPlan && 'hover:scale-105 active:scale-95'}`}
-                    >
-                      {isCurrentPlan ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <CheckCircle className="w-4 h-4" />
-                          Current Plan
-                        </span>
-                      ) : paymentProcessing ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Processing...
-                        </span>
-                      ) : trialStatus.trialActive ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Timer className="w-4 h-4" />
-                          Trial Active
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-2">
-                          Choose Plan
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      )}
-                    </button>
+                    {isCurrentPlan && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <div className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg flex items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          ACTIVE PLAN
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-6">
+                      {/* Plan Header */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`p-3 rounded-xl ${plan.planType === 'basic' ? 'bg-blue-100 text-blue-500' :
+                          plan.planType === 'pro' ? 'bg-purple-100 text-purple-500' :
+                            'bg-amber-100 text-amber-500'
+                          }`}>
+                          {plan.planType === 'basic' ? <Zap className="w-6 h-6" /> :
+                            plan.planType === 'pro' ? <TrendingUp className="w-6 h-6" /> :
+                              <Rocket className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
+                          <p className="text-gray-600 text-sm">{plan.description || "Premium features included"}</p>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-bold text-gray-800">
+                            ₹{plan.price || 0}
+                          </span>
+                          <span className="text-gray-500 font-medium">
+                            {durationLabel}
+                          </span>
+                        </div>
+                        {monthlyPrice && (
+                          <p className="text-sm text-emerald-600 font-medium mt-1">
+                            Equivalent to ₹{monthlyPrice}/month
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Features */}
+                      <div className="space-y-3 mb-8 min-h-[120px]">
+                        {[
+                          plan.limits?.downloadLimit ? `${plan.limits.downloadLimit} Downloads` : null,
+                          plan.limits?.deviceLimit ? `${plan.limits.deviceLimit} Devices` : null,
+                          plan.limits?.adFree ? "Ad-Free Experience" : null,
+                          plan.durationDays ? `${plan.durationDays} Days Access` : null,
+                          "24/7 Priority Support",
+                          "Cancel Anytime"
+                        ].filter(Boolean).map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-emerald-500" />
+                            </div>
+                            <span className="text-sm text-gray-700">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Action Button */}
+                      <button
+                        onClick={() => {
+                          if (trialStatus.trialActive) {
+                            toast.error('Your trial is still active');
+                            return;
+                          }
+                          setSelectedPlan(plan);
+                          setShowPaymentModal(true);
+                        }}
+                        disabled={isCurrentPlan || paymentProcessing || trialStatus.trialActive}
+                        className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${isCurrentPlan
+                          ? 'bg-gray-100 text-gray-600 cursor-default'
+                          : isPopular
+                            ? 'bg-gradient-to-r from-blue-400 to-purple-400 text-white hover:shadow-lg hover:shadow-blue-500/25'
+                            : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white hover:shadow-lg'
+                          } ${!isCurrentPlan && 'hover:scale-105 active:scale-95'}`}
+                      >
+                        {isCurrentPlan ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Current Plan
+                          </span>
+                        ) : paymentProcessing ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Processing...
+                          </span>
+                        ) : trialStatus.trialActive ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Timer className="w-4 h-4" />
+                            Trial Active
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center gap-2">
+                            Choose Plan
+                            <ArrowRight className="w-4 h-4" />
+                          </span>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-        </div>
+                );
+              })}
+          </div>
+        )}
+
 
         {/* Active Subscription Card */}
         {userSubscription && (
           <div className="bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl p-6 mb-10 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6">
               <div className="text-white">
                 <div className="flex items-center gap-2 mb-2">
                   <Award className="w-5 h-5" />
@@ -637,10 +672,8 @@ const SubscriptionPage = () => {
                   {userSubscription.planId?.name} • Expires {formatDate(userSubscription.endDate)}
                 </p>
               </div>
-              <div className="p-3 bg-white/30 rounded-xl backdrop-blur-sm">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
             </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
@@ -676,11 +709,6 @@ const SubscriptionPage = () => {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {userSubscription.planId?.planType !== 'trial' && (
-                <button className="px-5 py-2.5 bg-white text-blue-500 font-bold rounded-xl hover:bg-gray-50 transition-all duration-300 hover:scale-105 active:scale-95">
-                  Manage Subscription
-                </button>
-              )}
               <button
                 onClick={handleCancelSubscription}
                 className="px-5 py-2.5 bg-white/30 backdrop-blur-sm text-white font-bold rounded-xl hover:bg-white/40 transition-all duration-300"
@@ -688,6 +716,7 @@ const SubscriptionPage = () => {
                 {userSubscription.planId?.planType === 'trial' ? 'End Trial' : 'Cancel'}
               </button>
             </div>
+
           </div>
         )}
 
@@ -720,6 +749,13 @@ const SubscriptionPage = () => {
             </div>
           </div>
         )}
+
+        {/* Invoice History Section */}
+        <div className="mb-12 mt-10">
+          <InvoiceHistory />
+        </div>
+
+
 
         {/* Payment Modal */}
         {showPaymentModal && selectedPlan && (

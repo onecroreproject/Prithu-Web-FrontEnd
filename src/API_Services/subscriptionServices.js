@@ -94,3 +94,24 @@ export const verifyPaymentApi = async (paymentDetails) => {
         throw error.response?.data || error.message;
     }
 };
+
+// 10. Record Payment Failure
+export const recordPaymentFailureApi = async (failureDetails) => {
+    try {
+        const response = await api.post("/api/subscription/payment-failure", failureDetails);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
+// 11. Get User Invoices
+export const getUserInvoicesApi = async () => {
+    try {
+        const response = await api.get("/api/subscription/invoices");
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
