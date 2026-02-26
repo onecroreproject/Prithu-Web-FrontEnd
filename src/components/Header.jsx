@@ -7,7 +7,7 @@ import React, {
   Fragment
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, NavLink } from "react-router-dom";
+import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Home, Video, Image, User, Settings, LogOut, Plus, Menu, X,
   Gift, Activity, HelpCircle, MessageSquare
@@ -23,6 +23,7 @@ import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/us
 // Import User Feedback and Report Pages
 import UserFeedbackPage from "../components/UserFeedbackPage";
 import ReportPage from "../components/ReportPage";
+import ReferralPromoPopup from "./ReferralPromoPopup";
 
 
 
@@ -39,11 +40,31 @@ export default function Header() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
   const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
+  const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [promoTitle, setPromoTitle] = useState("");
+  const [promoRedirect, setPromoRedirect] = useState("");
+
+  const REFERRAL_LAUNCH_DATE = new Date('2026-03-01T00:00:00');
+
+  const location = useLocation();
 
   useEffect(() => {
-    setIsReelsActive(window.location.pathname === "/home/reels");
-    setIsImagesActive(window.location.pathname === "/home/images");
-  }, [window.location.pathname]);
+    const now = new Date();
+    if (now < REFERRAL_LAUNCH_DATE) {
+      if (location.pathname === "/home/referral") {
+        setPromoTitle("Referral Program");
+        setIsPromoOpen(true);
+      } else if (location.pathname === "/home/subscriptions") {
+        setPromoTitle("Subscriptions Program");
+        setIsPromoOpen(true);
+      }
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setIsReelsActive(location.pathname === "/home/reels");
+    setIsImagesActive(location.pathname === "/home/images");
+  }, [location.pathname]);
 
   // refs
   const dropdownRef = useRef(null);
@@ -206,6 +227,17 @@ export default function Header() {
 
   // Handle nav item clicks
   const handleNavItemClick = (item, e) => {
+    const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
+    const now = new Date();
+
+    if (isPromoItem && now < REFERRAL_LAUNCH_DATE) {
+      setPromoTitle(`${item.label} Program`);
+      setPromoRedirect(item.to);
+      setIsPromoOpen(true);
+      closeAll();
+      return;
+    }
+
     if (item.isReels) {
       handleReelClick();
     } else if (item.isImages) {
@@ -375,8 +407,12 @@ export default function Header() {
 
                     {/* Navigation Links */}
                     <div className="p-2 space-y-1">
-                      {navItems.map((item) => (
-                        (item.onClick || item.isReels || item.isImages) ? (
+                      {navItems.map((item) => {
+                        const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
+                        const now = new Date();
+                        const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
+
+                        return (item.onClick || item.isReels || item.isImages || showPromo) ? (
                           <button
                             key={item.label}
                             onClick={(e) => handleNavItemClick(item, e)}
@@ -415,8 +451,8 @@ export default function Header() {
                               <p className="text-xs text-gray-500 truncate">{item.desc}</p>
                             </div>
                           </NavLink>
-                        )
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Logout */}
@@ -525,8 +561,12 @@ export default function Header() {
 
               {/* Navigation Links */}
               <div className="space-y-1 mb-4">
-                {navItems.map((item) => (
-                  (item.onClick || item.isReels || item.isImages) ? (
+                {navItems.map((item) => {
+                  const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
+                  const now = new Date();
+                  const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
+
+                  return (item.onClick || item.isReels || item.isImages || showPromo) ? (
                     <button
                       key={item.label}
                       onClick={(e) => {
@@ -568,8 +608,8 @@ export default function Header() {
                         <p className="text-xs text-gray-500">{item.desc}</p>
                       </div>
                     </NavLink>
-                  )
-                ))}
+                  );
+                })}
               </div>
 
               {/* Logout */}
@@ -607,6 +647,12 @@ export default function Header() {
         open={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
       /> */}
+
+      <ReferralPromoPopup
+        isOpen={isPromoOpen}
+        onClose={() => setIsPromoOpen(false)}
+        title={promoTitle}
+      />
 
 
     </Fragment>

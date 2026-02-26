@@ -8,6 +8,9 @@ import {
   getSingleFeed,
   getFeedsByHashtag,
   getTrendingFeeds,
+  getBirthdayFeeds,
+  getAnniversaryFeeds,
+  getPoliticsFeeds,
 } from "../Service/feedService";
 import { useCategories } from "../hooks/useMiscellaneous";
 
@@ -69,6 +72,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: categoryListData = [], isLoading: isCategoriesLoading } = useCategories();
 
   const isHashtagMode = !!tagname;
 
@@ -102,6 +106,32 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     }
   }, [notifyfeedid, currentFeedId]);
 
+
+  // Sync feedCategory ID for special pages (Politics, Birthday, Anniversary)
+  useEffect(() => {
+    if (!categoryListData || categoryListData.length === 0) return;
+
+    if (location.pathname === "/home/politics") {
+      const cat = categoryListData.find(c => c.categoryName?.toLowerCase() === "politics");
+      if (cat) setFeedCategory(cat.categoryId || cat._id);
+    } else if (location.pathname === "/home/birthday") {
+      const cat = categoryListData.find(c => c.categoryName?.toLowerCase() === "birthday");
+      if (cat) setFeedCategory(cat.categoryId || cat._id);
+    } else if (location.pathname === "/home/anniversary") {
+      const cat = categoryListData.find(c => c.categoryName?.toLowerCase() === "anniversary");
+      if (cat) setFeedCategory(cat.categoryId || cat._id);
+    }
+  }, [location.pathname, categoryListData]);
+
+  const handleFeedCategoryChange = (newVal) => {
+    if (typeof newVal === 'string' && newVal.startsWith('hashtag:')) {
+      const tag = newVal.split(':')[1];
+      navigate(`/home/hashtag/${tag}`);
+      return;
+    }
+    setFeedCategory(newVal);
+  };
+
   const [isCreatorModeLoading, setIsCreatorModeLoading] = useState(false);
   const [excludedCategoryIds, setExcludedCategoryIds] = useState([]);
   const [activeVideoId, setActiveVideoId] = useState(null);
@@ -126,10 +156,9 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
     return () => window.removeEventListener("resize", handleResize);
   }, [viewMode, setViewMode]);
 
-  const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
 
   const fetchPostType = showReels ? "video" : (showImages ? "image" : null);
-  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all", fetchPostType || "all"];
+  const feedsQueryKey = ["feeds", tokenRef.current || token, tagname || "all", feedCategory || "all", fetchPostType || "all", location.pathname];
 
   // Log query key changes
   useEffect(() => {
@@ -159,6 +188,16 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
 
       if (tagname) {
         return getFeedsByHashtag(tagname, param.page || 1, tokenRef.current || token);
+      }
+
+      if (location.pathname === "/home/birthday") {
+        return getBirthdayFeeds(param.allPage, tokenRef.current || token);
+      }
+      if (location.pathname === "/home/anniversary") {
+        return getAnniversaryFeeds(param.allPage, tokenRef.current || token);
+      }
+      if (location.pathname === "/home/politics") {
+        return getPoliticsFeeds(param.allPage, tokenRef.current || token);
       }
 
       const fetchCategoryId = param.categoryId || feedCategory;
@@ -682,11 +721,14 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
         {!isHashtagMode && (
           <div className="sticky top-14 lg:top-0 z-40 bg-white/95 backdrop-blur-md p-1 mb-[-1] flex flex-row items-center justify-between border-b border-gray-100/50 sm:border-none gap-2 shrink-0">
             <div className="flex-1 overflow-hidden">
-              <CategoryFeedPage
-                onSelectCategory={setFeedCategory}
-                selectedCategoryId={feedCategory}
-                excludedCategoryIds={excludedCategoryIds}
-              />
+              {!['/home/birthday', '/home/anniversary'].includes(location.pathname) && (
+                <CategoryFeedPage
+                  onSelectCategory={handleFeedCategoryChange}
+                  selectedCategoryId={feedCategory}
+                  excludedCategoryIds={excludedCategoryIds}
+                  hideCategories={location.pathname === '/home/politics'}
+                />
+              )}
             </div>
             <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
               <button

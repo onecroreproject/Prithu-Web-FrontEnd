@@ -11,6 +11,10 @@ import PostHeader from "./postCardComponent/postHeader";
 import PostMedia from "./postCardComponent/postMeadia";
 import PostActions from "./postCardComponent/postsActions";
 import SharePopup from "./sharePopUp";
+import PoliticsEditPosterPopup from "./postCardComponent/PoliticsEditPosterPopup";
+import FeedEditPosterPopup from "./postCardComponent/FeedEditPosterPopup";
+import BirthdayEditPosterPopup from "./postCardComponent/BirthdayEditPosterPopup";
+import AnniversaryEditPosterPopup from "./postCardComponent/AnniversaryEditPosterPopup";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -24,12 +28,15 @@ import {
   getDownloadStatus,
 } from "../../hooks/usePostActions";
 
+import { useCategories } from "../../hooks/useMiscellaneous";
+
 import {
   userImageViewCount,
   userVideoViewCount
 } from "../../Service/userViewCount";
 
 import FeedOverlayRenderer from "./postCardComponent/FeedOverlayRenderer";
+import LeaderOverlayRenderer from "./postCardComponent/LeaderOverlayRenderer";
 import useFeedAudioPlayer from "../../hooks/useFeedAudioPlayer";
 import prithuLogo from "../../assets/prithulogo.png";
 
@@ -74,8 +81,9 @@ function Postcard({
     hasFooter = false,
     aspectRatio: postAspectRatio = "1:1",
     designMetadata = {},
-    category = "",
+    category: rawCategory,
   } = postData || {};
+
 
   const editMetadata = designMetadata.editMetadata || postData.editMetadata || {};
 
@@ -103,7 +111,20 @@ function Postcard({
   const [isSaved, setIsSaved] = useState(userInteractions.isSaved || postData.isSaved || false);
   // const [comments, setComments] = useState([]);
   // const [commentCount, setCommentCount] = useState(initialComments);
-  const { isGlobalMuted, setIsGlobalMuted } = useAuth();
+  const {
+    isGlobalMuted,
+    setIsGlobalMuted,
+    globalFooterStyle,
+    setGlobalFooterStyle,
+    globalUsernameSize,
+    setGlobalUsernameSize,
+    globalEmailSize,
+    setGlobalEmailSize,
+    globalPhoneSize,
+    setGlobalPhoneSize,
+    globalSocialSize,
+    setGlobalSocialSize,
+  } = useAuth();
   const isMuted = isGlobalMuted; // Alias for cleaner diff
   const setIsMuted = setIsGlobalMuted; // Alias for cleaner diff
   const [isPlaying, setIsPlaying] = useState(false);
@@ -117,6 +138,7 @@ function Postcard({
   );
   const [loading, setLoading] = useState(true);
   // const [showCommentsModal, setShowCommentsModal] = useState(false);
+  // const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const [showSharePopup, setShowSharePopup] = useState(false);
@@ -124,6 +146,113 @@ function Postcard({
   const [imageViewCounted, setImageViewCounted] = useState(false);
   const [videoViewCounted, setVideoViewCounted] = useState(false);
   const [videoSessionId, setVideoSessionId] = useState(0);
+
+  // Local Post Customization State
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [leaderOverlays, setLeaderOverlays] = useState([]);
+  const [selectedParty, setSelectedParty] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
+  const { data: categoryList = [] } = useCategories();
+
+  // Extremely robust category extraction
+  const category = useMemo(() => {
+    let cat = "";
+    const path = window.location.pathname.toLowerCase();
+
+    // 1. High Priority: URL Override (If we are on a specialized category page)
+    if (path.includes("/politics")) cat = "politics";
+    else if (path.includes("/birthday")) cat = "birthday";
+    else if (path.includes("/anniversary")) cat = "anniversary";
+
+    // 2. Data Check: Extract from postData if no URL override
+    if (!cat) {
+      let raw = rawCategory;
+      if (Array.isArray(raw) && raw.length > 0) raw = raw[0];
+
+      if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        // If it's a 24-char hex ID, try to lookup in categoryList
+        if (/^[0-9a-fA-F]{24}$/.test(trimmed)) {
+          const matched = categoryList.find(c =>
+            ((c._id || c.categoryId) === trimmed)
+          );
+          if (matched) cat = matched.categoryName;
+          else cat = trimmed; // fallback to ID if not found in list yet
+        } else {
+          cat = trimmed;
+        }
+      } else if (raw && typeof raw === 'object') {
+        cat = raw.categoryName || raw.name || raw.label || "";
+      }
+    }
+
+    const finalCat = String(cat || "").toLowerCase().trim();
+
+    if (showEditPopup) {
+      console.log("🛠️ [Postcard] Editor Resolver:", {
+        postId: feedId,
+        urlPath: path,
+        rawCategory: rawCategory,
+        normalized: finalCat,
+        categoryListSize: categoryList.length
+      });
+    }
+
+    return finalCat;
+  }, [rawCategory, showEditPopup, feedId, categoryList]);
+
+  // Load persistence for leader overlays and party selection
+  useEffect(() => {
+    if (!feedId) return;
+
+    // Load overlays
+    const savedOverlays = localStorage.getItem(`leader_overlays_${feedId}`);
+    if (savedOverlays) {
+      try {
+        setLeaderOverlays(JSON.parse(savedOverlays));
+      } catch (e) { console.error("Error parsing saved overlays:", e); }
+    }
+
+    // Load selected party
+    const savedParty = localStorage.getItem(`selected_party_${feedId}`);
+    if (savedParty) {
+      try {
+        setSelectedParty(JSON.parse(savedParty));
+      } catch (e) { console.error("Error parsing saved party:", e); }
+    }
+
+    // Load selected state
+    const savedState = localStorage.getItem(`selected_state_${feedId}`);
+    if (savedState) {
+      setSelectedState(savedState);
+    }
+  }, [feedId]);
+
+  // Save persistence for leader overlays
+  useEffect(() => {
+    if (!feedId) return;
+    if (leaderOverlays.length > 0) {
+      localStorage.setItem(`leader_overlays_${feedId}`, JSON.stringify(leaderOverlays));
+    } else {
+      localStorage.removeItem(`leader_overlays_${feedId}`);
+    }
+  }, [feedId, leaderOverlays]);
+
+  // Save persistence for selected party and state
+  useEffect(() => {
+    if (!feedId) return;
+    if (selectedParty) {
+      localStorage.setItem(`selected_party_${feedId}`, JSON.stringify(selectedParty));
+    } else {
+      localStorage.removeItem(`selected_party_${feedId}`);
+    }
+
+    if (selectedState) {
+      localStorage.setItem(`selected_state_${feedId}`, selectedState);
+    } else {
+      localStorage.removeItem(`selected_state_${feedId}`);
+    }
+  }, [feedId, selectedParty, selectedState]);
 
   // const { data: commentsData } = useComments(feedId, showCommentsModal);
 
@@ -483,30 +612,70 @@ function Postcard({
     }
 
     try {
-      // TEMPORARILY DISABLED PROACTIVE CHECK DOWNLOAD LIMIT
-      /*
-      const checkRes = await fetch(`${BACKEND_URL}/api/user/feed/check-limit?userId=${activeUserId}&token=${token}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const checkData = await checkRes.json();
-
-      if (checkData.isLimitReached) {
-        return toast.error("Download limit reached (Max 5 feeds)");
-      }
-      */
-
       setDownloadCount((p) => p + 1);
+      toast("Starting download...", { id: 'dl-toast' });
 
-      // Trigger direct browser download
-      const downloadUrl = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download?userId=${activeUserId}&token=${token}`;
+      // Package local customizations
+      const customMetadata = {
+        leaderOverlays: leaderOverlays.map(ov => ({
+          id: ov.id,
+          img: ov.img,
+          x: ov.x,
+          y: ov.y,
+          w: ov.w,
+          h: ov.h
+        })),
+        footerConfig: {
+          backgroundColor: postData.footerDisplay?.useDominantColor ? dominantColor : (postData.footerDisplay?.backgroundColor || "#000000"),
+          fontFamily: globalFooterStyle !== 'inherit' ? globalFooterStyle : undefined,
+          usernameScale: globalUsernameSize,
+          emailScale: globalEmailSize,
+          phoneScale: globalPhoneSize,
+          socialScale: globalSocialSize,
+          showElements: {
+            name: !!postData.footerDisplay?.showElements?.userName,
+            email: !!postData.footerDisplay?.showElements?.email,
+            phone: !!postData.footerDisplay?.showElements?.phone,
+            socialIcons: !!postData.footerDisplay?.showElements?.socialIcons
+          }
+        }
+      };
 
-      toast.success("Download started!");
-      window.location.href = downloadUrl;
+      // Create a hidden form to benefit from the browser's native download manager
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download`;
+      form.style.display = 'none';
+
+      const fields = {
+        token,
+        userId: activeUserId,
+        customMetadata: JSON.stringify(customMetadata)
+      };
+
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+
+      // Cleanup
+      setTimeout(() => {
+        if (document.body.contains(form)) {
+          document.body.removeChild(form);
+        }
+        toast.success("Download initiated!", { id: 'dl-toast' });
+      }, 5000);
+
+      return;
     } catch (err) {
-      console.error("[DownloadCheck] Error:", err);
-      toast.error("Download failed to initiate");
+      console.error("[Download] Error:", err);
+      toast.error(err.message || "Download failed", { id: 'dl-toast' });
     }
   };
 
@@ -552,7 +721,7 @@ function Postcard({
 
   return (
     <>
-      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] sm:border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-full sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-500 ${postData.__highlight ? 'ring-4 ring-blue-500/50 shadow-2xl relative z-50 scale-[1.02]' : ''}`}>
+      <div className={`w-full ${viewMode === 'grid' ? 'max-w-none rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-0 aspect-[9/16] flex flex-col' : 'max-w-[470px] sm:max-w-[320px] sm:border-b border-gray-300 sm:mb-6 last:mb-0 snap-start h-full sm:h-auto sm:max-h-[700px] flex flex-col '} mx-auto bg-white transition-all duration-500 ${postData.__highlight ? 'ring-4 ring-blue-500/50 shadow-2xl relative z-50 scale-[1.02]' : showEditPopup ? 'relative z-[999]' : ''}`}>
         {/* ✅ 1. USER HEADER (Restored) */}
         {!isTemplate && viewMode === 'list' && (
           <div className="shrink-0 w-full">
@@ -660,6 +829,13 @@ function Postcard({
                     </div>
                   )}
 
+                  {/* ✅ LEADER OVERLAYS - Interactive (Draggable/Resizable) */}
+                  <LeaderOverlayRenderer
+                    overlays={leaderOverlays}
+                    onUpdate={setLeaderOverlays}
+                    containerRef={mediaContainerRef}
+                  />
+
                   {/* ✅ AUDIO CONTROL BUTTON - (Bottom Right of Media Area ONLY) */}
                   {isTemplate && hasAudio && (
                     <button
@@ -688,6 +864,92 @@ function Postcard({
                     <div className="absolute bottom-12 right-3 z-40 bg-red-500 text-white px-2 py-1 rounded text-[10px] animate-pulse">
                       Tap to start audio
                     </div>
+                  )}
+
+                  {category === 'politics' && (
+                    <PoliticsEditPosterPopup
+                      isOpen={showEditPopup}
+                      onClose={() => setShowEditPopup(false)}
+                      footerStyle={globalFooterStyle}
+                      setFooterStyle={setGlobalFooterStyle}
+                      usernameSize={globalUsernameSize}
+                      setUsernameSize={setGlobalUsernameSize}
+                      emailSize={globalEmailSize}
+                      setEmailSize={setGlobalEmailSize}
+                      phoneSize={globalPhoneSize}
+                      setPhoneSize={setGlobalPhoneSize}
+                      socialSize={globalSocialSize}
+                      setSocialSize={setGlobalSocialSize}
+                      initialLeaders={leaderOverlays}
+                      onUpdateLeaders={setLeaderOverlays}
+                      selectedParty={selectedParty}
+                      setSelectedParty={setSelectedParty}
+                      selectedState={selectedState}
+                      setSelectedState={setSelectedState}
+                      postData={postData}
+                      dominantColor={dominantColor}
+                      viewer={viewer}
+                    />
+                  )}
+
+                  {category === 'birthday' && (
+                    <BirthdayEditPosterPopup
+                      isOpen={showEditPopup}
+                      onClose={() => setShowEditPopup(false)}
+                      footerStyle={globalFooterStyle}
+                      setFooterStyle={setGlobalFooterStyle}
+                      usernameSize={globalUsernameSize}
+                      setUsernameSize={setGlobalUsernameSize}
+                      emailSize={globalEmailSize}
+                      setEmailSize={setGlobalEmailSize}
+                      phoneSize={globalPhoneSize}
+                      setPhoneSize={setGlobalPhoneSize}
+                      socialSize={globalSocialSize}
+                      setSocialSize={setGlobalSocialSize}
+                      postData={postData}
+                      dominantColor={dominantColor}
+                      viewer={viewer}
+                    />
+                  )}
+
+                  {category === 'anniversary' && (
+                    <AnniversaryEditPosterPopup
+                      isOpen={showEditPopup}
+                      onClose={() => setShowEditPopup(false)}
+                      footerStyle={globalFooterStyle}
+                      setFooterStyle={setGlobalFooterStyle}
+                      usernameSize={globalUsernameSize}
+                      setUsernameSize={setGlobalUsernameSize}
+                      emailSize={globalEmailSize}
+                      setEmailSize={setGlobalEmailSize}
+                      phoneSize={globalPhoneSize}
+                      setPhoneSize={setGlobalPhoneSize}
+                      socialSize={globalSocialSize}
+                      setSocialSize={setGlobalSocialSize}
+                      postData={postData}
+                      dominantColor={dominantColor}
+                      viewer={viewer}
+                    />
+                  )}
+
+                  {category !== 'politics' && category !== 'birthday' && category !== 'anniversary' && (
+                    <FeedEditPosterPopup
+                      isOpen={showEditPopup}
+                      onClose={() => setShowEditPopup(false)}
+                      footerStyle={globalFooterStyle}
+                      setFooterStyle={setGlobalFooterStyle}
+                      usernameSize={globalUsernameSize}
+                      setUsernameSize={setGlobalUsernameSize}
+                      emailSize={globalEmailSize}
+                      setEmailSize={setGlobalEmailSize}
+                      phoneSize={globalPhoneSize}
+                      setPhoneSize={setGlobalPhoneSize}
+                      socialSize={globalSocialSize}
+                      setSocialSize={setGlobalSocialSize}
+                      postData={postData}
+                      dominantColor={dominantColor}
+                      viewer={viewer}
+                    />
                   )}
                 </>
               }
@@ -732,11 +994,14 @@ function Postcard({
 
                   return (
                     <div
-                      className={`relative w-full z-30 py-2 shrink-0 flex flex-col gap-1 border-t transition-colors duration-1000 ease-in-out ${isLight ? 'border-black/10' : 'border-white/10'}`}
+                      className={`relative w-full z-30 shrink-0 flex flex-col border-t transition-colors duration-1000 ease-in-out ${isLight ? 'border-black/10' : 'border-white/10'}`}
                       style={{
                         backgroundColor: footerBg,
                         background: footerBg,
                         boxSizing: 'border-box',
+                        paddingTop: `${8 * globalUsernameSize}px`,
+                        paddingBottom: `${8 * globalUsernameSize}px`,
+                        gap: `${4 * globalUsernameSize}px`,
                       }}
                     >
                       {/* Top Row: Username + Social Icons */}
@@ -749,7 +1014,10 @@ function Postcard({
                         {showElements.userName && (
                           <span
                             className={`font-bold truncate ${textColor}`}
-                            style={{ fontSize: "14px" }}
+                            style={{
+                              fontSize: `${14 * globalUsernameSize}px`,
+                              fontFamily: globalFooterStyle !== 'inherit' ? globalFooterStyle : 'inherit'
+                            }}
                           >
                             {viewer?.userName || "Username"}
                           </span>
@@ -763,11 +1031,18 @@ function Postcard({
                                 href={icon.urlTemplate || icon.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`${isLight ? 'bg-black/10 hover:bg-black/20' : 'bg-white/20 hover:bg-white/40'} p-1.5 rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer`}
+                                className={`${isLight ? 'bg-black/10 hover:bg-black/20' : 'bg-white/20 hover:bg-white/40'} rounded-full backdrop-blur-sm transition-all shadow-lg active:scale-90 pointer-events-auto cursor-pointer`}
+                                style={{
+                                  padding: `${6 * globalSocialSize}px`
+                                }}
                               >
                                 <img
                                   src={`https://cdn.simpleicons.org/${icon.platform === "twitter" ? "x" : icon.platform}`}
-                                  className={`w-3.5 h-3.5 object-contain ${isLight ? "" : "invert"}`}
+                                  className={`object-contain ${isLight ? "" : "invert"}`}
+                                  style={{
+                                    width: `${14 * globalSocialSize}px`,
+                                    height: `${14 * globalSocialSize}px`,
+                                  }}
                                   alt={icon.platform}
                                   onError={(e) => { e.currentTarget.src = defaultAvatar; }}
                                 />
@@ -781,12 +1056,24 @@ function Postcard({
                       {((showElements.email && viewer?.email) || (showElements.phone && viewer?.phoneNumber)) && (
                         <div className="flex items-center justify-between gap-4 w-full px-4">
                           {showElements.email && viewer?.email && (
-                            <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                            <span
+                              className={`${subTextColor} font-medium truncate`}
+                              style={{
+                                fontSize: `${12 * globalEmailSize}px`,
+                                fontFamily: globalFooterStyle !== 'inherit' ? globalFooterStyle : 'inherit'
+                              }}
+                            >
                               {viewer.email}
                             </span>
                           )}
                           {showElements.phone && viewer?.phoneNumber && (
-                            <span className={`${subTextColor} font-medium truncate`} style={{ fontSize: "12px" }}>
+                            <span
+                              className={`${subTextColor} font-medium truncate`}
+                              style={{
+                                fontSize: `${12 * globalPhoneSize}px`,
+                                fontFamily: globalFooterStyle !== 'inherit' ? globalFooterStyle : 'inherit'
+                              }}
+                            >
                               {viewer.phoneNumber}
                             </span>
                           )}
@@ -843,6 +1130,7 @@ function Postcard({
               onHideFromUI={onHideFromUI}
               onNotInterested={onNotInterested}
               viewMode={viewMode}
+              onEditClick={() => setShowEditPopup(true)}
             />
           </div>
 

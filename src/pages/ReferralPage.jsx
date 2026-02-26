@@ -242,7 +242,7 @@ const ReferralPage = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom  group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Users className="w-6 h-6 text-blue-500" />
@@ -256,7 +256,7 @@ const ReferralPage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 delay-100 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom  delay-100 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-green-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <UserPlus className="w-6 h-6 text-green-500" />
@@ -270,7 +270,7 @@ const ReferralPage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 delay-200 group hover:shadow-xl transition-all duration-500 hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200 animate-in fade-in slide-in-from-bottom duration-500 delay-200 group hover:shadow-xl transition-all  hover:scale-[1.02]">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-amber-500/10 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Trophy className="w-6 h-6 text-amber-500" />
@@ -497,7 +497,7 @@ const ReferralPage = () => {
                     {referrals.length > 0 ? referrals.map((referral, index) => (
                       <tr
                         key={referral._id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200 animate-in fade-in slide-in-from-bottom duration-300"
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors animate-in fade-in slide-in-from-bottom duration-300"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <td className="p-4">

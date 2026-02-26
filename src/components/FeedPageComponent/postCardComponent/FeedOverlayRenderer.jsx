@@ -9,6 +9,8 @@ export default function FeedOverlayRenderer({
     playSessionId = 0,
     isVisible = false,
     freezeAtEnd = true,
+    globalTextSize = 1,
+    globalTextStyle = "inherit",
 }) {
     if (!Array.isArray(overlayElements) || overlayElements.length === 0) return null;
 
@@ -106,13 +108,13 @@ export default function FeedOverlayRenderer({
                             width: "100%",
                             height: "100%",
                             objectFit: "contain",
-                            borderRadius: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle') ? "12px" : "100000px",
-                            maskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
-                                ? "linear-gradient(to bottom, black 0%, black 88%, transparent 100%)"
-                                : "radial-gradient(110% 100% at 50% 0%, black 78%, transparent 100%)",
-                            WebkitMaskImage: (el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle' || el.shape === 'square' || el.shape === 'rectangle')
-                                ? "linear-gradient(to bottom, black 0%, black 88%, transparent 100%)"
-                                : "radial-gradient(110% 100% at 50% 0%, black 78%, transparent 100%)",
+                            borderRadius: (el.shape === 'square' || el.shape === 'rectangle' || el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle') ? "12px" : "100000px",
+                            maskImage: (el.shape === 'square' || el.shape === 'rectangle' || el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle')
+                                ? "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)"
+                                : "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)",
+                            WebkitMaskImage: (el.shape === 'square' || el.shape === 'rectangle' || el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle')
+                                ? "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)"
+                                : "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)",
                             filter: "drop-shadow(0px 8px 16px rgba(0,0,0,0.35))",
                         }}
                     />
@@ -128,8 +130,8 @@ export default function FeedOverlayRenderer({
             content = (
                 <div style={{
                     color: textConfig.color || "white",
-                    fontSize: textConfig.fontSize ? `${textConfig.fontSize}px` : "16px",
-                    fontFamily: textConfig.fontFamily || "inherit",
+                    fontSize: textConfig.fontSize ? `${textConfig.fontSize * globalTextSize}px` : `${16 * globalTextSize}px`,
+                    fontFamily: globalTextStyle !== "inherit" ? globalTextStyle : (textConfig.fontFamily || "inherit"),
                     fontWeight: textConfig.fontWeight || "bold",
                     textAlign: textConfig.align || "center",
                     textShadow: "0 2px 8px rgba(0,0,0,0.8)",

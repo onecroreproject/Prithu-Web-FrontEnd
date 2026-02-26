@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from "react";
+import React, { useEffect, useCallback, useRef, useState, forwardRef, useImperativeHandle } from "react";
 
 
 const FILTER_STYLES = {
@@ -22,16 +22,21 @@ const FILTER_STYLES = {
  * 2. Media Area (Anchor): Driving width via aspect-ratio. 
  * 3. Footer (Follower): Forced mirroring via w-0 min-w-full.
  */
-const MediaWrapper = ({
+const MediaWrapper = forwardRef(({
   children,
   naturalAspectRatio,
   viewMode,
   overlaySlot,
   footerSlot,
-  onClick
-}) => {
+  fullFrameOverlaySlot, // Add this for absolute frame parity
+  onClick,
+  containerRef // Added to anchor overlays precisely
+}, ref) => {
   const mediaRef = useRef(null);
   const [mediaWidth, setMediaWidth] = useState(null);
+
+  // Expose the internal mediaRef to the parent through the forwarded ref
+  useImperativeHandle(ref, () => mediaRef.current);
 
   useEffect(() => {
     if (!mediaRef.current) return;
@@ -60,6 +65,7 @@ const MediaWrapper = ({
   return (
     <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">
       <div
+        ref={containerRef} // This is the EXACT bounding box for the content + footer
         className="relative flex flex-col transition-all duration-300 pointer-events-auto cursor-pointer shadow-2xl "
         onClick={onClick}
         style={{
@@ -84,6 +90,8 @@ const MediaWrapper = ({
           {overlaySlot}
         </div>
 
+        {fullFrameOverlaySlot}
+
         {/* Footer with dynamically measured width */}
         {footerSlot && (
           <div
@@ -99,9 +107,9 @@ const MediaWrapper = ({
       </div>
     </div>
   );
-};
+});
 
-export default function PostMedia({
+const PostMedia = forwardRef(({
   type = "image",
   contentUrl = "",
   videoRef,
@@ -118,10 +126,12 @@ export default function PostMedia({
   editMetadata = {},
   isTemplate = false,
   overlaySlot,
+  fullFrameOverlaySlot, // Passed to MediaWrapper
   footerSlot,
-  viewMode = "list"
-}) {
-  const containerRef = useRef(null);
+  viewMode = "list",
+  containerRef: passedContainerRef // Renamed to avoid shadowed variable
+}, ref) => {
+  const outerContainerRef = useRef(null);
   const lastTap = useRef(0);
 
   // ✅ Immediate "Best Guess" Color to avoid initial black flicker
@@ -280,6 +290,13 @@ export default function PostMedia({
   };
 
   const handleClick = (e) => {
+    // 🛑 CRITICAL: If the click originated from an interactive overlay item, 
+    // stop it immediately to prevent background play/pause toggle.
+    if (e && e.target && e.target.closest('.overlay-item-interactive')) {
+      console.log("🛠️ [PostMedia] Click ignored: Originated from OverlayItem");
+      return;
+    }
+
     if (e) e.stopPropagation();
     if (type === "video") {
       togglePlayPause();
@@ -312,7 +329,7 @@ export default function PostMedia({
     return (
       <div onClick={handleClick} className="w-full flex-1 min-h-0 flex items-center justify-center">
         <div
-          ref={containerRef}
+          ref={outerContainerRef}
           onClick={(e) => {
             e.stopPropagation();
             handleTap(e);
@@ -322,10 +339,13 @@ export default function PostMedia({
           <ColorBackground isImage={true} contentUrl={contentUrl} viewMode={viewMode} />
 
           <MediaWrapper
+            ref={ref}
             naturalAspectRatio={naturalAspectRatio}
             viewMode={viewMode}
             overlaySlot={overlaySlot}
+            fullFrameOverlaySlot={fullFrameOverlaySlot}
             footerSlot={footerSlot}
+            containerRef={passedContainerRef}
           >
             <img
               src={contentUrl}
@@ -345,20 +365,23 @@ export default function PostMedia({
 
   return (
     <div
-      ref={containerRef}
+      ref={outerContainerRef}
       onClick={handleClick}
       className="relative w-full flex-1 min-h-0 flex items-center justify-center overflow-hidden cursor-pointer"
     >
       <ColorBackground viewMode={viewMode} />
 
       <MediaWrapper
+        ref={ref}
         naturalAspectRatio={naturalAspectRatio}
         viewMode={viewMode}
         overlaySlot={overlaySlot}
+        fullFrameOverlaySlot={fullFrameOverlaySlot}
         footerSlot={footerSlot}
+        containerRef={passedContainerRef}
         onClick={(e) => {
           e.stopPropagation();
-          handleClick();
+          handleClick(e);
         }}
       >
         <video
@@ -396,4 +419,6 @@ export default function PostMedia({
       </MediaWrapper>
     </div>
   );
-}
+});
+
+export default PostMedia;

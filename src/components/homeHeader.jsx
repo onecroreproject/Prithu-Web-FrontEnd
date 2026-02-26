@@ -29,6 +29,7 @@ import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 
 // Import the existing NotificationDropdown for mobile
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
+import ReferralPromoPopup from "./ReferralPromoPopup";
 
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
@@ -55,6 +56,22 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
   const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
+  const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [promoTitle, setPromoTitle] = useState("");
+  const REFERRAL_LAUNCH_DATE = new Date('2026-03-01T00:00:00');
+
+  useEffect(() => {
+    const now = new Date();
+    if (now < REFERRAL_LAUNCH_DATE) {
+      if (location.pathname === "/home/referral") {
+        setPromoTitle("Referral Program");
+        setIsPromoOpen(true);
+      } else if (location.pathname === "/home/subscriptions") {
+        setPromoTitle("Subscriptions Program");
+        setIsPromoOpen(true);
+      }
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     setIsReelsActive(location.pathname === "/home/reels");
@@ -188,6 +205,9 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
     { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", color: "blue" },
+    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
+    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink" },
+    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
   ];
 
   // Profile menu items
@@ -879,7 +899,8 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
               )}
             </AnimatePresence>
 
-            {[...profileMenuItems, ...settingsMenuItems].map(({ to, label, Icon, desc, color, onClick }) => {
+            {[...profileMenuItems, ...settingsMenuItems].map((item) => {
+              const { to, label, Icon, desc, color, onClick } = item;
               const colorMap = {
                 green: "text-green-600 hover:bg-green-50",
                 slate: "text-slate-600 hover:bg-slate-50",
@@ -896,6 +917,10 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 cyan: "bg-cyan-50 text-cyan-700 border-l-4 border-cyan-500",
                 indigo: "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500",
               };
+
+              const isPromoItem = label === "Referral" || label === "Subscriptions";
+              const now = new Date();
+              const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
 
               // PORTFOLIO SPECIAL CASE
               if (label === "Portfolio") {
@@ -927,12 +952,19 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 );
               }
 
-              // If explicit onClick is provided
-              if (onClick) {
+              // If explicit onClick is provided or it's a promo item
+              if (onClick || showPromo) {
                 return (
                   <button
                     key={label}
-                    onClick={onClick}
+                    onClick={(e) => {
+                      if (showPromo) {
+                        setPromoTitle(`${label} Program`);
+                        setIsPromoOpen(true);
+                      } else {
+                        onClick(e);
+                      }
+                    }}
                     className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group mb-1
                         ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
                          ${colorMap[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]
@@ -1270,24 +1302,38 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Settings</h3>
                 <div className="space-y-1">
-                  {settingsMenuItems.map(({ to, label, Icon, desc, onClick }) => (
-                    onClick ? (
-                      <button
-                        key={label}
-                        onClick={() => {
-                          onClick({ preventDefault: () => { } });
-                          handleMobileMenuClose();
-                        }}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
-                      >
-                        <div className={`p-2 rounded-lg bg-gray-100`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{label}</p>
-                        </div>
-                      </button>
-                    ) : (
+                  {settingsMenuItems.map((item) => {
+                    const { to, label, Icon, desc, onClick } = item;
+                    const isPromoItem = label === "Referral" || label === "Subscriptions";
+                    const now = new Date();
+                    const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
+
+                    if (onClick || showPromo) {
+                      return (
+                        <button
+                          key={label}
+                          onClick={(e) => {
+                            if (showPromo) {
+                              setPromoTitle(`${label} Program`);
+                              setIsPromoOpen(true);
+                            } else {
+                              onClick({ preventDefault: () => { } });
+                            }
+                            handleMobileMenuClose();
+                          }}
+                          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                        >
+                          <div className={`p-2 rounded-lg bg-gray-100`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">{label}</p>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    return (
                       <NavLink
                         key={to}
                         to={to}
@@ -1306,8 +1352,8 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                           <p className="font-medium">{label}</p>
                         </div>
                       </NavLink>
-                    )
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1386,6 +1432,12 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
           toggleRef={notificationRef}
         />
       </div>
+
+      <ReferralPromoPopup
+        isOpen={isPromoOpen}
+        onClose={() => setIsPromoOpen(false)}
+        title={promoTitle}
+      />
 
 
     </Fragment >

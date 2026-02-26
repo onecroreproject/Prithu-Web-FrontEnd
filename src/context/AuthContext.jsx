@@ -39,6 +39,37 @@ export const AuthProvider = ({ children }) => {
 
   const [resetEmail, setResetEmail] = useState(null);
   const [isGlobalMuted, setIsGlobalMuted] = useState(true); // Default to muted to ensure autoplay works across all browsers
+
+  // ---------------------------------------------------------------------------
+  // 🎨 Global Post Customization States (Granular)
+  // ---------------------------------------------------------------------------
+
+
+  // Footer Style
+  const [globalFooterStyle, setGlobalFooterStyle] = useState(() =>
+    localStorage.getItem("globalFooterStyle") || "inherit");
+
+  // Footer Element Sizes
+  const [globalUsernameSize, setGlobalUsernameSize] = useState(() =>
+    parseFloat(localStorage.getItem("globalUsernameSize")) || 1);
+  const [globalEmailSize, setGlobalEmailSize] = useState(() =>
+    parseFloat(localStorage.getItem("globalEmailSize")) || 1);
+  const [globalPhoneSize, setGlobalPhoneSize] = useState(() =>
+    parseFloat(localStorage.getItem("globalPhoneSize")) || 1);
+  const [globalSocialSize, setGlobalSocialSize] = useState(() =>
+    parseFloat(localStorage.getItem("globalSocialSize")) || 1);
+
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem("globalFooterStyle", globalFooterStyle);
+    localStorage.setItem("globalUsernameSize", globalUsernameSize);
+    localStorage.setItem("globalEmailSize", globalEmailSize);
+    localStorage.setItem("globalPhoneSize", globalPhoneSize);
+    localStorage.setItem("globalSocialSize", globalSocialSize);
+  }, [
+    globalFooterStyle,
+    globalUsernameSize, globalEmailSize, globalPhoneSize, globalSocialSize
+  ]);
   // ---------------------------------------------------------------------------
   // 👤 Normalize User (_id / userId compatibility)
   // ---------------------------------------------------------------------------
@@ -357,6 +388,17 @@ export const AuthProvider = ({ children }) => {
     isGlobalMuted,
     setIsGlobalMuted,
     fetchUserProfile,
+
+    globalFooterStyle,
+    setGlobalFooterStyle,
+    globalUsernameSize,
+    setGlobalUsernameSize,
+    globalEmailSize,
+    setGlobalEmailSize,
+    globalPhoneSize,
+    setGlobalPhoneSize,
+    globalSocialSize,
+    setGlobalSocialSize,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

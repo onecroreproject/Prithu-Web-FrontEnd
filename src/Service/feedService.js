@@ -225,7 +225,73 @@ export const getTrendingFeeds = async (page = 1, token, postType = null) => {
   }
 };
 
-export const getTopRankedJobs = async (token) => { return []; };
-export const getFeedsByHashtag = async (tag, page, token) => { return []; };
+export const getTrendingHashtags = async (token, categoryId = null) => {
+  try {
+    const url = `/api/hashtags/trending${categoryId ? `?categoryId=${categoryId}` : ""}`;
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const { data } = await api.get(url, config);
+    return data?.data || [];
+  } catch (error) {
+    console.error("❌ Error fetching trending hashtags:", error.message);
+    return [];
+  }
+};
+
+export const getFeedsByHashtag = async (tag, page = 1, token) => {
+  try {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const { data } = await api.get(`/api/get/feeds/by/hashtag/${tag}?page=${page}&limit=10`, config);
+    const feedsArray = data?.data?.feeds || data?.feeds || [];
+    const viewer = data?.data?.viewer || data?.viewer || null;
+    return feedsArray.map(feed => normalizeFeedItem(feed, viewer));
+  } catch (error) {
+    console.error("❌ Error fetching hashtag feeds:", error.message);
+    return [];
+  }
+};
+
 export const userImageViewCount = async (id) => { return api.post(`/api/feed/view/image/${id}`); };
 export const userVideoViewCount = async (id) => { return api.post(`/api/feed/view/video/${id}`); };
+
+// Specialized Category Feeds
+export const getBirthdayFeeds = async (page = 1, token) => {
+  try {
+    const { data } = await api.get(`/api/get/feeds/birthday?page=${page}&limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const feedsArray = data?.data?.feeds || [];
+    const viewer = data?.data?.viewer || null;
+    return feedsArray.map(feed => normalizeFeedItem(feed, viewer));
+  } catch (error) {
+    console.error("❌ Error fetching birthday feeds:", error.message);
+    return [];
+  }
+};
+
+export const getAnniversaryFeeds = async (page = 1, token) => {
+  try {
+    const { data } = await api.get(`/api/get/feeds/anniversary?page=${page}&limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const feedsArray = data?.data?.feeds || [];
+    const viewer = data?.data?.viewer || null;
+    return feedsArray.map(feed => normalizeFeedItem(feed, viewer));
+  } catch (error) {
+    console.error("❌ Error fetching anniversary feeds:", error.message);
+    return [];
+  }
+};
+
+export const getPoliticsFeeds = async (page = 1, token) => {
+  try {
+    const { data } = await api.get(`/api/get/feeds/politics?page=${page}&limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const feedsArray = data?.data?.feeds || [];
+    const viewer = data?.data?.viewer || null;
+    return feedsArray.map(feed => normalizeFeedItem(feed, viewer));
+  } catch (error) {
+    console.error("❌ Error fetching politics feeds:", error.message);
+    return [];
+  }
+};

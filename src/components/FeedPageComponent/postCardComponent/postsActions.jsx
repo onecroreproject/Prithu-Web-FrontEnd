@@ -8,6 +8,7 @@ import {
   Bookmark,
   Download,
   Visibility,
+  TuneOutlined,
 } from "@mui/icons-material";
 import PostOptionsMenu from "../PostOptionsMenu";
 
@@ -32,6 +33,7 @@ const PostActions = ({
   onNotInterested,
   categoryId,
   viewMode = "list",
+  onEditClick,
 }) => {
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikesCount, setLocalLikesCount] = useState(likesCount);
@@ -171,6 +173,15 @@ const PostActions = ({
             )}
           </div>
 
+          <button
+            onClick={onEditClick}
+            className="p-1 focus:outline-none hover:opacity-70 transition-opacity"
+            aria-label="Edit Options"
+            title="Edit Options"
+          >
+            <TuneOutlined style={{ fontSize: viewMode === 'grid' ? 18 : 22 }} />
+          </button>
+
           <PostOptionsMenu
             feedId={feedId}
             categoryId={categoryId}
@@ -182,7 +193,7 @@ const PostActions = ({
         </div>
       </div>
 
-     
+
 
 
     </div>
