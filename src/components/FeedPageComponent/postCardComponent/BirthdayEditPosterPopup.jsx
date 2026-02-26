@@ -154,6 +154,10 @@ const BirthdayEditPosterPopup = ({
             .map(el => ({
                 ...el,
                 id: el.id || el._id || `avatar-${Math.random()}`,
+                x: el.xPercent ?? el.x ?? 10,
+                y: el.yPercent ?? el.y ?? 75,
+                w: el.wPercent ?? el.w ?? 22,
+                h: el.hPercent ?? el.h ?? 22,
                 img: el.img || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
                 shape: el.shape || el.avatarConfig?.shape || 'circle',
                 visible: true
@@ -820,7 +824,7 @@ const BirthdayEditPosterPopup = ({
                                         <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
                                             <div className="relative w-full max-w-[400px] flex flex-col items-center">
                                                 <div
-                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.85] origin-top ring-8 ring-gray-100/50"
+                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.75] origin-center ring-8 ring-gray-100/50"
                                                     ref={previewContainerRef}
                                                 >
                                                     <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">

@@ -107,7 +107,7 @@ export default function FeedOverlayRenderer({
                         style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: "contain",
+                            objectFit: "cover",
                             borderRadius: (el.shape === 'square' || el.shape === 'rectangle' || el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle') ? "12px" : "100000px",
                             maskImage: (el.shape === 'square' || el.shape === 'rectangle' || el.avatarConfig?.shape === 'square' || el.avatarConfig?.shape === 'rectangle')
                                 ? "linear-gradient(to bottom, black 0%, black 85%, transparent 100%)"

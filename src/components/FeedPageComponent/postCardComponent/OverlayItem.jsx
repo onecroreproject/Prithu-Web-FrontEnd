@@ -36,10 +36,9 @@ export default function OverlayItem({
             if (!containerRef.current) return;
 
             try {
-                const rect = containerRef.current.getBoundingClientRect();
                 setContainerSize({
-                    width: rect.width,
-                    height: rect.height
+                    width: containerRef.current.offsetWidth,
+                    height: containerRef.current.offsetHeight
                 });
             } catch (error) {
                 console.error("❌ [OverlayItem] Error getting container size:", error);
@@ -73,13 +72,17 @@ export default function OverlayItem({
             return { left: 0, top: 0, width: 0, height: 0 };
         }
 
+        const width = (ov.w / 100) * containerSize.width;
+        // 🛑 SYNC: Use percentage height for freedom, like backend
+        const height = (ov.h / 100) * containerSize.height;
+
         return {
             left: (ov.x / 100) * containerSize.width,
             top: (ov.y / 100) * containerSize.height,
-            width: (ov.w / 100) * containerSize.width,
-            height: (ov.h / 100) * containerSize.height
+            width,
+            height
         };
-    }, [ov.x, ov.y, ov.w, ov.h, containerSize]);
+    }, [ov.x, ov.y, ov.w, ov.h, containerSize, isAvatar]);
 
     // Convert pixels to percentage for storage
     const pixelsToPercentage = useCallback((pixels) => {
@@ -87,13 +90,16 @@ export default function OverlayItem({
             return { x: ov.x, y: ov.y, w: ov.w, h: ov.h };
         }
 
+        const w = (pixels.width / containerSize.width) * 100;
+        const h = (pixels.height / containerSize.height) * 100;
+
         return {
             x: Math.max(0, Math.min(100, (pixels.left / containerSize.width) * 100)),
             y: Math.max(0, Math.min(100, (pixels.top / containerSize.height) * 100)),
-            w: Math.max(5, Math.min(100, (pixels.width / containerSize.width) * 100)),
-            h: Math.max(5, Math.min(100, (pixels.height / containerSize.height) * 100))
+            w: Math.max(5, Math.min(100, w)),
+            h: Math.max(5, Math.min(100, h))
         };
-    }, [containerSize, ov.x, ov.y, ov.w, ov.h]);
+    }, [containerSize, ov.x, ov.y, ov.w, ov.h, isAvatar]);
 
     const pixelPos = getPixelPosition();
 
@@ -111,11 +117,16 @@ export default function OverlayItem({
 
     // Handle drag
     const handleDrag = useCallback((event, info) => {
-        if (!isDragging || !containerSize.width || !containerSize.height) return;
+        if (!isDragging || !containerSize.width || !containerSize.height || !containerRef.current) return;
 
-        // Calculate new position in pixels
-        const deltaX = info.point.x - dragStartPos.current.x;
-        const deltaY = info.point.y - dragStartPos.current.y;
+        // Calculate scale factor if container is transformed
+        const rect = containerRef.current.getBoundingClientRect();
+        const scaleX = rect.width / containerRef.current.offsetWidth || 1;
+        const scaleY = rect.height / containerRef.current.offsetHeight || 1;
+
+        // Calculate new position in logical pixels (normalized by scale)
+        const deltaX = (info.point.x - dragStartPos.current.x) / scaleX;
+        const deltaY = (info.point.y - dragStartPos.current.y) / scaleY;
 
         let newLeftPx = itemStartPos.current.left + deltaX;
         let newTopPx = itemStartPos.current.top + deltaY;
@@ -141,7 +152,7 @@ export default function OverlayItem({
                 : o
         );
         onUpdate(updatedOverlays);
-    }, [isDragging, containerSize, pixelPos, overlays, ov.id, onUpdate, pixelsToPercentage]);
+    }, [isDragging, containerSize, pixelPos, overlays, ov.id, onUpdate, pixelsToPercentage, containerRef]);
 
     // Handle drag end
     const handleDragEnd = useCallback(() => {
@@ -169,10 +180,15 @@ export default function OverlayItem({
             moveEvent.preventDefault();
             moveEvent.stopPropagation();
 
-            if (!resizeStartData.current || !containerSize.width || !containerSize.height) return;
+            if (!resizeStartData.current || !containerSize.width || !containerSize.height || !containerRef.current) return;
 
-            const deltaX = moveEvent.clientX - resizeStartData.current.startX;
-            const deltaY = moveEvent.clientY - resizeStartData.current.startY;
+            // Calculate scale factor
+            const rect = containerRef.current.getBoundingClientRect();
+            const scaleX = rect.width / containerRef.current.offsetWidth || 1;
+            const scaleY = rect.height / containerRef.current.offsetHeight || 1;
+
+            const deltaX = (moveEvent.clientX - resizeStartData.current.startX) / scaleX;
+            const deltaY = (moveEvent.clientY - resizeStartData.current.startY) / scaleY;
 
             let newLeft = resizeStartData.current.startLeft;
             let newTop = resizeStartData.current.startTop;
@@ -199,7 +215,7 @@ export default function OverlayItem({
                     newWidth = Math.max(20, resizeStartData.current.startWidth - deltaX);
                     newLeft = resizeStartData.current.startLeft + (resizeStartData.current.startWidth - newWidth);
                     newHeight = isAvatar ? newWidth : Math.max(20, resizeStartData.current.startHeight - deltaY);
-                    newTop = resizeStartData.current.startTop + (resizeStartData.current.startHeight - newHeight);
+                    newTop = resizeStartData.current.top + (resizeStartData.current.startHeight - newHeight);
                     break;
                 case 'top':
                     newHeight = Math.max(20, resizeStartData.current.startHeight - deltaY);
@@ -322,7 +338,9 @@ export default function OverlayItem({
                         alt="avatar"
                         className="w-full h-full object-cover pointer-events-none select-none"
                         style={{
-                            borderRadius: isRound ? '50%' : '12px'
+                            borderRadius: isRound ? '50%' : '0px',
+                            WebkitMaskImage: 'linear-gradient(to bottom, white 70%, transparent 100%)',
+                            maskImage: 'linear-gradient(to bottom, white 70%, transparent 100%)'
                         }}
                     />
                 ) : (

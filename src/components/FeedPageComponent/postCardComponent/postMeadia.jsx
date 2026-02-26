@@ -30,6 +30,7 @@ const MediaWrapper = forwardRef(({
   footerSlot,
   fullFrameOverlaySlot, // Add this for absolute frame parity
   onClick,
+  isTemplate = false, // Explicitly handle template/editor mode
   containerRef // Added to anchor overlays precisely
 }, ref) => {
   const mediaRef = useRef(null);
@@ -60,13 +61,12 @@ const MediaWrapper = forwardRef(({
 
   // Determine width based on view mode and screen size
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const containerWidth = (viewMode === 'list' && isMobile) ? '72%' : '100%';
+  const containerWidth = isTemplate ? '100%' : ((viewMode === 'list' && isMobile) ? '72%' : '100%');
 
   return (
     <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">
       <div
-        ref={containerRef} // This is the EXACT bounding box for the content + footer
-        className="relative flex flex-col transition-all duration-300 pointer-events-auto cursor-pointer shadow-2xl "
+        className="relative flex flex-col items-center transition-all duration-300 pointer-events-auto cursor-pointer shadow-2xl "
         onClick={onClick}
         style={{
           width: containerWidth,
@@ -76,21 +76,37 @@ const MediaWrapper = forwardRef(({
         }}
       >
         <div
-          ref={mediaRef}
-          className="relative flex  items-center justify-center flex-1 min-h-0"
-          style={{
-            aspectRatio: naturalAspectRatio ? `${naturalAspectRatio}` : undefined,
-            width: 'auto',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            height: 'auto',
+          ref={(el) => {
+            mediaRef.current = el;
           }}
+          className="relative flex-1 min-h-0 w-full flex items-center justify-center p-0 m-0 overflow-hidden"
         >
           {children}
           {overlaySlot}
-        </div>
 
-        {fullFrameOverlaySlot}
+          {/* Hybrid-Centric Overlay Anchor: Full-Width (for Frame-X), Snug-Height (for Media-Y) */}
+          <div
+            ref={(el) => {
+              if (containerRef) {
+                if (typeof containerRef === 'function') containerRef(el);
+                else containerRef.current = el;
+              }
+            }}
+            className="absolute pointer-events-none z-30"
+            style={{
+              width: '100%',
+              height: '100%',
+              aspectRatio: naturalAspectRatio || '1/1',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              maxHeight: '100%',
+              maxWidth: '100%'
+            }}
+          >
+            {fullFrameOverlaySlot}
+          </div>
+        </div>
 
         {/* Footer with dynamically measured width */}
         {footerSlot && (
@@ -162,9 +178,8 @@ const PostMedia = forwardRef(({
   const filterStyle = FILTER_STYLES[filterPreset] || '';
   const zoomLevel = editMetadata?.crop?.zoomLevel || 1;
 
-  // Always use object-contain to prevent cropping
-  // MediaWrapper handles width matching between media and footer
-  const objectFitClass = "fit-content";
+  // Ensure media content correctly fits its adaptive container
+  const objectFitClass = "object-contain";
 
   const extractColor = useCallback((element) => {
     if (!element) return false;
@@ -379,6 +394,7 @@ const PostMedia = forwardRef(({
         fullFrameOverlaySlot={fullFrameOverlaySlot}
         footerSlot={footerSlot}
         containerRef={passedContainerRef}
+        isTemplate={isTemplate}
         onClick={(e) => {
           e.stopPropagation();
           handleClick(e);

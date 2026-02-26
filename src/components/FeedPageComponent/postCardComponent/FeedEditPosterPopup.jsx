@@ -142,6 +142,10 @@ const FeedEditPosterPopup = ({
             .map(el => ({
                 ...el,
                 id: el.id || el._id || `avatar-${Math.random()}`,
+                x: el.xPercent ?? el.x ?? 10,
+                y: el.yPercent ?? el.y ?? 75,
+                w: el.wPercent ?? el.w ?? 22,
+                h: el.hPercent ?? el.h ?? 22,
                 img: customAvatarUrl || el.img || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
                 shape: avatarShape, // Always use local state shape for consistency
                 visible: true
@@ -152,7 +156,7 @@ const FeedEditPosterPopup = ({
                 id: 'interactive-avatar',
                 type: 'avatar',
                 x: 10,
-                y: 75,
+                y: 72, // Slightly adjusted default for better fit
                 w: 22,
                 h: 22,
                 img: customAvatarUrl || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -284,7 +288,9 @@ const FeedEditPosterPopup = ({
                     emailScale: emailSize,
                     phoneScale: phoneSize,
                     socialScale: socialSize,
-                    showElements: postData?.footerDisplay?.showElements
+                    showElements: postData?.footerDisplay?.showElements,
+                    enabled: true,
+                    showFooter: true
                 }
             };
 
@@ -583,95 +589,95 @@ const FeedEditPosterPopup = ({
                                         </button>
 
                                         <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
-                                            <div className="relative w-full max-w-[400px] flex flex-col items-center">
-                                                <div
-                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.85] origin-top ring-8 ring-gray-100/50"
-                                                    ref={previewContainerRef}
-                                                >
-                                                    <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">
-                                                        <PostMedia
-                                                            type={postData?.type || 'image'}
-                                                            contentUrl={postData?.contentUrl}
-                                                            aspectRatio={postData?.designMetadata?.canvasSettings?.aspectRatio || "1:1"}
-                                                            isTemplate={true}
-                                                            viewMode="list"
-                                                            containerRef={mediaAreaRef} // Precise coordinate anchoring
-                                                            videoRef={previewVideoRef}
-                                                            isPlaying={previewIsPlaying}
-                                                            isMuted={previewIsMuted}
-                                                            togglePlayPause={togglePreviewPlayPause}
-                                                            toggleMute={() => setPreviewIsMuted(m => !m)}
-                                                            onVideoPlay={() => setPreviewIsPlaying(true)}
-                                                            onVideoPause={() => setPreviewIsPlaying(false)}
-                                                            onVideoEnded={() => setPreviewIsPlaying(false)}
-                                                            fullFrameOverlaySlot={
-                                                                <>
-                                                                    {/* Absolute Overlays (Absolute Parity with Backend 720x1280) */}
-                                                                    {postData?.overlayElements?.length > 0 && (
-                                                                        <div className="absolute inset-0 pointer-events-none z-30">
-                                                                            <FeedOverlayRenderer
-                                                                                overlayElements={postData.overlayElements?.filter(el => el.type !== 'avatar')}
-                                                                                viewer={customAvatarUrl ? { ...viewer, modifyAvatar: customAvatarUrl, profileAvatar: customAvatarUrl } : viewer}
-                                                                                visibilityConfig={postData.footerDisplay?.showElements}
-                                                                                prithuLogoUrl={prithuLogo}
-                                                                                isVisible={true}
-                                                                            />
-                                                                        </div>
-                                                                    )}
-
-                                                                    {avatarOverlays.map(ov => (
-                                                                        <OverlayItem
-                                                                            key={ov.id}
-                                                                            ov={ov}
-                                                                            containerRef={mediaAreaRef}
-                                                                            onUpdate={handleAvatarUpdate}
-                                                                            overlays={avatarOverlays}
-                                                                            isAvatar={true}
-                                                                            onSelect={() => setSelectedAvatarId(ov.id)}
+                                            <div
+                                                className="relative w-full max-w-[360px] bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 flex flex-col ring-8 ring-gray-100/50"
+                                                style={{ aspectRatio: '9/16' }}
+                                                ref={previewContainerRef}
+                                            >
+                                                <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">
+                                                    <PostMedia
+                                                        type={postData?.type || 'image'}
+                                                        contentUrl={postData?.contentUrl}
+                                                        aspectRatio={postData?.designMetadata?.canvasSettings?.aspectRatio || "1:1"}
+                                                        isTemplate={true}
+                                                        viewMode="list"
+                                                        containerRef={mediaAreaRef} // Precise coordinate anchoring
+                                                        videoRef={previewVideoRef}
+                                                        isPlaying={previewIsPlaying}
+                                                        isMuted={previewIsMuted}
+                                                        togglePlayPause={togglePreviewPlayPause}
+                                                        toggleMute={() => setPreviewIsMuted(m => !m)}
+                                                        onVideoPlay={() => setPreviewIsPlaying(true)}
+                                                        onVideoPause={() => setPreviewIsPlaying(false)}
+                                                        onVideoEnded={() => setPreviewIsPlaying(false)}
+                                                        fullFrameOverlaySlot={
+                                                            <>
+                                                                {/* Absolute Overlays (Absolute Parity with Backend 720x1280) */}
+                                                                {postData?.overlayElements?.length > 0 && (
+                                                                    <div className="absolute inset-0 pointer-events-none z-30">
+                                                                        <FeedOverlayRenderer
+                                                                            overlayElements={postData.overlayElements?.filter(el => el.type !== 'avatar')}
+                                                                            viewer={customAvatarUrl ? { ...viewer, modifyAvatar: customAvatarUrl, profileAvatar: customAvatarUrl } : viewer}
+                                                                            visibilityConfig={postData.footerDisplay?.showElements}
+                                                                            prithuLogoUrl={prithuLogo}
+                                                                            isVisible={true}
                                                                         />
-                                                                    ))}
-                                                                </>
-                                                            }
-                                                            footerSlot={
-                                                                postData?.hasFooter && (
-                                                                    <div
-                                                                        className="relative w-full z-30 shrink-0 flex flex-col border-t border-white/10"
-                                                                        style={{
-                                                                            backgroundColor: dominantColor || '#000000',
-                                                                            paddingTop: `${8 * usernameSize}px`,
-                                                                            paddingBottom: `${8 * usernameSize}px`,
-                                                                            gap: `${4 * usernameSize}px`,
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex items-center justify-between px-4">
-                                                                            <span className="text-white font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle }}>
-                                                                                {viewer?.userName || "Username"}
-                                                                            </span>
-                                                                            <div className="flex items-center gap-2">
-                                                                                {[1, 2].map(id => (
-                                                                                    <div key={id} className="bg-white/20 rounded-full" style={{ padding: `${6 * socialSize}px` }}>
-                                                                                        <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px` }} className="bg-white/40 rounded-full" />
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex items-center justify-between px-4">
-                                                                            <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle }}>{viewer?.email || "email@example.com"}</span>
-                                                                            <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
+                                                                    </div>
+                                                                )}
+
+                                                                {avatarOverlays.map(ov => (
+                                                                    <OverlayItem
+                                                                        key={ov.id}
+                                                                        ov={ov}
+                                                                        containerRef={mediaAreaRef}
+                                                                        onUpdate={handleAvatarUpdate}
+                                                                        overlays={avatarOverlays}
+                                                                        isAvatar={true}
+                                                                        onSelect={() => setSelectedAvatarId(ov.id)}
+                                                                    />
+                                                                ))}
+                                                            </>
+                                                        }
+                                                        footerSlot={
+                                                            postData?.hasFooter && (
+                                                                <div
+                                                                    className="relative w-full z-30 shrink-0 flex flex-col border-t border-white/10"
+                                                                    style={{
+                                                                        backgroundColor: dominantColor || '#000000',
+                                                                        paddingTop: `${8 * usernameSize}px`,
+                                                                        paddingBottom: `${8 * usernameSize}px`,
+                                                                        gap: `${4 * usernameSize}px`,
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center justify-between px-4">
+                                                                        <span className="text-white font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle }}>
+                                                                            {viewer?.userName || "Username"}
+                                                                        </span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            {[1, 2].map(id => (
+                                                                                <div key={id} className="bg-white/20 rounded-full" style={{ padding: `${6 * socialSize}px` }}>
+                                                                                    <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px` }} className="bg-white/40 rounded-full" />
+                                                                                </div>
+                                                                            ))}
                                                                         </div>
                                                                     </div>
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
+                                                                    <div className="flex items-center justify-between px-4">
+                                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle }}>{viewer?.email || "email@example.com"}</span>
+                                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        }
+                                                    />
                                                 </div>
-
-
                                             </div>
-                                            <button
-                                                onClick={handleDownload}
-                                                title="Download Poster"
-                                                className="
+
+
+                                        </div>
+                                        <button
+                                            onClick={handleDownload}
+                                            title="Download Poster"
+                                            className="
   absolute bottom-12 right-20 z-50
   flex items-center justify-center gap-2
   px-6 py-4
@@ -685,8 +691,8 @@ const FeedEditPosterPopup = ({
   hover:shadow-[0_15px_35px_rgba(59,130,246,0.6)]
   active:scale-95
   "
-                                            >
-                                                <span className="
+                                        >
+                                            <span className="
     absolute inset-0 
     -translate-x-full 
     bg-gradient-to-r 
@@ -698,21 +704,20 @@ const FeedEditPosterPopup = ({
     duration-1000
   " />
 
-                                                <DownloadIcon
-                                                    fontSize="medium"
-                                                    className="
+                                            <DownloadIcon
+                                                fontSize="medium"
+                                                className="
        relative z-10
        transition-transform duration-300
        group-hover:scale-110
        group-hover:rotate-6
      "
-                                                />
+                                            />
 
-                                                <span className="relative z-10 font-medium tracking-wide">
-                                                    Download
-                                                </span>
-                                            </button>
-                                        </div>
+                                            <span className="relative z-10 font-medium tracking-wide">
+                                                Download
+                                            </span>
+                                        </button>
                                     </div>
                                 )}
                             </div>

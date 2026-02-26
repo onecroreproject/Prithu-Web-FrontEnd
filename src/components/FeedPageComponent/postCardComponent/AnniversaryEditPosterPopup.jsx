@@ -820,7 +820,7 @@ const AnniversaryEditPosterPopup = ({
                                         <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
                                             <div className="relative w-full max-w-[400px] flex flex-col items-center">
                                                 <div
-                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.85] origin-top ring-8 ring-gray-100/50"
+                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.75] origin-center ring-8 ring-gray-100/50"
                                                     ref={previewContainerRef}
                                                 >
                                                     <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">
