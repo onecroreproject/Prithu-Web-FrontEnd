@@ -158,13 +158,6 @@ const ReferralPromoPopup = ({ isOpen, onClose, title = "Coming Soon!" }) => {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={onClose}
-                                className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)] active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <Rocket className="w-4 h-4" />
-                                <span>Notify Me on Launch</span>
-                            </button>
                         </motion.div>
 
                         <div className="mt-4 flex items-center justify-center gap-2 text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">

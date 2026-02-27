@@ -26,6 +26,7 @@ import {
   useSharePost,
   useUnfollowUser,
   getDownloadStatus,
+  useCheckDownloadLimit,
 } from "../../hooks/usePostActions";
 
 import { useCategories } from "../../hooks/useMiscellaneous";
@@ -262,6 +263,7 @@ function Postcard({
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
   const downloadMutation = useDownloadFeed();
+  const checkLimitMutation = useCheckDownloadLimit();
 
   /* ---------------------------- Audio Logic Hook (ONLY for image + audio) ---------------------------- */
   const {
@@ -612,6 +614,19 @@ function Postcard({
     }
 
     try {
+      // 1. Check download limit
+      const limitInfo = await checkLimitMutation.mutateAsync();
+      if (limitInfo && limitInfo.isLimitReached) {
+        return toast.error("you reached yor download limt", {
+          duration: 4000,
+          style: {
+            background: '#ff4b4b',
+            color: '#fff',
+            fontWeight: 'bold'
+          }
+        });
+      }
+
       setDownloadCount((p) => p + 1);
       toast("Starting download...", { id: 'dl-toast' });
 

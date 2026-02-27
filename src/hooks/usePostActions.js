@@ -119,3 +119,12 @@ export const useDownloadFeed = () => {
   });
 };
 
+export const useCheckDownloadLimit = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.get('/api/user/feed/check-limit');
+      return response.data; // { downloadCount, limit, isLimitReached }
+    }
+  });
+};
+
