@@ -30,6 +30,7 @@ import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 // Import the existing NotificationDropdown for mobile
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import ReferralPromoPopup from "./ReferralPromoPopup";
+import ComingSoonPopup from "./ComingSoonPopup";
 
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
@@ -102,6 +103,8 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const [history, setHistory] = useState([]);
   const [trending, setTrending] = useState([]);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
+  const [comingSoonData, setComingSoonData] = useState({ title: "", icon: Gift });
 
   // refs
   const mobileMenuRef = useRef(null);
@@ -205,9 +208,9 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
     { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", color: "blue" },
-    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
-    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink" },
-    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
+    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple", isComingSoon: true },
+    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink", isComingSoon: true },
+    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue", isComingSoon: true },
   ];
 
   // Profile menu items
@@ -783,7 +786,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
         <nav className="relative z-10 flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
           {/* Main Navigation */}
           <div className="space-y-1">
-            {mainMenuItems.map(({ to, label, Icon, desc, type, color }) => {
+            {mainMenuItems.map(({ to, label, Icon, desc, type, color, isComingSoon }) => {
               const colorClasses = {
                 blue: "text-blue-600 hover:bg-blue-50 active:bg-blue-100",
                 pink: "text-pink-600 hover:bg-pink-50 active:bg-pink-100",
@@ -825,6 +828,43 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                           {notifCount > 99 ? '99+' : notifCount}
                         </span>
                       )}
+                    </div>
+                    <AnimatePresence>
+                      {isSidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="text-sm font-bold tracking-wide"
+                        >
+                          {label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              }
+
+              if (isComingSoon) {
+                return (
+                  <button
+                    key={label}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setComingSoonData({ title: label, icon: Icon });
+                      setIsComingSoonOpen(true);
+                    }}
+                    className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group
+                      ${isSidebarExpanded ? "px-3 gap-3 py-3 justify-start" : "px-0 justify-center py-3"} 
+                      ${colorClasses[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]
+                    `}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                      <Icon
+                        className="w-6 h-6 shrink-0 filter drop-shadow-sm"
+                        strokeWidth={2.5}
+                        style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.15))" }}
+                      />
                     </div>
                     <AnimatePresence>
                       {isSidebarExpanded && (
@@ -1227,27 +1267,50 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                   </div>
                 </button>
 
-                {mainMenuItems.filter(item => !["Notifications", "Home", "Reels", "Image Feed"].includes(item.label)).map(({ to, label, Icon, desc }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    onClick={handleMobileMenuClose}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
-                      }`
-                    }
-                  >
-                    <div className={`p-2 rounded-lg bg-gray-100`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{label}</p>
-                      <p className="text-xs text-gray-500">{desc}</p>
-                    </div>
-                  </NavLink>
-                ))}
+                {mainMenuItems.filter(item => !["Notifications", "Home", "Reels", "Image Feed"].includes(item.label)).map(({ to, label, Icon, desc, isComingSoon }) => {
+                  if (isComingSoon) {
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => {
+                          setComingSoonData({ title: label, icon: Icon });
+                          setIsComingSoonOpen(true);
+                          handleMobileMenuClose();
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"
+                      >
+                        <div className={`p-2 rounded-lg bg-gray-100`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{label}</p>
+                          <p className="text-xs text-gray-500">{desc}</p>
+                        </div>
+                      </button>
+                    );
+                  }
+                  return (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={handleMobileMenuClose}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-700 hover:bg-gray-50"
+                        }`
+                      }
+                    >
+                      <div className={`p-2 rounded-lg bg-gray-100`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{label}</p>
+                        <p className="text-xs text-gray-500">{desc}</p>
+                      </div>
+                    </NavLink>
+                  );
+                })}
               </div>
 
               {/* Profile Links */}
@@ -1439,6 +1502,13 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
         title={promoTitle}
       />
 
+      <ComingSoonPopup
+        isOpen={isComingSoonOpen}
+        onClose={() => setIsComingSoonOpen(false)}
+        title={comingSoonData.title}
+        icon={comingSoonData.icon}
+        description="exiting content comming for you with existing image"
+      />
 
     </Fragment >
   );

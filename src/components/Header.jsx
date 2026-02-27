@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Home, Video, Image, User, Settings, LogOut, Plus, Menu, X,
-  Gift, Activity, HelpCircle, MessageSquare
+  Gift, Activity, HelpCircle, MessageSquare, Heart, MessageCircle
 } from "lucide-react";
 import debounce from "lodash.debounce";
 import PrithuLogo from "../assets/prithu_logo.webp";
@@ -24,6 +24,7 @@ import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/us
 import UserFeedbackPage from "../components/UserFeedbackPage";
 import ReportPage from "../components/ReportPage";
 import ReferralPromoPopup from "./ReferralPromoPopup";
+import ComingSoonPopup from "./ComingSoonPopup";
 
 
 
@@ -43,6 +44,8 @@ export default function Header() {
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [promoTitle, setPromoTitle] = useState("");
   const [promoRedirect, setPromoRedirect] = useState("");
+  const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
+  const [comingSoonData, setComingSoonData] = useState({ title: "", icon: Gift });
 
   const REFERRAL_LAUNCH_DATE = new Date('2026-03-01T00:00:00');
 
@@ -96,7 +99,10 @@ export default function Header() {
     },
     { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", isReels: true },
-    { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", isImages: true }
+    { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", isImages: true },
+    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", isComingSoon: true },
+    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", isComingSoon: true },
+    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", isComingSoon: true }
   ];
 
   useEffect(() => {
@@ -242,6 +248,9 @@ export default function Header() {
       handleReelClick();
     } else if (item.isImages) {
       handleImageClick();
+    } else if (item.isComingSoon) {
+      setComingSoonData({ title: item.label, icon: item.Icon });
+      setIsComingSoonOpen(true);
     } else if (item.onClick) {
       item.onClick(e);
     } else {
@@ -654,6 +663,13 @@ export default function Header() {
         title={promoTitle}
       />
 
+      <ComingSoonPopup
+        isOpen={isComingSoonOpen}
+        onClose={() => setIsComingSoonOpen(false)}
+        title={comingSoonData.title}
+        icon={comingSoonData.icon}
+        description="exiting content comming for you with existing image"
+      />
 
     </Fragment>
   );
