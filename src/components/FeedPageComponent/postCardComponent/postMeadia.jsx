@@ -367,7 +367,7 @@ const PostMedia = forwardRef(({
             containerRef={passedContainerRef}
           >
             <img
-              src={contentUrl}
+              src={contentUrl || null}
               crossOrigin="anonymous"
               className={`w-full h-full block ${objectFitClass}`}
               alt=""
@@ -406,7 +406,7 @@ const PostMedia = forwardRef(({
       >
         <video
           ref={videoRef}
-          src={contentUrl}
+          src={contentUrl || null}
           crossOrigin="anonymous"
           muted={isMuted}
           playsInline
