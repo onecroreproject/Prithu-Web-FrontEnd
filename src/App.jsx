@@ -38,6 +38,8 @@ import FeedbackSupportPage from "./pages/FeedbackSupportPage.jsx";
 import FeedbackPage from "./pages/FeedbackSupportPage.jsx";
 import ReferralPage from "./pages/ReferralPage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
+import Blogs from "./pages/Blogs.jsx";
+import BlogDetail from "./pages/BlogDetail.jsx";
 
 // Static Pages
 import AboutUs from "./pages/AboutUs.jsx";
@@ -136,6 +138,10 @@ function AppRoutes() {
         {/* Help */}
         <Route path="help" element={<FAQPage />} />
         <Route path="feedback-support" element={<FeedbackPage />} />
+
+        {/* Blogs */}
+        <Route path="blogs" element={<Blogs />} />
+        <Route path="blogs/:slug" element={<BlogDetail />} />
       </Route>
 
       {/* Shared Post */}

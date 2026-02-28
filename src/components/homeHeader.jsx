@@ -206,11 +206,10 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   // Main menu items to show directly in sidebar
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
-    { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
-    { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", color: "blue" },
     { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
     { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink", isComingSoon: true },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue", isComingSoon: true },
+    { to: "/home/blogs", label: "Our Stories", Icon: MessageSquare, desc: "Read our blogs", color: "indigo" },
   ];
 
   // Profile menu items
@@ -784,6 +783,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
         </div>
         {/* Sidebar Navigation - IMPROVED SPACING */}
         <nav className="relative z-10 flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+
           {/* Main Navigation */}
           <div className="space-y-1">
             {mainMenuItems.map(({ to, label, Icon, desc, type, color, isComingSoon }) => {

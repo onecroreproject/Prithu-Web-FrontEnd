@@ -25,6 +25,8 @@ import throttle from "lodash.throttle";
 import CategoryFeedPage from "../components/categories";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import SlowMotionVideoIcon from "@mui/icons-material/SlowMotionVideo";
+import PhotoIcon from "@mui/icons-material/Photo";
 
 import MobileFeedView from "../components/FeedPageComponent/MobileFeedView";
 import DesktopListFeedView from "../components/FeedPageComponent/DesktopListFeedView";
@@ -729,6 +731,30 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
                   hideCategories={location.pathname === '/home/politics'}
                 />
               )}
+            </div>
+            <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner mr-2">
+              <button
+                onClick={() => {
+                  const next = !showReels;
+                  setShowReels(next);
+                  if (next) setShowImages(false);
+                }}
+                className={`p-1.5 rounded-full transition-all duration-300 ${showReels ? "bg-white text-pink-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                title="Reels Only"
+              >
+                <SlowMotionVideoIcon fontSize="small" />
+              </button>
+              <button
+                onClick={() => {
+                  const next = !showImages;
+                  setShowImages(next);
+                  if (next) setShowReels(false);
+                }}
+                className={`p-1.5 rounded-full transition-all duration-300 ${showImages ? "bg-white text-blue-600 shadow-sm scale-110" : "text-gray-400 hover:text-gray-600"}`}
+                title="Images Only"
+              >
+                <PhotoIcon fontSize="small" />
+              </button>
             </div>
             <div className="hidden md:flex items-center bg-gray-100/80 rounded-full p-1 shrink-0 shadow-inner">
               <button
