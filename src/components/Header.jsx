@@ -100,7 +100,7 @@ export default function Header() {
     { to: "/home/activity", label: "My Activity", Icon: Activity, desc: "Your activity log" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", isReels: true },
     { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", isImages: true },
-    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", isComingSoon: true },
+    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings" },
     { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", isComingSoon: true },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", isComingSoon: true }
   ];

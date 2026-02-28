@@ -18,11 +18,13 @@ import {
     PhotoCamera as CameraIcon,
     Check as CheckIcon,
     Add as PlusIcon,
+    Cancel as CancelIcon,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
 import OverlayItem from "./OverlayItem";
 import PostMedia from "./postMeadia";
+import PosterPreviewArea from "./PosterPreviewArea";
 import prithuLogo from "../../../assets/prithulogo.png";
 
 // ------- Avatar Crop Utility -------
@@ -109,6 +111,7 @@ const BirthdayEditPosterPopup = ({
     const mediaAreaRef = useRef(null);
     const previewVideoRef = useRef(null);
     const [currentView, setCurrentView] = useState('root'); // root, style, sizes, avatarEdit
+    const [dragInProgress, setDragInProgress] = useState(false);
 
     // Add CSS for custom scrollbar
     const scrollbarStyles = `
@@ -128,6 +131,9 @@ const BirthdayEditPosterPopup = ({
     `;
     const [previewIsPlaying, setPreviewIsPlaying] = useState(false);
     const [previewIsMuted, setPreviewIsMuted] = useState(true);
+    const [previewDuration, setPreviewDuration] = useState(0);
+    const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+
     // Avatar & Text edit state
     const avatarFileInputRef = useRef(null);
     const [selectedAvatarId, setSelectedAvatarId] = useState(null);
@@ -139,23 +145,31 @@ const BirthdayEditPosterPopup = ({
     const [textOverlays, setTextOverlays] = useState([]);
     const [selectedTextId, setSelectedTextId] = useState(null);
 
-    useEffect(() => {
-        if (!isOpen || !postData?.overlayElements) return;
+    // Add refs to track if we're in the middle of an update
+    const isUpdatingFromDrag = useRef(false);
 
-        // Skip if already initialized to preserve manual edits
-        if (avatarOverlays.length > 0 || textOverlays.length > 0) {
-            console.log("🛠️ [BirthdayEditor] Overlays already initialized, skipping reset.");
+    useEffect(() => {
+        if (!isOpen) {
+            // Reset state when closing/closed to ensure "fresh" start next time it's opened
+            setAvatarOverlays([]);
+            setTextOverlays([]);
+            setCurrentView('root');
+            setPreviewIsPlaying(false);
+            setPreviewCurrentTime(0);
             return;
         }
 
-        console.log("🛠️ [BirthdayEditor] Initializing avatar overlays from postData", postData._id || postData.id);
+        if (!postData?.overlayElements) return;
+
+        console.log("🛠️ [BirthdayEditor] Initializing fresh overlays with (10,10) defaults");
         const avatarEls = postData.overlayElements
             .filter(el => el.type === 'avatar')
             .map(el => ({
                 ...el,
                 id: el.id || el._id || `avatar-${Math.random()}`,
-                x: el.xPercent ?? el.x ?? 10,
-                y: el.yPercent ?? el.y ?? 75,
+                // 🚀 FORCE (10,10) for fresh start as requested
+                x: 10,
+                y: 10,
                 w: el.wPercent ?? el.w ?? 22,
                 h: el.hPercent ?? el.h ?? 22,
                 img: el.img || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -168,7 +182,7 @@ const BirthdayEditPosterPopup = ({
                 id: 'interactive-avatar',
                 type: 'avatar',
                 x: 10,
-                y: 75,
+                y: 10,
                 w: 22,
                 h: 22,
                 img: viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -177,6 +191,10 @@ const BirthdayEditPosterPopup = ({
                 zIndex: 100
             });
         }
+
+        avatarEls.forEach((el, idx) => {
+            console.log(`🖼️ [Init] Avatar slot ${idx + 1}: ID=${el.id} | Initial Position=(${el.x}%, ${el.y}%)`);
+        });
         setAvatarOverlays(avatarEls);
 
         // Initialize text overlays
@@ -186,16 +204,31 @@ const BirthdayEditPosterPopup = ({
             .map((el, idx) => ({
                 ...el,
                 id: el.id || el._id || `text-${idx}`,
-                content: el.content || (el.type === 'username' ? (viewer?.userName || viewer?.name || "User") : ""),
+                // 🚀 FORCE (10,10) for fresh start as requested
+                x: 10,
+                y: 10,
+                w: el.wPercent ?? el.w ?? 40,
+                h: el.hPercent ?? el.h ?? 10,
+                content: el.content || el.textConfig?.content || (el.type === 'username' ? (viewer?.userName || viewer?.name || "User") : ""),
                 style: el.textConfig || el.style || {},
                 visible: el.visible !== false
             }));
+
+        textEls.forEach((el, idx) => {
+            console.log(`📝 [Init] Text slot ${idx + 1}: ID=${el.id} | Initial Position=(${el.x}%, ${el.y}%)`);
+        });
         setTextOverlays(textEls);
     }, [isOpen, postData?._id || postData?.id]);
 
     const handleAvatarUpdate = useCallback((newOverlays) => {
         console.log("🛠️ [BirthdayEditor] Updating avatar overlays", newOverlays.length);
+        // Mark that we're updating from drag to avoid conflicts
+        isUpdatingFromDrag.current = true;
         setAvatarOverlays(newOverlays);
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            isUpdatingFromDrag.current = false;
+        }, 100);
     }, []);
 
     const handleAvatarFileChange = (e, avatarId) => {
@@ -239,8 +272,8 @@ const BirthdayEditPosterPopup = ({
         const newAvatar = {
             id: newId,
             type: 'avatar',
-            x: 50,
-            y: 50,
+            x: 10,
+            y: 10,
             w: 20,
             h: 20,
             img: viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -249,6 +282,7 @@ const BirthdayEditPosterPopup = ({
             zIndex: 110,
             isManual: true
         };
+        console.log(`🖼️ [Add] New Avatar: ID=${newId} | Initial Position=(10%, 10%)`);
         setAvatarOverlays(prev => {
             const next = [...prev, newAvatar];
             console.log("🛠️ [BirthdayEditor] New overlay count:", next.length);
@@ -267,7 +301,13 @@ const BirthdayEditPosterPopup = ({
 
     const handleTextUpdate = useCallback((newOverlays) => {
         console.log("🛠️ [BirthdayEditor] Updating text overlays", newOverlays.length);
+        // Mark that we're updating from drag to avoid conflicts
+        isUpdatingFromDrag.current = true;
         setTextOverlays(newOverlays);
+        // Reset the flag after a short delay
+        setTimeout(() => {
+            isUpdatingFromDrag.current = false;
+        }, 100);
     }, []);
 
     const addNewText = () => {
@@ -276,8 +316,8 @@ const BirthdayEditPosterPopup = ({
         const newText = {
             id: newId,
             type: 'text',
-            x: 50,
-            y: 50,
+            x: 10,
+            y: 10,
             w: 40,
             h: 10,
             content: "New Text Here",
@@ -293,6 +333,7 @@ const BirthdayEditPosterPopup = ({
             zIndex: 150,
             isManual: true
         };
+        console.log(`📝 [Add] New Text: ID=${newId} | Initial Position=(10%, 10%)`);
         setTextOverlays(prev => [...prev, newText]);
         setSelectedTextId(newId);
         setCurrentView('textEdit');
@@ -314,6 +355,26 @@ const BirthdayEditPosterPopup = ({
             video.pause();
             setPreviewIsPlaying(false);
         }
+    };
+
+    const handlePreviewTimeUpdate = () => {
+        if (previewVideoRef.current) {
+            setPreviewCurrentTime(previewVideoRef.current.currentTime);
+        }
+    };
+
+    const handlePreviewMetadataLoaded = () => {
+        if (previewVideoRef.current) {
+            setPreviewDuration(previewVideoRef.current.duration);
+        }
+    };
+
+    const handlePreviewSeek = (e) => {
+        const video = previewVideoRef.current;
+        if (!video) return;
+        const seekTime = parseFloat(e.target.value);
+        video.currentTime = seekTime;
+        setPreviewCurrentTime(seekTime);
     };
 
     useEffect(() => {
@@ -344,7 +405,8 @@ const BirthdayEditPosterPopup = ({
 
         try {
             // Process all avatars: convert blobs to base64 if needed
-            const processedAvatars = await Promise.all(avatarOverlays.map(async (ov) => {
+            console.log("🚀 [Download] Starting coordinate capture for avatars...");
+            const processedAvatars = await Promise.all(avatarOverlays.map(async (ov, idx) => {
                 let imgUrl = ov.img;
                 if (imgUrl && imgUrl.startsWith('blob:')) {
                     try {
@@ -353,39 +415,50 @@ const BirthdayEditPosterPopup = ({
                         imgUrl = await new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onloadend = () => resolve(reader.result);
+                            reader.onerror = () => resolve(ov.img); // Fallback to original URL on error
                             reader.readAsDataURL(blob);
                         });
                     } catch (e) {
-                        console.error("Failed to convert avatar blob:", e);
+                        console.error(`❌ [Download] Failed to convert avatar blob for slot ${idx + 1}:`, e);
                     }
                 }
-                return {
-                    x: ov.x,
-                    y: ov.y,
-                    w: ov.w,
-                    h: ov.h,
+
+                const avatarData = {
+                    id: ov.id,
+                    x: parseFloat(Number(ov.x).toFixed(2)),
+                    y: parseFloat(Number(ov.y).toFixed(2)),
+                    w: parseFloat(Number(ov.w).toFixed(2)),
+                    h: parseFloat(Number(ov.h).toFixed(2)),
                     img: imgUrl,
                     shape: ov.shape || ov.avatarConfig?.shape || 'circle'
                 };
+
+                console.log(`👤 [Download] Avatar Slot ${idx + 1}: ID=${avatarData.id} | x=${avatarData.x}% | y=${avatarData.y}% | size=${avatarData.w}x${avatarData.h}%`);
+                return avatarData;
             }));
+
+            console.log("🚀 [Download] Starting coordinate capture for text overlays...");
+            const processedTextOverlays = textOverlays.map((ov, idx) => {
+                const textData = {
+                    id: ov.id,
+                    type: ov.type,
+                    x: parseFloat((ov.x ?? ov.xPercent ?? 10).toFixed(2)),
+                    y: parseFloat((ov.y ?? ov.yPercent ?? 10).toFixed(2)),
+                    w: parseFloat((ov.w ?? ov.wPercent ?? 40).toFixed(2)),
+                    h: parseFloat((ov.h ?? ov.hPercent ?? 10).toFixed(2)),
+                    content: ov.content,
+                    style: ov.style
+                };
+                console.log(`📝 [Download] Text Slot ${idx + 1}: ID=${textData.id} | x=${textData.x}% | y=${textData.y}% | content="${textData.content?.substring(0, 20)}..."`);
+                return textData;
+            });
 
             const customMetadata = {
                 avatarConfigs: processedAvatars,
-                textOverlays: textOverlays.map(ov => ({
-                    id: ov.id,
-                    type: ov.type,
-                    x: ov.x,
-                    y: ov.y,
-                    w: ov.w,
-                    h: ov.h,
-                    content: ov.content,
-                    style: ov.style
-                })),
-                footerConfig: {
-                    backgroundColor: dominantColor || "#000000",
-                    showElements: postData?.footerDisplay?.showElements
-                }
+                textOverlays: processedTextOverlays,
             };
+
+            console.log("📡 [Download] Final Payload customMetadata:", customMetadata);
 
             // Use fetch + blob — form.submit() silently drops long-running file responses
             const response = await fetch(`${BACKEND_URL}/api/user/feed/${feedId}/birthday-download`, {
@@ -768,6 +841,29 @@ const BirthdayEditPosterPopup = ({
                                                                 </div>
 
                                                                 <div className="space-y-4">
+                                                                    <div className="flex items-center gap-2 px-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Font Style</p>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        <button
+                                                                            onClick={() => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, style: { ...o.style, fontWeight: o.style.fontWeight === 'bold' ? 'normal' : 'bold' } } : o))}
+                                                                            className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${currentOv.style.fontWeight === 'bold' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 hover:bg-gray-50 text-gray-400'}`}
+                                                                        >
+                                                                            <span className="text-sm font-bold">B</span>
+                                                                            <span className="text-[10px] font-bold uppercase">Bold</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, style: { ...o.style, fontStyle: o.style.fontStyle === 'italic' ? 'normal' : 'italic' } } : o))}
+                                                                            className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${currentOv.style.fontStyle === 'italic' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-100 hover:bg-gray-50 text-gray-400'}`}
+                                                                        >
+                                                                            <span className="text-sm italic font-serif">I</span>
+                                                                            <span className="text-[10px] font-bold uppercase">Italic</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-4">
                                                                     <div className="flex items-center justify-between px-1">
                                                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Text Size</p>
                                                                         <span className="text-xs font-black text-blue-600">
@@ -813,163 +909,36 @@ const BirthdayEditPosterPopup = ({
                                 </div>
 
                                 {!isMobile && (
-                                    <div className="flex-1 bg-gray-50 flex flex-col relative overflow-hidden">
-                                        <button
-                                            onClick={onClose}
-                                            className="absolute top-4 right-4 z-[100] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-900 transition-all"
-                                        >
-                                            <CloseIcon />
-                                        </button>
-
-                                        <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
-                                            <div className="relative w-full max-w-[400px] flex flex-col items-center">
-                                                <div
-                                                    className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col scale-[0.75] origin-center ring-8 ring-gray-100/50"
-                                                    ref={previewContainerRef}
-                                                >
-                                                    <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">
-                                                        <PostMedia
-                                                            type={postData?.type || 'image'}
-                                                            contentUrl={postData?.contentUrl}
-                                                            ref={mediaAreaRef}
-                                                            aspectRatio={postData?.designMetadata?.canvasSettings?.aspectRatio || "1:1"}
-                                                            isTemplate={true}
-                                                            viewMode="list"
-                                                            videoRef={previewVideoRef}
-                                                            isPlaying={previewIsPlaying}
-                                                            isMuted={previewIsMuted}
-                                                            togglePlayPause={togglePreviewPlayPause}
-                                                            toggleMute={() => setPreviewIsMuted(m => !m)}
-                                                            onVideoPlay={() => setPreviewIsPlaying(true)}
-                                                            onVideoPause={() => setPreviewIsPlaying(false)}
-                                                            onVideoEnded={() => setPreviewIsPlaying(false)}
-                                                            overlaySlot={
-                                                                <>
-                                                                    <div className="absolute inset-0 pointer-events-none z-30">
-                                                                        <FeedOverlayRenderer
-                                                                            overlayElements={postData?.overlayElements?.filter(el => el.type !== 'avatar' && el.type !== 'text' && el.type !== 'username')}
-                                                                            viewer={viewer}
-                                                                            visibilityConfig={postData?.footerDisplay?.showElements}
-                                                                            prithuLogoUrl={prithuLogo}
-                                                                            isVisible={true}
-                                                                        />
-                                                                    </div>
-
-                                                                    {avatarOverlays.map(ov => (
-                                                                        <OverlayItem
-                                                                            key={ov.id}
-                                                                            ov={ov}
-                                                                            containerRef={mediaAreaRef}
-                                                                            onUpdate={handleAvatarUpdate}
-                                                                            onSelect={(id) => {
-                                                                                setSelectedAvatarId(id);
-                                                                                setCurrentView('avatarEdit');
-                                                                            }}
-                                                                            overlays={avatarOverlays}
-                                                                            isAvatar={true}
-                                                                            removeOverlay={removeAvatar}
-                                                                        />
-                                                                    ))}
-
-                                                                    {textOverlays.map(ov => (
-                                                                        <OverlayItem
-                                                                            key={ov.id}
-                                                                            ov={ov}
-                                                                            containerRef={mediaAreaRef}
-                                                                            onUpdate={handleTextUpdate}
-                                                                            onSelect={(id) => {
-                                                                                setSelectedTextId(id);
-                                                                                setCurrentView('textEdit');
-                                                                            }}
-                                                                            overlays={textOverlays}
-                                                                            isAvatar={false}
-                                                                            removeOverlay={removeText}
-                                                                        />
-                                                                    ))}
-                                                                </>
-                                                            }
-                                                            footerSlot={
-                                                                postData?.hasFooter && (
-                                                                    <div
-                                                                        className="relative w-full z-30 shrink-0 flex flex-col border-t border-white/10"
-                                                                        style={{
-                                                                            backgroundColor: dominantColor || '#000000',
-                                                                            paddingTop: `${8 * usernameSize}px`,
-                                                                            paddingBottom: `${8 * usernameSize}px`,
-                                                                            gap: `${4 * usernameSize}px`,
-                                                                        }}
-                                                                    >
-                                                                        <div className="flex items-center justify-between px-4">
-                                                                            <span className="text-white font-bold truncate" style={{ fontSize: `14px` }}>
-                                                                                {viewer?.userName || "Username"}
-                                                                            </span>
-                                                                            <div className="flex items-center gap-2">
-                                                                                {[1, 2].map(id => (
-                                                                                    <div key={id} className="bg-white/20 rounded-full" style={{ padding: `6px` }}>
-                                                                                        <div style={{ width: `14px`, height: `14px` }} className="bg-white/40 rounded-full" />
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="flex items-center justify-between px-4">
-                                                                            <span className="text-white/80 text-[10px]" style={{ fontSize: `12px` }}>{viewer?.email || "email@example.com"}</span>
-                                                                            <span className="text-white/80 text-[10px]" style={{ fontSize: `12px` }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-
-
-                                            </div>
-                                            <button
-                                                onClick={handleDownload}
-                                                title="Download Poster"
-                                                className="
-  absolute bottom-12 right-20 z-50
-  flex items-center justify-center gap-2
-  px-6 py-4
-  rounded-2xl
-  bg-gradient-to-br from-blue-600 to-blue-800
-  text-white
-  shadow-[0_10px_25px_rgba(0,0,0,0.4)]
-  overflow-hidden
-  transition-all duration-300
-  hover:scale-105
-  hover:shadow-[0_15px_35px_rgba(59,130,246,0.6)]
-  active:scale-95
-  "
-                                            >
-                                                <span className="
-    absolute inset-0 
-    -translate-x-full 
-    bg-gradient-to-r 
-    from-transparent 
-    via-white/20 
-    to-transparent 
-    group-hover:translate-x-full 
-    transition-transform 
-    duration-1000
-  " />
-
-                                                <DownloadIcon
-                                                    fontSize="medium"
-                                                    className="
-       relative z-10
-       transition-transform duration-300
-       group-hover:scale-110
-       group-hover:rotate-6
-     "
-                                                />
-
-                                                <span className="relative z-10 font-medium tracking-wide">
-                                                    Download
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <PosterPreviewArea
+                                        onClose={onClose}
+                                        previewContainerRef={previewContainerRef}
+                                        postData={postData}
+                                        mediaAreaRef={mediaAreaRef}
+                                        previewVideoRef={previewVideoRef}
+                                        previewIsPlaying={previewIsPlaying}
+                                        previewIsMuted={previewIsMuted}
+                                        togglePreviewPlayPause={togglePreviewPlayPause}
+                                        setPreviewIsMuted={setPreviewIsMuted}
+                                        setPreviewIsPlaying={setPreviewIsPlaying}
+                                        viewer={viewer}
+                                        prithuLogo={prithuLogo}
+                                        avatarOverlays={avatarOverlays}
+                                        handleAvatarUpdate={handleAvatarUpdate}
+                                        setSelectedAvatarId={setSelectedAvatarId}
+                                        setCurrentView={setCurrentView}
+                                        removeAvatar={removeAvatar}
+                                        isUpdatingFromDrag={isUpdatingFromDrag.current}
+                                        textOverlays={textOverlays}
+                                        handleTextUpdate={handleTextUpdate}
+                                        setSelectedTextId={setSelectedTextId}
+                                        removeText={removeText}
+                                        handleDownload={handleDownload}
+                                        previewDuration={previewDuration}
+                                        previewCurrentTime={previewCurrentTime}
+                                        onPreviewTimeUpdate={handlePreviewTimeUpdate}
+                                        onPreviewMetadataLoaded={handlePreviewMetadataLoaded}
+                                        onPreviewSeek={handlePreviewSeek}
+                                    />
                                 )}
                             </div>
                         </motion.div>

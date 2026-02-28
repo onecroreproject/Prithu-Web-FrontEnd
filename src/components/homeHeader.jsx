@@ -208,7 +208,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/reels", label: "Reels", Icon: Video, desc: "Watch short videos", color: "pink" },
     { to: "/home/images", label: "Image Feed", Icon: Image, desc: "Browse images only", color: "blue" },
-    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple", isComingSoon: true },
+    { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
     { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink", isComingSoon: true },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue", isComingSoon: true },
   ];

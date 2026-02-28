@@ -970,7 +970,7 @@ function Postcard({
               }
               footerSlot={
                 /* 2. FOOTER CONFIG (Placed below isolated media area) */
-                isTemplate && hasFooter && (() => {
+                isTemplate && hasFooter && category !== 'birthday' && (() => {
                   const footer = postData.footerDisplay || {};
                   const showElements = footer.showElements || {};
                   const icons = (footer.socialIcons || []).filter(

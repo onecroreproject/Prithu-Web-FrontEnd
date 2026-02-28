@@ -79,7 +79,7 @@ const MediaWrapper = forwardRef(({
           ref={(el) => {
             mediaRef.current = el;
           }}
-          className="relative flex-1 min-h-0 w-full flex items-center justify-center p-0 m-0 overflow-hidden"
+          className="relative flex-1 min-h-0 w-full flex items-center justify-start p-0 m-0 overflow-hidden"
         >
           {children}
           {overlaySlot}
@@ -97,11 +97,12 @@ const MediaWrapper = forwardRef(({
               width: '100%',
               height: '100%',
               aspectRatio: naturalAspectRatio || '1/1',
-              top: '50%',
+              top: '0',
               left: '50%',
-              transform: 'translate(-50%, -50%)',
+              transform: 'translateX(-50%)',
               maxHeight: '100%',
-              maxWidth: '100%'
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}
           >
             {fullFrameOverlaySlot}
@@ -145,7 +146,9 @@ const PostMedia = forwardRef(({
   fullFrameOverlaySlot, // Passed to MediaWrapper
   footerSlot,
   viewMode = "list",
-  containerRef: passedContainerRef // Renamed to avoid shadowed variable
+  containerRef: passedContainerRef, // Renamed to avoid shadowed variable
+  onTimeUpdate,
+  onLoadedMetadata
 }, ref) => {
   const outerContainerRef = useRef(null);
   const lastTap = useRef(0);
@@ -271,7 +274,8 @@ const PostMedia = forwardRef(({
     if (video.videoWidth && video.videoHeight) {
       setNaturalAspectRatio(video.videoWidth / video.videoHeight);
     }
-  }, [runExtractionWithRetry]);
+    onLoadedMetadata?.(e);
+  }, [runExtractionWithRetry, onLoadedMetadata]);
 
   // Additional trigger: When video actually starts playing
   const handleVideoPlaying = useCallback((e) => {
@@ -417,13 +421,14 @@ const PostMedia = forwardRef(({
           onPlay={() => onVideoPlay?.()}
           onPause={() => onVideoPause?.()}
           onEnded={() => onVideoEnded?.()}
+          onTimeUpdate={onTimeUpdate}
           onDoubleClick={(e) => {
             e.stopPropagation();
             handleTap(e);
           }}
         />
         {/* Play/Pause Overlay should be absolute relative to this video-containing div */}
-        {type === "video" && !isPlaying && (
+        {type === "video" && !isPlaying && !isTemplate && (
           <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
             <div className="bg-black/40 p-4 rounded-full backdrop-blur-sm transform transition-all duration-300 scale-110">
               <svg className="w-10 h-10 text-white fill-current" viewBox="0 0 24 24">
