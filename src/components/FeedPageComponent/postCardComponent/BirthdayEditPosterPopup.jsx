@@ -140,6 +140,7 @@ const BirthdayEditPosterPopup = ({
     const [avatarCropSrc, setAvatarCropSrc] = useState(null);
     const [showAvatarCropper, setShowAvatarCropper] = useState(false);
     const [avatarOverlays, setAvatarOverlays] = useState([]);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Local Text Settings (Post-specific) - Transitioned to multi-slot
     const [textOverlays, setTextOverlays] = useState([]);
@@ -401,6 +402,8 @@ const BirthdayEditPosterPopup = ({
             return toast.error("Please login to download");
         }
 
+        if (isDownloading) return;
+        setIsDownloading(true);
         const toastId = toast.loading("Processing your video... This may take up to 30 seconds.", { id: 'dl-toast' });
 
         try {
@@ -486,6 +489,8 @@ const BirthdayEditPosterPopup = ({
         } catch (error) {
             console.error("Download error:", error);
             toast.error(error.message || "Download failed", { id: toastId });
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -531,17 +536,30 @@ const BirthdayEditPosterPopup = ({
                             initial="hidden"
                             animate="visible"
                             exit="exit"
-                            drag={!isMobile ? false : true}
-                            dragMomentum={false}
-                            dragElastic={0.1}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             className={`relative w-full bg-white shadow-2xl overflow-hidden flex flex-col transition-all duration-300
-                ${isMobile ? 'rounded-t-3xl pb-10 min-h-[300px]' : 'h-screen w-screen fixed inset-0 z-[10001]'}`}
+                                ${isMobile ? 'h-screen w-screen fixed inset-0 z-[10001]' : 'h-screen w-screen fixed inset-0 z-[10001]'}`}
                         >
-                            <div className={`flex flex-col sm:flex-row h-full overflow-hidden ${isMobile ? '' : 'h-full bg-white'}`}>
-                                <div className={`flex flex-col ${isMobile ? 'w-full' : 'sm:w-[450px] border-r border-gray-100'} p-6 bg-white z-10`}>
-                                    <div className="flex items-center gap-4 mb-8">
-                                        {(currentView !== 'root' || !isMobile) && (
+                            <div className={`flex flex-col sm:flex-row h-full overflow-hidden bg-white`}>
+                                {/* Mobile Header */}
+                                {isMobile && (
+                                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-[100]">
+                                        <h3 className="text-lg font-bold text-gray-900">
+                                            {currentView === 'root' ? 'Birthday Editor' :
+                                                currentView === 'avatarList' ? 'Select Slot' :
+                                                    currentView === 'avatarEdit' ? 'Edit Photo' :
+                                                        currentView === 'textList' ? 'Select Text' : 'Edit Text'}
+                                        </h3>
+                                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                                            <CloseIcon />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Editor Sidebar / Mobile Bottom Bar */}
+                                <div className={`flex flex-col ${isMobile ? 'order-2 w-full border-t border-gray-100' : 'sm:w-[450px] border-r border-gray-100'} bg-white z-10`}>
+                                    {!isMobile && (
+                                        <div className="flex items-center gap-4 p-6 mb-2">
                                             <button
                                                 onClick={() => {
                                                     if (currentView === 'root') onClose();
@@ -550,259 +568,341 @@ const BirthdayEditPosterPopup = ({
                                                 className="p-2.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500 flex items-center gap-2 group"
                                             >
                                                 <BackIcon fontSize="small" className="group-hover:-translate-x-0.5 transition-transform" />
-                                                {!isMobile && currentView === 'root' && <span className="text-sm font-semibold">Back to Feed</span>}
+                                                {currentView === 'root' && <span className="text-sm font-semibold">Back to Feed</span>}
                                             </button>
-                                        )}
-                                        {currentView !== 'root' && (
                                             <h3 className="text-xl font-bold text-gray-900 line-clamp-1">
-                                                {currentView === 'avatarList' ? 'Select Avatar Slot' :
-                                                    currentView === 'avatarEdit' ? 'Edit Photo & Shape' :
-                                                        currentView === 'textEdit' ? 'Text Style & Size' : 'Birthday Editor'}
+                                                {currentView === 'root' ? 'Birthday Editor' :
+                                                    currentView === 'avatarList' ? 'Select Avatar Slot' :
+                                                        currentView === 'avatarEdit' ? 'Edit Photo & Shape' :
+                                                            currentView === 'textEdit' ? 'Text Style & Size' : 'Text Selection'}
                                             </h3>
-                                        )}
-                                        {currentView === 'root' && (
-                                            <h3 className="text-xl font-bold text-gray-900">Birthday Editor</h3>
-                                        )}
-                                        {isMobile && (
-                                            <div className="ml-auto flex items-center gap-1">
-                                                <button
-                                                    onClick={handleDownload}
-                                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
-                                                    title="Download"
-                                                >
-                                                    <DownloadIcon fontSize="small" />
-                                                </button>
-                                                <button
-                                                    onClick={onClose}
-                                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-                                                >
-                                                    <CloseIcon />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
 
-                                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                                    <div className={`${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto pr-1 custom-scrollbar p-6'}`}>
                                         <AnimatePresence mode="wait">
                                             {currentView === 'root' && (
-                                                <motion.div key="root" {...viewVariants} className="space-y-2">
-                                                    <MenuButton
-                                                        icon={AvatarIcon}
-                                                        label="Edit Profile Avatars"
-                                                        onClick={() => setCurrentView('avatarList')}
-                                                    />
-                                                    <MenuButton
-                                                        icon={TextSizeIcon}
-                                                        label="Edit Text & Style"
-                                                        onClick={() => setCurrentView('textList')}
-                                                    />
-                                                    <p className="text-[10px] text-gray-400 px-4 mt-2 italic">
-                                                        Note: Font and size changes apply to the current post only.
-                                                    </p>
+                                                <motion.div
+                                                    key="root"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'flex items-center justify-around py-4 px-2' : 'space-y-2'}`}
+                                                >
+                                                    {isMobile ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => setCurrentView('avatarList')}
+                                                                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-blue-50">
+                                                                    <AvatarIcon fontSize="small" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Avatars</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCurrentView('textList')}
+                                                                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-blue-50">
+                                                                    <TextSizeIcon fontSize="small" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Text</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={handleDownload}
+                                                                disabled={isDownloading}
+                                                                className="flex flex-col items-center gap-1 p-2 text-blue-600 active:scale-95 transition-all"
+                                                            >
+                                                                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-blue-200 shadow-lg">
+                                                                    {isDownloading ? (
+                                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                    ) : (
+                                                                        <DownloadIcon fontSize="small" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Download</span>
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <MenuButton
+                                                                icon={AvatarIcon}
+                                                                label="Edit Profile Avatars"
+                                                                onClick={() => setCurrentView('avatarList')}
+                                                            />
+                                                            <MenuButton
+                                                                icon={TextSizeIcon}
+                                                                label="Edit Text & Style"
+                                                                onClick={() => setCurrentView('textList')}
+                                                            />
+                                                            <p className="text-[10px] text-gray-400 px-4 mt-2 italic">
+                                                                Note: Font and size changes apply to the current post only.
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </motion.div>
                                             )}
 
                                             {currentView === 'avatarList' && (
-                                                <motion.div key="avatarList" {...viewVariants} className="space-y-3">
-                                                    <div className="flex items-center justify-between px-1">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select an avatar to edit</p>
-                                                        <button
-                                                            onClick={addNewAvatar}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-sm active:scale-95"
-                                                        >
-                                                            <PlusIcon fontSize="inherit" /> Add New
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {avatarOverlays.map((ov, idx) => (
+                                                <motion.div
+                                                    key="avatarList"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-4'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Select Slot</h4>
                                                             <button
-                                                                key={ov.id}
-                                                                onClick={() => {
-                                                                    setSelectedAvatarId(ov.id);
-                                                                    setCurrentView('avatarEdit');
-                                                                }}
-                                                                className="flex items-center gap-4 p-3 bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-2xl transition-all group"
+                                                                onClick={() => setCurrentView('root')}
+                                                                className="p-1.5 bg-gray-100 rounded-full text-gray-500"
                                                             >
-                                                                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm ring-2 ring-gray-100">
-                                                                    <img src={ov.img} className="w-full h-full object-cover" />
-                                                                </div>
-                                                                <div className="flex flex-col items-start">
-                                                                    <span className="font-bold text-gray-700">Avatar Slot {idx + 1} {ov.isManual && <span className="text-[10px] text-blue-500 font-normal">(Added)</span>}</span>
-                                                                    <span className="text-xs text-gray-400">Tap to edit photo or shape</span>
-                                                                </div>
-                                                                <ChevronIcon className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
                                                             </button>
-                                                        ))}
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between px-1">
+                                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select an avatar</p>
+                                                            {!isMobile && (
+                                                                <button
+                                                                    onClick={addNewAvatar}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-sm active:scale-95"
+                                                                >
+                                                                    <PlusIcon fontSize="inherit" /> Add New
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {avatarOverlays.map((ov, idx) => (
+                                                                <button
+                                                                    key={ov.id}
+                                                                    onClick={() => {
+                                                                        setSelectedAvatarId(ov.id);
+                                                                        setCurrentView('avatarEdit');
+                                                                    }}
+                                                                    className="flex items-center gap-4 p-3 bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-2xl transition-all group text-left"
+                                                                >
+                                                                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm ring-2 ring-gray-100">
+                                                                        <img src={ov.img} className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                    <div className="flex flex-col items-start flex-1 min-w-0">
+                                                                        <span className="font-bold text-gray-700 truncate w-full">Slot {idx + 1} {ov.isManual && <span className="text-[10px] text-blue-500 font-normal">(Added)</span>}</span>
+                                                                        <span className="text-xs text-gray-400">Edit photo or shape</span>
+                                                                    </div>
+                                                                    <ChevronIcon className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                                                                </button>
+                                                            ))}
+                                                            {isMobile && (
+                                                                <button
+                                                                    onClick={addNewAvatar}
+                                                                    className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 font-bold hover:border-blue-200 hover:text-blue-500 transition-all"
+                                                                >
+                                                                    <PlusIcon fontSize="small" /> Add Another Slot
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </motion.div>
                                             )}
 
                                             {currentView === 'avatarEdit' && (
-                                                <motion.div key="avatarEdit" {...viewVariants} className="space-y-5">
-                                                    {(() => {
-                                                        const currentOv = avatarOverlays.find(o => o.id === selectedAvatarId);
-                                                        if (!currentOv) return null;
+                                                <motion.div
+                                                    key="avatarEdit"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-4'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Adjust Avatar</h4>
+                                                            <button
+                                                                onClick={() => setCurrentView('avatarList')}
+                                                                className="p-1.5 bg-gray-100 rounded-full text-gray-500"
+                                                            >
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-5">
+                                                        {(() => {
+                                                            const currentOv = avatarOverlays.find(o => o.id === selectedAvatarId);
+                                                            if (!currentOv) return null;
 
-                                                        return (
-                                                            <>
-                                                                <input
-                                                                    ref={avatarFileInputRef}
-                                                                    type="file"
-                                                                    accept="image/*"
-                                                                    className="hidden"
-                                                                    onChange={(e) => handleAvatarFileChange(e, currentOv.id)}
-                                                                />
+                                                            return (
+                                                                <>
+                                                                    <input
+                                                                        ref={avatarFileInputRef}
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        className="hidden"
+                                                                        onChange={(e) => handleAvatarFileChange(e, currentOv.id)}
+                                                                    />
 
-                                                                <div className="flex flex-col items-center gap-3 py-2">
-                                                                    <div className="relative">
-                                                                        <div className={`w-28 h-28 ${currentOv.shape === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100`}>
-                                                                            <img
-                                                                                src={currentOv.img}
-                                                                                alt="Current Avatar"
-                                                                                className="w-full h-full object-cover"
-                                                                            />
+                                                                    <div className="flex flex-col items-center gap-3 py-2">
+                                                                        <div className="relative">
+                                                                            <div className={`w-24 h-24 ${currentOv.shape === 'circle' ? 'rounded-full' : 'rounded-2xl'} overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100`}>
+                                                                                <img
+                                                                                    src={currentOv.img}
+                                                                                    alt="Current Avatar"
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            </div>
+                                                                            <div className="absolute -bottom-1 -right-1 flex gap-1">
+                                                                                <button
+                                                                                    onClick={() => avatarFileInputRef.current?.click()}
+                                                                                    title="Change photo"
+                                                                                    className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95 border-2 border-white"
+                                                                                >
+                                                                                    <CameraIcon sx={{ fontSize: 14 }} />
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="absolute -bottom-1 -right-1 flex gap-1">
+                                                                    </div>
+
+                                                                    <div className="space-y-3">
+                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Shape</p>
+                                                                        <div className="flex gap-3">
                                                                             <button
-                                                                                onClick={addNewAvatar}
-                                                                                title="Add another slot"
-                                                                                className="p-2 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all active:scale-95 border-2 border-white"
+                                                                                onClick={() => setAvatarOverlays(prev => prev.map(o => o.id === selectedAvatarId ? { ...o, shape: 'circle' } : o))}
+                                                                                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${currentOv.shape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
                                                                             >
-                                                                                <PlusIcon sx={{ fontSize: 16 }} />
+                                                                                <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-gray-300" />
+                                                                                <span className="text-[10px] font-bold text-gray-700">Circle</span>
                                                                             </button>
                                                                             <button
-                                                                                onClick={() => avatarFileInputRef.current?.click()}
-                                                                                title="Change photo"
-                                                                                className="p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95 border-2 border-white"
+                                                                                onClick={() => setAvatarOverlays(prev => prev.map(o => o.id === selectedAvatarId ? { ...o, shape: 'square' } : o))}
+                                                                                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${currentOv.shape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
                                                                             >
-                                                                                <CameraIcon sx={{ fontSize: 16 }} />
+                                                                                <div className="w-8 h-8 rounded-lg bg-gray-200 border-2 border-gray-300" />
+                                                                                <span className="text-[10px] font-bold text-gray-700">Square</span>
                                                                             </button>
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-sm text-gray-500 text-center">
-                                                                        Slot: {avatarOverlays.findIndex(o => o.id === selectedAvatarId) + 1}
-                                                                    </p>
-                                                                </div>
 
-                                                                <div className="space-y-3">
-                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Avatar Shape</p>
-                                                                    <div className="flex gap-3">
-                                                                        <button
-                                                                            onClick={() => setAvatarOverlays(prev => prev.map(o => o.id === selectedAvatarId ? { ...o, shape: 'circle' } : o))}
-                                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${currentOv.shape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                                        >
-                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-gray-300" />
-                                                                            <span className="text-xs font-bold text-gray-700">Circle</span>
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => setAvatarOverlays(prev => prev.map(o => o.id === selectedAvatarId ? { ...o, shape: 'square' } : o))}
-                                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${currentOv.shape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                                        >
-                                                                            <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-gray-300" />
-                                                                            <span className="text-xs font-bold text-gray-700">Square</span>
-                                                                        </button>
+                                                                    <div className="space-y-2">
+                                                                        {currentOv.isManual && (
+                                                                            <button
+                                                                                onClick={() => removeAvatar(currentOv.id)}
+                                                                                className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl transition-all text-xs"
+                                                                            >
+                                                                                Remove Slot
+                                                                            </button>
+                                                                        )}
+                                                                        {!currentOv.isManual && (
+                                                                            <button
+                                                                                onClick={() => resetAvatarToDefault(currentOv.id)}
+                                                                                className="w-full py-3 px-4 bg-gray-50 text-gray-600 font-bold rounded-2xl transition-all text-xs"
+                                                                            >
+                                                                                Reset to Default
+                                                                            </button>
+                                                                        )}
                                                                     </div>
-                                                                </div>
-
-                                                                <div className="space-y-2">
-                                                                    <button
-                                                                        onClick={() => avatarFileInputRef.current?.click()}
-                                                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl transition-all border border-blue-100 active:scale-[0.98]"
-                                                                    >
-                                                                        <CameraIcon fontSize="small" />
-                                                                        Choose New Photo
-                                                                    </button>
-                                                                    {currentOv.isManual ? (
-                                                                        <button
-                                                                            onClick={() => removeAvatar(currentOv.id)}
-                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl transition-all border border-red-100 active:scale-[0.98]"
-                                                                        >
-                                                                            <CloseIcon fontSize="small" />
-                                                                            Remove This Slot
-                                                                        </button>
-                                                                    ) : (
-                                                                        <button
-                                                                            onClick={() => resetAvatarToDefault(currentOv.id)}
-                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 font-bold rounded-2xl transition-all border border-gray-100 active:scale-[0.98]"
-                                                                        >
-                                                                            Reset to Default
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-
-                                                                <div className="pt-2 pb-1">
-                                                                    <p className="text-xs text-gray-400 text-center">
-                                                                        💡 Drag &amp; resize elements directly on the preview.
-                                                                    </p>
-                                                                </div>
-                                                            </>
-                                                        );
-                                                    })()}
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </motion.div>
                                             )}
 
                                             {currentView === 'textList' && (
-                                                <motion.div key="textList" {...viewVariants} className="space-y-3">
-                                                    <div className="flex items-center justify-between px-1">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tap a text slot to edit</p>
-                                                        <button
-                                                            onClick={addNewText}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-all shadow-sm active:scale-95"
-                                                        >
-                                                            <PlusIcon fontSize="inherit" /> Add New
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {textOverlays.map((ov, idx) => (
+                                                <motion.div
+                                                    key="textList"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-4'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Select Text</h4>
                                                             <button
-                                                                key={ov.id}
-                                                                onClick={() => {
-                                                                    setSelectedTextId(ov.id);
-                                                                    setCurrentView('textEdit');
-                                                                }}
-                                                                className="flex items-center gap-4 p-3 bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-2xl transition-all group"
+                                                                onClick={() => setCurrentView('root')}
+                                                                className="p-1.5 bg-gray-100 rounded-full text-gray-500"
                                                             >
-                                                                <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
-                                                                    <TextSizeIcon fontSize="small" className="text-gray-400" />
-                                                                </div>
-                                                                <div className="flex flex-col items-start overflow-hidden">
-                                                                    <span className="font-bold text-gray-700 truncate w-full">
-                                                                        {ov.content || "Empty Text"}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-gray-400 uppercase font-black">
-                                                                        Slot {idx + 1} {ov.isManual && <span className="text-blue-500">(Added)</span>}
-                                                                    </span>
-                                                                </div>
-                                                                <ChevronIcon className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
                                                             </button>
-                                                        ))}
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between px-1">
+                                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select text</p>
+                                                            {!isMobile && (
+                                                                <button
+                                                                    onClick={addNewText}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-all shadow-sm active:scale-95"
+                                                                >
+                                                                    <PlusIcon fontSize="inherit" /> Add New
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {textOverlays.map((ov, idx) => (
+                                                                <button
+                                                                    key={ov.id}
+                                                                    onClick={() => {
+                                                                        setSelectedTextId(ov.id);
+                                                                        setCurrentView('textEdit');
+                                                                    }}
+                                                                    className="flex items-center gap-4 p-3 bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-2xl transition-all group text-left"
+                                                                >
+                                                                    <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                                                                        <TextSizeIcon fontSize="small" className="text-gray-400" />
+                                                                    </div>
+                                                                    <div className="flex flex-col items-start flex-1 min-w-0">
+                                                                        <span className="font-bold text-gray-700 truncate w-full">
+                                                                            {ov.content || "Empty Text"}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-gray-400 uppercase font-black">
+                                                                            Slot {idx + 1}
+                                                                        </span>
+                                                                    </div>
+                                                                    <ChevronIcon className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                                                                </button>
+                                                            ))}
+                                                            {isMobile && (
+                                                                <button
+                                                                    onClick={addNewText}
+                                                                    className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 font-bold hover:border-blue-200 hover:text-blue-500 transition-all"
+                                                                >
+                                                                    <PlusIcon fontSize="small" /> Add Another Text
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </motion.div>
                                             )}
 
                                             {currentView === 'textEdit' && (
-                                                <motion.div key="textEdit" {...viewVariants} className="space-y-6">
+                                                <motion.div
+                                                    key="textEdit"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-6'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Style Text</h4>
+                                                            <button
+                                                                onClick={() => setCurrentView('textList')}
+                                                                className="p-1.5 bg-gray-100 rounded-full text-gray-500"
+                                                            >
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     {(() => {
                                                         const currentOv = textOverlays.find(o => o.id === selectedTextId);
                                                         if (!currentOv) return null;
 
                                                         return (
-                                                            <>
+                                                            <div className="space-y-6">
                                                                 <div className="space-y-2">
-                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Text Content</p>
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Content</p>
                                                                     <textarea
                                                                         value={currentOv.content}
                                                                         onChange={(e) => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, content: e.target.value } : o))}
-                                                                        className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium text-gray-700 resize-none h-24"
-                                                                        placeholder="Type your message..."
+                                                                        className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium text-gray-700 resize-none h-20 text-sm"
+                                                                        placeholder="Type here..."
                                                                     />
                                                                 </div>
 
                                                                 <div className="space-y-4">
-                                                                    <div className="flex items-center gap-2 px-1">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Font Family</p>
-                                                                    </div>
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Font Family</p>
                                                                     <div className="grid grid-cols-2 gap-2">
                                                                         {[
                                                                             { id: 'Inter', name: 'Modern' },
@@ -841,10 +941,7 @@ const BirthdayEditPosterPopup = ({
                                                                 </div>
 
                                                                 <div className="space-y-4">
-                                                                    <div className="flex items-center gap-2 px-1">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Font Style</p>
-                                                                    </div>
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Font Style</p>
                                                                     <div className="grid grid-cols-2 gap-2">
                                                                         <button
                                                                             onClick={() => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, style: { ...o.style, fontWeight: o.style.fontWeight === 'bold' ? 'normal' : 'bold' } } : o))}
@@ -899,7 +996,7 @@ const BirthdayEditPosterPopup = ({
                                                                         </button>
                                                                     )}
                                                                 </div>
-                                                            </>
+                                                            </div>
                                                         );
                                                     })()}
                                                 </motion.div>
@@ -908,7 +1005,8 @@ const BirthdayEditPosterPopup = ({
                                     </div>
                                 </div>
 
-                                {!isMobile && (
+                                {/* Main Preview Area (Desktop & Mobile) */}
+                                <div className="flex-1 min-w-0 bg-gray-50 relative overflow-hidden flex flex-col">
                                     <PosterPreviewArea
                                         onClose={onClose}
                                         previewContainerRef={previewContainerRef}
@@ -933,13 +1031,14 @@ const BirthdayEditPosterPopup = ({
                                         setSelectedTextId={setSelectedTextId}
                                         removeText={removeText}
                                         handleDownload={handleDownload}
+                                        isDownloading={isDownloading}
                                         previewDuration={previewDuration}
                                         previewCurrentTime={previewCurrentTime}
                                         onPreviewTimeUpdate={handlePreviewTimeUpdate}
                                         onPreviewMetadataLoaded={handlePreviewMetadataLoaded}
                                         onPreviewSeek={handlePreviewSeek}
                                     />
-                                )}
+                                </div>
                             </div>
                         </motion.div>
                     </div>

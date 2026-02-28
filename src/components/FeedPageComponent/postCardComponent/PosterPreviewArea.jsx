@@ -40,7 +40,9 @@ const PosterPreviewArea = ({
     previewCurrentTime = 0,
     onPreviewTimeUpdate,
     onPreviewMetadataLoaded,
-    onPreviewSeek
+    onPreviewSeek,
+    footerSlot,
+    isDownloading = false
 }) => {
     const [isHovering, setIsHovering] = useState(false);
 
@@ -58,8 +60,8 @@ const PosterPreviewArea = ({
                 <CloseIcon />
             </button>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
-                <div className="relative w-full max-w-[400px] flex flex-col items-center scale-[0.8] origin-center">
+            <div className={`flex-1 flex flex-col items-center justify-center ${typeof window !== 'undefined' && window.innerWidth < 768 ? 'p-4' : 'p-8'} overflow-y-auto`}>
+                <div className={`relative w-full max-w-[400px] flex flex-col items-center ${typeof window !== 'undefined' && window.innerWidth < 768 ? 'scale-[0.9]' : 'scale-[0.8]'} origin-center`}>
                     <div
                         className="w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 relative flex flex-col ring-8 ring-gray-100/50"
                         style={{ aspectRatio: '9/16' }}
@@ -148,13 +150,14 @@ const PosterPreviewArea = ({
                                         ))}
                                     </>
                                 }
+                                footerSlot={footerSlot}
                             />
                         </div>
                     </div>
 
                     {/* 🚀 COMPACT VIDEO CONTROLS (Below Media) */}
                     {postData?.type === 'video' && (
-                        <div className={`w-full max-w-[400px] mt-4 px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center gap-4 transition-all duration-500 ${isHovering ? 'opacity-100' : 'opacity-40'}`}>
+                        <div className={`w-full max-w-[400px] mt-2 px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center gap-4 transition-all duration-500 ${isHovering ? 'opacity-100' : 'opacity-40'}`}>
                             {/* Play/Pause Integrated here */}
                             <button
                                 onClick={(e) => {
@@ -198,12 +201,19 @@ const PosterPreviewArea = ({
                 </div>
                 <button
                     onClick={handleDownload}
-                    title="Download Poster"
-                    className="absolute bottom-12 right-20 z-50 flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-[0_10px_25px_rgba(0,0,0,0.4)] overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_15px_35px_rgba(59,130,246,0.6)] active:scale-95"
+                    disabled={isDownloading}
+                    title={isDownloading ? "Processing..." : "Download Poster"}
+                    className={`${typeof window !== 'undefined' && window.innerWidth < 768 ? 'hidden' : 'flex'} absolute bottom-12 right-20 z-50 items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-[0_10px_25px_rgba(0,0,0,0.4)] overflow-hidden transition-all duration-300 ${isDownloading ? 'opacity-70 cursor-not-allowed scale-95' : 'hover:scale-105 hover:shadow-[0_15px_35px_rgba(59,130,246,0.6)] active:scale-95'}`}
                 >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
-                    <DownloadIcon fontSize="medium" className="relative z-10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
-                    <span className="relative z-10 font-medium tracking-wide">Download</span>
+                    {isDownloading ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
+                    ) : (
+                        <DownloadIcon fontSize="medium" className="relative z-10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
+                    )}
+                    <span className="relative z-10 font-medium tracking-wide">
+                        {isDownloading ? 'Processing...' : 'Download'}
+                    </span>
                 </button>
             </div>
         </div>

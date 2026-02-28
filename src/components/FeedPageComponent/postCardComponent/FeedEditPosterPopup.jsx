@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
 import OverlayItem from "./OverlayItem";
 import PostMedia from "./postMeadia";
+import PosterPreviewArea from "./PosterPreviewArea";
 import prithuLogo from "../../../assets/prithulogo.png";
 
 // ------- Avatar Crop Utility -------
@@ -110,6 +111,10 @@ const FeedEditPosterPopup = ({
     const [currentView, setCurrentView] = useState('root'); // root, style, sizes, avatarEdit
     const [previewIsPlaying, setPreviewIsPlaying] = useState(false);
     const [previewIsMuted, setPreviewIsMuted] = useState(true);
+    const [previewDuration, setPreviewDuration] = useState(0);
+    const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+    const [dragInProgress, setDragInProgress] = useState(false);
+    const isUpdatingFromDrag = useRef(false);
     // Avatar edit state
     const avatarFileInputRef = useRef(null);
     const [customAvatarUrl, setCustomAvatarUrl] = useState(null);
@@ -117,6 +122,7 @@ const FeedEditPosterPopup = ({
     const [showAvatarCropper, setShowAvatarCropper] = useState(false);
     const [avatarOverlays, setAvatarOverlays] = useState([]);
     const [selectedAvatarId, setSelectedAvatarId] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [avatarShape, setAvatarShape] = useState(() => {
         const firstAvatar = postData?.overlayElements?.find(el => el.type === 'avatar');
         return firstAvatar?.shape || firstAvatar?.avatarConfig?.shape || 'circle';
@@ -226,6 +232,26 @@ const FeedEditPosterPopup = ({
         }
     };
 
+    const handlePreviewTimeUpdate = () => {
+        if (previewVideoRef.current) {
+            setPreviewCurrentTime(previewVideoRef.current.currentTime);
+        }
+    };
+
+    const handlePreviewMetadataLoaded = () => {
+        if (previewVideoRef.current) {
+            setPreviewDuration(previewVideoRef.current.duration);
+        }
+    };
+
+    const handlePreviewSeek = (e) => {
+        const video = previewVideoRef.current;
+        if (!video) return;
+        const seekTime = parseFloat(e.target.value);
+        video.currentTime = seekTime;
+        setPreviewCurrentTime(seekTime);
+    };
+
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = "hidden";
@@ -250,6 +276,8 @@ const FeedEditPosterPopup = ({
             return toast.error("Please login to download");
         }
 
+        if (isDownloading) return;
+        setIsDownloading(true);
         const toastId = toast.loading("Processing your video... This may take up to 30 seconds.", { id: 'dl-toast' });
 
         try {
@@ -320,6 +348,8 @@ const FeedEditPosterPopup = ({
         } catch (error) {
             console.error("Download error:", error);
             toast.error(error.message || "Download failed", { id: toastId });
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -396,17 +426,29 @@ const FeedEditPosterPopup = ({
                             initial="hidden"
                             animate="visible"
                             exit="exit"
-                            drag={!isMobile ? false : true}
-                            dragMomentum={false}
-                            dragElastic={0.1}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                             className={`relative w-full bg-white shadow-2xl overflow-hidden flex flex-col transition-all duration-300
-                ${isMobile ? 'rounded-t-3xl pb-10 min-h-[300px]' : 'h-screen w-screen fixed inset-0 z-[10001]'}`}
+                                ${isMobile ? 'h-screen w-screen fixed inset-0 z-[10001]' : 'h-screen w-screen fixed inset-0 z-[10001]'}`}
                         >
-                            <div className={`flex flex-col sm:flex-row h-full overflow-hidden ${isMobile ? '' : 'h-full bg-white'}`}>
-                                <div className={`flex flex-col ${isMobile ? 'w-full' : 'sm:w-[450px] border-r border-gray-100'} p-6 bg-white z-10`}>
-                                    <div className="flex items-center gap-4 mb-8">
-                                        {(currentView !== 'root' || !isMobile) && (
+                            <div className={`flex flex-col sm:flex-row h-full overflow-hidden bg-white`}>
+                                {/* Mobile Header */}
+                                {isMobile && (
+                                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-[100]">
+                                        <h3 className="text-lg font-bold text-gray-900">
+                                            {currentView === 'root' ? 'Feed Editor' :
+                                                currentView === 'avatarEdit' ? 'Profile Avatar' :
+                                                    currentView === 'style' ? 'Footer Style' : 'Element Sizes'}
+                                        </h3>
+                                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                                            <CloseIcon />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Editor Sidebar / Mobile Bottom Bar */}
+                                <div className={`flex flex-col ${isMobile ? 'order-2 w-full border-t border-gray-100' : 'sm:w-[450px] border-r border-gray-100'} bg-white z-10`}>
+                                    {!isMobile && (
+                                        <div className="flex items-center gap-4 p-6 mb-2">
                                             <button
                                                 onClick={() => {
                                                     if (currentView === 'root') onClose();
@@ -415,311 +457,285 @@ const FeedEditPosterPopup = ({
                                                 className="p-2.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500 flex items-center gap-2 group"
                                             >
                                                 <BackIcon fontSize="small" className="group-hover:-translate-x-0.5 transition-transform" />
-                                                {!isMobile && currentView === 'root' && <span className="text-sm font-semibold">Back to Feed</span>}
+                                                {currentView === 'root' && <span className="text-sm font-semibold">Back to Feed</span>}
                                             </button>
-                                        )}
-                                        {currentView !== 'root' && (
                                             <h3 className="text-xl font-bold text-gray-900 line-clamp-1">
-                                                {currentView === 'style' ? 'Footer Style' :
-                                                    currentView === 'avatarEdit' ? 'Edit Profile Avatar' : 'Footer Sizes'}
+                                                {currentView === 'root' ? 'Feed Editor' :
+                                                    currentView === 'avatarEdit' ? 'Profile Avatar' :
+                                                        currentView === 'style' ? 'Footer Style' : 'Element Sizes'}
                                             </h3>
-                                        )}
-                                        {currentView === 'root' && (
-                                            <h3 className="text-xl font-bold text-gray-900">Feed Editor</h3>
-                                        )}
-                                        {isMobile && (
-                                            <div className="ml-auto flex items-center gap-1">
-                                                <button
-                                                    onClick={handleDownload}
-                                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
-                                                    title="Download"
+                                        </div>
+                                    )}
+
+                                    <div className={`${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto pr-1 custom-scrollbar p-6'}`}>
+                                        <AnimatePresence mode="wait">
+                                            {currentView === 'root' && (
+                                                <motion.div
+                                                    key="root"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'flex items-center justify-around py-4 px-2' : 'space-y-2'}`}
                                                 >
-                                                    <DownloadIcon fontSize="small" />
-                                                </button>
-                                                <button
-                                                    onClick={onClose}
-                                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                                                    {isMobile ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => setCurrentView('avatarEdit')}
+                                                                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-blue-50">
+                                                                    <AvatarIcon fontSize="small" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Avatar</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCurrentView('style')}
+                                                                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-blue-50">
+                                                                    <FontStyleIcon fontSize="small" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Style</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCurrentView('sizes')}
+                                                                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-blue-50">
+                                                                    <FooterIcon fontSize="small" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Sizes</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={handleDownload}
+                                                                disabled={isDownloading}
+                                                                className="flex flex-col items-center gap-1 p-2 text-blue-600 active:scale-95 transition-all"
+                                                            >
+                                                                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-blue-200 shadow-lg">
+                                                                    {isDownloading ? (
+                                                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                    ) : (
+                                                                        <DownloadIcon fontSize="small" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[10px] font-bold uppercase tracking-tighter">Download</span>
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <MenuButton icon={AvatarIcon} label="Edit Profile Avatar" onClick={() => setCurrentView('avatarEdit')} />
+                                                            <MenuButton icon={FontStyleIcon} label="Footer Font Style" onClick={() => setCurrentView('style')} />
+                                                            <MenuButton icon={FooterIcon} label="Footer Element Sizes" onClick={() => setCurrentView('sizes')} />
+                                                        </>
+                                                    )}
+                                                </motion.div>
+                                            )}
+
+                                            {currentView === 'avatarEdit' && (
+                                                <motion.div
+                                                    key="avatarEdit"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-4'}`}
                                                 >
-                                                    <CloseIcon />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <AnimatePresence mode="wait">
-                                        {currentView === 'root' && (
-                                            <motion.div key="root" {...viewVariants} className="space-y-2">
-                                                <MenuButton icon={AvatarIcon} label="Edit Profile Avatar" onClick={() => setCurrentView('avatarEdit')} />
-                                                <MenuButton icon={FontStyleIcon} label="Footer Font Style" onClick={() => setCurrentView('style')} />
-                                                <MenuButton icon={FooterIcon} label="Footer Element Sizes" onClick={() => setCurrentView('sizes')} />
-                                            </motion.div>
-                                        )}
-
-
-                                        {currentView === 'style' && (
-                                            <motion.div key="style" {...viewVariants} className="space-y-6">
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-3 text-gray-800">
-                                                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                                                            <FontStyleIcon fontSize="small" />
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Profile Avatar</h4>
+                                                            <button onClick={() => setCurrentView('root')} className="p-1.5 bg-gray-100 rounded-full text-gray-500">
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
+                                                            </button>
                                                         </div>
-                                                        <span className="font-semibold">select</span>
+                                                    )}
+                                                    <div className="space-y-5">
+                                                        <input
+                                                            ref={avatarFileInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={handleAvatarFileChange}
+                                                        />
+
+                                                        <div className="flex flex-col items-center gap-3 py-2">
+                                                            <div className="relative">
+                                                                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100">
+                                                                    <img
+                                                                        src={customAvatarUrl || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}
+                                                                        alt="Current Avatar"
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => avatarFileInputRef.current?.click()}
+                                                                    className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                                                                >
+                                                                    <CameraIcon sx={{ fontSize: 16 }} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Shape</p>
+                                                            <div className="flex gap-3">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setAvatarShape('circle');
+                                                                        setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'circle' })));
+                                                                    }}
+                                                                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                                                                >
+                                                                    <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-gray-300" />
+                                                                    <span className="text-xs font-bold text-gray-700">Circle</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setAvatarShape('square');
+                                                                        setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'square' })));
+                                                                    }}
+                                                                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                                                                >
+                                                                    <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-gray-300" />
+                                                                    <span className="text-xs font-bold text-gray-700">Square</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <button
+                                                                onClick={() => avatarFileInputRef.current?.click()}
+                                                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl transition-all border border-blue-100 active:scale-[0.98]"
+                                                            >
+                                                                <CameraIcon fontSize="small" />
+                                                                Choose New Photo
+                                                            </button>
+                                                            {customAvatarUrl && (
+                                                                <button
+                                                                    onClick={() => setCustomAvatarUrl(null)}
+                                                                    className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 font-bold rounded-2xl transition-all border border-gray-100 active:scale-[0.98]"
+                                                                >
+                                                                    Reset to Default
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto px-1 custom-scrollbar pb-6">
+                                                </motion.div>
+                                            )}
+
+                                            {currentView === 'style' && (
+                                                <motion.div
+                                                    key="style"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-6'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Footer Style</h4>
+                                                            <button onClick={() => setCurrentView('root')} className="p-1.5 bg-gray-100 rounded-full text-gray-500">
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className="grid grid-cols-2 gap-3 pb-6">
                                                         {fontOptions.map((opt) => (
                                                             <button
                                                                 key={opt.value}
                                                                 onClick={() => setFooterStyle(opt.value)}
-                                                                className={`py-4 px-2 rounded-2xl text-xl transition-all h-20 flex items-center justify-center text-center
-                                                        ${footerStyle === opt.value
-                                                                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-200 scale-[1.02] border-2 border-purple-400'
-                                                                        : 'bg-gray-50 text-gray-800 hover:bg-gray-100 border-2 border-transparent'
-                                                                    }`}
+                                                                className={`py-4 px-2 rounded-2xl text-xl transition-all h-20 flex items-center justify-center text-center border-2 ${footerStyle === opt.value ? 'bg-purple-600 text-white border-purple-400 shadow-md' : 'bg-gray-50 text-gray-800 border-transparent hover:bg-gray-100'}`}
                                                                 style={{ fontFamily: opt.value }}
                                                             >
                                                                 {opt.label}
                                                             </button>
                                                         ))}
                                                     </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
+                                                </motion.div>
+                                            )}
 
-                                        {currentView === 'sizes' && (
-                                            <motion.div key="sizes" {...viewVariants} className="space-y-6 py-2 pb-6 max-h-[400px] overflow-y-auto px-1 custom-scrollbar">
-                                                <SliderControl label="Username" icon={UserIcon} value={usernameSize} onChange={setUsernameSize} colorClass="blue" />
-                                                <SliderControl label="Social Icons" icon={SocialIcon} value={socialSize} onChange={setSocialSize} colorClass="purple" />
-                                                <SliderControl label="Email Address" icon={EmailIcon} value={emailSize} onChange={setEmailSize} colorClass="indigo" />
-                                                <SliderControl label="Phone Number" icon={PhoneIcon} value={phoneSize} onChange={setPhoneSize} colorClass="green" />
-                                            </motion.div>
-                                        )}
-
-                                        {currentView === 'avatarEdit' && (
-                                            <motion.div key="avatarEdit" {...viewVariants} className="space-y-5">
-                                                <input
-                                                    ref={avatarFileInputRef}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={handleAvatarFileChange}
-                                                />
-
-                                                <div className="flex flex-col items-center gap-3 py-2">
-                                                    <div className="relative">
-                                                        <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100">
-                                                            <img
-                                                                src={customAvatarUrl || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}
-                                                                alt="Current Avatar"
-                                                                className="w-full h-full object-cover"
-                                                            />
+                                            {currentView === 'sizes' && (
+                                                <motion.div
+                                                    key="sizes"
+                                                    {...viewVariants}
+                                                    className={`${isMobile ? 'fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] p-8 z-[200] max-h-[80vh] overflow-y-auto' : 'space-y-6'}`}
+                                                >
+                                                    {isMobile && (
+                                                        <div className="flex items-center justify-between mb-6">
+                                                            <h4 className="font-bold text-gray-900">Element Sizes</h4>
+                                                            <button onClick={() => setCurrentView('root')} className="p-1.5 bg-gray-100 rounded-full text-gray-500">
+                                                                <CloseIcon sx={{ fontSize: 18 }} />
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            onClick={() => avatarFileInputRef.current?.click()}
-                                                            className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95"
-                                                        >
-                                                            <CameraIcon sx={{ fontSize: 16 }} />
-                                                        </button>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 text-center">
-                                                        {customAvatarUrl ? 'Custom avatar applied to preview' : 'Using your profile avatar'}
-                                                    </p>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Avatar Shape</p>
-                                                    <div className="flex gap-3">
-                                                        <button
-                                                            onClick={() => {
-                                                                setAvatarShape('circle');
-                                                                setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'circle' })));
-                                                            }}
-                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                        >
-                                                            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-gray-300" />
-                                                            <span className="text-xs font-bold text-gray-700">Circle Fade</span>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setAvatarShape('square');
-                                                                setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'square' })));
-                                                            }}
-                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                        >
-                                                            <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-gray-300" />
-                                                            <span className="text-xs font-bold text-gray-700">Square Fade</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <button
-                                                        onClick={() => avatarFileInputRef.current?.click()}
-                                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl transition-all border border-blue-100 active:scale-[0.98]"
-                                                    >
-                                                        <CameraIcon fontSize="small" />
-                                                        Choose New Photo
-                                                    </button>
-                                                    {customAvatarUrl && (
-                                                        <button
-                                                            onClick={() => { setCustomAvatarUrl(null); toast('Reverted to profile avatar'); }}
-                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 font-bold rounded-2xl transition-all border border-gray-100 active:scale-[0.98]"
-                                                        >
-                                                            Reset to Default
-                                                        </button>
                                                     )}
-                                                </div>
-
-                                                <div className="pt-2 pb-1">
-                                                    <p className="text-xs text-gray-400 text-center">
-                                                        💡 After choosing, drag &amp; resize the avatar directly on the preview.
-                                                    </p>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                                    <div className="space-y-6 pb-6">
+                                                        <SliderControl label="Username" icon={UserIcon} value={usernameSize} onChange={setUsernameSize} colorClass="blue" />
+                                                        <SliderControl label="Social" icon={SocialIcon} value={socialSize} onChange={setSocialSize} colorClass="purple" />
+                                                        <SliderControl label="Email" icon={EmailIcon} value={emailSize} onChange={setEmailSize} colorClass="indigo" />
+                                                        <SliderControl label="Phone" icon={PhoneIcon} value={phoneSize} onChange={setPhoneSize} colorClass="green" />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
 
-                                {!isMobile && (
-                                    <div className="flex-1 bg-gray-50 flex flex-col relative overflow-hidden">
-                                        <button
-                                            onClick={onClose}
-                                            className="absolute top-4 right-4 z-[100] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-900 transition-all"
-                                        >
-                                            <CloseIcon />
-                                        </button>
-
-                                        <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
-                                            <div
-                                                className="relative w-full max-w-[360px] bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 flex flex-col ring-8 ring-gray-100/50"
-                                                style={{ aspectRatio: '9/16' }}
-                                                ref={previewContainerRef}
-                                            >
-                                                <div className="relative flex-1 w-full overflow-hidden flex flex-col items-center justify-center">
-                                                    <PostMedia
-                                                        type={postData?.type || 'image'}
-                                                        contentUrl={postData?.contentUrl}
-                                                        aspectRatio={postData?.designMetadata?.canvasSettings?.aspectRatio || "1:1"}
-                                                        isTemplate={true}
-                                                        viewMode="list"
-                                                        containerRef={mediaAreaRef} // Precise coordinate anchoring
-                                                        videoRef={previewVideoRef}
-                                                        isPlaying={previewIsPlaying}
-                                                        isMuted={previewIsMuted}
-                                                        togglePlayPause={togglePreviewPlayPause}
-                                                        toggleMute={() => setPreviewIsMuted(m => !m)}
-                                                        onVideoPlay={() => setPreviewIsPlaying(true)}
-                                                        onVideoPause={() => setPreviewIsPlaying(false)}
-                                                        onVideoEnded={() => setPreviewIsPlaying(false)}
-                                                        fullFrameOverlaySlot={
-                                                            <>
-                                                                {/* Absolute Overlays (Absolute Parity with Backend 720x1280) */}
-                                                                {postData?.overlayElements?.length > 0 && (
-                                                                    <div className="absolute inset-0 pointer-events-none z-30">
-                                                                        <FeedOverlayRenderer
-                                                                            overlayElements={postData.overlayElements?.filter(el => el.type !== 'avatar')}
-                                                                            viewer={customAvatarUrl ? { ...viewer, modifyAvatar: customAvatarUrl, profileAvatar: customAvatarUrl } : viewer}
-                                                                            visibilityConfig={postData.footerDisplay?.showElements}
-                                                                            prithuLogoUrl={prithuLogo}
-                                                                            isVisible={true}
-                                                                        />
-                                                                    </div>
-                                                                )}
-
-                                                                {avatarOverlays.map(ov => (
-                                                                    <OverlayItem
-                                                                        key={ov.id}
-                                                                        ov={ov}
-                                                                        containerRef={mediaAreaRef}
-                                                                        onUpdate={handleAvatarUpdate}
-                                                                        overlays={avatarOverlays}
-                                                                        isAvatar={true}
-                                                                        onSelect={() => setSelectedAvatarId(ov.id)}
-                                                                    />
-                                                                ))}
-                                                            </>
-                                                        }
-                                                        footerSlot={
-                                                            postData?.hasFooter && (
-                                                                <div
-                                                                    className="relative w-full z-30 shrink-0 flex flex-col border-t border-white/10"
-                                                                    style={{
-                                                                        backgroundColor: dominantColor || '#000000',
-                                                                        paddingTop: `${8 * usernameSize}px`,
-                                                                        paddingBottom: `${8 * usernameSize}px`,
-                                                                        gap: `${4 * usernameSize}px`,
-                                                                    }}
-                                                                >
-                                                                    <div className="flex items-center justify-between px-4">
-                                                                        <span className="text-white font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle }}>
-                                                                            {viewer?.userName || "Username"}
-                                                                        </span>
-                                                                        <div className="flex items-center gap-2">
-                                                                            {[1, 2].map(id => (
-                                                                                <div key={id} className="bg-white/20 rounded-full" style={{ padding: `${6 * socialSize}px` }}>
-                                                                                    <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px` }} className="bg-white/40 rounded-full" />
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex items-center justify-between px-4">
-                                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle }}>{viewer?.email || "email@example.com"}</span>
-                                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
-                                                                    </div>
+                                {/* Preview Area */}
+                                <div className="flex-1 min-w-0 bg-gray-50 relative overflow-hidden flex flex-col">
+                                    <PosterPreviewArea
+                                        onClose={onClose}
+                                        previewContainerRef={previewContainerRef}
+                                        postData={postData}
+                                        mediaAreaRef={mediaAreaRef}
+                                        previewVideoRef={previewVideoRef}
+                                        previewIsPlaying={previewIsPlaying}
+                                        previewIsMuted={previewIsMuted}
+                                        togglePreviewPlayPause={togglePreviewPlayPause}
+                                        setPreviewIsMuted={setPreviewIsMuted}
+                                        setPreviewIsPlaying={setPreviewIsPlaying}
+                                        viewer={viewer}
+                                        prithuLogo={prithuLogo}
+                                        avatarOverlays={avatarOverlays}
+                                        handleAvatarUpdate={handleAvatarUpdate}
+                                        setSelectedAvatarId={setSelectedAvatarId}
+                                        setCurrentView={setCurrentView}
+                                        removeAvatar={() => { }}
+                                        isUpdatingFromDrag={isUpdatingFromDrag.current}
+                                        textOverlays={[]}
+                                        handleTextUpdate={() => { }}
+                                        setSelectedTextId={() => { }}
+                                        removeText={() => { }}
+                                        handleDownload={handleDownload}
+                                        isDownloading={isDownloading}
+                                        previewDuration={previewDuration}
+                                        previewCurrentTime={previewCurrentTime}
+                                        onPreviewTimeUpdate={handlePreviewTimeUpdate}
+                                        onPreviewMetadataLoaded={handlePreviewMetadataLoaded}
+                                        onPreviewSeek={handlePreviewSeek}
+                                        footerSlot={
+                                            postData?.hasFooter && (
+                                                <div
+                                                    className="relative w-full z-30 shrink-0 flex flex-col border-t border-white/10"
+                                                    style={{
+                                                        backgroundColor: dominantColor || '#000000',
+                                                        paddingTop: `${8 * usernameSize}px`,
+                                                        paddingBottom: `${8 * usernameSize}px`,
+                                                        gap: `${4 * usernameSize}px`,
+                                                    }}
+                                                >
+                                                    <div className="flex items-center justify-between px-4">
+                                                        <span className="text-white font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle }}>
+                                                            {viewer?.userName || "Username"}
+                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {[1, 2].map(id => (
+                                                                <div key={id} className="bg-white/20 rounded-full" style={{ padding: `${6 * socialSize}px` }}>
+                                                                    <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px` }} className="bg-white/40 rounded-full" />
                                                                 </div>
-                                                            )
-                                                        }
-                                                    />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between px-4">
+                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle }}>{viewer?.email || "email@example.com"}</span>
+                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-
-
-                                        </div>
-                                        <button
-                                            onClick={handleDownload}
-                                            title="Download Poster"
-                                            className="
-  absolute bottom-12 right-20 z-50
-  flex items-center justify-center gap-2
-  px-6 py-4
-  rounded-2xl
-  bg-gradient-to-br from-blue-600 to-blue-800
-  text-white
-  shadow-[0_10px_25px_rgba(0,0,0,0.4)]
-  overflow-hidden
-  transition-all duration-300
-  hover:scale-105
-  hover:shadow-[0_15px_35px_rgba(59,130,246,0.6)]
-  active:scale-95
-  "
-                                        >
-                                            <span className="
-    absolute inset-0 
-    -translate-x-full 
-    bg-gradient-to-r 
-    from-transparent 
-    via-white/20 
-    to-transparent 
-    group-hover:translate-x-full 
-    transition-transform 
-    duration-1000
-  " />
-
-                                            <DownloadIcon
-                                                fontSize="medium"
-                                                className="
-       relative z-10
-       transition-transform duration-300
-       group-hover:scale-110
-       group-hover:rotate-6
-     "
-                                            />
-
-                                            <span className="relative z-10 font-medium tracking-wide">
-                                                Download
-                                            </span>
-                                        </button>
-                                    </div>
-                                )}
+                                            )
+                                        }
+                                    />
+                                </div>
                             </div>
                         </motion.div>
                     </div>

@@ -61,7 +61,7 @@ const MediaWrapper = forwardRef(({
 
   // Determine width based on view mode and screen size
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const containerWidth = isTemplate ? '100%' : ((viewMode === 'list' && isMobile) ? '72%' : '100%');
+  const containerWidth = '100%'; // Always 100% to fill its given container (e.g. 320px card)
 
   return (
     <div className="relative z-10 flex flex-col w-full h-full max-w-full max-h-full items-center justify-center pointer-events-none">
