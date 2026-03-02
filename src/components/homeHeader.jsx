@@ -207,9 +207,8 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
-    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink", isComingSoon: true },
-    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue", isComingSoon: true },
-    { to: "/home/blogs", label: "Our Stories", Icon: MessageSquare, desc: "Read our blogs", color: "indigo" },
+    { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink" },
+    { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
   ];
 
   // Profile menu items

@@ -82,6 +82,7 @@ export default function FeedOverlayRenderer({
         let content = null;
 
         if (el.type === "logo") {
+            if (!prithuLogoUrl) return null;
             content = (
                 <img
                     src={prithuLogoUrl}

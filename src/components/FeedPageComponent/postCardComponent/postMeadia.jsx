@@ -96,12 +96,8 @@ const MediaWrapper = forwardRef(({
             style={{
               width: '100%',
               height: '100%',
-              aspectRatio: naturalAspectRatio || '1/1',
               top: '0',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              maxHeight: '100%',
-              maxWidth: '100%',
+              left: '0',
               boxSizing: 'border-box'
             }}
           >

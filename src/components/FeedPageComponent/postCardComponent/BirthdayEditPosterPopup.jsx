@@ -1022,12 +1022,14 @@ const BirthdayEditPosterPopup = ({
                                         prithuLogo={prithuLogo}
                                         avatarOverlays={avatarOverlays}
                                         handleAvatarUpdate={handleAvatarUpdate}
+                                        selectedAvatarId={selectedAvatarId}
                                         setSelectedAvatarId={setSelectedAvatarId}
                                         setCurrentView={setCurrentView}
                                         removeAvatar={removeAvatar}
                                         isUpdatingFromDrag={isUpdatingFromDrag.current}
                                         textOverlays={textOverlays}
                                         handleTextUpdate={handleTextUpdate}
+                                        selectedTextId={selectedTextId}
                                         setSelectedTextId={setSelectedTextId}
                                         removeText={removeText}
                                         handleDownload={handleDownload}
@@ -1037,6 +1039,7 @@ const BirthdayEditPosterPopup = ({
                                         onPreviewTimeUpdate={handlePreviewTimeUpdate}
                                         onPreviewMetadataLoaded={handlePreviewMetadataLoaded}
                                         onPreviewSeek={handlePreviewSeek}
+                                        showOrigin={true}
                                     />
                                 </div>
                             </div>

@@ -17,6 +17,7 @@ import {
     AccountCircle as AvatarIcon,
     PhotoCamera as CameraIcon,
     Check as CheckIcon,
+    Add as PlusIcon,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
@@ -24,6 +25,39 @@ import OverlayItem from "./OverlayItem";
 import PostMedia from "./postMeadia";
 import PosterPreviewArea from "./PosterPreviewArea";
 import prithuLogo from "../../../assets/prithulogo.png";
+
+// ------- Contrast Color Utility -------
+// Returns '#000000' for light backgrounds, '#ffffff' for dark backgrounds.
+// Handles hex (#rgb, #rrggbb), rgb(...), rgba(...) formats.
+function getContrastColor(color) {
+    if (!color) return '#ffffff';
+    let r = 0, g = 0, b = 0;
+    const s = color.trim();
+    const rgbMatch = s.match(/rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+    if (rgbMatch) {
+        r = parseInt(rgbMatch[1]); g = parseInt(rgbMatch[2]); b = parseInt(rgbMatch[3]);
+    } else {
+        let hex = s.replace('#', '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        if (hex.length === 6) {
+            r = parseInt(hex.substring(0, 2), 16);
+            g = parseInt(hex.substring(2, 4), 16);
+            b = parseInt(hex.substring(4, 6), 16);
+        } else {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = 1;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = s;
+                ctx.fillRect(0, 0, 1, 1);
+                const d = ctx.getImageData(0, 0, 1, 1).data;
+                r = d[0]; g = d[1]; b = d[2];
+            } catch { return '#ffffff'; }
+        }
+    }
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+}
 
 // ------- Avatar Crop Utility -------
 async function getCroppedImg(imageSrc, pixelCrop) {
@@ -131,6 +165,8 @@ const FeedEditPosterPopup = ({
     useEffect(() => {
         if (!isOpen || !postData?.overlayElements) return;
 
+        console.log("📍 [FeedEditor] postData.overlayElements from postCard:", postData.overlayElements);
+
         // Check if we already have overlays initialized for this specific feed
         // This prevents resetting manual resizes/drags when the parent re-renders
         if (avatarOverlays.length > 0) {
@@ -148,7 +184,7 @@ const FeedEditPosterPopup = ({
             .map(el => ({
                 ...el,
                 id: el.id || el._id || `avatar-${Math.random()}`,
-                x: el.xPercent ?? el.x ?? 10,
+                x: (el.xPercent ?? el.x ?? 10) - 2.7,
                 y: el.yPercent ?? el.y ?? 75,
                 w: el.wPercent ?? el.w ?? 22,
                 h: el.hPercent ?? el.h ?? 22,
@@ -171,6 +207,7 @@ const FeedEditPosterPopup = ({
                 zIndex: 100
             });
         }
+        console.log("📍 [FeedEditor] Initial Avatar Overlays:", avatarEls);
         setAvatarOverlays(avatarEls);
         if (avatarEls.length > 0 && !selectedAvatarId) {
             setSelectedAvatarId(avatarEls[0].id);
@@ -185,6 +222,7 @@ const FeedEditPosterPopup = ({
     const handleAvatarUpdate = (newOverlays) => {
         setAvatarOverlays(newOverlays);
     };
+
 
     const handleAvatarFileChange = (e) => {
         const file = e.target.files?.[0];
@@ -322,6 +360,8 @@ const FeedEditPosterPopup = ({
                 }
             };
 
+            console.log("📤 [FeedEditor] Download Payload (customMetadata):", customMetadata);
+
             // Use fetch + blob — form.submit() silently drops long-running file responses
             const response = await fetch(`${BACKEND_URL}/api/user/feed/${feedId}/direct-download`, {
                 method: 'POST',
@@ -351,6 +391,11 @@ const FeedEditPosterPopup = ({
         } finally {
             setIsDownloading(false);
         }
+    };
+
+    const removeAvatar = (id) => {
+        setAvatarOverlays(prev => prev.filter(o => o.id !== id));
+        if (selectedAvatarId === id) setSelectedAvatarId(null);
     };
 
 
@@ -660,7 +705,7 @@ const FeedEditPosterPopup = ({
                                                             </button>
                                                         </div>
                                                     )}
-                                                    <div className="space-y-6 pb-6">
+                                                    <div className="space-y-6">
                                                         <SliderControl label="Username" icon={UserIcon} value={usernameSize} onChange={setUsernameSize} colorClass="blue" />
                                                         <SliderControl label="Social" icon={SocialIcon} value={socialSize} onChange={setSocialSize} colorClass="purple" />
                                                         <SliderControl label="Email" icon={EmailIcon} value={emailSize} onChange={setEmailSize} colorClass="indigo" />
@@ -689,14 +734,12 @@ const FeedEditPosterPopup = ({
                                         prithuLogo={prithuLogo}
                                         avatarOverlays={avatarOverlays}
                                         handleAvatarUpdate={handleAvatarUpdate}
+                                        selectedAvatarId={selectedAvatarId}
                                         setSelectedAvatarId={setSelectedAvatarId}
                                         setCurrentView={setCurrentView}
-                                        removeAvatar={() => { }}
                                         isUpdatingFromDrag={isUpdatingFromDrag.current}
                                         textOverlays={[]}
-                                        handleTextUpdate={() => { }}
-                                        setSelectedTextId={() => { }}
-                                        removeText={() => { }}
+                                        removeAvatar={removeAvatar}
                                         handleDownload={handleDownload}
                                         isDownloading={isDownloading}
                                         previewDuration={previewDuration}
@@ -704,6 +747,7 @@ const FeedEditPosterPopup = ({
                                         onPreviewTimeUpdate={handlePreviewTimeUpdate}
                                         onPreviewMetadataLoaded={handlePreviewMetadataLoaded}
                                         onPreviewSeek={handlePreviewSeek}
+                                        showOrigin={false}
                                         footerSlot={
                                             postData?.hasFooter && (
                                                 <div
@@ -715,22 +759,32 @@ const FeedEditPosterPopup = ({
                                                         gap: `${4 * usernameSize}px`,
                                                     }}
                                                 >
-                                                    <div className="flex items-center justify-between px-4">
-                                                        <span className="text-white font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle }}>
-                                                            {viewer?.userName || "Username"}
-                                                        </span>
-                                                        <div className="flex items-center gap-2">
-                                                            {[1, 2].map(id => (
-                                                                <div key={id} className="bg-white/20 rounded-full" style={{ padding: `${6 * socialSize}px` }}>
-                                                                    <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px` }} className="bg-white/40 rounded-full" />
+                                                    {(() => {
+                                                        const fgColor = getContrastColor(dominantColor || '#000000');
+                                                        const fgMuted = fgColor === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)';
+                                                        const iconBg = fgColor === '#ffffff' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)';
+                                                        const iconDot = fgColor === '#ffffff' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.25)';
+                                                        return (
+                                                            <>
+                                                                <div className="flex items-center justify-between px-4">
+                                                                    <span className="font-bold truncate" style={{ fontSize: `${14 * usernameSize}px`, fontFamily: footerStyle, color: fgColor }}>
+                                                                        {viewer?.userName || "Username"}
+                                                                    </span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {[1, 2].map(id => (
+                                                                            <div key={id} className="rounded-full" style={{ padding: `${6 * socialSize}px`, backgroundColor: iconBg }}>
+                                                                                <div style={{ width: `${14 * socialSize}px`, height: `${14 * socialSize}px`, backgroundColor: iconDot, borderRadius: '9999px' }} />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-between px-4">
-                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle }}>{viewer?.email || "email@example.com"}</span>
-                                                        <span className="text-white/80 text-[10px]" style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
-                                                    </div>
+                                                                <div className="flex items-center justify-between px-4">
+                                                                    <span style={{ fontSize: `${12 * emailSize}px`, fontFamily: footerStyle, color: fgMuted }}>{viewer?.email || "email@example.com"}</span>
+                                                                    <span style={{ fontSize: `${12 * phoneSize}px`, fontFamily: footerStyle, color: fgMuted }}>{viewer?.phoneNumber || "+91 9999999999"}</span>
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )
                                         }

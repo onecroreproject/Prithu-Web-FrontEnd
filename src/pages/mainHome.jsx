@@ -9,6 +9,7 @@ import SEO from '../components/SEO';
 // Lazy load heavy components
 const Footer = lazy(() => import('../components/Footer'));
 const FeedSliderSection = lazy(() => import('../components/FeedSliderSection'));
+const BlogSliderSection = lazy(() => import('../components/BlogSliderSection'));
 const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
 
 import { AnimatedCounter, AnimatedIcon } from '../components/HomeComponents/LandingSubComponents';
@@ -361,6 +362,11 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Our Stories Slider Section */}
+        <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>}>
+          <BlogSliderSection />
+        </Suspense>
 
         {/* Download App Section */}
         <section className="py-24 px-4 relative overflow-hidden">

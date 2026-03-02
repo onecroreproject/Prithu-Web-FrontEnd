@@ -25,16 +25,20 @@ const PosterPreviewArea = ({
     setPreviewIsPlaying,
     viewer,
     prithuLogo,
-    avatarOverlays,
+    avatarOverlays = [],
     handleAvatarUpdate,
+    selectedAvatarId,
     setSelectedAvatarId,
     setCurrentView,
     removeAvatar,
     isUpdatingFromDrag,
-    textOverlays,
+    textOverlays = [],
     handleTextUpdate,
+    selectedTextId,
     setSelectedTextId,
     removeText,
+    leaderOverlays = [],
+    handleUpdateSelection,
     handleDownload,
     previewDuration = 0,
     previewCurrentTime = 0,
@@ -42,7 +46,8 @@ const PosterPreviewArea = ({
     onPreviewMetadataLoaded,
     onPreviewSeek,
     footerSlot,
-    isDownloading = false
+    isDownloading = false,
+    showOrigin = false
 }) => {
     const [isHovering, setIsHovering] = useState(false);
 
@@ -107,12 +112,14 @@ const PosterPreviewArea = ({
                                 fullFrameOverlaySlot={
                                     <>
                                         {/* 📍 Origin Marker: (0,0) */}
-                                        <div
-                                            className="absolute top-0 left-0 w-4 h-4 bg-red-600 rounded-full -translate-x-1/2 -translate-y-1/2 z-[100] flex items-center justify-center border-2 border-white shadow-lg pointer-events-none"
-                                            title="Origin (0,0)"
-                                        >
-                                            <span className="text-[10px] text-white font-bold">0</span>
-                                        </div>
+                                        {showOrigin && (
+                                            <div
+                                                className="absolute top-0 left-0 w-4 h-4 bg-red-600 rounded-full -translate-x-1/2 -translate-y-1/2 z-[100] flex items-center justify-center border-2 border-white shadow-lg pointer-events-none"
+                                                title="Origin (0,0)"
+                                            >
+                                                <span className="text-[10px] text-white font-bold">0</span>
+                                            </div>
+                                        )}
 
                                         {/* ✅ OverlayItems live here — inside the aspect-ratio-locked div that matches the actual video frame */}
                                         {avatarOverlays.map(ov => (
@@ -129,6 +136,7 @@ const PosterPreviewArea = ({
                                                 isAvatar={true}
                                                 removeOverlay={removeAvatar}
                                                 isUpdatingFromDrag={isUpdatingFromDrag}
+                                                isActive={ov.id === selectedAvatarId}
                                             />
                                         ))}
 
@@ -146,6 +154,23 @@ const PosterPreviewArea = ({
                                                 isAvatar={false}
                                                 removeOverlay={removeText}
                                                 isUpdatingFromDrag={isUpdatingFromDrag}
+                                                isActive={ov.id === selectedTextId}
+                                            />
+                                        ))}
+
+                                        {/* ✅ Politics Leader Overlays */}
+                                        {(leaderOverlays || []).map((ov) => (
+                                            <OverlayItem
+                                                key={ov.id}
+                                                ov={ov}
+                                                containerRef={mediaAreaRef}
+                                                onUpdate={handleUpdateSelection}
+                                                onSelect={() => { }}
+                                                overlays={leaderOverlays}
+                                                isAvatar={true}
+                                                removeOverlay={(id) => handleUpdateSelection?.(leaderOverlays.filter(l => l.id !== id))}
+                                                isUpdatingFromDrag={isUpdatingFromDrag}
+                                                isActive={false}
                                             />
                                         ))}
                                     </>

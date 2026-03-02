@@ -11,7 +11,8 @@ export default function OverlayItem({
     removeOverlay,
     isAvatar = false,
     onSelect,
-    isUpdatingFromDrag = false
+    isUpdatingFromDrag = false,
+    isActive = false
 }) {
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -236,8 +237,8 @@ export default function OverlayItem({
 
         resizeStartData.current = {
             corner,
-            startX: e.clientX,
-            startY: e.clientY,
+            startX: e.clientX || (e.touches && e.touches[0].clientX),
+            startY: e.clientY || (e.touches && e.touches[0].clientY),
             startLeft: pixelPos.left,
             startTop: pixelPos.top,
             startWidth: pixelPos.width,
@@ -248,11 +249,17 @@ export default function OverlayItem({
             startHPercent: ov.h
         };
 
-        const onMouseMove = (moveEvent) => {
-            moveEvent.preventDefault();
+        const onMove = (moveEvent) => {
+            if (moveEvent.cancelable) moveEvent.preventDefault();
             moveEvent.stopPropagation();
 
             if (!resizeStartData.current || !containerRef.current) return;
+
+            // Extract coordinates from mouse or touch
+            const clientX = moveEvent.clientX || (moveEvent.touches && moveEvent.touches[0].clientX);
+            const clientY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0].clientY);
+
+            if (clientX === undefined || clientY === undefined) return;
 
             // Cancel any pending animation frame
             if (animationFrameRef.current) {
@@ -266,8 +273,8 @@ export default function OverlayItem({
                 const scaleX = rect.width / containerRef.current.offsetWidth || 1;
                 const scaleY = rect.height / containerRef.current.offsetHeight || 1;
 
-                const deltaX = (moveEvent.clientX - resizeStartData.current.startX) / scaleX;
-                const deltaY = (moveEvent.clientY - resizeStartData.current.startY) / scaleY;
+                const deltaX = (clientX - resizeStartData.current.startX) / scaleX;
+                const deltaY = (clientY - resizeStartData.current.startY) / scaleY;
 
                 let newLeft = resizeStartData.current.startLeft;
                 let newTop = resizeStartData.current.startTop;
@@ -359,9 +366,12 @@ export default function OverlayItem({
             });
         };
 
-        const onMouseUp = () => {
-            document.removeEventListener("mousemove", onMouseMove);
-            document.removeEventListener("mouseup", onMouseUp);
+        const onEnd = () => {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onEnd);
+            document.removeEventListener("touchmove", onMove);
+            document.removeEventListener("touchend", onEnd);
+
             setIsResizing(false);
             // Clear local position to use original ov values
             setLocalPosition(null);
@@ -372,8 +382,10 @@ export default function OverlayItem({
             }
         };
 
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", onMouseUp);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onEnd);
+        document.addEventListener("touchmove", onMove, { passive: false });
+        document.addEventListener("touchend", onEnd);
     }, [pixelPos, containerRef, isAvatar, overlays, ov.id, onUpdate, pixelsToPercentage, ov.x, ov.y, ov.w, ov.h]);
 
     // Cancel button handler
@@ -656,40 +668,56 @@ export default function OverlayItem({
 
             {/* Resize handles (MOVED OUTSIDE overflow-hidden) */}
             <div
-                className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-ns-resize shadow-lg z-[200] pointer-events-auto"
+                className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-ns-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                style={{ touchAction: 'none' }}
                 onMouseDown={(e) => handleResizeStart(e, 'top')}
+                onTouchStart={(e) => handleResizeStart(e, 'top')}
             />
             <div
-                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-ns-resize shadow-lg z-[200] pointer-events-auto"
+                className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-ns-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                style={{ touchAction: 'none' }}
                 onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+                onTouchStart={(e) => handleResizeStart(e, 'bottom')}
             />
             <div
-                className="absolute top-1/2 -translate-y-1/2 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-ew-resize shadow-lg z-[200] pointer-events-auto"
+                className={`absolute top-1/2 -translate-y-1/2 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-ew-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                style={{ touchAction: 'none' }}
                 onMouseDown={(e) => handleResizeStart(e, 'left')}
+                onTouchStart={(e) => handleResizeStart(e, 'left')}
             />
             <div
-                className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-ew-resize shadow-lg z-[200] pointer-events-auto"
+                className={`absolute top-1/2 -translate-y-1/2 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-ew-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                style={{ touchAction: 'none' }}
                 onMouseDown={(e) => handleResizeStart(e, 'right')}
+                onTouchStart={(e) => handleResizeStart(e, 'right')}
             />
 
             {/* Corner handles for avatars */}
             {isAvatar && (
                 <>
                     <div
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-nwse-resize shadow-lg z-[200] pointer-events-auto"
+                        className={`absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-nwse-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        style={{ touchAction: 'none' }}
                         onMouseDown={(e) => handleResizeStart(e, 'top-right')}
+                        onTouchStart={(e) => handleResizeStart(e, 'top-right')}
                     />
                     <div
-                        className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-nesw-resize shadow-lg z-[200] pointer-events-auto"
+                        className={`absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-nesw-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        style={{ touchAction: 'none' }}
                         onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+                        onTouchStart={(e) => handleResizeStart(e, 'bottom-right')}
                     />
                     <div
-                        className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-nwse-resize shadow-lg z-[200] pointer-events-auto"
+                        className={`absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-nwse-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        style={{ touchAction: 'none' }}
                         onMouseDown={(e) => handleResizeStart(e, 'bottom-left')}
+                        onTouchStart={(e) => handleResizeStart(e, 'bottom-left')}
                     />
                     <div
-                        className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 cursor-nesw-resize shadow-lg z-[200] pointer-events-auto"
+                        className={`absolute -top-1.5 -left-1.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white transition-opacity cursor-nesw-resize shadow-lg z-[200] pointer-events-auto ${isActive || isDragging || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        style={{ touchAction: 'none' }}
                         onMouseDown={(e) => handleResizeStart(e, 'top-left')}
+                        onTouchStart={(e) => handleResizeStart(e, 'top-left')}
                     />
                 </>
             )}
