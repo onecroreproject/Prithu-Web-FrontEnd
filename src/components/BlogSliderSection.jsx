@@ -109,7 +109,7 @@ const BlogCard = ({ blog }) => {
 
     return (
         <article
-            onClick={() => navigate(`/home/blogs/${blog.slug}`)}
+            onClick={() => navigate(`/blogs/${blog.slug}`)}
             className="group h-full bg-white/90 backdrop-blur-md rounded-[24px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-amber-50/50 hover:border-amber-200 flex flex-col cursor-pointer hover:-translate-y-1"
         >
             {/* Blog Image */}

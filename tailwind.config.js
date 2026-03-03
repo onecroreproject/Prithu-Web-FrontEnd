@@ -7,7 +7,7 @@ export default {
   ],
   theme: {
     extend: {
-          animation: {
+      animation: {
         'float': 'float 6s ease-in-out infinite',
         'pulse-slow': 'pulse 3s ease-in-out infinite',
       },
@@ -318,7 +318,9 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
   // Force legacy color space to prevent oklch usage
   experimental: {
     optimizeUniversalDefaults: false,

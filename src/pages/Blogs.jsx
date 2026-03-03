@@ -98,7 +98,7 @@ const Blogs = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: index * 0.05 }}
                                 className="group bg-white/90 backdrop-blur-md rounded-[28px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-amber-50/50 hover:border-amber-200 flex flex-col hover:-translate-y-2 cursor-pointer"
-                                onClick={() => navigate(`/home/blogs/${blog.slug}`)}
+                                onClick={() => navigate(`/blogs/${blog.slug}`)}
                             >
                                 {/* Blog Image Above */}
                                 <div className="relative h-48 overflow-hidden">

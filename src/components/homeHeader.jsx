@@ -674,6 +674,10 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     }
   };
 
+  const isBlogPage = location.pathname.startsWith("/blogs/");
+
+  if (isBlogPage) return null;
+
   return (
     <Fragment>
       {/* DESKTOP SIDEBAR - UPDATED WIDTH */}

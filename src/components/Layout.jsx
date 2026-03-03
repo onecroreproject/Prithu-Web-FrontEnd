@@ -26,8 +26,9 @@ export default function Layout() {
   const notifyfeedid = params.notifyfeedid || null;
 
   // full-width pages (no side columns)
-  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings"];
+  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings", "/blogs"];
   const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
+  const isBlogPage = location.pathname.startsWith("/blogs/");
 
   // Home page or hashtag page or retrivefeed page
   const isRetrieveFeed = location.pathname.includes("/retrivefeed");
@@ -35,7 +36,7 @@ export default function Layout() {
   const isHome = location.pathname === "/home" || isRetrieveFeed || isHashtagPage;
 
   const shouldSidebarStayExpanded = isHome && viewMode !== 'grid';
-  const showRightColumn = !isFullWidth && isHome && viewMode !== 'grid';
+  const showRightColumn = !isFullWidth && isHome && viewMode !== 'grid' && !isBlogPage;
 
   const handleBackClick = () => {
     navigate("/home");
@@ -98,7 +99,7 @@ export default function Layout() {
       )}
 
       <main className="flex-1 w-full pt-14 lg:pt-0">
-        <div className={`flex lg:pb-0 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`flex lg:pb-0 transition-all duration-300 ${(!isBlogPage && (isSidebarHovered || shouldSidebarStayExpanded)) ? "lg:ml-[280px]" : (!isBlogPage ? "lg:ml-[80px]" : "lg:ml-0")}`}>
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
               <Feed tagname={tagname} viewMode={viewMode} setViewMode={setViewMode} />
@@ -123,7 +124,7 @@ export default function Layout() {
       </main>
 
       {!["/home", "/home/reels", "/home/images", "/login", "/signup", "/create/account"].includes(location.pathname) && (
-        <div className={`transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`transition-all duration-300 ${(!isBlogPage && (isSidebarHovered || shouldSidebarStayExpanded)) ? "lg:ml-[280px]" : (!isBlogPage ? "lg:ml-[80px]" : "lg:ml-0")}`}>
           <Footer />
         </div>
       )}

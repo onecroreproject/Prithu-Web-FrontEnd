@@ -138,10 +138,12 @@ function AppRoutes() {
         {/* Help */}
         <Route path="help" element={<FAQPage />} />
         <Route path="feedback-support" element={<FeedbackPage />} />
+      </Route>
 
-        {/* Blogs */}
-        <Route path="blogs" element={<Blogs />} />
-        <Route path="blogs/:slug" element={<BlogDetail />} />
+      {/* Blogs - Moved out of Protected /home section */}
+      <Route path="/blogs" element={<Layout />}>
+        <Route index element={<Blogs />} />
+        <Route path=":slug" element={<BlogDetail />} />
       </Route>
 
       {/* Shared Post */}
