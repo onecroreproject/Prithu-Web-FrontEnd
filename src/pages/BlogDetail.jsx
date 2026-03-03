@@ -7,7 +7,7 @@ import SEO from '../components/SEO';
 import { Clock, BookOpen, ArrowLeft, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DOMPurify from 'dompurify';
-import { getMediaUrl } from '../Utils/urlHelper';
+import { getMediaUrl } from '../utils/urlHelper';
 
 const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
 
