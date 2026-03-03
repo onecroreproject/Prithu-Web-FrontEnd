@@ -5,7 +5,7 @@ import ExcitedImg from '../assets/referral_excited.png';
 import MoneyImg from '../assets/referral_money.png';
 
 const ReferralPromoPopup = ({ isOpen, onClose, title = "Coming Soon!" }) => {
-    const targetDate = new Date('2026-03-01T00:00:00');
+    const targetDate = new Date('2026-03-15T00:00:00');
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     function calculateTimeLeft() {
@@ -118,11 +118,11 @@ const ReferralPromoPopup = ({ isOpen, onClose, title = "Coming Soon!" }) => {
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.5 }}
                         >
-                            <h2 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-white to-purple-200 mb-2 tracking-tight">
+                            <h2 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-white to-purple-200 mb-2 tracking-tight text-center">
                                 {title}
                             </h2>
-                            <p className="text-blue-100/80 text-xs md:text-sm mb-4 max-w-sm mx-auto leading-relaxed">
-                                Get ready to invite your friends and unlock premium benefits! Our new <span className="text-yellow-400 font-semibold italic">Referral & Subscription</span> program launches soon.
+                            <p className="text-blue-100/80 text-xs md:text-sm mb-4 max-w-sm mx-auto leading-relaxed text-center">
+                                Get ready to invite your friends and unlock premium benefits! This feature starts from <span className="text-yellow-400 font-semibold italic text-lg">March 15th</span>.
                             </p>
                         </motion.div>
 
@@ -162,7 +162,7 @@ const ReferralPromoPopup = ({ isOpen, onClose, title = "Coming Soon!" }) => {
 
                         <div className="mt-4 flex items-center justify-center gap-2 text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">
                             <Sparkles className="w-2.5 h-2.5" />
-                            <span>Launching March 1, 2026</span>
+                            <span>Launching March 15, 2026</span>
                             <Sparkles className="w-2.5 h-2.5" />
                         </div>
                     </div>

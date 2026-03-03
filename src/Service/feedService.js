@@ -144,7 +144,7 @@ export const getAllFeeds = async (page = 1, token, categoryId = null, postType =
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-
+console.log("feeds",data.data.feeds)
     const feedsArray = data?.data?.feeds;
     const viewer = data?.data?.viewer || null;
 

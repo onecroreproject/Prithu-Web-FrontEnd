@@ -40,6 +40,8 @@ import ReferralPage from "./pages/ReferralPage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
 import Blogs from "./pages/Blogs.jsx";
 import BlogDetail from "./pages/BlogDetail.jsx";
+import WhatsNewPage from "./pages/WhatsNewPage.jsx";
+import { UpdateProvider } from "./context/UpdateContext.jsx";
 
 // Static Pages
 import AboutUs from "./pages/AboutUs.jsx";
@@ -138,6 +140,9 @@ function AppRoutes() {
         {/* Help */}
         <Route path="help" element={<FAQPage />} />
         <Route path="feedback-support" element={<FeedbackPage />} />
+
+        {/* What's New */}
+        <Route path="whats-new" element={<WhatsNewPage />} />
       </Route>
 
       {/* Blogs - Moved out of Protected /home section */}
@@ -167,8 +172,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
-          <AppRoutes />
-          <Toaster position="top-right" />
+          <UpdateProvider>
+            <AppRoutes />
+            <Toaster position="top-right" />
+          </UpdateProvider>
         </AuthProvider>
       </Router>
 

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, Image, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign, Zap
 } from "lucide-react";
 import SidebarThreeBackground from "./SidebarThreeBackground";
 import debounce from "lodash.debounce";
@@ -21,6 +21,7 @@ import CasualInterestPopup from "../components/intrestedPop-up";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
+import { useUpdates } from "../context/UpdateContext";
 // Notification count from React Query hook
 
 // Import search components
@@ -38,6 +39,7 @@ const MAX_HISTORY = 12;
 
 export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggle }) {
   const { user, token, logout, fetchUserProfile } = useAuth();
+  const { unreadCount: updatesUnreadCount } = useUpdates();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -59,7 +61,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
   const [promoTitle, setPromoTitle] = useState("");
-  const REFERRAL_LAUNCH_DATE = new Date('2026-03-01T00:00:00');
+  const REFERRAL_LAUNCH_DATE = new Date('2026-03-15T00:00:00');
 
   useEffect(() => {
     const now = new Date();
@@ -239,6 +241,14 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       Icon: MessageSquare,
       desc: "Share feedback or report issues",
       color: "indigo"
+    },
+    {
+      to: "/home/whats-new",
+      label: "What's New",
+      Icon: Zap,
+      desc: "Latest features and updates",
+      color: "yellow",
+      badge: updatesUnreadCount > 0 ? updatesUnreadCount : null
     },
   ];
 
@@ -943,7 +953,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
             </AnimatePresence>
 
             {[...profileMenuItems, ...settingsMenuItems].map((item) => {
-              const { to, label, Icon, desc, color, onClick } = item;
+              const { to, label, Icon, desc, color, onClick, badge } = item;
               const colorMap = {
                 green: "text-green-600 hover:bg-green-50",
                 slate: "text-slate-600 hover:bg-slate-50",
@@ -1043,12 +1053,17 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                       : `${colorMap[color] || "text-gray-600 hover:bg-gray-50"} hover:shadow-md hover:scale-[1.02]`}
                     `}
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5">
+                  <div className="relative flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:-translate-y-0.5 shrink-0">
                     <Icon
                       className="w-5 h-5 shrink-0 transition-colors"
                       strokeWidth={2}
                       style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.1))" }}
                     />
+                    {badge && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-0.5 shadow-sm ring-1 ring-white">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    )}
                   </div>
                   <AnimatePresence>
                     {isSidebarExpanded && (
@@ -1056,7 +1071,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        className="text-sm font-medium"
+                        className="text-sm font-medium flex-1"
                       >
                         {label}
                       </motion.span>
@@ -1369,7 +1384,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">Settings</h3>
                 <div className="space-y-1">
                   {settingsMenuItems.map((item) => {
-                    const { to, label, Icon, desc, onClick } = item;
+                    const { to, label, Icon, desc, onClick, badge } = item;
                     const isPromoItem = label === "Referral" || label === "Subscriptions";
                     const now = new Date();
                     const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
@@ -1414,8 +1429,13 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                         <div className={`p-2 rounded-lg bg-gray-100`}>
                           <Icon className="w-4 h-4" />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 flex items-center justify-between">
                           <p className="font-medium">{label}</p>
+                          {badge && (
+                            <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                              {badge > 99 ? '99+' : badge}
+                            </span>
+                          )}
                         </div>
                       </NavLink>
                     );

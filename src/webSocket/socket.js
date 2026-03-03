@@ -104,6 +104,13 @@ export const connectSocket = (token, sessionId) => {
     document.dispatchEvent(event);
   });
 
+  // ✅ NEW UPDATE PUBLISHED LISTENER (What's New badge)
+  socket.on("new-update", (data) => {
+    console.log("📢 [SOCKET] New What's New update received:", data);
+    const event = new CustomEvent("socket:newUpdate", { detail: data });
+    document.dispatchEvent(event);
+  });
+
   return socket;
 };
 

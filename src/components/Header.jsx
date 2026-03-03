@@ -47,7 +47,7 @@ export default function Header() {
   const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
   const [comingSoonData, setComingSoonData] = useState({ title: "", icon: Gift });
 
-  const REFERRAL_LAUNCH_DATE = new Date('2026-03-01T00:00:00');
+  const REFERRAL_LAUNCH_DATE = new Date('2026-03-15T00:00:00');
 
   const location = useLocation();
 
