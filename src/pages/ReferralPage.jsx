@@ -299,7 +299,7 @@ const ReferralPage = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2">Your Referral Code</h2>
-                    <p className="text-blue-100">Share this code with friends to earn ₹25 each</p>
+                    <p className="text-blue-100">Share this code with friends to earn ₹100 each</p>
                   </div>
                   <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                     <Gift className="w-6 h-6 text-white" />
@@ -368,181 +368,185 @@ const ReferralPage = () => {
             </div>
 
             {/* Referral Cycle History / Expired Earnings Section */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 p-6 animate-in fade-in duration-500">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-800">Referral Cycle History</h3>
-                  <p className="text-gray-600 text-sm mt-1">30-day windows to reach 25 referrals</p>
+            {isSubscribed && (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 p-6 animate-in fade-in duration-500">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">Referral Cycle History</h3>
+                    <p className="text-gray-600 text-sm mt-1">30-day windows to reach 25 referrals</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-xl">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                  </div>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-xl">
-                  <Calendar className="w-5 h-5 text-purple-600" />
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                {cycles.length > 0 ? cycles.map((cycle) => (
-                  <div key={cycle._id} className="border border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-200">
-                    <div className="p-4 bg-gray-50/50 flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${cycle.status === 'active' ? 'bg-blue-100 text-blue-600' :
-                            cycle.status === 'completed' ? 'bg-green-100 text-green-600' :
-                              cycle.status === 'expired' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                            {cycle.status}
-                          </span>
-                          <span className="text-sm text-gray-400 font-medium">
-                            {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-sm">
-                            <span className="text-gray-500 italic">Referrals: </span>
-                            <span className="font-bold text-gray-800">{cycle.referralCount}</span>
+                <div className="space-y-4">
+                  {cycles.length > 0 ? cycles.map((cycle) => (
+                    <div key={cycle._id} className="border border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-200">
+                      <div className="p-4 bg-gray-50/50 flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${cycle.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                              cycle.status === 'completed' ? 'bg-green-100 text-green-600' :
+                                cycle.status === 'expired' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                              }`}>
+                              {cycle.status}
+                            </span>
+                            <span className="text-sm text-gray-400 font-medium">
+                              {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
+                            </span>
                           </div>
-                          <div className="text-sm">
-                            <span className="text-gray-500 italic">Earned: </span>
-                            <span className="font-bold text-green-600">₹{cycle.earnedAmount}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => toggleCycle(cycle._id)}
-                        className="p-2 hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
-                      >
-                        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${expandedCycle === cycle._id ? 'rotate-90' : ''}`} />
-                      </button>
-                    </div>
-
-                    {expandedCycle === cycle._id && (
-                      <div className="p-4 bg-white border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
-                        {loadingDetails ? (
-                          <div className="flex items-center justify-center py-8">
-                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        ) : cycleDetails[cycle._id]?.length > 0 ? (
-                          <div className="space-y-3">
-                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cycle Referrals</h4>
-                            <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                              {cycleDetails[cycle._id].map((detail) => (
-                                <div key={detail._id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 mb-2 last:mb-0">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-xs">
-                                      {detail.userName.charAt(0)}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-gray-800 text-xs">{detail.userName}</p>
-                                      <p className="text-[10px] text-gray-500">{detail.mobileNumber}</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-[10px] text-gray-400">{new Date(detail.referralDate).toLocaleDateString()}</p>
-                                  </div>
-                                </div>
-                              ))}
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm">
+                              <span className="text-gray-500 italic">Referrals: </span>
+                              <span className="font-bold text-gray-800">{cycle.referralCount}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-500 italic">Earned: </span>
+                              <span className="font-bold text-green-600">₹{cycle.earnedAmount}</span>
                             </div>
                           </div>
-                        ) : (
-                          <div className="text-center py-8 text-gray-400 text-sm italic">
-                            No referrals recorded in this cycle.
-                          </div>
-                        )}
+                        </div>
+
+                        <button
+                          onClick={() => toggleCycle(cycle._id)}
+                          className="p-2 hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
+                        >
+                          <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${expandedCycle === cycle._id ? 'rotate-90' : ''}`} />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )) : (
-                  <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl">
-                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>No referral cycles found.</p>
-                  </div>
-                )}
+
+                      {expandedCycle === cycle._id && (
+                        <div className="p-4 bg-white border-t border-gray-100 animate-in slide-in-from-top-2 duration-300">
+                          {loadingDetails ? (
+                            <div className="flex items-center justify-center py-8">
+                              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          ) : cycleDetails[cycle._id]?.length > 0 ? (
+                            <div className="space-y-3">
+                              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Cycle Referrals</h4>
+                              <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                {cycleDetails[cycle._id].map((detail) => (
+                                  <div key={detail._id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 mb-2 last:mb-0">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center font-bold text-blue-600 text-xs">
+                                        {detail.userName.charAt(0)}
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-gray-800 text-xs">{detail.userName}</p>
+                                        <p className="text-[10px] text-gray-500">{detail.mobileNumber}</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-[10px] text-gray-400">{new Date(detail.referralDate).toLocaleDateString()}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-400 text-sm italic">
+                              No referrals recorded in this cycle.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )) : (
+                    <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl">
+                      <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p>No referral cycles found.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Referrals List */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 animate-in fade-in duration-500 delay-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">Referral History</h3>
-                    <p className="text-gray-600 text-sm mt-1">Track all your referrals and earnings</p>
-                  </div>
-                  <div className="flex gap-2">
-                    {['all', 'completed', 'pending'].map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => setActiveFilter(filter)}
-                        className={`px-4 py-2 rounded-lg transition-all duration-300 capitalize ${activeFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                      >
-                        {filter}
-                      </button>
-                    ))}
+            {isSubscribed && (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 animate-in fade-in duration-500 delay-200">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-800">Referral History</h3>
+                      <p className="text-gray-600 text-sm mt-1">Track all your referrals and earnings</p>
+                    </div>
+                    <div className="flex gap-2">
+                      {['all', 'completed', 'pending'].map((filter) => (
+                        <button
+                          key={filter}
+                          onClick={() => setActiveFilter(filter)}
+                          className={`px-4 py-2 rounded-lg transition-all duration-300 capitalize ${activeFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        >
+                          {filter}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="text-left p-4 text-sm font-medium text-gray-600">Name</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-600">Date</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-600">Amount</th>
-                      <th className="text-left p-4 text-sm font-medium text-gray-600"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {referrals.length > 0 ? referrals.map((referral, index) => (
-                      <tr
-                        key={referral._id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors animate-in fade-in slide-in-from-bottom duration-300"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                              {referral.avatar ? (
-                                <img src={referral.avatar} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="font-bold text-blue-600">
-                                  {referral.username?.charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-800">{referral.username}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-gray-700">
-                          {new Date(referral.referralDate).toLocaleDateString()}
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('completed')}`}>
-                            Completed
-                          </span>
-                        </td>
-                        <td className="p-4 font-bold text-gray-800">₹25</td>
-                        <td className="p-4 text-right">
-                          <ChevronRight className="w-4 h-4 text-gray-400 inline" />
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left p-4 text-sm font-medium text-gray-600">Name</th>
+                        <th className="text-left p-4 text-sm font-medium text-gray-600">Date</th>
+                        <th className="text-left p-4 text-sm font-medium text-gray-600">Status</th>
+                        <th className="text-left p-4 text-sm font-medium text-gray-600">Amount</th>
+                        <th className="text-left p-4 text-sm font-medium text-gray-600"></th>
                       </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="5" className="p-12 text-center text-gray-500">
-                          <div className="flex flex-col items-center gap-2">
-                            <Users className="w-12 h-12 text-gray-200" />
-                            <p>No referrals yet. Start sharing your code!</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {referrals.length > 0 ? referrals.map((referral, index) => (
+                        <tr
+                          key={referral._id}
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors animate-in fade-in slide-in-from-bottom duration-300"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                                {referral.avatar ? (
+                                  <img src={referral.avatar} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="font-bold text-blue-600">
+                                    {referral.username?.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-800">{referral.username}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 text-gray-700">
+                            {new Date(referral.referralDate).toLocaleDateString()}
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('completed')}`}>
+                              Completed
+                            </span>
+                          </td>
+                          <td className="p-4 font-bold text-gray-800">₹100</td>
+                          <td className="p-4 text-right">
+                            <ChevronRight className="w-4 h-4 text-gray-400 inline" />
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="5" className="p-12 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <Users className="w-12 h-12 text-gray-200" />
+                              <p>No referrals yet. Start sharing your code!</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Withdrawal History Section */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mt-8 animate-in fade-in duration-500 delay-300">
@@ -657,9 +661,9 @@ const ReferralPage = () => {
                 <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
                   <div className="flex items-center gap-3 mb-2">
                     <TrendingUp className="w-5 h-5 text-blue-500" />
-                    <span className="font-bold text-blue-900">Weekly Performance</span>
+                    <span className="font-bold text-blue-900">Milestone Target</span>
                   </div>
-                  <p className="text-sm text-blue-700">You've reached {stats.successfulReferrals} referrals! Keep it up to unlock special bonuses.</p>
+                  <p className="text-sm text-blue-700">Invite <strong>25 friends within 30 days</strong> to achieve your referral milestone and unlock extra rewards!</p>
                 </div>
               </div>
             </div>

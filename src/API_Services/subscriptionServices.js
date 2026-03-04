@@ -115,3 +115,15 @@ export const getUserInvoicesApi = async () => {
     }
 };
 
+// 12. Download Invoice PDF
+export const downloadInvoiceApi = async (invoiceId) => {
+    try {
+        const response = await api.get(`/api/subscription/invoice/download/${invoiceId}`, {
+            responseType: 'blob'
+        });
+        return response;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+

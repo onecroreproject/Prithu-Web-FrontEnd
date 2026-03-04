@@ -52,19 +52,6 @@ export default function Header() {
   const location = useLocation();
 
   useEffect(() => {
-    const now = new Date();
-    if (now < REFERRAL_LAUNCH_DATE) {
-      if (location.pathname === "/home/referral") {
-        setPromoTitle("Referral Program");
-        setIsPromoOpen(true);
-      } else if (location.pathname === "/home/subscriptions") {
-        setPromoTitle("Subscriptions Program");
-        setIsPromoOpen(true);
-      }
-    }
-  }, [location.pathname]);
-
-  useEffect(() => {
     setIsReelsActive(location.pathname === "/home/reels");
     setIsImagesActive(location.pathname === "/home/images");
   }, [location.pathname]);
@@ -233,17 +220,6 @@ export default function Header() {
 
   // Handle nav item clicks
   const handleNavItemClick = (item, e) => {
-    const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
-    const now = new Date();
-
-    if (isPromoItem && now < REFERRAL_LAUNCH_DATE) {
-      setPromoTitle(`${item.label} Program`);
-      setPromoRedirect(item.to);
-      setIsPromoOpen(true);
-      closeAll();
-      return;
-    }
-
     if (item.isReels) {
       handleReelClick();
     } else if (item.isImages) {
@@ -416,12 +392,8 @@ export default function Header() {
 
                     {/* Navigation Links */}
                     <div className="p-2 space-y-1">
-                      {navItems.map((item) => {
-                        const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
-                        const now = new Date();
-                        const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
-
-                        return (item.onClick || item.isReels || item.isImages || showPromo) ? (
+                      {navItems.map((item) => (
+                        (item.onClick || item.isReels || item.isImages) ? (
                           <button
                             key={item.label}
                             onClick={(e) => handleNavItemClick(item, e)}
@@ -460,8 +432,8 @@ export default function Header() {
                               <p className="text-xs text-gray-500 truncate">{item.desc}</p>
                             </div>
                           </NavLink>
-                        );
-                      })}
+                        )
+                      ))}
                     </div>
 
                     {/* Logout */}
@@ -570,12 +542,8 @@ export default function Header() {
 
               {/* Navigation Links */}
               <div className="space-y-1 mb-4">
-                {navItems.map((item) => {
-                  const isPromoItem = item.label === "Referral" || item.label === "Subscriptions";
-                  const now = new Date();
-                  const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
-
-                  return (item.onClick || item.isReels || item.isImages || showPromo) ? (
+                {navItems.map((item) => (
+                  (item.onClick || item.isReels || item.isImages) ? (
                     <button
                       key={item.label}
                       onClick={(e) => {
@@ -617,8 +585,8 @@ export default function Header() {
                         <p className="text-xs text-gray-500">{item.desc}</p>
                       </div>
                     </NavLink>
-                  );
-                })}
+                  )
+                ))}
               </div>
 
               {/* Logout */}

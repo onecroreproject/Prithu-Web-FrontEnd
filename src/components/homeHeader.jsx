@@ -64,19 +64,6 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const REFERRAL_LAUNCH_DATE = new Date('2026-03-15T00:00:00');
 
   useEffect(() => {
-    const now = new Date();
-    if (now < REFERRAL_LAUNCH_DATE) {
-      if (location.pathname === "/home/referral") {
-        setPromoTitle("Referral Program");
-        setIsPromoOpen(true);
-      } else if (location.pathname === "/home/subscriptions") {
-        setPromoTitle("Subscriptions Program");
-        setIsPromoOpen(true);
-      }
-    }
-  }, [location.pathname]);
-
-  useEffect(() => {
     setIsReelsActive(location.pathname === "/home/reels");
     setIsImagesActive(location.pathname === "/home/images");
   }, [location.pathname]);
@@ -971,9 +958,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 indigo: "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500",
               };
 
-              const isPromoItem = label === "Referral" || label === "Subscriptions";
               const now = new Date();
-              const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
 
               // PORTFOLIO SPECIAL CASE
               if (label === "Portfolio") {
@@ -1005,18 +990,13 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 );
               }
 
-              // If explicit onClick is provided or it's a promo item
-              if (onClick || showPromo) {
+              // If explicit onClick is provided
+              if (onClick) {
                 return (
                   <button
                     key={label}
                     onClick={(e) => {
-                      if (showPromo) {
-                        setPromoTitle(`${label} Program`);
-                        setIsPromoOpen(true);
-                      } else {
-                        onClick(e);
-                      }
+                      onClick(e);
                     }}
                     className={`flex items-center rounded-xl transition-all duration-200 w-full text-left group mb-1
                         ${isSidebarExpanded ? "px-3 gap-3 py-2.5 justify-start" : "px-0 justify-center py-2.5"} 
@@ -1385,21 +1365,14 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
                 <div className="space-y-1">
                   {settingsMenuItems.map((item) => {
                     const { to, label, Icon, desc, onClick, badge } = item;
-                    const isPromoItem = label === "Referral" || label === "Subscriptions";
                     const now = new Date();
-                    const showPromo = isPromoItem && now < REFERRAL_LAUNCH_DATE;
 
-                    if (onClick || showPromo) {
+                    if (onClick) {
                       return (
                         <button
                           key={label}
                           onClick={(e) => {
-                            if (showPromo) {
-                              setPromoTitle(`${label} Program`);
-                              setIsPromoOpen(true);
-                            } else {
-                              onClick({ preventDefault: () => { } });
-                            }
+                            onClick({ preventDefault: () => { } });
                             handleMobileMenuClose();
                           }}
                           className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left text-gray-700 hover:bg-gray-50"

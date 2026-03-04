@@ -8,11 +8,9 @@ import {
     Clock,
     ArrowRight
 } from 'lucide-react';
-import { getUserInvoicesApi } from '../../API_Services/subscriptionServices';
+import { getUserInvoicesApi, downloadInvoiceApi } from '../../API_Services/subscriptionServices';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
 import { useAuth } from '../../context/AuthContext';
-import PrithuLogo from '../../assets/prithu_logo.webp';
 
 
 
@@ -41,158 +39,29 @@ const InvoiceHistory = () => {
         }
     };
 
-    const generateInvoicePDF = async (invoice) => {
+    const handleDownloadInvoice = async (invoice) => {
         try {
-            const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const accentColor = [5, 150, 105]; // Emerald 600 - Professional Green
+            toast.loading('Preparing invoice PDF...');
+            const response = await downloadInvoiceApi(invoice._id);
 
-            const margin = 20;
+            // Create blob link and download
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Prithu_Invoice_${invoice.invoiceNumber}.pdf`);
+            document.body.appendChild(link);
+            link.click();
 
-            // Helper to load image
-            const loadImage = (url) => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.src = url;
-                    img.crossOrigin = 'Anonymous';
-                    img.onload = () => resolve(img);
-                    img.onerror = (e) => reject(e);
-                });
-            };
+            // Cleanup
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
 
-            // -- 1. Header Section --
-            // Top Left: Company Info
-            doc.setTextColor(31, 41, 55); // Dark Gray
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Prithu Inc.', margin, 20);
-
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(107, 114, 128); // Medium Gray
-            doc.text('Official Subscription Services', margin, 26);
-            doc.text('Chennai, Tamil Nadu, India', margin, 31);
-            doc.text('support@prithu.app', margin, 36);
-
-            // Top Right: Logo
-            try {
-                const logoImg = await loadImage(PrithuLogo);
-                // Position logo on top right
-                doc.addImage(logoImg, 'PNG', pageWidth - margin - 15, 15, 15, 15, undefined, 'FAST');
-            } catch (err) {
-                console.error('Logo loading failed:', err);
-            }
-
-            // Big "INVOICE" Title
-            doc.setFontSize(40);
-            doc.setTextColor(...accentColor);
-            doc.setFont('helvetica', 'bold');
-            doc.text('INVOICE', pageWidth - margin, 65, { align: 'right' });
-
-            // -- 2. Billing & Metadata Area --
-            const contentY = 85;
-
-            // Bill To (Left)
-            doc.setTextColor(...accentColor);
-            doc.setFontSize(10);
-            doc.text('Bill To', margin, contentY);
-
-            doc.setTextColor(31, 41, 55);
-            doc.setFontSize(12);
-            doc.text(user?.userName || 'Valued Customer', margin, contentY + 8);
-
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(107, 114, 128);
-            doc.text(user?.email || '', margin, contentY + 14);
-            doc.text(user?.phone || '', margin, contentY + 20);
-
-            // Invoice Metadata (Right)
-            const metaX = pageWidth - margin - 45;
-            const metaValueX = pageWidth - margin;
-
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...accentColor);
-            doc.text('Invoice #', metaX, contentY + 8);
-            doc.text('Invoice date', metaX, contentY + 16);
-            doc.text('Status', metaX, contentY + 24);
-
-            doc.setTextColor(31, 41, 55);
-            doc.setFont('helvetica', 'normal');
-            doc.text(invoice.invoiceNumber, metaValueX, contentY + 8, { align: 'right' });
-            doc.text(formatDate(invoice.createdAt), metaValueX, contentY + 16, { align: 'right' });
-            doc.setFont('helvetica', 'bold');
-            doc.text(invoice.status.toUpperCase(), metaValueX, contentY + 24, { align: 'right' });
-
-            // -- 3. Table Section --
-            const tableY = 125;
-            doc.setFillColor(...accentColor);
-            doc.rect(margin, tableY, pageWidth - (margin * 2), 10, 'F');
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'bold');
-            doc.text('QTY', margin + 5, tableY + 6.5);
-            doc.text('Description', margin + 20, tableY + 6.5);
-            doc.text('Unit Price', pageWidth - margin - 45, tableY + 6.5, { align: 'right' });
-            doc.text('Amount', pageWidth - margin - 5, tableY + 6.5, { align: 'right' });
-
-            // Item Row
-            const rowY = tableY + 18;
-            doc.setTextColor(31, 41, 55);
-            doc.setFont('helvetica', 'normal');
-            doc.text('1.00', margin + 5, rowY);
-            doc.text(`Subscription: ${invoice.planId?.name || 'Pro Plan'} (${invoice.planId?.planType || 'Premium'})`, margin + 20, rowY);
-            doc.text(`${invoice.amount}.00`, pageWidth - margin - 45, rowY, { align: 'right' });
-            doc.text(`${invoice.amount}.00`, pageWidth - margin - 5, rowY, { align: 'right' });
-
-            // Table Divider
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.5);
-            doc.line(margin, tableY + 25, pageWidth - margin, tableY + 25);
-
-            // -- 4. Totals --
-            const totalsY = tableY + 35;
-            const totalX = pageWidth - margin - 60;
-
-            doc.setFontSize(10);
-            doc.text('Subtotal', totalX, totalsY);
-            doc.text(`${invoice.amount}.00`, metaValueX, totalsY, { align: 'right' });
-
-            doc.text('Sales Tax (0%)', totalX, totalsY + 8);
-            doc.text('0.00', metaValueX, totalsY + 8, { align: 'right' });
-
-            // Total Block
-            doc.setDrawColor(...accentColor);
-            doc.line(totalX, totalsY + 12, metaValueX, totalsY + 12);
-
-            doc.setTextColor(...accentColor);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Total Paid (INR)', totalX, totalsY + 18);
-            doc.text(`${invoice.amount}.00`, metaValueX, totalsY + 18, { align: 'right' });
-            doc.line(totalX, totalsY + 22, metaValueX, totalsY + 22);
-
-            // -- 5. Terms & Footer --
-            const footerY = 240;
-            doc.setTextColor(...accentColor);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.text('Terms and Conditions', margin, footerY);
-
-            doc.setTextColor(107, 114, 128);
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Payment is processed via Razorpay.', margin, footerY + 8);
-            doc.text('Please keep this receipt for your records.', margin, footerY + 14);
-            doc.text('For queries, contact support@prithu.app', margin, footerY + 20);
-
-            // Save PDF
-            doc.save(`Prithu_Invoice_${invoice.invoiceNumber}.pdf`);
-            toast.success('Professional invoice downloaded');
+            toast.dismiss();
+            toast.success('Invoice downloaded');
         } catch (err) {
-            console.error('PDF Generation Error:', err);
-            toast.error('Failed to generate PDF');
+            toast.dismiss();
+            console.error('Download error:', err);
+            toast.error('Failed to download invoice');
         }
     };
 
@@ -303,7 +172,7 @@ const InvoiceHistory = () => {
                                     <td className="px-6 py-4 text-right">
                                         {invoice.status === 'paid' && (
                                             <button
-                                                onClick={() => generateInvoicePDF(invoice)}
+                                                onClick={() => handleDownloadInvoice(invoice)}
                                                 className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors group"
                                                 title="Download Invoice"
                                             >
