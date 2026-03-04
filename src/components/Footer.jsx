@@ -15,7 +15,6 @@ const Footer = () => {
         sections: [],
         socialLinks: [],
         email: "support@prithu.app",
-        phone: "+91 00000 00000",
         address: "Chennai, Tamil Nadu, India",
         paymentTitle: "Secure & Verified Payments",
         paymentIcons: ["Visa", "Mastercard", "UPI", "PayPal"],
@@ -74,10 +73,6 @@ const Footer = () => {
                             <div className="flex items-center gap-3 text-slate-600">
                                 <iconMap.Mail size={16} className="text-[#6366f1]" />
                                 <span className="text-sm">{footerData.email}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-slate-600">
-                                <iconMap.Phone size={16} className="text-[#6366f1]" />
-                                <span className="text-sm">{footerData.phone}</span>
                             </div>
                         </div>
                     </div>

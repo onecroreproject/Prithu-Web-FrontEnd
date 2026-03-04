@@ -125,6 +125,10 @@ function Postcard({
     setGlobalPhoneSize,
     globalSocialSize,
     setGlobalSocialSize,
+    globalSelectedParty,
+    setGlobalSelectedParty,
+    globalSelectedState,
+    setGlobalSelectedState,
   } = useAuth();
   const isMuted = isGlobalMuted; // Alias for cleaner diff
   const setIsMuted = setIsGlobalMuted; // Alias for cleaner diff
@@ -151,8 +155,6 @@ function Postcard({
   // Local Post Customization State
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [leaderOverlays, setLeaderOverlays] = useState([]);
-  const [selectedParty, setSelectedParty] = useState(null);
-  const [selectedState, setSelectedState] = useState(null);
   const { data: categoryList = [] } = useCategories();
 
   // Extremely robust category extraction
@@ -202,58 +204,8 @@ function Postcard({
     return finalCat;
   }, [rawCategory, showEditPopup, feedId, categoryList]);
 
-  // Load persistence for leader overlays and party selection
-  useEffect(() => {
-    if (!feedId) return;
-
-    // Load overlays
-    const savedOverlays = localStorage.getItem(`leader_overlays_${feedId}`);
-    if (savedOverlays) {
-      try {
-        setLeaderOverlays(JSON.parse(savedOverlays));
-      } catch (e) { console.error("Error parsing saved overlays:", e); }
-    }
-
-    // Load selected party
-    const savedParty = localStorage.getItem(`selected_party_${feedId}`);
-    if (savedParty) {
-      try {
-        setSelectedParty(JSON.parse(savedParty));
-      } catch (e) { console.error("Error parsing saved party:", e); }
-    }
-
-    // Load selected state
-    const savedState = localStorage.getItem(`selected_state_${feedId}`);
-    if (savedState) {
-      setSelectedState(savedState);
-    }
-  }, [feedId]);
-
-  // Save persistence for leader overlays
-  useEffect(() => {
-    if (!feedId) return;
-    if (leaderOverlays.length > 0) {
-      localStorage.setItem(`leader_overlays_${feedId}`, JSON.stringify(leaderOverlays));
-    } else {
-      localStorage.removeItem(`leader_overlays_${feedId}`);
-    }
-  }, [feedId, leaderOverlays]);
-
-  // Save persistence for selected party and state
-  useEffect(() => {
-    if (!feedId) return;
-    if (selectedParty) {
-      localStorage.setItem(`selected_party_${feedId}`, JSON.stringify(selectedParty));
-    } else {
-      localStorage.removeItem(`selected_party_${feedId}`);
-    }
-
-    if (selectedState) {
-      localStorage.setItem(`selected_state_${feedId}`, selectedState);
-    } else {
-      localStorage.removeItem(`selected_state_${feedId}`);
-    }
-  }, [feedId, selectedParty, selectedState]);
+  // No persistence for leader overlays as requested.
+  // We only persist the selection process (party/state) via useAuth context.
 
   // const { data: commentsData } = useComments(feedId, showCommentsModal);
 
@@ -844,12 +796,14 @@ function Postcard({
                     </div>
                   )}
 
-                  {/* ✅ LEADER OVERLAYS - Interactive (Draggable/Resizable) */}
-                  <LeaderOverlayRenderer
-                    overlays={leaderOverlays}
-                    onUpdate={setLeaderOverlays}
-                    containerRef={mediaContainerRef}
-                  />
+                  {/* ✅ LEADER OVERLAYS - Visible only while editing or in specialized feeds */}
+                  {(showEditPopup || category !== 'politics') && (
+                    <LeaderOverlayRenderer
+                      overlays={leaderOverlays}
+                      onUpdate={setLeaderOverlays}
+                      containerRef={mediaContainerRef}
+                    />
+                  )}
 
                   {/* ✅ AUDIO CONTROL BUTTON - (Bottom Right of Media Area ONLY) */}
                   {isTemplate && hasAudio && (
@@ -897,10 +851,10 @@ function Postcard({
                       setSocialSize={setGlobalSocialSize}
                       initialLeaders={leaderOverlays}
                       onUpdateLeaders={setLeaderOverlays}
-                      selectedParty={selectedParty}
-                      setSelectedParty={setSelectedParty}
-                      selectedState={selectedState}
-                      setSelectedState={setSelectedState}
+                      selectedParty={globalSelectedParty}
+                      setSelectedParty={setGlobalSelectedParty}
+                      selectedState={globalSelectedState}
+                      setSelectedState={setGlobalSelectedState}
                       postData={postData}
                       dominantColor={dominantColor}
                       viewer={viewer}

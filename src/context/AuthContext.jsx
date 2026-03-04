@@ -59,6 +59,16 @@ export const AuthProvider = ({ children }) => {
   const [globalSocialSize, setGlobalSocialSize] = useState(() =>
     parseFloat(localStorage.getItem("globalSocialSize")) || 1);
 
+  // Politics Editor Persistence (Global across feeds)
+  const [globalSelectedParty, setGlobalSelectedParty] = useState(() => {
+    try {
+      const saved = localStorage.getItem("globalSelectedParty");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [globalSelectedState, setGlobalSelectedState] = useState(() =>
+    localStorage.getItem("globalSelectedState") || null);
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem("globalFooterStyle", globalFooterStyle);
@@ -70,6 +80,22 @@ export const AuthProvider = ({ children }) => {
     globalFooterStyle,
     globalUsernameSize, globalEmailSize, globalPhoneSize, globalSocialSize
   ]);
+
+  useEffect(() => {
+    if (globalSelectedParty) {
+      localStorage.setItem("globalSelectedParty", JSON.stringify(globalSelectedParty));
+    } else {
+      localStorage.removeItem("globalSelectedParty");
+    }
+  }, [globalSelectedParty]);
+
+  useEffect(() => {
+    if (globalSelectedState) {
+      localStorage.setItem("globalSelectedState", globalSelectedState);
+    } else {
+      localStorage.removeItem("globalSelectedState");
+    }
+  }, [globalSelectedState]);
   // ---------------------------------------------------------------------------
   // 👤 Normalize User (_id / userId compatibility)
   // ---------------------------------------------------------------------------
@@ -399,6 +425,10 @@ export const AuthProvider = ({ children }) => {
     setGlobalPhoneSize,
     globalSocialSize,
     setGlobalSocialSize,
+    globalSelectedParty,
+    setGlobalSelectedParty,
+    globalSelectedState,
+    setGlobalSelectedState,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

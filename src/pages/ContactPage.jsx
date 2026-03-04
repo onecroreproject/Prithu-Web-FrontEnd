@@ -17,8 +17,6 @@ const ContactPage = () => {
 
     const [contactInfo, setContactInfo] = useState({
         email: "support@prithu.app",
-        phone: "+91 00000 00000",
-        address: "Chennai, Tamil Nadu, India"
     });
 
     useEffect(() => {
@@ -28,8 +26,6 @@ const ContactPage = () => {
                 if (response.data.success) {
                     setContactInfo({
                         email: response.data.data.email,
-                        phone: response.data.data.phone,
-                        address: response.data.data.address
                     });
                 }
             } catch (error) {
@@ -44,8 +40,6 @@ const ContactPage = () => {
             socket.on("footerUpdated", (newData) => {
                 setContactInfo({
                     email: newData.email,
-                    phone: newData.phone,
-                    address: newData.address
                 });
             });
             return () => socket.off("footerUpdated");
@@ -93,7 +87,7 @@ const ContactPage = () => {
                         Get in Touch
                     </h1>
                     <p className="mt-2 text-base text-slate-600">
-                        For quick assistance, please email us or contact our support team via phone.
+                        For quick assistance, please email us or fill out the contact form below.
                     </p>
                 </div>
 
@@ -113,31 +107,6 @@ const ContactPage = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow duration-300">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-[#6366f1] flex-shrink-0">
-                                <Phone size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-[#0f172a] mb-0.5">Call Us</h3>
-                                <p className="text-slate-500 text-xs mb-1">Mon-Fri from 8am to 5pm.</p>
-                                <a href={`tel:${contactInfo.phone}`} className="text-[#6366f1] text-sm font-semibold hover:underline">
-                                    {contactInfo.phone}
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow duration-300">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-[#6366f1] flex-shrink-0">
-                                <MapPin size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-[#0f172a] mb-0.5">Visit Us</h3>
-                                <p className="text-slate-500 text-xs mb-1">Visit our office for a coffee.</p>
-                                <p className="text-[#0f172a] text-sm font-medium">
-                                    {contactInfo.address}
-                                </p>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Contact Form */}

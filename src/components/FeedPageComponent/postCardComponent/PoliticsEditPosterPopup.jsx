@@ -222,17 +222,17 @@ const PoliticsEditPosterPopup = ({
             setSelectedAvatarId(avatarEls[0].id);
         }
 
-        // Initialize leaders with (10,10)
+        // Initialize leaders - preserve existing x,y if available
         const leaderEls = initialLeaders.map(ov => ({
             ...ov,
-            x: 10,
-            y: 10,
+            x: ov.x ?? 10,
+            y: ov.y ?? 10,
             w: ov.w ?? 25,
             h: ov.h ?? 25,
             zIndex: ov.zIndex ?? 50
         }));
         setCurrentSelection(leaderEls);
-    }, [isOpen, postData?._id, viewer?._id]);
+    }, [isOpen, postData?._id, viewer?._id, initialLeaders]);
 
     const handleAvatarUpdate = useCallback((newOverlays) => {
         console.log("🛠️ [PoliticsEditor] Updating avatar overlays", newOverlays.length);
@@ -325,7 +325,11 @@ const PoliticsEditPosterPopup = ({
     }, [isOpen]);
 
     const handleAddLeaderClick = () => {
-        setCurrentView('stateList');
+        if (selectedParty) {
+            setCurrentView('leaderList');
+        } else {
+            setCurrentView('stateList');
+        }
     };
 
     useEffect(() => {
@@ -336,7 +340,7 @@ const PoliticsEditPosterPopup = ({
         console.log("🛠️ [PoliticsEditor] Updating leader overlays", newSelection.length);
         isUpdatingFromDrag.current = true;
         setCurrentSelection(newSelection);
-        onUpdateLeaders(newSelection);
+        onUpdateLeaders(newSelection); // Keep parent in sync for in-memory persistence
         setTimeout(() => {
             isUpdatingFromDrag.current = false;
         }, 100);
@@ -383,8 +387,9 @@ const PoliticsEditPosterPopup = ({
 
     const handleSelectParty = (party) => {
         setSelectedParty(party);
-        setCurrentSelection([]);
-        onUpdateLeaders([]);
+        // Keep the current selection in memory, or clear it if changing party?
+        // User said "locally memory the user party selection", 
+        // usually switching parties should show the new leaders list.
         setCurrentView('leaderList');
     };
 
@@ -862,18 +867,15 @@ const PoliticsEditPosterPopup = ({
                                                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-20">
                                                         <div className="flex items-center justify-between mb-6 px-1 sticky top-0 bg-white z-10 py-2">
                                                             <span className="text-sm font-bold text-gray-900">
-                                                                {selectedParty ? `${selectedParty.partyName} Leaders` : 'Selected Leaders'}
+                                                                {selectedParty ? `${selectedParty.partyName} Leaders` : 'Select Leaders'}
                                                             </span>
                                                             <button
                                                                 onClick={() => {
-                                                                    setSelectedParty(null);
-                                                                    setSelectedState(null);
-                                                                    setParties([]);
                                                                     setCurrentView('stateList');
                                                                 }}
-                                                                className="text-xs text-blue-600 font-bold hover:text-blue-700 transition-colors py-1.5 px-3 bg-blue-50 rounded-lg"
+                                                                className="text-xs text-blue-600 font-bold hover:text-blue-700 transition-colors py-1.5 px-3 bg-blue-50 rounded-lg flex items-center gap-1"
                                                             >
-                                                                Change
+                                                                Choose Different Party
                                                             </button>
                                                         </div>
 

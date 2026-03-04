@@ -10,6 +10,7 @@ import SEO from '../components/SEO';
 const Footer = lazy(() => import('../components/Footer'));
 const FeedSliderSection = lazy(() => import('../components/FeedSliderSection'));
 const BlogSliderSection = lazy(() => import('../components/BlogSliderSection'));
+const WhatsNewSection = lazy(() => import('../components/WhatsNewSection'));
 const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
 
 import { AnimatedCounter, AnimatedIcon } from '../components/HomeComponents/LandingSubComponents';
@@ -366,6 +367,11 @@ const LandingPage = () => {
         {/* Our Stories Slider Section */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>}>
           <BlogSliderSection />
+        </Suspense>
+
+        {/* What's New Section */}
+        <Suspense fallback={<div className="h-48 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>}>
+          <WhatsNewSection />
         </Suspense>
 
         {/* Download App Section */}
