@@ -268,6 +268,10 @@ const BirthdayEditPosterPopup = ({
     };
 
     const addNewAvatar = () => {
+        if (avatarOverlays.length >= 3) {
+            toast.error("Maximum 3 photos allowed");
+            return;
+        }
         console.log("🛠️ [BirthdayEditor] Adding new manual avatar slot");
         const newId = `manual-avatar-${Date.now()}`;
         const newAvatar = {
@@ -778,6 +782,15 @@ const BirthdayEditPosterPopup = ({
                                                                     </div>
 
                                                                     <div className="space-y-2">
+                                                                        {avatarOverlays.length < 3 && (
+                                                                            <button
+                                                                                onClick={addNewAvatar}
+                                                                                className="w-full py-4 px-6 rounded-2xl bg-blue-50 border-2 border-dashed border-blue-200 text-blue-600 font-bold hover:bg-blue-100 hover:border-blue-300 transition-all flex items-center justify-center gap-2 mb-2"
+                                                                            >
+                                                                                <PlusIcon fontSize="small" />
+                                                                                Add Another Photo ({avatarOverlays.length}/3)
+                                                                            </button>
+                                                                        )}
                                                                         {currentOv.isManual && (
                                                                             <button
                                                                                 onClick={() => removeAvatar(currentOv.id)}
@@ -895,7 +908,15 @@ const BirthdayEditPosterPopup = ({
                                                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Content</p>
                                                                     <textarea
                                                                         value={currentOv.content}
-                                                                        onChange={(e) => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, content: e.target.value } : o))}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const words = val.trim().split(/\s+/).filter(w => w.length > 0);
+                                                                            if (words.length > 50) {
+                                                                                toast.error("Maximum 50 words allowed");
+                                                                                return;
+                                                                            }
+                                                                            setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, content: val } : o));
+                                                                        }}
                                                                         className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium text-gray-700 resize-none h-20 text-sm"
                                                                         placeholder="Type here..."
                                                                     />

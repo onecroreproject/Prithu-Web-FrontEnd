@@ -25,6 +25,7 @@ import UserFeedbackPage from "../components/UserFeedbackPage";
 import ReportPage from "../components/ReportPage";
 import ReferralPromoPopup from "./ReferralPromoPopup";
 import ComingSoonPopup from "./ComingSoonPopup";
+import PromoCountdownPopup from "./PromoCountdownPopup";
 
 
 
@@ -42,6 +43,7 @@ export default function Header() {
   const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
   const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [isCountdownPromoOpen, setIsCountdownPromoOpen] = useState(false);
   const [promoTitle, setPromoTitle] = useState("");
   const [promoRedirect, setPromoRedirect] = useState("");
   const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
@@ -69,13 +71,21 @@ export default function Header() {
       to: "/home/subscriptions",
       label: "Subscriptions",
       Icon: BellRing,
-      desc: "Manage subscriptions"
+      desc: "Manage subscriptions",
+      onClick: (e) => {
+        e.preventDefault();
+        setIsCountdownPromoOpen(true);
+      }
     },
     {
       to: "/home/referral",
       label: "Referral",
       Icon: Gift,
-      desc: "Referral program"
+      desc: "Referral program",
+      onClick: (e) => {
+        e.preventDefault();
+        setIsCountdownPromoOpen(true);
+      }
     },
     // Settings removed as per request
     {
@@ -637,6 +647,11 @@ export default function Header() {
         title={comingSoonData.title}
         icon={comingSoonData.icon}
         description="exiting content comming for you with existing image"
+      />
+
+      <PromoCountdownPopup
+        isOpen={isCountdownPromoOpen}
+        onClose={() => setIsCountdownPromoOpen(false)}
       />
 
     </Fragment>

@@ -21,6 +21,9 @@ const SharePopup = ({
   postCaption = "",
   userName = "",
   onShareComplete,
+  category = "direct",
+  sharingUserId = "",
+  designMetadata = {}
 }) => {
   const [shareData, setShareData] = useState(null);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
@@ -28,8 +31,9 @@ const SharePopup = ({
   const [error, setError] = useState(null);
   const popupRef = useRef(null);
 
-  const frontendShareUrl = postId
-    ? `https://www.prithu.app/share/post/${postId}`
+  const backendBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace("/web", "");
+  const shareUrl = postId
+    ? `${backendBaseUrl}/share/post/${postId}?u=${sharingUserId}&type=${category}`
     : "";
 
   useEffect(() => {
@@ -44,6 +48,7 @@ const SharePopup = ({
 
   const fetchShareData = async () => {
     if (!postId) {
+      console.warn("⚠️ [SharePopup] No postId provided to fetchShareData");
       setError("Post ID is required");
       return;
     }
@@ -51,12 +56,21 @@ const SharePopup = ({
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/api/feed/share/${postId}`);
+      console.log("🔥 [SharePopup] Starting share-process for postId:", postId, "category:", category);
+
+      const response = await api.post(`/api/user/feed/share-process/${postId}`, {
+        type: category,
+        customMetadata: designMetadata
+      });
+
+      console.log("✅ [SharePopup] Share process success. Response:", response.data);
       setShareData(response.data);
     } catch (err) {
-      console.error("Failed to fetch share data:", err);
-      // setError("Failed to load share options. Please try again.");
-      // toast.error("Failed to load share options");
+      console.error("❌ [SharePopup] Share process failed. Error:", err);
+      if (err.response) {
+        console.error("❌ [SharePopup] Response error details:", err.response.data);
+      }
+      // Fallback: stay on simple sharing
     } finally {
       setLoading(false);
     }
@@ -95,9 +109,9 @@ const SharePopup = ({
   ];
 
   const copyToClipboard = async () => {
-    if (!frontendShareUrl) return;
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(frontendShareUrl);
+      await navigator.clipboard.writeText(shareUrl);
       setIsLinkCopied(true);
       await trackShareAction('copy');
       toast.success("Link copied!");
@@ -109,7 +123,7 @@ const SharePopup = ({
   };
 
   const handleSocialShare = async (platform) => {
-    const urlToShare = frontendShareUrl;
+    const urlToShare = shareUrl;
     const encodedUrl = encodeURIComponent(urlToShare);
     const caption = shareData?.caption || postCaption || "";
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);

@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../api/axios";
 import PostHeader from "./postCardComponent/postHeader";
 import PostMedia from "./postCardComponent/postMeadia";
@@ -55,8 +55,13 @@ function Postcard({
   setActiveVideoId,
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const videoRef = useRef(null);
   const mediaContainerRef = useRef(null);
+
+  const isShared = searchParams.get("isShared") === "true";
+  const sharedBy = searchParams.get("u");
+  const shareType = searchParams.get("type");
 
   /* v4: Destructure using new normalized format */
   const {
@@ -106,6 +111,14 @@ function Postcard({
   // ✅ Type detection
   const isVideo = type === "video";
   const isImage = type === "image";
+
+  // ✅ Computed Content URL (Handle Shared Playback)
+  const finalContentUrl = useMemo(() => {
+    if (isShared && sharedBy && shareType && isVideo && feedId) {
+      return `${import.meta.env.VITE_MEDIA_BASE_URL}/uploads/shares/${sharedBy}_${feedId}_${shareType}.mp4`;
+    }
+    return contentUrl;
+  }, [isShared, sharedBy, shareType, isVideo, contentUrl, feedId]);
 
   // Local state
   const [isLiked, setIsLiked] = useState(userInteractions.isLiked || postData.isLiked || false);
@@ -203,6 +216,12 @@ function Postcard({
 
     return finalCat;
   }, [rawCategory, showEditPopup, feedId, categoryList]);
+
+  useEffect(() => {
+    if (showSharePopup) {
+      console.log("💎 [Postcard] SharePopup should be OPEN now for category:", category);
+    }
+  }, [showSharePopup, category]);
 
   // No persistence for leader overlays as requested.
   // We only persist the selection process (party/state) via useAuth context.
@@ -539,6 +558,7 @@ function Postcard({
   }, [isSaved, feedId, saveMutation]);
 
   const handleShare = useCallback(async () => {
+    console.log("🚀 [Postcard] handleShare triggered for feedId:", feedId);
     setShowSharePopup(true);
     setSharesCount((p) => p + 1);
     shareMutation.mutate({
@@ -546,7 +566,9 @@ function Postcard({
       userId: tempUser._id,
       shareChannel: "share_popup",
     }, {
-      onError: () => {
+      onSuccess: (data) => console.log("✅ [Postcard] share action tracked:", data),
+      onError: (err) => {
+        console.error("❌ [Postcard] share action tracking failed:", err);
         setSharesCount((p) => Math.max(p - 1, 0));
       }
     });
@@ -726,7 +748,7 @@ function Postcard({
           <div className="relative w-full flex-1 min-h-0 flex flex-col items-center overflow-hidden">
             <PostMedia
               type={type}
-              contentUrl={contentUrl}
+              contentUrl={finalContentUrl}
               videoRef={videoRef}
               isMuted={isMuted}
               // onCommentsClick={() => setShowCommentsModal(true)}
@@ -1123,6 +1145,9 @@ function Postcard({
             postCaption={description || caption || ""}
             userName={userName}
             mediaFiles={contentUrl ? [{ url: contentUrl, type: type }] : []}
+            category={category}
+            sharingUserId={authUser?._id || tempUser?._id}
+            designMetadata={designMetadata}
           />
         </div>
       </div>

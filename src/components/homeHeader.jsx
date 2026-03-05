@@ -32,6 +32,7 @@ import MobileSearchBar from "../components/HeaderComponent/mobileSearchBar";
 import NotificationDropdown from "../components/NotificationComponet/notificationDropdwon";
 import ReferralPromoPopup from "./ReferralPromoPopup";
 import ComingSoonPopup from "./ComingSoonPopup";
+import PromoCountdownPopup from "./PromoCountdownPopup";
 
 // --- constants ---
 const SEARCH_HISTORY_KEY = "prithu_search_history_v1";
@@ -60,6 +61,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const [isReelsActive, setIsReelsActive] = useState(location.pathname === "/home/reels");
   const [isImagesActive, setIsImagesActive] = useState(location.pathname === "/home/images");
   const [isPromoOpen, setIsPromoOpen] = useState(false);
+  const [isCountdownPromoOpen, setIsCountdownPromoOpen] = useState(false);
   const [promoTitle, setPromoTitle] = useState("");
   const REFERRAL_LAUNCH_DATE = new Date('2026-03-15T00:00:00');
 
@@ -212,14 +214,22 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       label: "Subscriptions",
       Icon: CircleDollarSign,
       desc: "Manage subscriptions",
-      color: "amber"
+      color: "amber",
+      onClick: (e) => {
+        e.preventDefault();
+        setIsCountdownPromoOpen(true);
+      }
     },
     {
       to: "/home/referral",
       label: "Referral",
       Icon: Gift,
       desc: "Referral program",
-      color: "purple"
+      color: "purple",
+      onClick: (e) => {
+        e.preventDefault();
+        setIsCountdownPromoOpen(true);
+      }
     },
     // Settings removed as per request
     {
@@ -1504,6 +1514,11 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
         title={comingSoonData.title}
         icon={comingSoonData.icon}
         description="exiting content comming for you with existing image"
+      />
+
+      <PromoCountdownPopup
+        isOpen={isCountdownPromoOpen}
+        onClose={() => setIsCountdownPromoOpen(false)}
       />
 
     </Fragment >

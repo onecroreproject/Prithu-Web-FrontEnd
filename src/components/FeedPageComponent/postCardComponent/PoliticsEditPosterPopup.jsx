@@ -19,6 +19,7 @@ import {
     AccountCircle as AvatarIcon,
     PhotoCamera as CameraIcon,
     Check as CheckIcon,
+    Add as PlusIcon,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
@@ -168,6 +169,8 @@ const PoliticsEditPosterPopup = ({
     const [showAvatarCropper, setShowAvatarCropper] = useState(false);
     const [avatarOverlays, setAvatarOverlays] = useState([]);
     const [selectedAvatarId, setSelectedAvatarId] = useState(null);
+    const [textOverlays, setTextOverlays] = useState([]);
+    const [selectedTextId, setSelectedTextId] = useState(null);
     const [avatarShape, setAvatarShape] = useState(() => {
         const firstAvatar = postData?.overlayElements?.find(el => el.type === 'avatar');
         return firstAvatar?.shape || firstAvatar?.avatarConfig?.shape || 'circle';
@@ -222,6 +225,28 @@ const PoliticsEditPosterPopup = ({
             setSelectedAvatarId(avatarEls[0].id);
         }
 
+        // Initialize text overlays
+        const txEls = (postData.overlayElements || [])
+            .filter(el => el.type === 'text')
+            .map(el => ({
+                ...el,
+                id: el.id || el._id || `text-${Math.random()}`,
+                x: el.x ?? 10,
+                y: el.y ?? 40,
+                content: el.content || "Write message here",
+                isManual: false,
+                style: {
+                    fontSize: el.style?.fontSize || 24,
+                    color: el.style?.color || '#ffffff',
+                    fontFamily: el.style?.fontFamily || 'Inter',
+                    fontWeight: el.style?.fontWeight || 'bold',
+                    fontStyle: el.style?.fontStyle || 'normal',
+                    textAlign: el.style?.textAlign || 'center'
+                }
+            }));
+        setTextOverlays(txEls);
+        if (txEls.length > 0) setSelectedTextId(txEls[0].id);
+
         // Initialize leaders - preserve existing x,y if available
         const leaderEls = initialLeaders.map(ov => ({
             ...ov,
@@ -247,6 +272,81 @@ const PoliticsEditPosterPopup = ({
     useEffect(() => {
         setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: avatarShape })));
     }, [avatarShape]);
+
+    const handleTextUpdate = useCallback((newOverlays) => {
+        isUpdatingFromDrag.current = true;
+        setTextOverlays(newOverlays);
+        setTimeout(() => { isUpdatingFromDrag.current = false; }, 100);
+    }, []);
+
+    const addNewText = () => {
+        const newId = `manual-text-${Date.now()}`;
+        const newText = {
+            id: newId,
+            type: 'text',
+            x: 15,
+            y: 50,
+            content: "New Text message",
+            isManual: true,
+            style: {
+                fontSize: 28,
+                color: '#ffffff',
+                fontFamily: 'Inter',
+                fontWeight: 'bold',
+                fontStyle: 'normal',
+                textAlign: 'center'
+            }
+        };
+        setTextOverlays(prev => [...prev, newText]);
+        setSelectedTextId(newId);
+        setCurrentView('textEdit');
+        toast.success('Text added!');
+    };
+
+    const removeText = (textId) => {
+        setTextOverlays(prev => prev.filter(ov => ov.id !== textId));
+        setCurrentView('textList');
+        toast.error('Text removed');
+    };
+
+    const addNewAvatar = () => {
+        if (avatarOverlays.length >= 3) {
+            toast.error("Maximum 3 photos allowed");
+            return;
+        }
+        const newId = `manual-avatar-${Date.now()}`;
+        const newAvatar = {
+            id: newId,
+            type: 'avatar',
+            x: 10,
+            y: 10,
+            w: 22,
+            h: 22,
+            img: viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            shape: avatarShape,
+            visible: true,
+            zIndex: 110,
+            isManual: true
+        };
+        setAvatarOverlays(prev => [...prev, newAvatar]);
+        setSelectedAvatarId(newId);
+        setCurrentView('avatarEdit');
+        toast.success('New avatar slot added!');
+    };
+
+    const removeAvatar = (avatarId) => {
+        setAvatarOverlays(prev => prev.filter(ov => ov.id !== avatarId));
+        setCurrentView('avatarEdit'); // stay or go back
+        toast.error('Avatar slot removed');
+    };
+
+    const resetAvatarToDefault = (avatarId) => {
+        const defaultImg = viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        setAvatarOverlays(prev => prev.map(ov =>
+            ov.id === avatarId ? { ...ov, img: defaultImg } : ov
+        ));
+        toast('Reverted to default');
+    };
 
     const handleAvatarFileChange = (e) => {
         const file = e.target.files?.[0];
@@ -469,6 +569,10 @@ const PoliticsEditPosterPopup = ({
                     type: ov.type,
                     name: ov.name
                 })),
+                textOverlays: textOverlays.map(tx => ({
+                    ...tx,
+                    x: tx.x + xShift
+                })),
                 avatarConfigs: processedAvatars.map(av => ({
                     ...av,
                     x: av.x + xShift
@@ -647,6 +751,7 @@ const PoliticsEditPosterPopup = ({
                                             {currentView === 'root' && (
                                                 <motion.div key="root" {...viewVariants} className="space-y-2">
                                                     <MenuButton icon={AvatarIcon} label="Edit Profile Avatar" onClick={() => setCurrentView('avatarEdit')} />
+                                                    <MenuButton icon={TextSizeIcon} label="Edit Text & Style" onClick={() => setCurrentView('textList')} />
                                                     <MenuButton icon={LeaderIcon} label="Add leader photo" onClick={handleAddLeaderClick} />
 
                                                     <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
@@ -686,6 +791,135 @@ const PoliticsEditPosterPopup = ({
                                                             <MenuButton icon={FooterIcon} label="Footer Element Sizes" onClick={() => setCurrentView('sizes')} />
                                                         </>
                                                     )}
+                                                </motion.div>
+                                            )}
+
+                                            {currentView === 'textList' && (
+                                                <motion.div key="textList" {...viewVariants} className="space-y-4">
+                                                    <div className="flex items-center justify-between px-1">
+                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select text</p>
+                                                        <button
+                                                            onClick={addNewText}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-all shadow-sm active:scale-95"
+                                                        >
+                                                            <PlusIcon fontSize="inherit" /> Add New
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {textOverlays.map((ov, idx) => (
+                                                            <button
+                                                                key={ov.id}
+                                                                onClick={() => {
+                                                                    setSelectedTextId(ov.id);
+                                                                    setCurrentView('textEdit');
+                                                                }}
+                                                                className="flex items-center gap-4 p-3 bg-gray-50 hover:bg-blue-50 border border-gray-100 rounded-2xl transition-all group text-left"
+                                                            >
+                                                                <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                                                                    <TextSizeIcon fontSize="small" className="text-gray-400" />
+                                                                </div>
+                                                                <div className="flex flex-col items-start flex-1 min-w-0">
+                                                                    <span className="font-bold text-gray-700 truncate w-full">
+                                                                        {ov.content || "Empty Text"}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-gray-400 uppercase font-black">
+                                                                        Slot {idx + 1}
+                                                                    </span>
+                                                                </div>
+                                                                <ChevronIcon className="ml-auto text-gray-300 group-hover:text-blue-400" />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {currentView === 'textEdit' && (
+                                                <motion.div key="textEdit" {...viewVariants} className="space-y-6">
+                                                    {(() => {
+                                                        const currentOv = textOverlays.find(o => o.id === selectedTextId);
+                                                        if (!currentOv) return null;
+
+                                                        return (
+                                                            <div className="space-y-6">
+                                                                <div className="space-y-2">
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Content</p>
+                                                                    <textarea
+                                                                        value={currentOv.content}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const words = val.trim().split(/\s+/).filter(w => w.length > 0);
+                                                                            if (words.length > 50) {
+                                                                                toast.error("Maximum 50 words allowed");
+                                                                                return;
+                                                                            }
+                                                                            setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, content: val } : o));
+                                                                        }}
+                                                                        className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:bg-white transition-all outline-none font-medium text-gray-700 resize-none h-20 text-sm"
+                                                                        placeholder="Type here..."
+                                                                    />
+                                                                </div>
+
+                                                                <div className="space-y-4">
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Font Family</p>
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        {[
+                                                                            { id: 'Inter', name: 'Modern' },
+                                                                            { id: 'Oswald', name: 'Impact' },
+                                                                            { id: 'Dancing Script', name: 'Elegant' },
+                                                                            { id: 'Montserrat', name: 'Clean' },
+                                                                            { id: 'Playfair Display', name: 'Classic' }
+                                                                        ].map(f => (
+                                                                            <button
+                                                                                key={f.id}
+                                                                                onClick={() => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, style: { ...o.style, fontFamily: f.id } } : o))}
+                                                                                className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${currentOv.style.fontFamily === f.id ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                                                                            >
+                                                                                <span className="text-sm font-bold" style={{ fontFamily: f.id }}>Aa</span>
+                                                                                <span className="text-[10px] font-medium text-gray-500">{f.name}</span>
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-4">
+                                                                    <div className="flex items-center justify-between px-1">
+                                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Text Size</p>
+                                                                        <span className="text-xs font-black text-blue-600">
+                                                                            {Math.round((currentOv.style.fontSize || 24) * 1)}px
+                                                                        </span>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="12"
+                                                                        max="120"
+                                                                        step="1"
+                                                                        value={currentOv.style.fontSize || 24}
+                                                                        onChange={(e) => setTextOverlays(prev => prev.map(o => o.id === selectedTextId ? { ...o, style: { ...o.style, fontSize: parseInt(e.target.value) } } : o))}
+                                                                        className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                                    />
+                                                                </div>
+
+                                                                <div className="pt-4 flex flex-col gap-2">
+                                                                    <button
+                                                                        onClick={addNewText}
+                                                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-green-50 hover:bg-green-100 text-green-700 font-bold rounded-2xl transition-all border border-green-100 active:scale-[0.98]"
+                                                                    >
+                                                                        <PlusIcon fontSize="small" />
+                                                                        Add Another Text
+                                                                    </button>
+                                                                    {currentOv.isManual && (
+                                                                        <button
+                                                                            onClick={() => removeText(currentOv.id)}
+                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl transition-all border border-red-100 active:scale-[0.98]"
+                                                                        >
+                                                                            <CloseIcon fontSize="small" />
+                                                                            Remove This Text
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </motion.div>
                                             )}
 
@@ -995,86 +1229,119 @@ const PoliticsEditPosterPopup = ({
                                             )}
                                             {currentView === 'avatarEdit' && (
                                                 <motion.div key="avatarEdit" {...viewVariants} className="space-y-5">
-                                                    <input
-                                                        ref={avatarFileInputRef}
-                                                        type="file"
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                        onChange={handleAvatarFileChange}
-                                                    />
-
-                                                    <div className="flex flex-col items-center gap-3 py-2">
-                                                        <div className="relative">
-                                                            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100">
-                                                                <img
-                                                                    src={customAvatarUrl || viewer?.modifyAvatar || viewer?.profileAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}
-                                                                    alt="Current Avatar"
-                                                                    className="w-full h-full object-cover"
-                                                                />
+                                                    {(() => {
+                                                        const currentOv = avatarOverlays.find(o => o.id === selectedAvatarId);
+                                                        if (!currentOv) return (
+                                                            <div className="text-center py-10">
+                                                                <p className="text-gray-500 mb-4 font-bold">No photo slot selected</p>
+                                                                {avatarOverlays.length < 3 && (
+                                                                    <button
+                                                                        onClick={addNewAvatar}
+                                                                        className="py-3 px-6 bg-blue-600 text-white rounded-xl font-bold"
+                                                                    >
+                                                                        Add First Photo
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                            <button
-                                                                onClick={() => avatarFileInputRef.current?.click()}
-                                                                className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95"
-                                                            >
-                                                                <CameraIcon sx={{ fontSize: 16 }} />
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-sm text-gray-500 text-center">
-                                                            {customAvatarUrl ? 'Custom avatar applied to preview' : 'Using your profile avatar'}
-                                                        </p>
-                                                    </div>
+                                                        );
 
-                                                    <div className="space-y-3">
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Avatar Shape</p>
-                                                        <div className="flex gap-3">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setAvatarShape('circle');
-                                                                    setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'circle' })));
-                                                                }}
-                                                                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                            >
-                                                                <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-gray-300" />
-                                                                <span className="text-xs font-bold text-gray-700">Circle Fade</span>
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setAvatarShape('square');
-                                                                    setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'square' })));
-                                                                }}
-                                                                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
-                                                            >
-                                                                <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-gray-300" />
-                                                                <span className="text-xs font-bold text-gray-700">Square Fade</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                        return (
+                                                            <>
+                                                                <input
+                                                                    ref={avatarFileInputRef}
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="hidden"
+                                                                    onChange={handleAvatarFileChange}
+                                                                />
 
-                                                    <div className="space-y-2">
-                                                        <button
-                                                            onClick={() => avatarFileInputRef.current?.click()}
-                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl transition-all border border-blue-100 active:scale-[0.98]"
-                                                        >
-                                                            <CameraIcon fontSize="small" />
-                                                            Choose New Photo
-                                                        </button>
-                                                        {customAvatarUrl && (
-                                                            <button
-                                                                onClick={() => { setCustomAvatarUrl(null); toast('Reverted to profile avatar'); }}
-                                                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 font-bold rounded-2xl transition-all border border-gray-100 active:scale-[0.98]"
-                                                            >
-                                                                Reset to Default
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                                <div className="flex flex-col items-center gap-3 py-2">
+                                                                    <div className="relative">
+                                                                        <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-blue-100 shadow-lg bg-gray-100">
+                                                                            <img
+                                                                                src={currentOv.img}
+                                                                                alt="Current Avatar"
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => avatarFileInputRef.current?.click()}
+                                                                            className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                                                                        >
+                                                                            <CameraIcon sx={{ fontSize: 16 }} />
+                                                                        </button>
+                                                                    </div>
+                                                                    <p className="text-sm text-gray-500 text-center font-bold">
+                                                                        Editing Photo Slot {avatarOverlays.findIndex(o => o.id === selectedAvatarId) + 1}
+                                                                    </p>
+                                                                </div>
 
-                                                    <div className="pt-2 pb-1">
-                                                        <p className="text-xs text-gray-400 text-center">
-                                                            💡 After choosing, drag &amp; resize the avatar directly on the preview.
-                                                        </p>
-                                                    </div>
+                                                                <div className="space-y-3">
+                                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Avatar Shape</p>
+                                                                    <div className="flex gap-3">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setAvatarShape('circle');
+                                                                                setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'circle' })));
+                                                                            }}
+                                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'circle' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                                                                        >
+                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-gray-300" />
+                                                                            <span className="text-xs font-bold text-gray-700">Circle Fade</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setAvatarShape('square');
+                                                                                setAvatarOverlays(prev => prev.map(ov => ({ ...ov, shape: 'square' })));
+                                                                            }}
+                                                                            className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${avatarShape === 'square' ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                                                                        >
+                                                                            <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-gray-300" />
+                                                                            <span className="text-xs font-bold text-gray-700">Square Fade</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    {avatarOverlays.length < 3 && (
+                                                                        <button
+                                                                            onClick={addNewAvatar}
+                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-2xl transition-all border border-blue-100 active:scale-[0.98] border-dashed border-2"
+                                                                        >
+                                                                            <PlusIcon fontSize="small" />
+                                                                            Add Another Photo ({avatarOverlays.length}/3)
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => avatarFileInputRef.current?.click()}
+                                                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all shadow-md active:scale-[0.98]"
+                                                                    >
+                                                                        <CameraIcon fontSize="small" />
+                                                                        Replace This Photo
+                                                                    </button>
+                                                                    {currentOv.isManual && (
+                                                                        <button
+                                                                            onClick={() => removeAvatar(currentOv.id)}
+                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl transition-all border border-red-100"
+                                                                        >
+                                                                            Remove This Slot
+                                                                        </button>
+                                                                    )}
+                                                                    {!currentOv.isManual && (
+                                                                        <button
+                                                                            onClick={() => resetAvatarToDefault(currentOv.id)}
+                                                                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold rounded-2xl transition-all border border-gray-100"
+                                                                        >
+                                                                            Reset to Default
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </motion.div>
                                             )}
+
                                         </AnimatePresence>
                                     </div>
                                 </div>
@@ -1094,7 +1361,12 @@ const PoliticsEditPosterPopup = ({
                                         selectedAvatarId={selectedAvatarId}
                                         setSelectedAvatarId={setSelectedAvatarId}
                                         setCurrentView={setCurrentView}
-                                        removeAvatar={() => setAvatarOverlays([])}
+                                        removeAvatar={removeAvatar}
+                                        textOverlays={textOverlays}
+                                        handleTextUpdate={handleTextUpdate}
+                                        selectedTextId={selectedTextId}
+                                        setSelectedTextId={setSelectedTextId}
+                                        removeText={removeText}
                                         isUpdatingFromDrag={isUpdatingFromDrag.current}
                                         leaderOverlays={currentSelection}
                                         handleUpdateSelection={handleUpdateSelection}
@@ -1155,9 +1427,9 @@ const PoliticsEditPosterPopup = ({
                                 </div>
                             </div>
                         </motion.div>
-                    </div>
+                    </div >
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
         </>
     );
 };
