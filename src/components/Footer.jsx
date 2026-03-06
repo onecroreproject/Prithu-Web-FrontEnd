@@ -133,7 +133,17 @@ const Footer = () => {
                             &copy; {new Date().getFullYear()} {footerData.brandName}. All rights reserved.
                         </p>
                         <div className="hidden md:block w-px h-4 bg-gray-200"></div>
-
+                        <p className="text-slate-500 text-xs font-medium">
+                            Powered by{" "}
+                            <a
+                                href="https://digitalmarketing.dlktech.co.in/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#6366f1] font-semibold hover:underline transition-all"
+                            >
+                                DLK Technologies PVT ltd
+                            </a>
+                        </p>
                     </div>
 
                     <div className="flex gap-4">

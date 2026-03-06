@@ -57,13 +57,14 @@ const SharePopup = ({
       setLoading(true);
       setError(null);
       console.log("🔥 [SharePopup] Starting share-process for postId:", postId, "category:", category);
+      console.log("📤 [SharePopup] Request payload:", { type: category, customMetadata: designMetadata });
 
       const response = await api.post(`/api/user/feed/share-process/${postId}`, {
         type: category,
         customMetadata: designMetadata
       });
 
-      console.log("✅ [SharePopup] Share process success. Response:", response.data);
+      console.log("✅ [SharePopup] Share process success. Data received:", response.data);
       setShareData(response.data);
     } catch (err) {
       console.error("❌ [SharePopup] Share process failed. Error:", err);
@@ -181,6 +182,61 @@ const SharePopup = ({
         </div>
 
         <div className="p-6">
+          {/* Media Preview Section */}
+          <div className="mb-6 bg-gray-50 rounded-xl overflow-hidden aspect-video relative flex items-center justify-center border border-gray-100 shadow-inner">
+            {loading ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-sm font-medium text-gray-500">Processing preview...</p>
+              </div>
+            ) : shareData ? (
+              (() => {
+                console.log("🎬 [SharePopup] Rendering preview:", {
+                  mediaType: shareData.mediaType,
+                  videoUrl: shareData.videoUrl,
+                  thumbUrl: shareData.thumbUrl
+                });
+                return shareData.mediaType === 'video' ? (
+                  <video
+                    src={shareData.videoUrl}
+                    poster={shareData.thumbUrl}
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      const error = e.target.error;
+                      console.error("❌ [SharePopup] Video element error:", {
+                        code: error?.code,
+                        message: error?.message,
+                        url: shareData.videoUrl
+                      });
+                    }}
+                    onLoadedData={() => console.log("✅ [SharePopup] Video loaded successfully")}
+                  />
+                ) : (
+                  <img
+                    src={shareData.videoUrl || shareData.thumbUrl}
+                    alt="Share preview"
+                    className="w-full h-full object-contain"
+                    crossOrigin="anonymous"
+                    onError={(e) => console.error("❌ [SharePopup] Image element error:", {
+                      url: shareData.videoUrl || shareData.thumbUrl
+                    })}
+                    onLoad={() => console.log("✅ [SharePopup] Image loaded successfully")}
+                  />
+                );
+              })()
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-gray-400">
+                <ImageIcon sx={{ fontSize: 40 }} />
+                <p className="text-xs">Preview not available</p>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-4 gap-4">
             {shareOptions.map((opt) => (
               <button key={opt.id} onClick={() => handleSocialShare(opt.id)} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-all active:scale-95">
