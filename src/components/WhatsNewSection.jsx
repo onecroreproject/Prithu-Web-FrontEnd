@@ -87,9 +87,11 @@ const WhatsNewSection = () => {
                                     {latestUpdate.title}
                                 </h2>
 
-                                <p className="text-base text-gray-600 line-clamp-2 md:line-clamp-3 leading-relaxed max-w-2xl">
-                                    {cleanContent(latestUpdate.description)}
-                                </p>
+                                <div
+                                    className="text-base text-gray-600 leading-relaxed max-w-2xl
+                                    [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1 [&_p]:mb-2"
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(latestUpdate.description) }}
+                                />
                             </div>
 
                             {/* Action Button */}
