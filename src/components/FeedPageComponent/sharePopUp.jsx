@@ -29,6 +29,7 @@ const SharePopup = ({
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [progress, setProgress] = useState(0);
   const popupRef = useRef(null);
 
   const backendBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace("/web", "");
@@ -56,26 +57,58 @@ const SharePopup = ({
     try {
       setLoading(true);
       setError(null);
+      setProgress(0);
       console.log("🔥 [SharePopup] Starting share-process for postId:", postId, "category:", category);
-      console.log("📤 [SharePopup] Request payload:", { type: category, customMetadata: designMetadata });
 
       const response = await api.post(`/api/user/feed/share-process/${postId}`, {
         type: category,
         customMetadata: designMetadata
       });
 
-      console.log("✅ [SharePopup] Share process success. Data received:", response.data);
-      setShareData(response.data);
+      console.log("✅ [SharePopup] Share process initiated. Job ID:", response.data.jobId);
+      // We don't set shareData yet, we wait for the socket completion event
     } catch (err) {
       console.error("❌ [SharePopup] Share process failed. Error:", err);
-      if (err.response) {
-        console.error("❌ [SharePopup] Response error details:", err.response.data);
-      }
-      // Fallback: stay on simple sharing
-    } finally {
       setLoading(false);
+      setError("Failed to start processing");
     }
   };
+
+  // Real-time Progress Logic via WebSockets
+  useEffect(() => {
+    const handleProgress = (e) => {
+      const { jobId, progress, status } = e.detail;
+      // You could optionally filter by jobId if multiple shares happen at once
+      console.log(`[SharePopup] Progress update: ${progress}%`);
+      setProgress(progress);
+    };
+
+    const handleComplete = (e) => {
+      const { jobId, videoUrl, thumbUrl, mediaType } = e.detail;
+      console.log("✅ [SharePopup] Share processing complete!", videoUrl);
+      setShareData({ videoUrl, thumbUrl, mediaType });
+      setProgress(100);
+      setLoading(false);
+    };
+
+    const handleFailed = (e) => {
+      const { jobId, error } = e.detail;
+      console.error("❌ [SharePopup] Share processing failed:", error);
+      setError(error || "Processing failed");
+      setLoading(false);
+      setProgress(0);
+    };
+
+    document.addEventListener('socket:shareProgress', handleProgress);
+    document.addEventListener('socket:shareComplete', handleComplete);
+    document.addEventListener('socket:shareFailed', handleFailed);
+
+    return () => {
+      document.removeEventListener('socket:shareProgress', handleProgress);
+      document.removeEventListener('socket:shareComplete', handleComplete);
+      document.removeEventListener('socket:shareFailed', handleFailed);
+    };
+  }, []);
 
   const trackShareAction = async (platform, target = null) => {
     try {
@@ -241,10 +274,31 @@ const SharePopup = ({
         <div className="flex flex-col md:flex-row h-full">
           {/* Left Side: Media Preview */}
           <div className="w-full md:w-3/5 bg-black flex items-center justify-center md:min-h-0 h-auto md:h-full max-h-[80vh] md:max-h-none flex-shrink-0 overflow-hidden">
-            {loading ? (
-              <div className="flex flex-col items-center gap-3 text-white">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm font-medium opacity-70">Processing preview...</p>
+            {loading && !shareData ? (
+              <div className="flex flex-col items-center gap-6 text-white w-full max-w-xs px-6">
+                <div className="relative w-20 h-20">
+                  {/* Outer Spin */}
+                  <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  {/* Inner Percentage */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-bold">{Math.round(progress)}%</span>
+                  </div>
+                </div>
+
+                <div className="w-full space-y-3">
+                  <p className="text-center text-sm font-medium tracking-wide text-blue-100/80">
+                    {progress < 40 ? "Initializing..." : progress < 80 ? "Processing Media..." : "Finalizing Preview..."}
+                  </p>
+
+                  {/* Visual Progress Bar */}
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             ) : shareData ? (
               <div className="w-full h-full relative group">

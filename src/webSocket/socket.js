@@ -97,6 +97,25 @@ export const connectSocket = (token, sessionId) => {
     document.dispatchEvent(event);
   });
 
+  // ✅ SHARE PREVIEW PROGRESS LISTENERS
+  socket.on("share-progress", (data) => {
+    console.log("📥 [SOCKET] Share progress:", data);
+    const event = new CustomEvent("socket:shareProgress", { detail: data });
+    document.dispatchEvent(event);
+  });
+
+  socket.on("share-complete", (data) => {
+    console.log("📥 [SOCKET] Share complete:", data);
+    const event = new CustomEvent("socket:shareComplete", { detail: data });
+    document.dispatchEvent(event);
+  });
+
+  socket.on("share-failed", (data) => {
+    console.log("📥 [SOCKET] Share failed:", data);
+    const event = new CustomEvent("socket:shareFailed", { detail: data });
+    document.dispatchEvent(event);
+  });
+
   // ✅ NEW FEED PUBLISHED LISTENER
   socket.on("new_feed_published", (feed) => {
     console.log("🔥 [SOCKET] New Feed published:", feed);
