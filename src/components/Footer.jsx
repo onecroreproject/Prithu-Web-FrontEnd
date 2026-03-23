@@ -79,20 +79,21 @@ const Footer = () => {
 
                     {/* Dynamic Nav Sections (Column 1, 2, 3) */}
                     <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-8">
-                        {footerData.sections.map((section, idx) => (
-                            <div key={idx} className="space-y-4">
+                        {footerData.sections.map((section, sIdx) => (
+                            <div key={sIdx} className="space-y-4">
                                 <h3 className="text-xs font-bold text-[#0f172a] uppercase tracking-widest border-b border-gray-100 pb-2">
                                     {section.title}
                                 </h3>
                                 <ul className="space-y-3">
-                                    {section.links.map((link, lIdx) => (
+                                    {section.links
+                                        .filter((_, lIdx) => !(sIdx === 1 && lIdx === 0))
+                                        .map((link, lIdx) => (
                                         <li key={lIdx}>
-                                            <Link
-                                                to={link.href}
-                                                className="text-slate-600 hover:text-[#6366f1] text-sm flex items-center gap-2 group transition-all duration-200"
+                                            <Link 
+                                                to={link.href} 
+                                                className="text-slate-600 hover:text-[#6366f1] text-sm font-medium transition-all duration-200 hover:translate-x-1 inline-block"
                                             >
-                                                <ArrowRight size={12} className="opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-200 text-[#6366f1]" />
-                                                {link.label}
+                                                {link.label || link.title || link.name}
                                             </Link>
                                         </li>
                                     ))}
