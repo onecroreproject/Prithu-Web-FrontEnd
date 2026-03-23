@@ -1,0 +1,1 @@
+import{j as e}from"./mui-BJT99LRP.js";import"./react-c5ypKtDW.js";function n(){return e.jsx("div",{className:"flex justify-center items-center py-6",children:e.jsx("div",{className:"w-8 h-8 border-4 border-t-green-500 border-gray-200 rounded-full animate-spin"})})}export{n as default};
