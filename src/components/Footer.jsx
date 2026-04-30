@@ -134,6 +134,13 @@ const Footer = () => {
                             &copy; {new Date().getFullYear()} {footerData.brandName}. All rights reserved.
                         </p>
                         <div className="hidden md:block w-px h-4 bg-gray-200"></div>
+                        <Link 
+                            to="/how-to-delete-account" 
+                            className="text-slate-500 text-xs font-medium hover:text-[#6366f1] transition-all"
+                        >
+                            How to Delete Account
+                        </Link>
+                        <div className="hidden md:block w-px h-4 bg-gray-200"></div>
                         <p className="text-slate-500 text-xs font-medium">
                             Powered by{" "}
                             <a

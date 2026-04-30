@@ -14,7 +14,7 @@ export default function SubscriptionDetails() {
     try {
       setLoading(true);
       const response = await api.post(
-        "http://localhost:5000/api/user/cancel/subscription",
+        "https://api.prithu.app/web/api/user/cancel/subscription",
         {},
         {
           headers: {

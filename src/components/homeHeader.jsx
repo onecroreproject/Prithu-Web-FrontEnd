@@ -210,15 +210,11 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   // Settings menu items
   const settingsMenuItems = [
     {
-      to: "/home/subscriptions",
-      label: "Subscriptions",
+      to: "/subscription",
+      label: "Plans",
       Icon: CircleDollarSign,
       desc: "Manage subscriptions",
       color: "amber",
-      onClick: (e) => {
-        e.preventDefault();
-        setIsCountdownPromoOpen(true);
-      }
     },
     {
       to: "/home/referral",

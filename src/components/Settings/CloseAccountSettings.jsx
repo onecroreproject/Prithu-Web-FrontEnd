@@ -1,9 +1,13 @@
 // src/pages/settings/CloseAccountSettings.jsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import { AlertCircle, Download, Check, X, Shield, Trash2, Clock, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import { toast } from "react-hot-toast";
+
 
 const CloseAccountSettings = () => {
   const [confirmed, setConfirmed] = useState(false);
@@ -12,7 +16,9 @@ const CloseAccountSettings = () => {
   const [modalType, setModalType] = useState(""); 
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState("");
-  const {logout}=useAuth();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
 
   const handleOpenModal = (type) => {
     setModalType(type);
@@ -49,16 +55,19 @@ const CloseAccountSettings = () => {
       const response = await api.patch(`/api/user/deactivate`, {
         reason: reason.trim()
       });
-      logout()
-      alert("Account deactivated successfully. It will be permanently deleted after 20 days.");
+      toast.success("Account deactivated successfully. It will be permanently deleted after 20 days.");
+      logout();
       handleCloseModal();
     } catch (error) {
       console.error("Deactivation error:", error);
-      alert("Failed to deactivate account. Please try again.");
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || "Failed to deactivate account.";
+      toast.error(`${msg} (Status: ${status || "Network Error"})`);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleDeleteNow = async () => {
     if (!validateReason()) return;
@@ -68,18 +77,22 @@ const CloseAccountSettings = () => {
       const response = await api.delete(`/api/user/delete`, {
         data: { reason: reason.trim() }
       });
-      logout()
-      alert("Account permanently deleted successfully.");
+      toast.success("Account permanently deleted successfully.");
+      logout();
       handleCloseModal();
       // Redirect to home or login page
-      window.location.href = "/home";
+      navigate("/");
+
     } catch (error) {
       console.error("Deletion error:", error);
-      alert("Failed to delete account. Please try again.");
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || "Failed to delete account.";
+      toast.error(`${msg} (Status: ${status || "Network Error"})`);
     } finally {
       setLoading(false);
     }
   };
+
 
   // Helper function to get current user ID (replace with your actual implementation)
   const getUserId = () => {

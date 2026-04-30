@@ -13,6 +13,11 @@ const PrivacyPolicy = () => {
         Privacy Policy
       </h1>
 
+      <div className="flex items-center gap-2 mb-6 text-sm text-gray-500 font-medium">
+        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+        Last Updated: April 29, 2026
+      </div>
+
       <p className="mb-8 text-lg leading-relaxed text-gray-600">
         Your privacy is very important to us. This Privacy Policy explains how
         Prithu ("we", "our", "us") collects, uses, and protects your personal
@@ -166,11 +171,36 @@ const PrivacyPolicy = () => {
           </ul>
         </section>
 
-        {/* Contact */}
+        {/* Child Safety */}
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
               8
+            </span>
+            Child Safety
+          </h2>
+
+          <div className="pl-10 space-y-4">
+            <div>
+              <h4 className="font-bold text-gray-800 mb-1">Child Safety Standards Policy</h4>
+              <p className="text-gray-600">
+                We maintain a zero-tolerance policy for any content that exploits or harms children. We use advanced detection technologies and human review to identify and remove such content.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
+              <p className="text-gray-600">
+                Violations result in immediate permanent bans and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC).
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact */}
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
+              9
             </span>
             Contact Us
           </h2>
@@ -179,6 +209,20 @@ const PrivacyPolicy = () => {
             If you have any questions or concerns regarding this Privacy
             Policy, please contact us through the official support channels
             provided on the Prithu platform.
+          </p>
+        </section>
+
+        {/* Changes to This Policy */}
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
+              10
+            </span>
+            Changes to This Policy
+          </h2>
+
+          <p className="text-gray-600 pl-10">
+            We may update this Privacy Policy from time to time to reflect changes in our practices or for legal, regulatory, or operational reasons. We will notify you of any significant changes by posting the new policy on this page and updating the "Last Updated" date at the top of the policy. We encourage you to review this policy periodically to stay informed about how we are protecting your information.
           </p>
         </section>
       </div>
@@ -263,6 +307,47 @@ const PrivacyPolicy = () => {
               These Terms are governed by the laws of India and disputes shall
               fall under the jurisdiction of the applicable courts.
             </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              7. Child Safety Standards
+            </h3>
+            <p className="text-gray-600 pl-4 mb-2">
+              Prithu is committed to providing a safe and secure environment for all users, especially children. We maintain a zero-tolerance policy regarding any content or behavior that violates child safety standards.
+            </p>
+            <div className="pl-4 space-y-4">
+              <div>
+                <h4 className="font-bold text-gray-800 mb-1">Child Safety Standards Policy</h4>
+                <p className="text-gray-600 mb-2">
+                  All users must adhere to strict safety standards to protect minors. We prohibit any content or activity that exploits, harms, or threatens to harm children. This includes, but is not limited to:
+                </p>
+                <ul className="list-disc pl-10 space-y-1 text-gray-600">
+                  <li><strong>Child Sexual Abuse Material (CSAM):</strong> Sharing, uploading, or distributing any imagery or videos depicting the sexual abuse or exploitation of minors is strictly prohibited.</li>
+                  <li><strong>Grooming and Solicitation:</strong> Any attempt to contact minors for sexual purposes or to entice them into illegal activities is a severe violation.</li>
+                  <li><strong>Physical Harm and Endangerment:</strong> Content that promotes or depicts physical violence, self-harm, or dangerous activities involving minors.</li>
+                  <li><strong>Privacy Violations:</strong> Sharing private information or non-consensual imagery of minors without parental or legal guardian consent.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800 mb-1">Detection and Monitoring</h4>
+                <p className="text-gray-600">
+                  We use a combination of automated scanning technologies, manual reviews, and user reports to identify and remove content that violates our child safety standards. We proactively cooperate with global safety organizations to stay updated on emerging threats.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
+                <p className="text-gray-600">
+                  Any violation of our child safety standards is treated with the highest severity. If we detect such activity, we will take immediate action:
+                </p>
+                <ul className="list-disc pl-10 space-y-1 text-gray-600 mt-2">
+                  <li><strong>Account Termination:</strong> The offending account will be permanently banned without notice.</li>
+                  <li><strong>Content Removal:</strong> All violating content will be immediately deleted from our servers.</li>
+                  <li><strong>Legal Reporting:</strong> We will report the violation to the National Center for Missing & Exploited Children (NCMEC) and relevant law enforcement agencies in India and internationally.</li>
+                  <li><strong>Preservation of Evidence:</strong> We will preserve all necessary data to assist law enforcement in their investigations.</li>
+                </ul>
+              </div>
+            </div>
           </section>
           <section>
   <h3 className="text-lg font-bold text-gray-900 mb-2">Company Details</h3>

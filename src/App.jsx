@@ -16,6 +16,7 @@ import Layout from "./components/Layout.jsx";
 import Profilelayout from "./pages/Profilelayout.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import SubscriptionPage from "./pages/SubscriptionPage.jsx";
+import Paymentdemo from "./pages/Paymentdemo.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import InviteFriends from "./pages/InviteFriends.jsx";
 import SubscriptionDetails from "./pages/SubscriptionDetail.jsx";
@@ -49,6 +50,10 @@ import TermsAndConditions from "./pages/TermsAndConditions.jsx";
 import RefundPolicy from "./pages/RefundPolicy.jsx";
 import SubscriptionDetailPage from "./pages/SubscriptionDetailPage.jsx";
 import ReferralDetailPage from "./pages/ReferralDetailPage.jsx";
+import DeleteAccount from "./pages/DeleteAccount.jsx";
+import HowToDeleteAccount from "./pages/HowToDeleteAccount.jsx";
+
+
 
 // React Query Client
 const queryClient = new QueryClient();
@@ -92,6 +97,8 @@ function AppRoutes() {
       <Route path="/search" element={<SearchResultsScreen />} />
       <Route path="/post/:id" element={<PostDetails />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/how-to-delete-account" element={<HowToDeleteAccount />} />
+
 
       {/* Static Footer Pages */}
       <Route path="/about-us" element={<AboutUs />} />
@@ -122,7 +129,7 @@ function AppRoutes() {
 
         {/* Profile & Activity */}
         <Route path="profile" element={<Profilelayout />} />
-        <Route path="subscriptions" element={<SubscriptionPage />} />
+        <Route path="subscriptions" element={<Paymentdemo />} />
         <Route path="invite" element={<InviteFriends />} />
         <Route path="referral" element={<ReferralPage />} />
         <Route path="activity" element={<UserActivity />} />
@@ -143,12 +150,28 @@ function AppRoutes() {
 
         {/* What's New */}
         <Route path="whats-new" element={<WhatsNewPage />} />
+
+        {/* Delete Account */}
+        <Route path="delete-account" element={<DeleteAccount />} />
       </Route>
+
 
       {/* Blogs - Moved out of Protected /home section */}
       <Route path="/blogs" element={<Layout />}>
         <Route index element={<Blogs />} />
         <Route path=":slug" element={<BlogDetail />} />
+      </Route>
+
+      {/* Subscription Route with Layout */}
+      <Route
+        path="/subscription"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Paymentdemo />} />
       </Route>
 
       {/* Shared Post */}
