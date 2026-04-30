@@ -15,7 +15,7 @@ const PrivacyPolicy = () => {
 
       <div className="flex items-center gap-2 mb-6 text-sm text-gray-500 font-medium">
         <span className="w-2 h-2 rounded-full bg-green-500"></span>
-        Last Updated: April 29, 2026
+        Last Updated: April 30, 2026
       </div>
 
       <p className="mb-8 text-lg leading-relaxed text-gray-600">
@@ -184,13 +184,13 @@ const PrivacyPolicy = () => {
             <div>
               <h4 className="font-bold text-gray-800 mb-1">Child Safety Standards Policy</h4>
               <p className="text-gray-600">
-                We maintain a zero-tolerance policy for any content that exploits or harms children. We use advanced detection technologies and human review to identify and remove such content.
+                <strong>DLK Technologies Pvt Ltd</strong>, the developer of the <strong>Prithu</strong> app, maintains a zero-tolerance policy for any content that exploits or harms children. We strictly prohibit <strong>Child Sexual Abuse and Exploitation (CSAE)</strong> and <strong>Child Sexual Abuse Material (CSAM)</strong>. We use advanced detection technologies and human review to identify and remove such content.
               </p>
             </div>
             <div>
               <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
               <p className="text-gray-600">
-                Violations result in immediate permanent bans and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC).
+                Violations of our child safety standards, including sharing or promoting CSAE, result in immediate permanent bans from the Prithu platform and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC).
               </p>
             </div>
           </div>
@@ -314,16 +314,16 @@ const PrivacyPolicy = () => {
               7. Child Safety Standards
             </h3>
             <p className="text-gray-600 pl-4 mb-2">
-              Prithu is committed to providing a safe and secure environment for all users, especially children. We maintain a zero-tolerance policy regarding any content or behavior that violates child safety standards.
+              <strong>DLK Technologies Pvt Ltd</strong>, the developer of the <strong>Prithu</strong> app, is committed to providing a safe and secure environment for all users, especially children. We maintain a zero-tolerance policy regarding any content or behavior that violates child safety standards.
             </p>
             <div className="pl-4 space-y-4">
               <div>
                 <h4 className="font-bold text-gray-800 mb-1">Child Safety Standards Policy</h4>
                 <p className="text-gray-600 mb-2">
-                  All users must adhere to strict safety standards to protect minors. We prohibit any content or activity that exploits, harms, or threatens to harm children. This includes, but is not limited to:
+                  All users of the Prithu platform must adhere to strict safety standards to protect minors. We strictly prohibit any content or activity that exploits, harms, or threatens to harm children. This includes, but is not limited to:
                 </p>
                 <ul className="list-disc pl-10 space-y-1 text-gray-600">
-                  <li><strong>Child Sexual Abuse Material (CSAM):</strong> Sharing, uploading, or distributing any imagery or videos depicting the sexual abuse or exploitation of minors is strictly prohibited.</li>
+                  <li><strong>Child Sexual Abuse and Exploitation (CSAE) & Child Sexual Abuse Material (CSAM):</strong> Sharing, uploading, or distributing any imagery or videos depicting the sexual abuse or exploitation of minors is strictly prohibited.</li>
                   <li><strong>Grooming and Solicitation:</strong> Any attempt to contact minors for sexual purposes or to entice them into illegal activities is a severe violation.</li>
                   <li><strong>Physical Harm and Endangerment:</strong> Content that promotes or depicts physical violence, self-harm, or dangerous activities involving minors.</li>
                   <li><strong>Privacy Violations:</strong> Sharing private information or non-consensual imagery of minors without parental or legal guardian consent.</li>
@@ -332,16 +332,16 @@ const PrivacyPolicy = () => {
               <div>
                 <h4 className="font-bold text-gray-800 mb-1">Detection and Monitoring</h4>
                 <p className="text-gray-600">
-                  We use a combination of automated scanning technologies, manual reviews, and user reports to identify and remove content that violates our child safety standards. We proactively cooperate with global safety organizations to stay updated on emerging threats.
+                  Prithu uses a combination of automated scanning technologies, manual reviews, and user reports to identify and remove content that violates our child safety standards. We proactively cooperate with global safety organizations to stay updated on emerging threats.
                 </p>
               </div>
               <div>
                 <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
                 <p className="text-gray-600">
-                  Any violation of our child safety standards is treated with the highest severity. If we detect such activity, we will take immediate action:
+                  Any violation of the Child Safety Standards Policy by a Prithu user is treated with the highest severity. If we detect such activity, DLK Technologies Pvt Ltd will take immediate action:
                 </p>
                 <ul className="list-disc pl-10 space-y-1 text-gray-600 mt-2">
-                  <li><strong>Account Termination:</strong> The offending account will be permanently banned without notice.</li>
+                  <li><strong>Account Termination:</strong> The offending account will be permanently banned from the Prithu app without notice.</li>
                   <li><strong>Content Removal:</strong> All violating content will be immediately deleted from our servers.</li>
                   <li><strong>Legal Reporting:</strong> We will report the violation to the National Center for Missing & Exploited Children (NCMEC) and relevant law enforcement agencies in India and internationally.</li>
                   <li><strong>Preservation of Evidence:</strong> We will preserve all necessary data to assist law enforcement in their investigations.</li>
@@ -350,45 +350,45 @@ const PrivacyPolicy = () => {
             </div>
           </section>
           <section>
-  <h3 className="text-lg font-bold text-gray-900 mb-2">Company Details</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Company Details</h3>
 
-  <ul className="list-disc pl-8 space-y-1 text-gray-600">
-    <li>
-      <strong>Platform Name:</strong> Prithu
-    </li>
+            <ul className="list-disc pl-8 space-y-1 text-gray-600">
+              <li>
+                <strong>Platform Name:</strong> Prithu
+              </li>
 
-    <li>
-      <strong>Website:</strong> https://prithu.app
-    </li>
+              <li>
+                <strong>Website:</strong> https://prithu.app
+              </li>
 
-    <li>
-      <strong>Company Name:</strong> DLK Technologies Pvt Ltd
-    </li>
+              <li>
+                <strong>Company Name:</strong> DLK Technologies Pvt Ltd
+              </li>
 
-    <li>
-      <strong>Registered Office Address:</strong> Ground Floor, Raahat Plaza,
-      No - 68/70, Near AVM, Opposite to VIJAYA HOSPITAL, Vadapalani
-    </li>
+              <li>
+                <strong>Registered Office Address:</strong> Ground Floor, Raahat Plaza,
+                No - 68/70, Near AVM, Opposite to VIJAYA HOSPITAL, Vadapalani
+              </li>
 
-    <li>
-      <strong>City & State:</strong> Chennai, Tamil Nadu – 600026, India
-    </li>
-  </ul>
-</section>
-<section>
-  <h3 className="text-lg font-bold text-gray-900 mb-2">Contact Information</h3>
+              <li>
+                <strong>City & State:</strong> Chennai, Tamil Nadu – 600026, India
+              </li>
+            </ul>
+          </section>
+          <section>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Contact Information</h3>
 
-  <p className="text-gray-600 pl-4">
-    For any questions or concerns about this Privacy Policy or our data
-    practices, please contact us at:
-  </p>
+            <p className="text-gray-600 pl-4">
+              For any questions or concerns about this Privacy Policy or our data
+              practices, please contact us at:
+            </p>
 
-  <ul className="list-disc pl-8 space-y-1 text-gray-600 mt-2">
-    <li>
-      <strong>Email:</strong> [EMAIL_ADDRESS]
-    </li>
-  </ul>
-</section>
+            <ul className="list-disc pl-8 space-y-1 text-gray-600 mt-2">
+              <li>
+                <strong>Email:</strong> info@prithu.app
+              </li>
+            </ul>
+          </section>
 
 
         </div>

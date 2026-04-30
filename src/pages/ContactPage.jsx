@@ -55,14 +55,11 @@ const ContactPage = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await axios.post("/api/feedback/submit", {
-                ...formData,
-                section: "help",
-                type: "feedback",
-                category: "other",
-                guestName: formData.name,
-                guestEmail: formData.email,
-                title: formData.subject
+            await axios.post("/api/support", {
+                name: formData.name,
+                email: formData.email,
+                subject: formData.subject,
+                message: formData.message
             });
             toast.success("Message sent successfully!");
             setFormData({ name: "", email: "", subject: "", message: "" });
