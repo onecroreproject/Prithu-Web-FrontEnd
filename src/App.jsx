@@ -52,6 +52,7 @@ import SubscriptionDetailPage from "./pages/SubscriptionDetailPage.jsx";
 import ReferralDetailPage from "./pages/ReferralDetailPage.jsx";
 import DeleteAccount from "./pages/DeleteAccount.jsx";
 import HowToDeleteAccount from "./pages/HowToDeleteAccount.jsx";
+import DeleteDataPage from "./pages/DeleteDataPage.jsx";
 
 
 
@@ -98,6 +99,7 @@ function AppRoutes() {
       <Route path="/post/:id" element={<PostDetails />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/how-to-delete-account" element={<HowToDeleteAccount />} />
+      <Route path="/delete-data" element={<DeleteDataPage />} />
 
 
       {/* Static Footer Pages */}

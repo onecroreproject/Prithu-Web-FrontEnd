@@ -165,32 +165,54 @@ const PrivacyPolicy = () => {
 
           <ul className="list-disc pl-16 space-y-2 text-gray-600">
             <li>Access or update your personal information</li>
-            <li>Request deletion of your account or personal data</li>
+            <li>Request deletion of your account or personal data via the app settings or our web portal</li>
             <li>Control the visibility of your profile and content</li>
             <li>Opt out of promotional communications</li>
           </ul>
+        </section>
+
+        {/* Data Retention & Account Deletion */}
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
+              8
+            </span>
+            Data Retention & Account Deletion
+          </h2>
+
+          <div className="pl-10 space-y-4 text-gray-600">
+            <p>
+              We retain your personal information for as long as your account is active or as needed to provide you with our services. If you wish to delete your account, you can do so directly within the <strong>Prithu</strong> app under <strong>Settings &gt; Account Management &gt; Delete Account</strong>.
+            </p>
+            <p>
+              Upon account deletion, all your personal data, including profile information, posts, and media, will be permanently removed from our active databases within 30 days, unless retention is required by law or for legitimate business purposes (such as fraud prevention or resolving disputes).
+            </p>
+            <p>
+              You may also submit a deletion request via our dedicated data deletion portal at: <a href="https://prithu.app/delete-data" className="text-indigo-600 hover:underline">https://prithu.app/delete-data</a>
+            </p>
+          </div>
         </section>
 
         {/* Child Safety */}
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
-              8
+              9
             </span>
-            Child Safety
+            Child Safety Standards
           </h2>
 
           <div className="pl-10 space-y-4">
             <div>
-              <h4 className="font-bold text-gray-800 mb-1">Child Safety Standards Policy</h4>
+              <h4 className="font-bold text-gray-800 mb-1">Our Commitment</h4>
               <p className="text-gray-600">
                 <strong>DLK Technologies Pvt Ltd</strong>, the developer of the <strong>Prithu</strong> app, maintains a zero-tolerance policy for any content that exploits or harms children. We strictly prohibit <strong>Child Sexual Abuse and Exploitation (CSAE)</strong> and <strong>Child Sexual Abuse Material (CSAM)</strong>. We use advanced detection technologies and human review to identify and remove such content.
               </p>
             </div>
             <div>
-              <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
+              <h4 className="font-bold text-gray-800 mb-1">Violation and Reporting</h4>
               <p className="text-gray-600">
-                Violations of our child safety standards, including sharing or promoting CSAE, result in immediate permanent bans from the Prithu platform and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC).
+                Violations of our child safety standards, including sharing or promoting CSAE, result in immediate permanent bans from the Prithu platform and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC). This policy is functional and applies to all users of the platform globally.
               </p>
             </div>
           </div>
@@ -200,7 +222,7 @@ const PrivacyPolicy = () => {
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
-              9
+              10
             </span>
             Contact Us
           </h2>
@@ -208,7 +230,7 @@ const PrivacyPolicy = () => {
           <p className="text-gray-600 pl-10">
             If you have any questions or concerns regarding this Privacy
             Policy, please contact us through the official support channels
-            provided on the Prithu platform.
+            provided on the Prithu platform or email us at <strong>info@prithu.app</strong>.
           </p>
         </section>
 
@@ -216,13 +238,13 @@ const PrivacyPolicy = () => {
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 text-sm">
-              10
+              11
             </span>
             Changes to This Policy
           </h2>
 
           <p className="text-gray-600 pl-10">
-            We may update this Privacy Policy from time to time to reflect changes in our practices or for legal, regulatory, or operational reasons. We will notify you of any significant changes by posting the new policy on this page and updating the "Last Updated" date at the top of the policy. We encourage you to review this policy periodically to stay informed about how we are protecting your information.
+            We may update this Privacy Policy from time to time to reflect changes in our practices or for legal, regulatory, or operational reasons. We will notify you of any significant changes by posting the new policy on this page and updating the "Last Updated" date at the top of the policy.
           </p>
         </section>
       </div>

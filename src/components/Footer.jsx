@@ -141,6 +141,13 @@ const Footer = () => {
                             How to Delete Account
                         </Link>
                         <div className="hidden md:block w-px h-4 bg-gray-200"></div>
+                        <Link 
+                            to="/delete-data" 
+                            className="text-slate-500 text-xs font-medium hover:text-[#6366f1] transition-all"
+                        >
+                            Delete Data
+                        </Link>
+                        <div className="hidden md:block w-px h-4 bg-gray-200"></div>
                         <p className="text-slate-500 text-xs font-medium">
                             Powered by{" "}
                             <a
