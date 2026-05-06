@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import SEO from "./components/SEO";
 
 const PrivacyPolicy = () => {
@@ -206,13 +207,13 @@ const PrivacyPolicy = () => {
             <div>
               <h4 className="font-bold text-gray-800 mb-1">Our Commitment</h4>
               <p className="text-gray-600">
-                <strong>DLK Technologies Pvt Ltd</strong>, the developer of the <strong>Prithu</strong> app, maintains a zero-tolerance policy for any content that exploits or harms children. We strictly prohibit <strong>Child Sexual Abuse and Exploitation (CSAE)</strong> and <strong>Child Sexual Abuse Material (CSAM)</strong>. We use advanced detection technologies and human review to identify and remove such content.
+                <strong>D.L.K TECHNOLOGIES PRIVATE LIMITED</strong>, the developer of the <strong>Prithu</strong> app, maintains a zero-tolerance policy for any content that exploits or harms children. We strictly prohibit <strong>Child Sexual Abuse and Exploitation (CSAE)</strong> and <strong>Child Sexual Abuse Material (CSAM)</strong>. We use advanced detection technologies and human review to identify and remove such content.
               </p>
             </div>
             <div>
               <h4 className="font-bold text-gray-800 mb-1">Violation and Reporting</h4>
               <p className="text-gray-600">
-                Violations of our child safety standards, including sharing or promoting CSAE, result in immediate permanent bans from the Prithu platform and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC). This policy is functional and applies to all users of the platform globally.
+                Violations of our child safety standards, including sharing or promoting CSAE, result in immediate permanent bans from the Prithu platform and reporting to law enforcement and safety organizations like the National Center for Missing & Exploited Children (NCMEC). This policy is functional and applies to all users of the platform globally. For more details, please read our dedicated <Link to="/child-safety-standards" className="text-indigo-600 hover:underline">Child Safety Standards</Link> page.
               </p>
             </div>
           </div>
@@ -336,7 +337,7 @@ const PrivacyPolicy = () => {
               7. Child Safety Standards
             </h3>
             <p className="text-gray-600 pl-4 mb-2">
-              <strong>DLK Technologies Pvt Ltd</strong>, the developer of the <strong>Prithu</strong> app, is committed to providing a safe and secure environment for all users, especially children. We maintain a zero-tolerance policy regarding any content or behavior that violates child safety standards.
+              <strong>D.L.K TECHNOLOGIES PRIVATE LIMITED</strong>, the developer of the <strong>Prithu</strong> app, is committed to providing a safe and secure environment for all users, especially children. We maintain a zero-tolerance policy regarding any content or behavior that violates child safety standards.
             </p>
             <div className="pl-4 space-y-4">
               <div>
@@ -360,7 +361,7 @@ const PrivacyPolicy = () => {
               <div>
                 <h4 className="font-bold text-gray-800 mb-1">Violation of Child Safety Standards Policy</h4>
                 <p className="text-gray-600">
-                  Any violation of the Child Safety Standards Policy by a Prithu user is treated with the highest severity. If we detect such activity, DLK Technologies Pvt Ltd will take immediate action:
+                  Any violation of the Child Safety Standards Policy by a Prithu user is treated with the highest severity. If we detect such activity, D.L.K TECHNOLOGIES PRIVATE LIMITED will take immediate action:
                 </p>
                 <ul className="list-disc pl-10 space-y-1 text-gray-600 mt-2">
                   <li><strong>Account Termination:</strong> The offending account will be permanently banned from the Prithu app without notice.</li>
@@ -369,6 +370,9 @@ const PrivacyPolicy = () => {
                   <li><strong>Preservation of Evidence:</strong> We will preserve all necessary data to assist law enforcement in their investigations.</li>
                 </ul>
               </div>
+              <p className="text-sm text-gray-500 mt-4 italic">
+                For a comprehensive overview of our safety protocols, please visit our <Link to="/child-safety-standards" className="text-indigo-600 hover:underline">Child Safety Standards</Link> page.
+              </p>
             </div>
           </section>
           <section>
@@ -384,7 +388,7 @@ const PrivacyPolicy = () => {
               </li>
 
               <li>
-                <strong>Company Name:</strong> DLK Technologies Pvt Ltd
+                <strong>Company Name:</strong> D.L.K TECHNOLOGIES PRIVATE LIMITED
               </li>
 
               <li>

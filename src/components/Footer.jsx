@@ -148,6 +148,13 @@ const Footer = () => {
                             Delete Data
                         </Link>
                         <div className="hidden md:block w-px h-4 bg-gray-200"></div>
+                        <Link 
+                            to="/child-safety-standards" 
+                            className="text-slate-500 text-xs font-medium hover:text-[#6366f1] transition-all"
+                        >
+                            Child Safety Standards
+                        </Link>
+                        <div className="hidden md:block w-px h-4 bg-gray-200"></div>
                         <p className="text-slate-500 text-xs font-medium">
                             Powered by{" "}
                             <a
@@ -156,7 +163,7 @@ const Footer = () => {
                                 rel="noopener noreferrer"
                                 className="text-[#6366f1] font-semibold hover:underline transition-all"
                             >
-                                DLK Technologies PVT ltd
+                                D.L.K TECHNOLOGIES PRIVATE LIMITED
                             </a>
                         </p>
                     </div>

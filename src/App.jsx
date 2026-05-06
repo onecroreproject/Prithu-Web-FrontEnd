@@ -53,6 +53,7 @@ import ReferralDetailPage from "./pages/ReferralDetailPage.jsx";
 import DeleteAccount from "./pages/DeleteAccount.jsx";
 import HowToDeleteAccount from "./pages/HowToDeleteAccount.jsx";
 import DeleteDataPage from "./pages/DeleteDataPage.jsx";
+import ChildSafetyStandards from "./pages/ChildSafetyStandards.jsx";
 
 
 
@@ -100,6 +101,7 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/how-to-delete-account" element={<HowToDeleteAccount />} />
       <Route path="/delete-data" element={<DeleteDataPage />} />
+      <Route path="/child-safety-standards" element={<ChildSafetyStandards />} />
 
 
       {/* Static Footer Pages */}
