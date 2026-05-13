@@ -8,7 +8,7 @@ import debounce from 'lodash.debounce';
  * @param {boolean} isVideo - Whether the feed is a video
  * @param {string} sessionId - Unique session ID for the user session
  */
-const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'default_session') => {
+const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'default_session', recoScore = 0, recoSource = 'organic') => {
   const [watchTime, setWatchTime] = useState(0);
   const [percentageWatched, setPercentageWatched] = useState(0);
   const timerRef = useRef(null);
@@ -22,7 +22,9 @@ const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'defaul
           feedId,
           watchTime: Math.round(time),
           percentageWatched: percent,
-          sessionId
+          sessionId,
+          recoScore,
+          recoSource
         });
       } catch (err) {
         console.error('Failed to update watch time:', err);
@@ -53,7 +55,9 @@ const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'defaul
       axios.post('/api/track-feed-view', {
         feedId,
         deviceType: window.innerWidth < 768 ? 'mobile' : 'desktop',
-        sessionId
+        sessionId,
+        recoScore,
+        recoSource
       }).catch(err => console.error('Failed to initialize view tracking:', err));
 
       // Track scroll on visibility

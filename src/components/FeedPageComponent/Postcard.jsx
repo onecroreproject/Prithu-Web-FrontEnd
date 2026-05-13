@@ -253,7 +253,7 @@ function Postcard({
     isVisible,
   });
 
-  const { watchTime, setPercentageWatched } = useFeedTracking(feedId, isVisible, isVideo, "main_session");
+  const { watchTime, setPercentageWatched } = useFeedTracking(feedId, isVisible, isVideo, "main_session", postData.recoScore, postData.recoSource);
 
   const handleVideoTimeUpdate = useCallback((e) => {
     const video = e.target;
