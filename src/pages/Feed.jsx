@@ -11,6 +11,7 @@ import {
   getBirthdayFeeds,
   getAnniversaryFeeds,
   getPoliticsFeeds,
+  getRecommendedFeeds,
 } from "../Service/feedService";
 import { useCategories } from "../hooks/useMiscellaneous";
 
@@ -211,7 +212,8 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
       if (param.mode === "category" && fetchCategoryId) {
         return getAllFeeds(param.categoryPage, tokenRef.current || token, fetchCategoryId, param.postType);
       } else {
-        return getAllFeeds(param.allPage, tokenRef.current || token, null, param.postType);
+        // 🚀 Use new Recommendation Engine for the main feed
+        return getRecommendedFeeds(param.allPage, tokenRef.current || token);
       }
     },
     initialPageParam,

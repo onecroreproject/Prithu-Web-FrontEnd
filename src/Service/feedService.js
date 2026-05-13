@@ -295,3 +295,17 @@ export const getPoliticsFeeds = async (page = 1, token) => {
     return [];
   }
 };
+
+export const getRecommendedFeeds = async (page = 1, token, limit = 10) => {
+  try {
+    const { data } = await api.get(`/api/recommended-feeds?page=${page}&limit=${limit}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const feedsArray = data?.data?.feeds || [];
+    const viewer = data?.data?.viewer || null;
+    return feedsArray.map(feed => normalizeFeedItem(feed, viewer));
+  } catch (error) {
+    console.error("❌ Error fetching recommended feeds:", error.message);
+    return [];
+  }
+};

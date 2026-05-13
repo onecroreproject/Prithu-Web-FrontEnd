@@ -38,6 +38,7 @@ import {
 
 import FeedOverlayRenderer from "./postCardComponent/FeedOverlayRenderer";
 import LeaderOverlayRenderer from "./postCardComponent/LeaderOverlayRenderer";
+import useFeedTracking from "../../hooks/useFeedTracking";
 import useFeedAudioPlayer from "../../hooks/useFeedAudioPlayer";
 import prithuLogo from "../../assets/prithulogo.png";
 
@@ -250,6 +251,16 @@ function Postcard({
     isVisible,
   });
 
+  const { watchTime, setPercentageWatched } = useFeedTracking(feedId, isVisible, isVideo, "main_session");
+
+  const handleVideoTimeUpdate = useCallback((e) => {
+    const video = e.target;
+    if (video.duration) {
+      const percent = Math.round((video.currentTime / video.duration) * 100);
+      setPercentageWatched(percent);
+    }
+  }, [setPercentageWatched]);
+
   const audioProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // ✅ Immediate "Best Guess" Color to avoid initial black flicker
@@ -304,62 +315,7 @@ function Postcard({
   //   }
   // }, [commentsData]);
 
-  // IMAGE VIEW COUNT
-  useEffect(() => {
-    if (type !== "image") return;
-    if (!feedId || !isVisible) return;
-    if (imageViewCounted) return;
-
-    userImageViewCount(feedId)
-      .then(() => {
-        setImageViewCounted(true);
-      })
-      .catch((err) =>
-        console.error("❌ Image view failed →", feedId, err)
-      );
-  }, [type, feedId, isVisible, imageViewCounted]);
-
-  // VIDEO VIEW COUNT
-  useEffect(() => {
-    if (type !== "video") return;
-    if (!feedId || !isVisible) return;
-    if (videoViewCounted) return;
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    let watchThresholdMet = false;
-
-    const handleVideoTracking = () => {
-      if (videoViewCounted || watchThresholdMet) return;
-
-      userVideoViewCount(feedId)
-        .then(() => {
-          setVideoViewCounted(true);
-          watchThresholdMet = true;
-        })
-        .catch((err) =>
-          console.error("❌ Video view failed →", feedId, err)
-        );
-    };
-
-    // Trigger on 'ended'
-    video.addEventListener("ended", handleVideoTracking);
-
-    // Trigger after 3 seconds of watch time (or when 50% reached for short videos)
-    const handleTimeUpdate = () => {
-      if (!videoViewCounted && video.currentTime >= Math.min(3, video.duration / 2)) {
-        handleVideoTracking();
-        video.removeEventListener("timeupdate", handleTimeUpdate);
-      }
-    };
-    video.addEventListener("timeupdate", handleTimeUpdate);
-
-    return () => {
-      video.removeEventListener("ended", handleVideoTracking);
-      video.removeEventListener("timeupdate", handleTimeUpdate);
-    };
-  }, [type, feedId, isVisible, videoViewCounted]);
+  // TRACKING LOGIC REMOVED (Now handled by useFeedTracking hook)
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 180);
@@ -760,6 +716,7 @@ function Postcard({
               editMetadata={stabilizedEditMetadata}
               isTemplate={isTemplate}
               viewMode={viewMode}
+              onTimeUpdate={handleVideoTimeUpdate}
               onVideoPlay={() => {
                 setIsVideoPlaying(true);
                 if (!hasAnimatedOnce) {
