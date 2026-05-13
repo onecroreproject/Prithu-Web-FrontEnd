@@ -2,26 +2,18 @@ import React, { useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { X, Download, Share2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useDownloads } from "../../context/DownloadContext";
 
 const ReferralQRCodePopUp = ({ isOpen, onClose, referralCode }) => {
     const qrRef = useRef(null);
+    const { setIsDownloadPopUpOpen } = useDownloads();
 
     if (!isOpen) return null;
 
     const referralLink = `${window.location.origin}/signup?ref=${referralCode}`;
 
     const downloadQRCode = () => {
-        const canvas = qrRef.current.querySelector("canvas");
-        if (!canvas) return;
-
-        const url = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `referral-qr-${referralCode}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("QR Code downloaded!");
+        setIsDownloadPopUpOpen(true);
     };
 
     const shareQRCode = async () => {

@@ -43,6 +43,8 @@ import Blogs from "./pages/Blogs.jsx";
 import BlogDetail from "./pages/BlogDetail.jsx";
 import WhatsNewPage from "./pages/WhatsNewPage.jsx";
 import { UpdateProvider } from "./context/UpdateContext.jsx";
+import { DownloadProvider } from "./context/DownloadContext.jsx";
+import DownloadAppPopUp from "./components/DownloadAppPopUp.jsx";
 
 // Static Pages
 import AboutUs from "./pages/AboutUs.jsx";
@@ -200,8 +202,11 @@ export default function App() {
       <Router>
         <AuthProvider>
           <UpdateProvider>
-            <AppRoutes />
-            <Toaster position="top-right" />
+            <DownloadProvider>
+              <AppRoutes />
+              <DownloadAppPopUp />
+              <Toaster position="top-right" />
+            </DownloadProvider>
           </UpdateProvider>
         </AuthProvider>
       </Router>

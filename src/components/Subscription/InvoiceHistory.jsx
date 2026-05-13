@@ -11,6 +11,7 @@ import {
 import { getUserInvoicesApi, downloadInvoiceApi } from '../../API_Services/subscriptionServices';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { useDownloads } from '../../context/DownloadContext';
 
 
 
@@ -18,6 +19,7 @@ const InvoiceHistory = () => {
     const { user } = useAuth();
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { setIsDownloadPopUpOpen } = useDownloads();
 
 
     useEffect(() => {
@@ -40,29 +42,7 @@ const InvoiceHistory = () => {
     };
 
     const handleDownloadInvoice = async (invoice) => {
-        try {
-            toast.loading('Preparing invoice PDF...');
-            const response = await downloadInvoiceApi(invoice._id);
-
-            // Create blob link and download
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Prithu_Invoice_${invoice.invoiceNumber}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-
-            // Cleanup
-            link.parentNode.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            toast.dismiss();
-            toast.success('Invoice downloaded');
-        } catch (err) {
-            toast.dismiss();
-            console.error('Download error:', err);
-            toast.error('Failed to download invoice');
-        }
+        setIsDownloadPopUpOpen(true);
     };
 
 

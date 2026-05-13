@@ -57,12 +57,17 @@ const WhatsNewSection = () => {
 
                         <div className="relative bg-white rounded-[2.4rem] p-6 md:p-10 flex flex-col md:flex-row gap-8 items-center">
 
-                            {/* Visual Indicator */}
-                            <div className="relative shrink-0 w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-500">
-                                <Zap className="w-12 h-12 md:w-16 md:h-16 text-blue-500 group-hover:scale-110 transition-transform duration-500" />
-                                <div className="absolute -top-2 -right-2 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">
-                                    New
-                                </div>
+                            {/* Visual Indicator / Image */}
+                            <div className="relative shrink-0 w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-blue-50 overflow-hidden flex items-center justify-center group-hover:bg-blue-100 transition-all duration-500">
+                                {latestUpdate.media ? (
+                                    <img 
+                                        src={latestUpdate.media} 
+                                        alt={latestUpdate.title}
+                                        className="w-full h-full object-contain transition-transform duration-500"
+                                    />
+                                ) : (
+                                    <Zap className="w-12 h-12 md:w-16 md:h-16 text-blue-500 group-hover:scale-110 transition-transform duration-500" />
+                                )}
                             </div>
 
                             {/* Text Content */}

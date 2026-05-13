@@ -1,5 +1,6 @@
 // src/pages/settings/PrivacySettings.jsx
 import React, { useState } from "react";
+import { useDownloads } from "../../context/DownloadContext";
 
 
 import {
@@ -27,6 +28,7 @@ const PrivacySettings = () => {
     profileVisibility: true,
     autoplay: "wifi",
   });
+  const { setIsDownloadPopUpOpen } = useDownloads();
 
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -76,7 +78,10 @@ const PrivacySettings = () => {
         title="Manage your data and activity"
         tagline="Download or delete your account data"
         rightContent={
-          <button className="flex items-center gap-1.5 text-purple-600 hover:text-purple-700 font-medium text-sm">
+          <button 
+            onClick={() => setIsDownloadPopUpOpen(true)}
+            className="flex items-center gap-1.5 text-purple-600 hover:text-purple-700 font-medium text-sm"
+          >
             <Download className="w-4 h-4" />
             Download Data
           </button>

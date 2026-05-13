@@ -20,6 +20,8 @@ import {
     Add as PlusIcon,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
+import { useDownloads } from "../../../context/DownloadContext";
+
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
 import OverlayItem from "./OverlayItem";
 import PostMedia from "./postMeadia";
@@ -161,6 +163,8 @@ const FeedEditPosterPopup = ({
         const firstAvatar = postData?.overlayElements?.find(el => el.type === 'avatar');
         return firstAvatar?.shape || firstAvatar?.avatarConfig?.shape || 'circle';
     }); // circle or square
+    const { setIsDownloadPopUpOpen } = useDownloads();
+
 
     useEffect(() => {
         if (!isOpen || !postData?.overlayElements) return;
@@ -303,95 +307,9 @@ const FeedEditPosterPopup = ({
     }, [isOpen]);
 
     const handleDownload = async () => {
-        const feedId = postData?._id;
-        if (!feedId) return toast.error("Invalid feed!");
-
-        const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.prithu.app';
-        const token = localStorage.getItem('token');
-        const activeUserId = localStorage.getItem('userId');
-
-        if (!token || activeUserId === "guest") {
-            return toast.error("Please login to download");
-        }
-
-        if (isDownloading) return;
-        setIsDownloading(true);
-        const toastId = toast.loading("Processing your video... This may take up to 30 seconds.", { id: 'dl-toast' });
-
-        try {
-            // Process all avatars: convert blobs to base64 if needed
-            const processedAvatars = await Promise.all(avatarOverlays.map(async (ov) => {
-                let imgUrl = ov.img;
-                if (imgUrl && imgUrl.startsWith('blob:')) {
-                    try {
-                        const response = await fetch(imgUrl);
-                        const blob = await response.blob();
-                        imgUrl = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
-                    } catch (e) {
-                        console.error("Failed to convert avatar blob:", e);
-                    }
-                }
-                return {
-                    x: ov.x,
-                    y: ov.y,
-                    w: ov.w,
-                    h: ov.h,
-                    img: imgUrl,
-                    shape: ov.shape || ov.avatarConfig?.shape || 'circle'
-                };
-            }));
-
-            const customMetadata = {
-                avatarConfigs: processedAvatars,
-                footerConfig: {
-                    backgroundColor: dominantColor || "#000000",
-                    fontFamily: footerStyle !== 'inherit' ? footerStyle : undefined,
-                    usernameScale: usernameSize,
-                    emailScale: emailSize,
-                    phoneScale: phoneSize,
-                    socialScale: socialSize,
-                    showElements: postData?.footerDisplay?.showElements,
-                    enabled: true,
-                    showFooter: true
-                }
-            };
-
-            console.log("📤 [FeedEditor] Download Payload (customMetadata):", customMetadata);
-
-            // Use fetch + blob — form.submit() silently drops long-running file responses
-            const response = await fetch(`${BACKEND_URL}/api/user/feed/${feedId}/direct-download`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, userId: activeUserId, customMetadata })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || errData.message || `Server error ${response.status}`);
-            }
-
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `poster_${feedId.slice(-4)}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            toast.success("Download complete!", { id: toastId });
-        } catch (error) {
-            console.error("Download error:", error);
-            toast.error(error.message || "Download failed", { id: toastId });
-        } finally {
-            setIsDownloading(false);
-        }
+        setIsDownloadPopUpOpen(true);
     };
+
 
     const removeAvatar = (id) => {
         setAvatarOverlays(prev => prev.filter(o => o.id !== id));

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import DownloadAppPopUp from '../components/DownloadAppPopUp';
 
 const DownloadContext = createContext();
 
@@ -17,12 +18,16 @@ export const DownloadProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : [];
     });
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isDownloadPopUpOpen, setIsDownloadPopUpOpen] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('prithu_completed_downloads', JSON.stringify(completedDownloads));
     }, [completedDownloads]);
 
     const addDownload = useCallback((jobId, metadata) => {
+        // Intercept and show play store popup
+        setIsDownloadPopUpOpen(true);
+        /* 
         setActiveDownloads(prev => ({
             ...prev,
             [jobId]: {
@@ -33,6 +38,7 @@ export const DownloadProvider = ({ children }) => {
                 ...metadata
             }
         }));
+        */
     }, []);
 
     const updateProgress = useCallback((jobId, progress, status = 'processing') => {
@@ -50,6 +56,8 @@ export const DownloadProvider = ({ children }) => {
     }, []);
 
     const triggerBrowserDownload = useCallback((url, filename) => {
+        setIsDownloadPopUpOpen(true);
+        /*
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', filename || 'video.mp4');
@@ -57,6 +65,7 @@ export const DownloadProvider = ({ children }) => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        */
     }, []);
 
     const markComplete = useCallback((jobId, downloadUrl) => {
@@ -147,12 +156,17 @@ export const DownloadProvider = ({ children }) => {
         addDownload,
         removeActiveDownload,
         clearCompleted,
-        triggerBrowserDownload
+        triggerBrowserDownload,
+        setIsDownloadPopUpOpen
     };
 
     return (
         <DownloadContext.Provider value={value}>
             {children}
+            <DownloadAppPopUp 
+                isOpen={isDownloadPopUpOpen} 
+                onClose={() => setIsDownloadPopUpOpen(false)} 
+            />
         </DownloadContext.Provider>
     );
 };

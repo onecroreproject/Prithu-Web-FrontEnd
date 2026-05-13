@@ -28,6 +28,7 @@ import {
   getDownloadStatus,
   useCheckDownloadLimit,
 } from "../../hooks/usePostActions";
+import { useDownloads } from "../../context/DownloadContext";
 
 import { useCategories } from "../../hooks/useMiscellaneous";
 
@@ -236,6 +237,7 @@ function Postcard({
   const unfollowMutation = useUnfollowUser();
   const downloadMutation = useDownloadFeed();
   const checkLimitMutation = useCheckDownloadLimit();
+  const { setIsDownloadPopUpOpen } = useDownloads();
 
   /* ---------------------------- Audio Logic Hook (ONLY for image + audio) ---------------------------- */
   const {
@@ -533,95 +535,7 @@ function Postcard({
   // Download Logic
 
   const handleDownload = async () => {
-    if (!feedId) return toast.error("Invalid feed!");
-
-    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.prithu.app';
-    const token = localStorage.getItem('token');
-    const activeUserId = localStorage.getItem('userId');
-
-    if (!token || activeUserId === "guest") {
-      return toast.error("Please login to download");
-    }
-
-    try {
-      // 1. Check download limit
-      const limitInfo = await checkLimitMutation.mutateAsync();
-      if (limitInfo && limitInfo.isLimitReached) {
-        return toast.error("you reached yor download limt", {
-          duration: 4000,
-          style: {
-            background: '#ff4b4b',
-            color: '#fff',
-            fontWeight: 'bold'
-          }
-        });
-      }
-
-      setDownloadCount((p) => p + 1);
-      toast("Starting download...", { id: 'dl-toast' });
-
-      // Package local customizations
-      const customMetadata = {
-        leaderOverlays: leaderOverlays.map(ov => ({
-          id: ov.id,
-          img: ov.img,
-          x: ov.x,
-          y: ov.y,
-          w: ov.w,
-          h: ov.h
-        })),
-        footerConfig: {
-          backgroundColor: postData.footerDisplay?.useDominantColor ? dominantColor : (postData.footerDisplay?.backgroundColor || "#000000"),
-          fontFamily: globalFooterStyle !== 'inherit' ? globalFooterStyle : undefined,
-          usernameScale: globalUsernameSize,
-          emailScale: globalEmailSize,
-          phoneScale: globalPhoneSize,
-          socialScale: globalSocialSize,
-          showElements: {
-            name: !!postData.footerDisplay?.showElements?.userName,
-            email: !!postData.footerDisplay?.showElements?.email,
-            phone: !!postData.footerDisplay?.showElements?.phone,
-            socialIcons: !!postData.footerDisplay?.showElements?.socialIcons
-          }
-        }
-      };
-
-      // Create a hidden form to benefit from the browser's native download manager
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = `${BACKEND_URL}/api/user/feed/${feedId}/direct-download`;
-      form.style.display = 'none';
-
-      const fields = {
-        token,
-        userId: activeUserId,
-        customMetadata: JSON.stringify(customMetadata)
-      };
-
-      Object.entries(fields).forEach(([key, value]) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-
-      // Cleanup
-      setTimeout(() => {
-        if (document.body.contains(form)) {
-          document.body.removeChild(form);
-        }
-        toast.success("Download initiated!", { id: 'dl-toast' });
-      }, 5000);
-
-      return;
-    } catch (err) {
-      console.error("[Download] Error:", err);
-      toast.error(err.message || "Download failed", { id: 'dl-toast' });
-    }
+    setIsDownloadPopUpOpen(true);
   };
 
   const handleFollow = useCallback(() => {

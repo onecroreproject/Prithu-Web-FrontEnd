@@ -22,6 +22,8 @@ import {
     Add as PlusIcon,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
+import { useDownloads } from "../../../context/DownloadContext";
+
 import FeedOverlayRenderer from "./FeedOverlayRenderer";
 import LeaderOverlayRenderer from "./LeaderOverlayRenderer";
 import OverlayItem from "./OverlayItem";
@@ -180,6 +182,8 @@ const PoliticsEditPosterPopup = ({
     const [isDownloading, setIsDownloading] = useState(false);
     const [previewDuration, setPreviewDuration] = useState(0);
     const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+    const { setIsDownloadPopUpOpen } = useDownloads();
+
 
     // Keep ref in sync with state so handleDownload always reads current value
     useEffect(() => { isFooterEnabledRef.current = isFooterEnabled; }, [isFooterEnabled]);
@@ -510,120 +514,9 @@ const PoliticsEditPosterPopup = ({
     };
 
     const handleDownload = async () => {
-        // ── DIAGNOSTIC: confirm this function is called and check footer state ──
-        console.log('🔴 [PoliticsDL] handleDownload CALLED | isFooterEnabled:', isFooterEnabled, '| ref:', isFooterEnabledRef.current);
-        const feedId = postData?._id;
-        if (!feedId) return toast.error("Invalid feed!");
-
-        const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.prithu.app';
-        const token = localStorage.getItem('token');
-        const activeUserId = localStorage.getItem('userId');
-
-        if (!token || activeUserId === "guest") {
-            return toast.error("Please login to download");
-        }
-
-        if (isDownloading) return;
-        setIsDownloading(true);
-        const toastId = toast.loading("Processing your video... This may take up to 30 seconds.", { id: 'dl-toast' });
-
-        try {
-            // Process all avatars: convert blobs to base64 if needed
-            const processedAvatars = await Promise.all(avatarOverlays.map(async (ov) => {
-                let imgUrl = ov.img;
-                if (imgUrl && imgUrl.startsWith('blob:')) {
-                    try {
-                        const response = await fetch(imgUrl);
-                        const blob = await response.blob();
-                        imgUrl = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
-                    } catch (e) {
-                        console.error("Failed to convert avatar blob:", e);
-                    }
-                }
-                return {
-                    x: ov.x,
-                    y: ov.y,
-                    w: ov.w,
-                    h: ov.h,
-                    img: imgUrl,
-                    shape: ov.shape || ov.avatarConfig?.shape || 'circle'
-                };
-            }));
-
-            const footerOn = isFooterEnabledRef.current; // always fresh
-            const xShift = footerOn ? 2 : 0;
-            console.log('[PoliticsDL] isFooterEnabled state:', isFooterEnabled, '| ref:', footerOn, '| xShift:', xShift);
-            const customMetadata = {
-                leaderOverlays: currentSelection.map(ov => ({
-                    id: ov.id,
-                    img: ov.img,
-                    x: ov.x + xShift,
-                    y: ov.y,
-                    w: ov.w,
-                    h: ov.h,
-                    zIndex: ov.zIndex,
-                    type: ov.type,
-                    name: ov.name
-                })),
-                textOverlays: textOverlays.map(tx => ({
-                    ...tx,
-                    x: tx.x + xShift
-                })),
-                avatarConfigs: processedAvatars.map(av => ({
-                    ...av,
-                    x: av.x + xShift
-                })),
-                footerConfig: {
-                    backgroundColor: dominantColor || "#000000",
-                    fontFamily: footerStyle !== 'inherit' ? footerStyle : undefined,
-                    usernameScale: usernameSize,
-                    emailScale: emailSize,
-                    phoneScale: phoneSize,
-                    socialScale: socialSize,
-                    showElements: footerOn ? postData?.footerDisplay?.showElements : {
-                        userName: false,
-                        email: false,
-                        phone: false,
-                        socialIcons: false
-                    },
-                    showFooter: footerOn
-                }
-            };
-
-            // Use fetch + blob — form.submit() silently drops long-running file responses
-            const response = await fetch(`${BACKEND_URL}/api/user/feed/${feedId}/politics-download`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, userId: activeUserId, customMetadata })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || errData.message || `Server error ${response.status}`);
-            }
-
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `politics_poster_${feedId.slice(-4)}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            toast.success("Download complete!", { id: toastId });
-        } catch (error) {
-            console.error("Download error:", error);
-            toast.error(error.message || "Download failed", { id: toastId });
-        } finally {
-            setIsDownloading(false);
-        }
+        setIsDownloadPopUpOpen(true);
     };
+
 
 
     const fontOptions = [

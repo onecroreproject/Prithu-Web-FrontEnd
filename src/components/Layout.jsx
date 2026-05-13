@@ -5,6 +5,7 @@ import Birthdays from "./Birthdays";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftColumn from "./LeftColumn";
 import Footer from "./Footer";
+import DownloadAppBanner from "./DownloadAppBanner";
 import { Skeleton, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TagIcon from "@mui/icons-material/Tag";
@@ -128,6 +129,8 @@ export default function Layout() {
           <Footer />
         </div>
       )}
+      
+      {isHome && <DownloadAppBanner />}
 
     </div>
   );

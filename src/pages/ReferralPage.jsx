@@ -38,6 +38,7 @@ import { checkUserActiveSubscription } from '../API_Services/subscriptionService
 import toast from 'react-hot-toast';
 import ReferralSharePopup from '../components/ReferralSharePopup';
 import SEO from "../components/SEO";
+import { useDownloads } from '../context/DownloadContext';
 
 const ReferralPage = () => {
   const navigate = useNavigate();
@@ -61,6 +62,7 @@ const ReferralPage = () => {
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const { setIsDownloadPopUpOpen } = useDownloads();
   const [cycles, setCycles] = useState([]);
   const [activeCycle, setActiveCycle] = useState(null);
   const [expandedCycle, setExpandedCycle] = useState(null); // ID of expanded cycle
@@ -576,9 +578,12 @@ const ReferralPage = () => {
                         </td>
                         <td className="p-4">
                           {w.invoiceUrl ? (
-                            <a href={w.invoiceUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                            <button 
+                              onClick={() => setIsDownloadPopUpOpen(true)} 
+                              className="text-blue-600 hover:underline flex items-center gap-1"
+                            >
                               <Download className="w-4 h-4" /> Download
-                            </a>
+                            </button>
                           ) : (
                             <span className="text-gray-400">N/A</span>
                           )}

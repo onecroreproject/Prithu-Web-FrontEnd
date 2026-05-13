@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useUnreadNotificationCount, useRefreshNotifications } from "../hooks/useNotifications";
 import { useUpdates } from "../context/UpdateContext";
+import { useDownloads } from "../context/DownloadContext";
 // Notification count from React Query hook
 
 // Import search components
@@ -49,6 +50,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
   const refreshNotifications = useRefreshNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { setIsDownloadPopUpOpen } = useDownloads();
 
   // Notify parent layout when mobile menu opens/closes
   useEffect(() => {
@@ -242,6 +244,17 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
       desc: "Latest features and updates",
       color: "yellow",
       badge: updatesUnreadCount > 0 ? updatesUnreadCount : null
+    },
+    {
+      to: "#",
+      label: "Download App",
+      Icon: Download,
+      desc: "Get our mobile app",
+      color: "blue",
+      onClick: (e) => {
+        e.preventDefault();
+        setIsDownloadPopUpOpen(true);
+      }
     },
   ];
 

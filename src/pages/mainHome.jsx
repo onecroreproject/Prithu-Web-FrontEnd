@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { useMainBoardStats } from '../hooks/useMiscellaneous';
+import { useDownloads } from '../context/DownloadContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import SEO from '../components/SEO';
@@ -50,6 +51,12 @@ const LandingPage = () => {
   };
 
   const { data: stats } = useMainBoardStats();
+  const { setIsDownloadPopUpOpen } = useDownloads();
+
+  const handleDownloadClick = (e) => {
+    e.preventDefault();
+    setIsDownloadPopUpOpen(true);
+  };
 
   const handleShareClick = () => {
     // Navigate to login page
@@ -397,7 +404,7 @@ const LandingPage = () => {
               className="flex flex-col sm:flex-row gap-6 justify-center"
             >
               <button
-                onClick={handleSignUpClick}
+                onClick={handleDownloadClick}
                 className="group px-12 py-6 bg-white text-blue-600 rounded-full text-2xl font-black shadow-2xl hover:bg-amber-50 transition-all duration-300 hover:scale-110 active:scale-105 flex items-center justify-center gap-4"
               >
                 <span>Download App Now</span>
@@ -445,7 +452,7 @@ const LandingPage = () => {
 
                   <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <button
-                      onClick={handleSignUpClick}
+                      onClick={handleDownloadClick}
                       className="group relative px-14 py-5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full text-2xl font-bold text-white shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-110 transform"
                     >
                       <span className="relative z-10 flex items-center gap-3">
