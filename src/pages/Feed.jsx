@@ -121,7 +121,10 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
       const cat = categoryListData.find(c => c.categoryName?.toLowerCase() === "birthday");
       if (cat) setFeedCategory(cat.categoryId || cat._id);
     } else if (location.pathname === "/home/anniversary") {
-      const cat = categoryListData.find(c => c.categoryName?.toLowerCase() === "anniversary");
+      const cat = categoryListData.find(c => 
+        c.categoryName?.toLowerCase() === "anniversary" || 
+        c.categoryName?.toLowerCase() === "greetings"
+      );
       if (cat) setFeedCategory(cat.categoryId || cat._id);
     }
   }, [location.pathname, categoryListData]);

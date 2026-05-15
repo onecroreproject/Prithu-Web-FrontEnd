@@ -56,6 +56,9 @@ import DeleteAccount from "./pages/DeleteAccount.jsx";
 import HowToDeleteAccount from "./pages/HowToDeleteAccount.jsx";
 import DeleteDataPage from "./pages/DeleteDataPage.jsx";
 import ChildSafetyStandards from "./pages/ChildSafetyStandards.jsx";
+import PaymentSuccess from "./pages/PaymentSuccess.jsx";
+import PaymentFailed from "./pages/PaymentFailed.jsx";
+import PaymentVerification from "./pages/PaymentVerification.jsx";
 
 
 
@@ -112,6 +115,9 @@ function AppRoutes() {
       <Route path="/refund-policy" element={<RefundPolicy />} />
       <Route path="/subscription-detail" element={<SubscriptionDetailPage />} />
       <Route path="/referral-detail" element={<ReferralDetailPage />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/payment-failed" element={<PaymentFailed />} />
+      <Route path="/payment-verification" element={<PaymentVerification />} />
 
 
       {/* ================= PROTECTED ROUTES ================= */}

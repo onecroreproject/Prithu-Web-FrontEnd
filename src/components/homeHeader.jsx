@@ -202,6 +202,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
     { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink" },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
+    { to: "/subscription", label: "Subscription", Icon: CircleDollarSign, desc: "Manage plans", color: "amber" },
   ];
 
   // Profile menu items
@@ -211,13 +212,6 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
 
   // Settings menu items
   const settingsMenuItems = [
-    {
-      to: "/subscription",
-      label: "Plans",
-      Icon: CircleDollarSign,
-      desc: "Manage subscriptions",
-      color: "amber",
-    },
     {
       to: "/home/referral",
       label: "Referral",

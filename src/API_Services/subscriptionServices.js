@@ -75,35 +75,7 @@ export const checkTrialEligibilityApi = async () => {
     }
 };
 
-// 8. Create Razorpay Order
-export const createOrderApi = async (planId) => {
-    try {
-        const response = await api.post("/api/user/subscription/create-order", { planId });
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || error.message;
-    }
-};
-
-// 9. Verify Razorpay Payment
-export const verifyPaymentApi = async (paymentDetails) => {
-    try {
-        const response = await api.post("/api/subscription/verify-payment", paymentDetails);
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || error.message;
-    }
-};
-
-// 10. Record Payment Failure
-export const recordPaymentFailureApi = async (failureDetails) => {
-    try {
-        const response = await api.post("/api/subscription/payment-failure", failureDetails);
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || error.message;
-    }
-};
+// Razorpay functions removed. Use createInstifiPaymentApi and verifyInstifiPaymentApi.
 
 // 11. Get User Invoices
 export const getUserInvoicesApi = async () => {
@@ -127,3 +99,22 @@ export const downloadInvoiceApi = async (invoiceId) => {
     }
 };
 
+// 13. Create Instifi Payment
+export const createInstifiPaymentApi = async (payload) => {
+    try {
+        const response = await api.post("/api/payment/create-payment", payload);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};
+
+// 14. Verify Instifi Payment
+export const verifyInstifiPaymentApi = async (payload) => {
+    try {
+        const response = await api.post("/api/payment/verify-payment", payload);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error.message;
+    }
+};

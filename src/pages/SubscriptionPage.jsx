@@ -34,16 +34,16 @@ import {
   cancelSubscriptionApi,
   activateTrialPlanApi,
   checkTrialEligibilityApi,
-  createOrderApi,
-  verifyPaymentApi,
-  recordPaymentFailureApi
+  createInstifiPaymentApi
 } from '../API_Services/subscriptionServices';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import SEO from "../components/SEO";
 import InvoiceHistory from '../components/Subscription/InvoiceHistory';
 
 
 const SubscriptionPage = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const [subscriptions, setSubscriptions] = useState([]);
   const [userSubscription, setUserSubscription] = useState(null);
@@ -143,17 +143,9 @@ const SubscriptionPage = () => {
     return diffDays > 0 ? diffDays : 0;
   };
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+  // Razorpay script loader removed
 
-  const handleSubscribe = async (planId) => {
+  const handleSubscribe = async (plan) => {
     if (trialStatus.hasUsedTrial && trialStatus.trialActive) {
       toast.error('You already have an active trial subscription');
       return;
@@ -161,109 +153,23 @@ const SubscriptionPage = () => {
 
     setPaymentProcessing(true);
     try {
-      const isLoaded = await loadRazorpayScript();
-      if (!isLoaded) {
-        toast.error('Razorpay SDK failed to load.');
-        setPaymentProcessing(false);
-        return;
-      }
-
-      const orderData = await createOrderApi(planId);
-
-      if (!orderData.success) {
-        throw new Error(orderData.message || 'Order creation failed');
-      }
-      console.log(orderData)
-      // 🔍 DEBUG (keep once, remove later)
-      console.log({
-        key: orderData.key,
-        order_id: orderData.orderId,
-        amount: orderData.amount,
-        currency: orderData.currency
-      });
-
-      const options = {
-        key: orderData.key,
-        amount: orderData.amount,          // paise
-        currency: orderData.currency,
-        name: "Prithu AI",
-        description: orderData.description,
-
-        // ✅ CRITICAL FIX
-        order_id: orderData.orderId,
-
-        handler: async function (response) {
-          try {
-            toast.loading("Verifying payment...");
-            const verification = await verifyPaymentApi({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            });
-
-            toast.dismiss();
-
-            if (verification.success) {
-              toast.success('Payment successful! Subscription active.');
-              fetchUserSubscription();
-              checkTrialEligibility();
-              setShowPaymentModal(false);
-            } else {
-              toast.error(verification.message || 'Verification failed');
-              // Record failure in backend
-              await recordPaymentFailureApi({
-                razorpay_order_id: response.razorpay_order_id,
-                error_code: 'VERIFICATION_FAILED',
-                error_description: verification.message
-              });
-            }
-          } catch (err) {
-            toast.dismiss();
-            toast.error('Payment verification failed');
-            // Record failure in backend
-            if (response?.razorpay_order_id) {
-              await recordPaymentFailureApi({
-                razorpay_order_id: response.razorpay_order_id,
-                error_code: 'VERIFICATION_EXCEPTION',
-                error_description: err.message
-              });
-            }
-          }
-        },
-
-        prefill: {
-          name: "Prithu User",
-          email: "user@example.com",
-          contact: "9999999999"
-        },
-
-        theme: {
-          color: "#8B5CF6"
-        },
-
-        modal: {
-          ondismiss: async function () {
-            setPaymentProcessing(false);
-            toast.error('Payment cancelled');
-            // Record failure in backend
-            if (orderData?.orderId) {
-              try {
-                await recordPaymentFailureApi({
-                  razorpay_order_id: orderData.orderId,
-                  error_code: 'MODAL_DISMISSED',
-                  error_description: 'User closed the payment modal'
-                });
-              } catch (e) {
-                console.error("Failed to record cancellation:", e);
-              }
-            }
-          }
-        }
+      const payload = {
+        amount: plan.price,
+        orderId: `ORD_${Date.now()}`,
+        customerName: user?.fullName || user?.username || "Customer",
+        customerEmail: user?.email || "customer@example.com",
+        customerPhone: user?.phone || "9999999999"
       };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      const response = await createInstifiPaymentApi(payload);
 
+      if (response.success && response.paymentUrl) {
+        // Redirect to Instifi payment page
+        window.location.href = response.paymentUrl;
+      } else {
+        toast.error(response.message || 'Failed to initiate payment');
+        setPaymentProcessing(false);
+      }
     } catch (err) {
       console.error('Subscription error:', err);
       toast.error(err.message || 'Failed to initiate subscription');
@@ -805,11 +711,11 @@ const SubscriptionPage = () => {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Shield className="w-4 h-4 text-green-400" />
-                    <span>Secure payment with Razorpay</span>
+                    <span>Secure payment with Instifi</span>
                   </div>
 
                   <button
-                    onClick={() => handleSubscribe(selectedPlan._id)}
+                    onClick={() => handleSubscribe(selectedPlan)}
                     disabled={paymentProcessing}
                     className="w-full py-3 bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

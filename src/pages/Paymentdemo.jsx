@@ -14,6 +14,8 @@ import {
     Rocket
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 /* ─── SINGLE PLAN ─────────────────────────────────────────────────── */
 const PLAN = {
@@ -37,37 +39,68 @@ const PLAN = {
     trial: true
 };
 
-/* ─── PAYMENT COMPONENT ────────────────────────────────────────────── */
 export default function Paymentdemo() {
     const [selectedPlan] = useState(PLAN);
     const [step, setStep] = useState('pricing'); // 'pricing', 'method', 'processing', 'success'
     const [paymentMethod, setPaymentMethod] = useState(null);
     const [trialApplied, setTrialApplied] = useState(false);
+    const { user } = useAuth();
 
     const handleSubscribe = () => {
         setStep('method');
     };
 
-    const handleFreeTrial = () => {
+    const handleFreeTrial = async () => {
         setTrialApplied(true);
         setStep('processing');
-
-        // Simulate trial activation
-        setTimeout(() => {
-            setStep('success');
-            toast.success('3-day free trial activated! Enjoy premium features.');
-        }, 2000);
+        
+        try {
+            // Call backend for trial activation
+            const response = await api.post('/web/api/subscription/activate-trial', {
+                planId: selectedPlan.id
+            });
+            
+            if (response.data.success) {
+                setStep('success');
+                toast.success('3-day free trial activated! Enjoy premium features.');
+            } else {
+                setStep('pricing');
+                toast.error(response.data.message || "Failed to activate trial");
+            }
+        } catch (error) {
+            console.error("Trial error:", error);
+            setStep('pricing');
+            toast.error("Error activating trial");
+        }
     };
 
-    const handlePayment = (method) => {
+    const handlePayment = async (method) => {
         setPaymentMethod(method);
         setStep('processing');
 
-        // Simulate payment processing
-        setTimeout(() => {
-            setStep('success');
-            toast.success('Payment completed successfully!');
-        }, 3000);
+        try {
+            const payload = {
+                amount: selectedPlan.price,
+                orderId: "ORD_" + Date.now(),
+                customerName: user?.fullName || user?.username || "Customer",
+                customerEmail: user?.email || "customer@example.com",
+                customerPhone: user?.phone || "9999999999"
+            };
+
+            const response = await api.post('/api/payment/create-payment', payload);
+
+            if (response.data.success && response.data.paymentUrl) {
+                // Redirect to Instifi payment page
+                window.location.href = response.data.paymentUrl;
+            } else {
+                setStep('method');
+                toast.error(response.data.message || "Failed to initialize payment");
+            }
+        } catch (error) {
+            console.error("Payment error:", error);
+            setStep('method');
+            toast.error("Error connecting to payment gateway");
+        }
     };
 
     return (
@@ -488,7 +521,7 @@ function PaymentMethodSelector({ plan, onPay, onBack }) {
 
             <div className="flex items-center justify-center gap-3 text-[10px] text-[rgb(100,116,139)] uppercase tracking-widest font-bold">
                 <Shield className="w-3 h-3" />
-                Secured by Stripe & Razorpay
+                Secured by Instifi
                 <div className="w-px h-3 bg-[rgb(51,65,85)]" />
                 <Timer className="w-3 h-3 text-[rgb(245,158,11)]" />
                 <span className="text-[rgb(245,158,11)]">3-Day Free Trial</span>
