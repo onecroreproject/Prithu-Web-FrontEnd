@@ -130,7 +130,15 @@ export default function Layout() {
         </div>
       )}
       
-      {isHome && <DownloadAppBanner />}
+      {isHome && (
+        <DownloadAppBanner
+          className={
+            isSidebarHovered || shouldSidebarStayExpanded
+              ? "lg:left-[280px] left-0"
+              : "lg:left-[80px] left-0"
+          }
+        />
+      )}
 
     </div>
   );

@@ -4,7 +4,7 @@ import { Smartphone, X, Download } from 'lucide-react';
 import { useDownloads } from '../context/DownloadContext';
 import prithuLogo from '../assets/prithulogo.png';
 
-const DownloadAppBanner = () => {
+const DownloadAppBanner = ({ className = "" }) => {
     const [isVisible, setIsVisible] = useState(true);
     const { setIsDownloadPopUpOpen } = useDownloads();
 
@@ -16,7 +16,7 @@ const DownloadAppBanner = () => {
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
                 exit={{ y: 100 }}
-                className="fixed bottom-0 left-0 right-0 z-[50] bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-[0_-10px_40px_rgba(37,99,235,0.2)]"
+                className={`fixed bottom-0 right-0 z-[50] bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-[0_-10px_40px_rgba(37,99,235,0.2)] transition-all duration-300 ${className}`}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between flex-wrap">

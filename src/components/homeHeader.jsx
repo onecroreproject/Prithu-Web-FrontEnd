@@ -795,7 +795,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
           </AnimatePresence>
         </div>
         {/* Sidebar Navigation - IMPROVED SPACING */}
-        <nav className="relative z-10 flex flex-col p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+        <nav className="relative z-10 flex flex-col flex-1 px-3 pt-4 space-y-1 overflow-y-auto overflow-x-hidden pb-8">
 
           {/* Main Navigation */}
           <div className="space-y-1">
