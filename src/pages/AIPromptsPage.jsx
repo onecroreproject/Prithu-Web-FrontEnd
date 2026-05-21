@@ -169,7 +169,7 @@ export default function AIPromptsPage() {
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         
         {/* Left Category Sidebar */}
-        <aside className="w-full lg:w-[260px] shrink-0 lg:sticky lg:top-6 z-30 bg-white dark:bg-gray-800/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-gray-200/60 dark:border-gray-700/50">
+        <aside className="w-full lg:w-[260px] shrink-0 sticky top-4 lg:top-6 self-start z-30 bg-white dark:bg-gray-800/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-gray-200/60 dark:border-gray-700/50">
           <div className="flex items-center gap-2 mb-4 px-1.5 pb-3 border-b border-gray-100 dark:border-gray-700">
             <Filter className="w-4 h-4 text-indigo-500" />
             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Categories</h2>

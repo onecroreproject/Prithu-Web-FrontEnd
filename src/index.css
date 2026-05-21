@@ -16,7 +16,6 @@
 /* Let OS handle auto-hide (BEST PRACTICE) */
 html,
 body {
-  overflow-y: auto;
   background-color: #fef5d5 !important;
 }
 
