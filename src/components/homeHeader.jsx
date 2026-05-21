@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, Image, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign, Zap
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign, Zap, Sparkles
 } from "lucide-react";
 import SidebarThreeBackground from "./SidebarThreeBackground";
 import debounce from "lodash.debounce";
@@ -201,6 +201,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
     { to: "/home/anniversary", label: "Anniversary", Icon: Heart, desc: "Anniversary wishes", color: "pink" },
+    { to: "/home/prompts", label: "AI Prompts", Icon: Sparkles, desc: "Creative AI prompts", color: "blue" },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
     { to: "/subscription", label: "Subscription", Icon: CircleDollarSign, desc: "Manage plans", color: "amber" },
   ];

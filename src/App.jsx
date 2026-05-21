@@ -42,6 +42,7 @@ import ContactPage from "./pages/ContactPage.jsx";
 import Blogs from "./pages/Blogs.jsx";
 import BlogDetail from "./pages/BlogDetail.jsx";
 import WhatsNewPage from "./pages/WhatsNewPage.jsx";
+import AIPromptsPage from "./pages/AIPromptsPage.jsx";
 import { UpdateProvider } from "./context/UpdateContext.jsx";
 import { DownloadProvider } from "./context/DownloadContext.jsx";
 import DownloadAppPopUp from "./components/DownloadAppPopUp.jsx";
@@ -133,6 +134,7 @@ function AppRoutes() {
         <Route index element={<Feed />} />
         <Route path="/home/reels" element={<Feed />} />
         <Route path="/home/images" element={<Feed />} />
+        <Route path="/home/prompts" element={<AIPromptsPage />} />
         <Route path="/home/birthday" element={<Feed />} />
         <Route path="/home/anniversary" element={<Feed />} />
         <Route path="/home/politics" element={<Feed />} />

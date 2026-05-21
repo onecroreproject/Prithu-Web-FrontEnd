@@ -27,7 +27,7 @@ export default function Layout() {
   const notifyfeedid = params.notifyfeedid || null;
 
   // full-width pages (no side columns)
-  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings", "/blogs"];
+  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings", "/blogs", "/home/prompts"];
   const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
   const isBlogPage = location.pathname.startsWith("/blogs/");
 
@@ -38,6 +38,11 @@ export default function Layout() {
 
   const shouldSidebarStayExpanded = isHome && viewMode !== 'grid';
   const showRightColumn = !isFullWidth && isHome && viewMode !== 'grid' && !isBlogPage;
+
+  const showHeader = location.pathname !== "/home/prompts";
+  const marginClass = (showHeader && !isBlogPage)
+    ? ((isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]")
+    : "lg:ml-0";
 
   const handleBackClick = () => {
     navigate("/home");
@@ -67,15 +72,17 @@ export default function Layout() {
   return (
     <div className="flex flex-col bg-[#fef5d5] dark:bg-[#121212] min-h-screen">
 
-      <Header
-        onSidebarHoverChange={setIsSidebarHovered}
-        isHome={shouldSidebarStayExpanded}
-        onMobileMenuToggle={setIsMobileMenuOpen}
-      />
+      {showHeader && (
+        <Header
+          onSidebarHoverChange={setIsSidebarHovered}
+          isHome={shouldSidebarStayExpanded}
+          onMobileMenuToggle={setIsMobileMenuOpen}
+        />
+      )}
 
       {/* ⭐ HASHTAG HEADER SECTION */}
       {isHashtagPage && (
-        <div className={`sticky top-14 lg:top-0 z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 transition-all duration-300 ${(isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]"}`}>
+        <div className={`sticky top-14 lg:top-0 z-40 bg-white h-20 shadow-sm rounded-xl mb-6 p-4 transition-all duration-300 ${marginClass}`}>
           <div className="flex items-center gap-3">
             <IconButton
               onClick={handleBackClick}
@@ -100,7 +107,7 @@ export default function Layout() {
       )}
 
       <main className="flex-1 w-full pt-14 lg:pt-0">
-        <div className={`flex lg:pb-0 transition-all duration-300 ${(!isBlogPage && (isSidebarHovered || shouldSidebarStayExpanded)) ? "lg:ml-[280px]" : (!isBlogPage ? "lg:ml-[80px]" : "lg:ml-0")}`}>
+        <div className={`flex lg:pb-0 transition-all duration-300 ${marginClass}`}>
           <section className="flex-1 min-w-0 px-0 sm:px-2">
             {isHashtagPage ? (
               <Feed tagname={tagname} viewMode={viewMode} setViewMode={setViewMode} />
@@ -125,7 +132,7 @@ export default function Layout() {
       </main>
 
       {!["/home", "/home/reels", "/home/images", "/login", "/signup", "/create/account"].includes(location.pathname) && (
-        <div className={`transition-all duration-300 ${(!isBlogPage && (isSidebarHovered || shouldSidebarStayExpanded)) ? "lg:ml-[280px]" : (!isBlogPage ? "lg:ml-[80px]" : "lg:ml-0")}`}>
+        <div className={`transition-all duration-300 ${marginClass}`}>
           <Footer />
         </div>
       )}
