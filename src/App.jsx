@@ -16,7 +16,6 @@ import Layout from "./components/Layout.jsx";
 import Profilelayout from "./pages/Profilelayout.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import SubscriptionPage from "./pages/SubscriptionPage.jsx";
-import Paymentdemo from "./pages/Paymentdemo.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import InviteFriends from "./pages/InviteFriends.jsx";
 import SubscriptionDetails from "./pages/SubscriptionDetail.jsx";
@@ -143,7 +142,7 @@ function AppRoutes() {
 
         {/* Profile & Activity */}
         <Route path="profile" element={<Profilelayout />} />
-        <Route path="subscriptions" element={<Paymentdemo />} />
+        <Route path="subscriptions" element={<SubscriptionPage />} />
         <Route path="invite" element={<InviteFriends />} />
         <Route path="referral" element={<ReferralPage />} />
         <Route path="activity" element={<UserActivity />} />
@@ -185,7 +184,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Paymentdemo />} />
+        <Route index element={<SubscriptionPage />} />
       </Route>
 
       {/* Shared Post */}

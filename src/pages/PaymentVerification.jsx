@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -7,8 +7,11 @@ const PaymentVerification = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
+    const hasCalledRef = useRef(false);
 
     useEffect(() => {
+        if (hasCalledRef.current) return;
+
         const verifyPayment = async () => {
             const merchantTxnId = searchParams.get('merchantTxnId');
             const orderId = searchParams.get('orderId');
@@ -19,6 +22,7 @@ const PaymentVerification = () => {
                 return;
             }
 
+            hasCalledRef.current = true;
             try {
                 const response = await axios.post(`${process.env.REACT_APP_API_URL || '/api'}/payment/verify-payment`, {
                     merchantTxnId,
@@ -31,11 +35,13 @@ const PaymentVerification = () => {
                 } else {
                     toast.error("Payment Verification Failed");
                     navigate('/payment-failed');
+                    hasCalledRef.current = false;
                 }
             } catch (error) {
                 console.error("Verification error:", error);
                 toast.error("Error verifying payment");
                 navigate('/payment-failed');
+                hasCalledRef.current = false;
             } finally {
                 setLoading(false);
             }

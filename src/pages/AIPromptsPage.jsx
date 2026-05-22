@@ -250,7 +250,9 @@ export default function AIPromptsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 15 }}
                     transition={{ duration: 0.3 }}
-                    className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-200/60 dark:border-gray-700/60 hover:border-indigo-500/30 dark:hover:border-indigo-500/30 transition-all duration-300 flex flex-col relative h-[360px]"
+                    className={`group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-200/60 dark:border-gray-700/60 hover:border-indigo-500/30 dark:hover:border-indigo-500/30 transition-all duration-300 flex flex-col relative ${
+                      aspectRatioFilter === "All" ? "h-[360px]" : "h-full"
+                    }`}
                   >
                     {/* Aspect ratio badge */}
                     <span className="absolute top-3 left-3 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10 backdrop-blur-xs">
@@ -258,7 +260,13 @@ export default function AIPromptsPage() {
                     </span>
 
                     {/* Image Card Container */}
-                    <div className="relative flex-1 w-full h-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+                    <div className={`relative w-full overflow-hidden bg-gray-100 dark:bg-gray-900 ${
+                      aspectRatioFilter === "All" 
+                        ? "flex-1 h-full" 
+                        : prompt.aspectRatio === "9:16" ? "aspect-[9/16]" 
+                        : prompt.aspectRatio === "16:9" ? "aspect-video" 
+                        : "aspect-square"
+                    }`}>
                       <img
                         src={prompt.imageUrl}
                         alt={prompt.title}

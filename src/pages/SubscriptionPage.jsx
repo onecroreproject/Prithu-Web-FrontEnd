@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import {
   Check,
   Crown,
@@ -34,7 +34,8 @@ import {
   cancelSubscriptionApi,
   activateTrialPlanApi,
   checkTrialEligibilityApi,
-  createInstifiPaymentApi
+  createInstifiPaymentApi,
+  verifyInstifiPaymentApi
 } from '../API_Services/subscriptionServices';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -43,11 +44,15 @@ import InvoiceHistory from '../components/Subscription/InvoiceHistory';
 
 
 const SubscriptionPage = () => {
-  const { user } = useAuth();
+  const { user, fetchUserProfile } = useAuth();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [subscriptions, setSubscriptions] = useState([]);
   const [userSubscription, setUserSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState(null); // 'verifying', 'success', 'failed', 'pending', null
+  const [verificationDetails, setVerificationDetails] = useState(null);
+  const verificationInProgressRef = React.useRef(false);
 
   // Parse query parameters
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -70,10 +75,78 @@ const SubscriptionPage = () => {
     checkTrialEligibility();
   }, []);
 
+  useEffect(() => {
+    console.log('[SubscriptionPage] State Updated:', {
+      subscriptions,
+      userSubscription,
+      trialStatus,
+      loading
+    });
+  }, [subscriptions, userSubscription, trialStatus, loading]);
+
+  useEffect(() => {
+    const txn = searchParams.get('TxnId') || searchParams.get('txnId') || searchParams.get('txn') || searchParams.get('transactionId');
+    if (txn && !verificationInProgressRef.current) {
+      verificationInProgressRef.current = true;
+      console.log('[SubscriptionPage] URL transaction ID detected:', txn);
+      verifyPaymentTransaction(txn);
+    }
+  }, [searchParams]);
+
+  const verifyPaymentTransaction = async (txn) => {
+    try {
+      console.log('[SubscriptionPage] Verifying Instifi payment transaction ID:', txn);
+      setVerificationStatus('verifying');
+      
+      const response = await verifyInstifiPaymentApi({ transactionId: txn });
+      console.log('[SubscriptionPage] Payment verification API response:', response);
+      
+      // Clean up URL parameters immediately so page refreshes won't repeat verification
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      if (response.success) {
+        const status = response.status; // 'success', 'failed', 'pending', 'cancelled'
+        setVerificationStatus(status);
+        // Store both gateway data AND receipt info
+        setVerificationDetails({
+          ...(response.data || {}),
+          receipt: response.receipt || null
+        });
+
+        if (status === 'success') {
+          toast.success('🎉 Payment verified! Subscription activated.');
+          fetchUserSubscription();
+          checkTrialEligibility();
+          if (fetchUserProfile) {
+            fetchUserProfile();
+          }
+        } else if (status === 'cancelled') {
+          toast.error('Payment was cancelled. You can try again anytime.');
+        } else if (status === 'failed') {
+          toast.error('❌ Payment failed. Please try again.');
+        } else {
+          toast.error('⏳ Payment is still pending.');
+        }
+      } else {
+        setVerificationStatus('failed');
+        toast.error(response.message || 'Payment verification failed');
+      }
+    } catch (err) {
+      console.error('[SubscriptionPage] Verification error:', err);
+      setVerificationStatus('failed');
+      toast.error(err.message || 'Error verifying payment status');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } finally {
+      verificationInProgressRef.current = false;
+    }
+  };
+
   const fetchSubscriptions = async () => {
     try {
       setLoading(true);
+      console.log('[SubscriptionPage] Fetching subscription plans...');
       const data = await getAllSubscriptionPlans();
+      console.log('[SubscriptionPage] Subscription plans response:', data);
       if (data.success) {
         setSubscriptions(data.plans || []);
         if (data.plans?.length > 1) {
@@ -83,6 +156,7 @@ const SubscriptionPage = () => {
         }
       }
     } catch (err) {
+      console.error('[SubscriptionPage] Failed to load subscription plans:', err);
       setError(err.message || 'Failed to load subscription plans.');
       toast.error('Failed to load subscription plans');
     } finally {
@@ -92,7 +166,9 @@ const SubscriptionPage = () => {
 
   const fetchUserSubscription = async () => {
     try {
+      console.log('[SubscriptionPage] Fetching active user subscription...');
       const data = await getUserSubscriptionActive();
+      console.log('[SubscriptionPage] User subscription response:', data);
       if (data.success) {
         setUserSubscription(data.plan);
         if (data.plan?.planId?.planType === 'trial') {
@@ -110,13 +186,15 @@ const SubscriptionPage = () => {
         }
       }
     } catch (err) {
-      console.error('Error fetching user subscription:', err);
+      console.error('[SubscriptionPage] Error fetching user subscription:', err);
     }
   };
 
   const checkTrialEligibility = async () => {
     try {
+      console.log('[SubscriptionPage] Checking trial eligibility...');
       const data = await checkTrialEligibilityApi();
+      console.log('[SubscriptionPage] Trial eligibility response:', data);
       if (data.success) {
         // Enforce date check on frontend as well
         const isDateValid = data.trialExpiresAt ? new Date() < new Date(data.trialExpiresAt) : false;
@@ -131,7 +209,7 @@ const SubscriptionPage = () => {
         }));
       }
     } catch (err) {
-      console.error('Error checking trial eligibility:', err);
+      console.error('[SubscriptionPage] Error checking trial eligibility:', err);
     }
   };
 
@@ -155,6 +233,7 @@ const SubscriptionPage = () => {
     try {
       const payload = {
         amount: plan.price,
+        planId: plan._id,
         orderId: `ORD_${Date.now()}`,
         customerName: user?.fullName || user?.username || "Customer",
         customerEmail: user?.email || "customer@example.com",
@@ -229,11 +308,18 @@ const SubscriptionPage = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'N/A';
+    }
   };
 
   const getTimeRemaining = (expiryDate) => {
@@ -342,6 +428,76 @@ const SubscriptionPage = () => {
           </div>
         )}
 
+        {/* Current Plan Section */}
+        <div className={`bg-gradient-to-r ${userSubscription ? 'from-blue-500 to-indigo-600' : 'from-slate-600 to-slate-800'} rounded-2xl p-6 mb-10 text-white shadow-xl animate-in fade-in duration-500`}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="w-5 h-5 text-yellow-300" />
+                <span className="font-bold uppercase tracking-wider text-white/90 text-xs">
+                  {userSubscription ? (userSubscription.planId?.planType === 'trial' ? 'Active Trial' : 'Active Subscription') : 'Your Current Plan'}
+                </span>
+              </div>
+              <h3 className="text-3xl font-extrabold tracking-tight">
+                {userSubscription ? userSubscription.planId?.name : 'Free Tier'}
+              </h3>
+              <p className="text-white/80 text-sm mt-1">
+                {userSubscription 
+                  ? `Subscribed on ${formatDate(userSubscription.startDate)} • Expires ${formatDate(userSubscription.endDate)}` 
+                  : 'You are currently on the free tier. Access standard reels with ads.'}
+              </p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="font-bold uppercase tracking-wider text-xs">
+                {userSubscription ? (userSubscription.planId?.planType === 'trial' ? 'Trial' : 'Active') : 'Free'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Calendar className="w-4 h-4 text-white/80" />
+                <span className="font-medium text-white/80 text-sm">Expiry Date</span>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {userSubscription ? formatDate(userSubscription.endDate) : 'Lifetime / Never'}
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Target className="w-4 h-4 text-white/80" />
+                <span className="font-medium text-white/80 text-sm">Status</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-white">Active</span>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Info className="w-4 h-4 text-white/80" />
+                <span className="font-medium text-white/80 text-sm">Plan Type</span>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {userSubscription ? (userSubscription.planId?.planType === 'trial' ? 'Free Trial' : 'Premium') : 'Standard Free'}
+              </p>
+            </div>
+          </div>
+
+          {userSubscription && (
+            <div className="flex flex-wrap gap-3 border-t border-white/10 pt-6">
+              <button
+                onClick={handleCancelSubscription}
+                className="px-5 py-2.5 bg-white text-indigo-600 font-bold rounded-xl hover:bg-white/90 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md"
+              >
+                {userSubscription.planId?.planType === 'trial' ? 'End Trial' : 'Cancel Subscription'}
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Trial Offer Card - Only show if eligible */}
         {!trialStatus.hasUsedTrial && (
@@ -419,7 +575,7 @@ const SubscriptionPage = () => {
 
         {/* Subscription Plans Grid - Hide if already subscribed to a paid plan */}
         {!(userSubscription && userSubscription.planId?.planType !== 'trial') && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div id="plans-section" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {subscriptions
               .filter(plan => plan.planType !== 'trial')
               .map((plan, index) => {
@@ -562,70 +718,6 @@ const SubscriptionPage = () => {
           </div>
         )}
 
-
-        {/* Active Subscription Card */}
-        {userSubscription && (
-          <div className="bg-gradient-to-r from-blue-400 to-purple-400 rounded-2xl p-6 mb-10 animate-in fade-in duration-500">
-            <div className="mb-6">
-              <div className="text-white">
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-5 h-5" />
-                  <span className="font-bold text-lg">
-                    {userSubscription.planId?.planType === 'trial' ? 'Active Trial' : 'Active Subscription'}
-                  </span>
-                </div>
-                <p className="text-white/90">
-                  {userSubscription.planId?.name} • Expires {formatDate(userSubscription.endDate)}
-                </p>
-              </div>
-            </div>
-
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Calendar className="w-4 h-4 text-white" />
-                  <span className="font-medium text-white">Expiry Date</span>
-                </div>
-                <p className="text-xl font-bold text-white">{formatDate(userSubscription.endDate)}</p>
-              </div>
-
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Target className="w-4 h-4 text-white" />
-                  <span className="font-medium text-white">Status</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span className="text-xl font-bold text-white">
-                    {userSubscription.planId?.planType === 'trial' ? 'Trial' : 'Active'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Info className="w-4 h-4 text-white" />
-                  <span className="font-medium text-white">Plan Type</span>
-                </div>
-                <p className="text-xl font-bold text-white">
-                  {userSubscription.planId?.planType === 'trial' ? 'Free Trial' : 'Premium'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleCancelSubscription}
-                className="px-5 py-2.5 bg-white/30 backdrop-blur-sm text-white font-bold rounded-xl hover:bg-white/40 transition-all duration-300"
-              >
-                {userSubscription.planId?.planType === 'trial' ? 'End Trial' : 'Cancel'}
-              </button>
-            </div>
-
-          </div>
-        )}
-
         {/* Simple Trial Rules */}
         {trialStatus.trialActive && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 mb-10 border border-amber-200 animate-in fade-in duration-500">
@@ -741,6 +833,225 @@ const SubscriptionPage = () => {
           </div>
         )}
       </div>
+
+      {/* Verification Status Overlay */}
+      {verificationStatus && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+
+          {/* ⏳ VERIFYING */}
+          {verificationStatus === 'verifying' && (
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-8 text-center animate-in zoom-in duration-300">
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 border-4 border-blue-100 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-t-blue-500 border-r-purple-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-4 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Crown className="w-8 h-8 text-white animate-pulse" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-extrabold text-slate-800">Verifying Payment</h3>
+              <p className="text-slate-500 mt-2 text-sm font-medium">Please wait while we confirm your transaction with Instifi...</p>
+              <div className="mt-5 inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold animate-pulse">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Connecting to gateway...
+              </div>
+            </div>
+          )}
+
+          {/* ✅ SUCCESS - Receipt Modal */}
+          {verificationStatus === 'success' && (
+            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+              {/* Green header strip */}
+              <div className="bg-gradient-to-r from-emerald-400 to-teal-500 p-6 text-center text-white">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white/30">
+                  <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+                </div>
+                <h3 className="text-2xl font-extrabold tracking-tight">Payment Successful!</h3>
+                <p className="text-white/90 text-sm mt-1">Your subscription has been activated 🎉</p>
+              </div>
+
+              <div className="p-6">
+                {/* Receipt Box */}
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-5 space-y-3">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Receipt</span>
+                    {verificationDetails?.receipt?.invoiceNumber && (
+                      <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                        #{verificationDetails.receipt.invoiceNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400 font-medium">Amount Paid</span>
+                    <span className="text-emerald-600 font-extrabold text-base">
+                      ₹{verificationDetails?.receipt?.amount || verificationDetails?.amount || '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400 font-medium">Payment Method</span>
+                    <span className="text-slate-700 font-semibold">{verificationDetails?.receipt?.paymentMethod || 'Instifi'}</span>
+                  </div>
+                  {verificationDetails?.receipt?.transactionId && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400 font-medium">Transaction ID</span>
+                      <span className="text-slate-600 font-mono text-xs truncate max-w-[140px]">
+                        {verificationDetails.receipt.transactionId}
+                      </span>
+                    </div>
+                  )}
+                  {verificationDetails?.receipt?.paidAt && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400 font-medium">Date</span>
+                      <span className="text-slate-700 font-medium">
+                        {new Date(verificationDetails.receipt.paidAt).toLocaleDateString('en-IN', { year:'numeric', month:'short', day:'numeric' })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mb-5 text-xs text-slate-400 bg-blue-50 rounded-xl px-3 py-2">
+                  <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <span>An invoice PDF has been sent to your registered email address.</span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setVerificationStatus(null);
+                    setVerificationDetails(null);
+                  }}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Enjoy Premium Access!
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 🚫 CANCELLED - Payment Cancelled by User */}
+          {verificationStatus === 'cancelled' && (
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+              <div className="bg-gradient-to-r from-amber-400 to-orange-500 p-6 text-center text-white">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white/30">
+                  <XCircle className="w-10 h-10 text-white" strokeWidth={2} />
+                </div>
+                <h3 className="text-2xl font-extrabold tracking-tight">Payment Cancelled</h3>
+                <p className="text-white/90 text-sm mt-1">You cancelled the payment process</p>
+              </div>
+
+              <div className="p-6 text-center">
+                <p className="text-slate-500 text-sm mb-6">
+                  No charges were made. You can choose a plan and try again whenever you're ready.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setVerificationStatus(null);
+                      setVerificationDetails(null);
+                      // Scroll to plans section
+                      setTimeout(() => {
+                        document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-bold shadow-lg hover:shadow-orange-500/25 transition-all duration-300"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      Try Again
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setVerificationStatus(null);
+                      setVerificationDetails(null);
+                    }}
+                    className="w-full py-2.5 text-slate-500 hover:text-slate-700 rounded-xl font-medium transition-all text-sm"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ❌ FAILED */}
+          {verificationStatus === 'failed' && (
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+              <div className="bg-gradient-to-r from-rose-400 to-red-500 p-6 text-center text-white">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white/30">
+                  <AlertCircle className="w-10 h-10 text-white" strokeWidth={2} />
+                </div>
+                <h3 className="text-2xl font-extrabold tracking-tight">Payment Failed</h3>
+                <p className="text-white/90 text-sm mt-1">Something went wrong with your payment</p>
+              </div>
+
+              <div className="p-6 text-center">
+                <p className="text-slate-500 text-sm mb-6">
+                  Your payment could not be processed. Please check your payment details and try again. No charges have been deducted.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setVerificationStatus(null);
+                      setVerificationDetails(null);
+                    }}
+                    className="w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300"
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      Try Again
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ⏳ PENDING */}
+          {verificationStatus === 'pending' && (
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+              <div className="bg-gradient-to-r from-amber-400 to-yellow-500 p-6 text-center text-white">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 border-4 border-white/30">
+                  <Clock className="w-10 h-10 text-white" strokeWidth={2} />
+                </div>
+                <h3 className="text-2xl font-extrabold tracking-tight">Payment Pending</h3>
+                <p className="text-white/90 text-sm mt-1">Your payment is still being processed</p>
+              </div>
+
+              <div className="p-6 text-center">
+                <p className="text-slate-500 text-sm mb-6">
+                  Your payment is being processed by the bank. It may take a few minutes to confirm. Please do not retry the payment.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      const txn = verificationDetails?.transactionId || verificationDetails?.orderId;
+                      if (txn) {
+                        verifyPaymentTransaction(txn);
+                      }
+                    }}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-xl font-bold shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Check Status Again
+                  </button>
+                  <button
+                    onClick={() => { setVerificationStatus(null); setVerificationDetails(null); }}
+                    className="w-full py-2.5 text-slate-500 hover:text-slate-700 rounded-xl font-medium transition-all text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn {
