@@ -18,7 +18,7 @@ const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'defaul
   const updateWatchTimeApi = useCallback(
     debounce(async (time, percent) => {
       try {
-        await axios.post('/api/track-watch-time', {
+        const response = await axios.post('/api/track-watch-time', {
           feedId,
           watchTime: Math.round(time),
           percentageWatched: percent,
@@ -26,6 +26,12 @@ const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'defaul
           recoScore,
           recoSource
         });
+        if (response.data && response.data.triggerFeedbackPopup) {
+          const event = new CustomEvent("triggerFeedbackPopup", {
+            detail: { feedId }
+          });
+          window.dispatchEvent(event);
+        }
       } catch (err) {
         console.error('Failed to update watch time:', err);
       }
