@@ -27,19 +27,27 @@ export default function Layout() {
   const notifyfeedid = params.notifyfeedid || null;
 
   // full-width pages (no side columns)
-  const fullWidthPaths = ["/search", "/profile", "/reels", "/explore", "/messages", "/notifications", "/saved", "/activity", "/settings", "/blogs", "/home/prompts"];
-  const isFullWidth = fullWidthPaths.some(path => location.pathname.startsWith(path));
-  const isBlogPage = location.pathname.startsWith("/blogs/");
+  const decodedPath = decodeURIComponent(location.pathname);
+  const fullWidthPaths = [
+    "/search", "/profile", "/reels", "/explore", "/messages", 
+    "/notifications", "/saved", "/activity", "/settings", "/blogs", 
+    "/home/prompts", "/free-ai-prompt", "/free-ai-prompts", "/free ai prompt"
+  ];
+  const isFullWidth = fullWidthPaths.some(path => decodedPath.startsWith(path));
+  const isBlogPage = decodedPath.startsWith("/blogs/");
 
   // Home page or hashtag page or retrivefeed page
-  const isRetrieveFeed = location.pathname.includes("/retrivefeed");
-  const isHashtagPage = location.pathname.includes("/hashtag/");
-  const isHome = location.pathname === "/home" || isRetrieveFeed || isHashtagPage;
+  const isRetrieveFeed = decodedPath.includes("/retrivefeed");
+  const isHashtagPage = decodedPath.includes("/hashtag/");
+  const isHome = decodedPath === "/home" || isRetrieveFeed || isHashtagPage;
 
   const shouldSidebarStayExpanded = isHome && viewMode !== 'grid';
   const showRightColumn = !isFullWidth && isHome && viewMode !== 'grid' && !isBlogPage;
 
-  const showHeader = location.pathname !== "/home/prompts";
+  const isPromptsPage = [
+    "/home/prompts", "/free-ai-prompt", "/free-ai-prompts", "/free ai prompt"
+  ].includes(decodedPath);
+  const showHeader = !isPromptsPage;
   const marginClass = (showHeader && !isBlogPage)
     ? ((isSidebarHovered || shouldSidebarStayExpanded) ? "lg:ml-[280px]" : "lg:ml-[80px]")
     : "lg:ml-0";

@@ -10,6 +10,7 @@ import SEO from '../components/SEO';
 // Lazy load heavy components
 const Footer = lazy(() => import('../components/Footer'));
 const FeedSliderSection = lazy(() => import('../components/FeedSliderSection'));
+const AIPromptsSliderSection = lazy(() => import('../components/AIPromptsSliderSection'));
 const BlogSliderSection = lazy(() => import('../components/BlogSliderSection'));
 const WhatsNewSection = lazy(() => import('../components/WhatsNewSection'));
 const HeroBackground3D = lazy(() => import('../components/HomeComponents/HeroBackground3D'));
@@ -109,6 +110,8 @@ const LandingPage = () => {
         {/* Hero Section */}
         <section className="relative py-16 md:py-24 px-4">
           <div className="max-w-6xl mx-auto text-center">
+            
+
             {/* Logo/Title with enhanced effect */}
             <div
               className="relative inline-block mb-8"
@@ -170,19 +173,33 @@ const LandingPage = () => {
             <div
               data-aos="zoom-in"
               data-aos-delay="300"
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+              className="flex flex-col lg:flex-row gap-4 justify-center items-center mb-16"
             >
               <button
                 onClick={handleSignUpClick}
                 className="group relative px-10 py-5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full text-xl font-bold shadow-2xl hover:shadow-amber-500/50 transition-all duration-300 hover:scale-110 transform active:scale-105"
               >
                 <span className="relative z-10 flex items-center gap-3 text-white">
-                  <span className="text-2xl animate-pulse">✨</span>
+                  <span className="text-2xl ">✨</span>
                   <span>Start Creating Free</span>
                   <span className="group-hover:translate-x-2 transition-transform duration-300">→</span>
                 </span>
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 opacity-30 blur-lg animate-ping"></div>
+              </button>
+
+              <button
+                onClick={() => { window.location.href = '/free-ai-prompt'; }}
+                className="group relative px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full text-xl font-bold text-white shadow-2xl hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-110 transform active:scale-105"
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  <span className="text-2xl animate-pulse">🤖</span>
+                  <span>Free AI Photo Prompts</span>
+                  <span className="bg-indigo-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase animate-bounce">
+                    New
+                  </span>
+                </span>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 opacity-30 blur-lg animate-ping"></div>
               </button>
 
               <button
@@ -226,6 +243,11 @@ const LandingPage = () => {
         {/* Full-width Auto-Sliding Feed Section */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>}>
           <FeedSliderSection />
+        </Suspense>
+
+        {/* AI Prompts Slider Section */}
+        <Suspense fallback={<div className="h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>}>
+          <AIPromptsSliderSection />
         </Suspense>
 
 

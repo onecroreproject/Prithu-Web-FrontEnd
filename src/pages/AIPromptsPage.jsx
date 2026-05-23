@@ -9,8 +9,10 @@ import api from "../api/axios";
 import { INITIAL_PROMPTS, CATEGORIES_LIST } from "../constance/promptsData";
 import { Link } from "react-router-dom";
 import PrithuLogo from "../assets/prithu_logo.webp";
+import { useAuth } from "../context/AuthContext";
 
 export default function AIPromptsPage() {
+  const { token } = useAuth();
   const [prompts, setPrompts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,23 +24,36 @@ export default function AIPromptsPage() {
   // Fetch prompts from actual MongoDB database backend API
   const loadPromptsFromApi = async (showLoading = true) => {
     if (showLoading) setLoading(true);
+    let loadedPrompts = [];
     try {
       const { data } = await api.get("/api/prompts");
       if (data && data.success && Array.isArray(data.data)) {
-        const mapped = data.data.map(p => ({
+        loadedPrompts = data.data.map(p => ({
           ...p,
           id: p._id || p.id
         }));
-        setPrompts(mapped);
       } else {
-        setPrompts(INITIAL_PROMPTS);
+        loadedPrompts = INITIAL_PROMPTS.map((p, idx) => ({ ...p, id: p.id || `fallback-${idx}` }));
       }
     } catch (err) {
       console.error("Error fetching prompts from server:", err);
       // Fallback to local INITIAL_PROMPTS if backend is offline
-      setPrompts(INITIAL_PROMPTS);
+      loadedPrompts = INITIAL_PROMPTS.map((p, idx) => ({ ...p, id: p.id || `fallback-${idx}` }));
     } finally {
+      setPrompts(loadedPrompts);
       if (showLoading) setLoading(false);
+      
+      // Auto-select prompt if id query param exists on initial load
+      if (showLoading) {
+        const queryParams = new URLSearchParams(window.location.search);
+        const promptId = queryParams.get("id");
+        if (promptId) {
+          const found = loadedPrompts.find(p => p.id === promptId);
+          if (found) {
+            setActivePromptDetail(found);
+          }
+        }
+      }
     }
   };
 
@@ -70,14 +85,15 @@ export default function AIPromptsPage() {
 
   // Handle Share Prompt
   const handleShare = (prompt) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${prompt.id}`;
     if (navigator.share) {
       navigator.share({
         title: prompt.title,
         text: `Check out this amazing AI prompt: "${prompt.prompt}"`,
-        url: window.location.href,
+        url: shareUrl,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/home/prompts?id=${prompt.id}`);
+      navigator.clipboard.writeText(shareUrl);
       toast.success("Share link copied! 🔗");
     }
   };
@@ -109,7 +125,7 @@ export default function AIPromptsPage() {
 
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-6 bg-white/30 dark:bg-gray-800/10 px-3.5 py-1.5 rounded-xl border border-gray-200/40 dark:border-gray-700/40 backdrop-blur-xs w-fit">
-        <Link to="/home" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+        <Link to={token ? "/home" : "/"} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
           Home
         </Link>
         <span className="text-gray-300 dark:text-gray-700 font-normal">&gt;</span>
@@ -132,6 +148,14 @@ export default function AIPromptsPage() {
 
         {/* Top Controls: Aspect Ratio Filter & Reset */}
         <div className="flex items-center gap-2 self-start md:self-center">
+          {!token && (
+            <Link
+              to="/login?redirect=/home/prompts"
+              className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-500 hover:from-indigo-500 hover:to-purple-400 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/10 mr-2 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Sign In
+            </Link>
+          )}
           <div className="flex items-center gap-1 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-200/60 dark:border-gray-700/50">
             <span className="text-xs text-gray-400 px-2 font-medium">Aspect:</span>
             {["All", "1:1", "9:16", "16:9"].map((aspect) => (

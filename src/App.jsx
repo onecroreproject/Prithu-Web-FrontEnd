@@ -98,6 +98,18 @@ function AppRoutes() {
       />
 
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/free-ai-prompt" element={<Layout />}>
+        <Route index element={<AIPromptsPage />} />
+      </Route>
+      <Route path="/free-ai-prompts" element={<Layout />}>
+        <Route index element={<AIPromptsPage />} />
+      </Route>
+      <Route path="/free%20ai%20prompt" element={<Layout />}>
+        <Route index element={<AIPromptsPage />} />
+      </Route>
+      <Route path="/free ai prompt" element={<Layout />}>
+        <Route index element={<AIPromptsPage />} />
+      </Route>
       <Route path="/admin/notification" element={<AdminSendNotification />} />
       <Route path="/home/user/profile/:id" element={<SingleUserProfilelayout />} />
       <Route path="/create/account" element={<RegisterForm />} />
