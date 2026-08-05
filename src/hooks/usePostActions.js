@@ -99,8 +99,8 @@ export function useUnfollowUser() {
 
 
 
-const downloadFeedService = async ({ feedId }) => {
-  const response = await api.post(`/api/user/feed/download`, { feedId });
+const downloadFeedService = async ({ feedId, designMetadata }) => {
+  const response = await api.post(`/api/user/feed/download`, { feedId, designMetadata });
   return response.data; // Expecting { success: true, jobId: "..." }
 };
 
@@ -114,8 +114,8 @@ export const getDownloadStatus = async (jobId) => {
 // ------------------------------
 export const useDownloadFeed = () => {
   return useMutation({
-    mutationFn: ({ feedId, userId }) =>
-      downloadFeedService({ feedId, userId }),
+    mutationFn: ({ feedId, userId, designMetadata }) =>
+      downloadFeedService({ feedId, userId, designMetadata }),
   });
 };
 

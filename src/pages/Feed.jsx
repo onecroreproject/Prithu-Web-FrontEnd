@@ -79,50 +79,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
   const queryClient = useQueryClient();
   const { data: categoryListData = [], isLoading: isCategoriesLoading } = useCategories();
 
-  // 🆕 User Feedback Popup States & Handlers
-  const [feedbackPopupData, setFeedbackPopupData] = useState(null); // { feedId }
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
-  useEffect(() => {
-    const handleTriggerPopup = (e) => {
-      const { feedId } = e.detail;
-      console.log("Triggering feedback popup for feed:", feedId);
-      setFeedbackPopupData({ feedId });
-    };
-
-    window.addEventListener("triggerFeedbackPopup", handleTriggerPopup);
-    return () => {
-      window.removeEventListener("triggerFeedbackPopup", handleTriggerPopup);
-    };
-  }, []);
-
-  const handleFeedbackSubmit = async (option) => {
-    if (!feedbackPopupData || isSubmittingFeedback) return;
-    setIsSubmittingFeedback(true);
-    try {
-      await api.post("/api/user/feedback-popup/submit", {
-        feedId: feedbackPopupData.feedId,
-        option,
-        sessionId: "main_session"
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success("Thank you for your feedback!");
-
-      // If "Not my interest" or "Don't show similar videos", filter it out from UI
-      if (option === "Not my interest" || option === "Don't show similar videos") {
-        const feedToHide = mixed.find(f => f.feedId === feedbackPopupData.feedId);
-        const catId = feedToHide?.category || feedToHide?.categoryId;
-        handleNotInterestedFromUI(feedbackPopupData.feedId, catId);
-      }
-    } catch (err) {
-      console.error("Failed to submit feedback:", err);
-      toast.error("Failed to submit feedback.");
-    } finally {
-      setIsSubmittingFeedback(false);
-      setFeedbackPopupData(null);
-    }
-  };
 
   const isHashtagMode = !!tagname;
 
@@ -915,78 +872,7 @@ const Feed = ({ authUser, notifyfeedid, searchFeedId, viewMode: propsViewMode, s
         )}
       </div>
 
-      {/* 🆕 Premium Glassmorphic Feedback Popup Modal */}
-      <AnimatePresence>
-        {feedbackPopupData && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
-            onClick={() => setFeedbackPopupData(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="w-full max-w-md overflow-hidden bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button
-                onClick={() => setFeedbackPopupData(null)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
 
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-pink-100 text-pink-600 rounded-full mb-3 shadow-inner">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-extrabold text-gray-900 bg-gradient-to-r from-pink-600 to-indigo-600 bg-clip-text text-transparent">
-                  Help Us Improve Your Feed
-                </h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Why are you not interested in this content?
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {[
-                  "Not my interest",
-                  "Too repetitive",
-                  "Poor quality",
-                  "Already watched similar content",
-                  "Too long",
-                  "Not relevant",
-                  "Offensive",
-                  "Don't show similar videos"
-                ].map((option) => (
-                  <button
-                    key={option}
-                    disabled={isSubmittingFeedback}
-                    onClick={() => handleFeedbackSubmit(option)}
-                    className="w-full text-left px-4 py-3 rounded-2xl border border-gray-100 hover:border-pink-500/30 hover:bg-pink-50/50 text-gray-700 hover:text-pink-600 font-medium text-sm transition-all duration-300 flex items-center justify-between group active:scale-[0.98]"
-                  >
-                    <span>{option}</span>
-                    <span className="opacity-0 group-hover:opacity-100 text-pink-500 transition-opacity duration-300">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar {

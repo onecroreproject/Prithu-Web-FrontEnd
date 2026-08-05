@@ -2,7 +2,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useUserProfile } from "../../hooks/userProfile";
-import { User, Activity, Heart, Settings, LogOut } from "lucide-react";
+import { User, Activity, Heart, Settings, LogOut, Wallet } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 /**
  * ProfileTabs Component
@@ -11,6 +12,7 @@ import { User, Activity, Heart, Settings, LogOut } from "lucide-react";
 const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
   const { token } = useAuth();
   const { data: userRecord, isLoading } = useUserProfile(token, id);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -57,6 +59,14 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
       label: "Close Account",
       mobileLabel: "Close",
       Icon: LogOut
+    },
+    {
+      id: "wallet",
+      label: "My Wallet",
+      mobileLabel: "Wallet",
+      Icon: Wallet,
+      isLink: true,
+      path: "/wallet"
     }
   ].filter((section) => {
     // Hide Activity and Favorite for other users' profiles (if id is present and not matching mine)
@@ -65,9 +75,13 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
     return true;
   });
 
-  const handleTabClick = (tabId) => {
-    console.log("Tab clicked:", tabId);
-    setActiveTab(tabId);
+  const handleTabClick = (section) => {
+    if (section.isLink && section.path) {
+      navigate(section.path);
+    } else {
+      console.log("Tab clicked:", section.id);
+      setActiveTab(section.id);
+    }
   };
 
   return (
@@ -83,7 +97,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => handleTabClick(section.id)}
+                onClick={() => handleTabClick(section)}
                 className={`flex-1 min-w-[60px] flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 ${isActive ? "bg-blue-50 text-blue-700 shadow-sm" : "text-gray-600 hover:text-gray-800"
                   }`}
               >
@@ -108,7 +122,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => handleTabClick(section.id)}
+                onClick={() => handleTabClick(section)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 ${isActive
                   ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
                   : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
@@ -135,7 +149,7 @@ const ProfileTabs = ({ activeTab, setActiveTab, id }) => {
                 transition={{ delay: index * 0.05 }}
               >
                 <button
-                  onClick={() => handleTabClick(section.id)}
+                  onClick={() => handleTabClick(section)}
                   className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-200 ${isActive
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-100 translate-x-1"
                     : "text-gray-700 hover:bg-gray-50 hover:translate-x-1"

@@ -237,7 +237,7 @@ function Postcard({
   const unfollowMutation = useUnfollowUser();
   const downloadMutation = useDownloadFeed();
   const checkLimitMutation = useCheckDownloadLimit();
-  const { setIsDownloadPopUpOpen } = useDownloads();
+  const { setIsDownloadPopUpOpen, addDownload } = useDownloads();
 
   /* ---------------------------- Audio Logic Hook (ONLY for image + audio) ---------------------------- */
   const {
@@ -535,7 +535,56 @@ function Postcard({
   // Download Logic
 
   const handleDownload = async () => {
-    setIsDownloadPopUpOpen(true);
+    checkLimitMutation.mutate(null, {
+      onSuccess: (data) => {
+        if (data.isLimitReached) {
+          toast.error(`Daily download limit reached (Max ${data.limit} feeds per day)`);
+          return;
+        }
+
+        // Build the designMetadata for exact visual fidelity
+        const footer = postData.footerDisplay || {};
+        const footerBg = footer.useDominantColor ? dominantColor : (footer.backgroundColor || "#000000");
+        const fontFamily = globalFooterStyle !== 'inherit' ? globalFooterStyle : 'inherit';
+        
+        const designMetadata = {
+          ...(postData.designMetadata || {}),
+          footerConfig: {
+            ...footer,
+            backgroundColor: footerBg,
+            fontFamily: fontFamily,
+          }
+        };
+
+        toast.info("Preparing your download...", { id: "download-prep" });
+        setDownloadCount((p) => p + 1);
+
+        downloadMutation.mutate(
+          { feedId, userId: tempUser._id, designMetadata },
+          {
+            onSuccess: (response) => {
+              if (response.success && response.jobId) {
+                toast.success("Download started! Check progress in the top right menu.", { id: "download-prep" });
+                addDownload(response.jobId, {
+                  caption: postData.caption || "Feed",
+                  thumbnail: postData.mediaUrl,
+                });
+              } else {
+                toast.error("Download failed to start.", { id: "download-prep" });
+                setDownloadCount((p) => Math.max(p - 1, 0));
+              }
+            },
+            onError: (err) => {
+              toast.error(err.response?.data?.message || "Error starting download.", { id: "download-prep" });
+              setDownloadCount((p) => Math.max(p - 1, 0));
+            },
+          }
+        );
+      },
+      onError: () => {
+        toast.error("Failed to check download limits.");
+      }
+    });
   };
 
   const handleFollow = useCallback(() => {

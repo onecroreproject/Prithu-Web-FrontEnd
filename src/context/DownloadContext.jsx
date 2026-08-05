@@ -25,9 +25,6 @@ export const DownloadProvider = ({ children }) => {
     }, [completedDownloads]);
 
     const addDownload = useCallback((jobId, metadata) => {
-        // Intercept and show play store popup
-        setIsDownloadPopUpOpen(true);
-        /* 
         setActiveDownloads(prev => ({
             ...prev,
             [jobId]: {
@@ -38,7 +35,6 @@ export const DownloadProvider = ({ children }) => {
                 ...metadata
             }
         }));
-        */
     }, []);
 
     const updateProgress = useCallback((jobId, progress, status = 'processing') => {
@@ -56,8 +52,6 @@ export const DownloadProvider = ({ children }) => {
     }, []);
 
     const triggerBrowserDownload = useCallback((url, filename) => {
-        setIsDownloadPopUpOpen(true);
-        /*
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', filename || 'video.mp4');
@@ -65,10 +59,9 @@ export const DownloadProvider = ({ children }) => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        */
     }, []);
 
-    const markComplete = useCallback((jobId, downloadUrl) => {
+    const markComplete = useCallback((jobId, downloadUrl, fileExt = 'mp4') => {
         setActiveDownloads(prev => {
             const job = prev[jobId];
             if (!job) return prev;
@@ -84,7 +77,7 @@ export const DownloadProvider = ({ children }) => {
             setCompletedDownloads(current => [completedItem, ...current].slice(0, 20));
 
             // Trigger browser download automatically
-            triggerBrowserDownload(downloadUrl, job.caption ? `${job.caption.slice(0, 30)}.mp4` : `download-${jobId.slice(-4)}.mp4`);
+            triggerBrowserDownload(downloadUrl, job.caption ? `${job.caption.slice(0, 30)}.${fileExt}` : `download-${jobId.slice(-4)}.${fileExt}`);
 
             const { [jobId]: _, ...remaining } = prev;
             return remaining;
@@ -127,8 +120,8 @@ export const DownloadProvider = ({ children }) => {
         };
 
         const handleComplete = (e) => {
-            const { jobId, downloadUrl } = e.detail;
-            markComplete(jobId, downloadUrl);
+            const { jobId, downloadUrl, fileExt } = e.detail;
+            markComplete(jobId, downloadUrl, fileExt);
         };
 
         const handleFailed = (e) => {

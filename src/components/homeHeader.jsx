@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import {
   BellRing, Search, Home, Video, Image, User, Gift, Settings, LogOut, Plus, Menu, X,
-  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign, Zap, Sparkles
+  Activity, MessageCircle, Heart, UserPlus, Eye, Share2, HelpCircle, MessageSquare, Briefcase, Download, CircleDollarSign, Zap, Sparkles, Wallet
 } from "lucide-react";
 import SidebarThreeBackground from "./SidebarThreeBackground";
 import debounce from "lodash.debounce";
@@ -196,7 +196,6 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     };
   }, [postStatus]);
 
-  // Main menu items to show directly in sidebar
   const mainMenuItems = [
     { to: "/home", label: "Home", Icon: Home, desc: "Your feed", color: "blue" },
     { to: "/home/birthday", label: "Birthday", Icon: Gift, desc: "Birthday greetings", color: "purple" },
@@ -204,6 +203,7 @@ export default function Header({ onSidebarHoverChange, isHome, onMobileMenuToggl
     { to: "/home/prompts", label: "AI Prompts", Icon: Sparkles, desc: "Creative AI prompts", color: "blue" },
     { to: "/home/politics", label: "Politics", Icon: MessageCircle, desc: "Politics feeds", color: "blue" },
     { to: "/subscription", label: "Subscription", Icon: CircleDollarSign, desc: "Manage plans", color: "amber" },
+    { to: "/wallet", label: "Wallet", Icon: Wallet, desc: "Credit Wallet", color: "green" },
   ];
 
   // Profile menu items

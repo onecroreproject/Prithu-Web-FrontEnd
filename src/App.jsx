@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,54 +11,60 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./context/authProtectedRoutes.jsx";
 
 // Pages & Components
-import Login from "./components/Login.jsx";
-import Layout from "./components/Layout.jsx";
-import Profilelayout from "./pages/Profilelayout.jsx";
-import SearchPage from "./pages/SearchPage.jsx";
-import SubscriptionPage from "./pages/SubscriptionPage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
-import InviteFriends from "./pages/InviteFriends.jsx";
-import SubscriptionDetails from "./pages/SubscriptionDetail.jsx";
-import SavedPage from "./pages/SavedPage.jsx";
-import LikedPosts from "./pages/LikedPosts.jsx";
-import NotInterestedposts from "./pages/NotInterestedposts.jsx";
-import Hiddenpost from "./pages/Hiddenpost.jsx";
-import PrivacyPolicy from "./privacyPolicy.jsx";
-import AdminSendNotification from "./components/adminsendnotification.jsx";
-import PostDetails from "./components/FeedPageComponent/postView.jsx";
-import SingleUserProfilelayout from "./components/SingleUserProfileViewComponent/singleProfileLayout.jsx";
-import RegisterForm from "./components/LoginPageComponents/forms/registerForm.jsx";
-import UserActivity from "./components/UserActivity/userActivity.jsx";
-import Feed from "./pages/Feed.jsx";
-import SearchResultsScreen from "./components/SearchComponent/mainLayout.jsx";
-import LandingPage from "./pages/mainHome.jsx";
-import HelpPageLayout from "./pages/HelpPageLayout.jsx";
-import FAQPage from "./pages/HelpPageLayout.jsx";
-import FeedbackSupportPage from "./pages/FeedbackSupportPage.jsx";
-import FeedbackPage from "./pages/FeedbackSupportPage.jsx";
-import ReferralPage from "./pages/ReferralPage.jsx";
-import ContactPage from "./pages/ContactPage.jsx";
-import Blogs from "./pages/Blogs.jsx";
-import BlogDetail from "./pages/BlogDetail.jsx";
-import WhatsNewPage from "./pages/WhatsNewPage.jsx";
-import AIPromptsPage from "./pages/AIPromptsPage.jsx";
+const Login = lazy(() => import("./components/Login.jsx"));
+const Layout = lazy(() => import("./components/Layout.jsx"));
+const Profilelayout = lazy(() => import("./pages/Profilelayout.jsx"));
+const SearchPage = lazy(() => import("./pages/SearchPage.jsx"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage.jsx"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
+const InviteFriends = lazy(() => import("./pages/InviteFriends.jsx"));
+const SubscriptionDetails = lazy(() => import("./pages/SubscriptionDetail.jsx"));
+const SavedPage = lazy(() => import("./pages/SavedPage.jsx"));
+const LikedPosts = lazy(() => import("./pages/LikedPosts.jsx"));
+const NotInterestedposts = lazy(() => import("./pages/NotInterestedposts.jsx"));
+const Hiddenpost = lazy(() => import("./pages/Hiddenpost.jsx"));
+const PrivacyPolicy = lazy(() => import("./privacyPolicy.jsx"));
+const AdminSendNotification = lazy(() => import("./components/adminsendnotification.jsx"));
+const PostDetails = lazy(() => import("./components/FeedPageComponent/postView.jsx"));
+const SingleUserProfilelayout = lazy(() => import("./components/SingleUserProfileViewComponent/singleProfileLayout.jsx"));
+const RegisterForm = lazy(() => import("./components/LoginPageComponents/forms/registerForm.jsx"));
+const UserActivity = lazy(() => import("./components/UserActivity/userActivity.jsx"));
+const Feed = lazy(() => import("./pages/Feed.jsx"));
+const SearchResultsScreen = lazy(() => import("./components/SearchComponent/mainLayout.jsx"));
+const LandingPage = lazy(() => import("./pages/mainHome.jsx"));
+const HelpPageLayout = lazy(() => import("./pages/HelpPageLayout.jsx"));
+const FAQPage = lazy(() => import("./pages/HelpPageLayout.jsx"));
+const FeedbackSupportPage = lazy(() => import("./pages/FeedbackSupportPage.jsx"));
+const FeedbackPage = lazy(() => import("./pages/FeedbackSupportPage.jsx"));
+const ReferralPage = lazy(() => import("./pages/ReferralPage.jsx"));
+const ContactPage = lazy(() => import("./pages/ContactPage.jsx"));
+const Blogs = lazy(() => import("./pages/Blogs.jsx"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail.jsx"));
+const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage.jsx"));
+const AIPromptsPage = lazy(() => import("./pages/AIPromptsPage.jsx"));
 import { UpdateProvider } from "./context/UpdateContext.jsx";
 import { DownloadProvider } from "./context/DownloadContext.jsx";
-import DownloadAppPopUp from "./components/DownloadAppPopUp.jsx";
+const DownloadAppPopUp = lazy(() => import("./components/DownloadAppPopUp.jsx"));
+
+// Wallet Pages
+const WalletDashboard = lazy(() => import("./pages/Wallet/WalletDashboard.jsx"));
+const TransactionHistory = lazy(() => import("./pages/Wallet/TransactionHistory.jsx"));
+const PromptUnlockHistory = lazy(() => import("./pages/Wallet/PromptUnlockHistory.jsx"));
+const AIGenerationHistory = lazy(() => import("./pages/Wallet/AIGenerationHistory.jsx"));
 
 // Static Pages
-import AboutUs from "./pages/AboutUs.jsx";
-import TermsAndConditions from "./pages/TermsAndConditions.jsx";
-import RefundPolicy from "./pages/RefundPolicy.jsx";
-import SubscriptionDetailPage from "./pages/SubscriptionDetailPage.jsx";
-import ReferralDetailPage from "./pages/ReferralDetailPage.jsx";
-import DeleteAccount from "./pages/DeleteAccount.jsx";
-import HowToDeleteAccount from "./pages/HowToDeleteAccount.jsx";
-import DeleteDataPage from "./pages/DeleteDataPage.jsx";
-import ChildSafetyStandards from "./pages/ChildSafetyStandards.jsx";
-import PaymentSuccess from "./pages/PaymentSuccess.jsx";
-import PaymentFailed from "./pages/PaymentFailed.jsx";
-import PaymentVerification from "./pages/PaymentVerification.jsx";
+const AboutUs = lazy(() => import("./pages/AboutUs.jsx"));
+const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions.jsx"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy.jsx"));
+const SubscriptionDetailPage = lazy(() => import("./pages/SubscriptionDetailPage.jsx"));
+const ReferralDetailPage = lazy(() => import("./pages/ReferralDetailPage.jsx"));
+const DeleteAccount = lazy(() => import("./pages/DeleteAccount.jsx"));
+const HowToDeleteAccount = lazy(() => import("./pages/HowToDeleteAccount.jsx"));
+const DeleteDataPage = lazy(() => import("./pages/DeleteDataPage.jsx"));
+const ChildSafetyStandards = lazy(() => import("./pages/ChildSafetyStandards.jsx"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess.jsx"));
+const PaymentFailed = lazy(() => import("./pages/PaymentFailed.jsx"));
+const PaymentVerification = lazy(() => import("./pages/PaymentVerification.jsx"));
 
 
 
@@ -78,8 +84,13 @@ function AppRoutes() {
   const { token } = useAuth();
 
   return (
-    <Routes>
-      {/* ================= PUBLIC ROUTES ================= */}
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen text-gray-500 text-lg font-medium">
+        Loading...
+      </div>
+    }>
+      <Routes>
+        {/* ================= PUBLIC ROUTES ================= */}
 
       {/* ✅ ROOT FIX: redirect if already logged in */}
       <Route
@@ -199,6 +210,21 @@ function AppRoutes() {
         <Route index element={<SubscriptionPage />} />
       </Route>
 
+      {/* Wallet Routes */}
+      <Route
+        path="/wallet"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<WalletDashboard />} />
+        <Route path="transactions" element={<TransactionHistory />} />
+        <Route path="unlocks" element={<PromptUnlockHistory />} />
+        <Route path="generations" element={<AIGenerationHistory />} />
+      </Route>
+
       {/* Shared Post */}
       <Route
         path="/retrivefeed/:feedId"
@@ -211,9 +237,12 @@ function AppRoutes() {
 
       {/* Catch All */}
       <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
+
+const Chatbot = lazy(() => import("./components/Chat/Chatbot.jsx"));
 
 export default function App() {
   return (
@@ -224,6 +253,7 @@ export default function App() {
             <DownloadProvider>
               <AppRoutes />
               <DownloadAppPopUp />
+              <Chatbot />
               <Toaster position="top-right" />
             </DownloadProvider>
           </UpdateProvider>

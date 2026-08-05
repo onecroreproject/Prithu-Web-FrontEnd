@@ -26,12 +26,7 @@ const useFeedTracking = (feedId, isVisible, isVideo = false, sessionId = 'defaul
           recoScore,
           recoSource
         });
-        if (response.data && response.data.triggerFeedbackPopup) {
-          const event = new CustomEvent("triggerFeedbackPopup", {
-            detail: { feedId }
-          });
-          window.dispatchEvent(event);
-        }
+
       } catch (err) {
         console.error('Failed to update watch time:', err);
       }
