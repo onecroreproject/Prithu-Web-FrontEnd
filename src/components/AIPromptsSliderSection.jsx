@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import api from '../api/axios';
 import { INITIAL_PROMPTS } from '../constance/promptsData';
 import CategoryHeader from './CategoryHeader';
+import { getMediaUrl } from '../utils/urlHelper';
 
 const AIPromptsSliderSection = () => {
     const [prompts, setPrompts] = useState([]);
@@ -101,10 +102,14 @@ const PromptCard = ({ prompt }) => {
         >
             {/* Prompt Image */}
             <img
-                src={prompt.imageUrl}
+                src={getMediaUrl(prompt.imageUrl)}
                 alt={prompt.title}
                 loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop";
+                }}
             />
 
             {/* Top Left Category Badge */}

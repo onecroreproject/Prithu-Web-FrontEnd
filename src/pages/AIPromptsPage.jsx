@@ -12,6 +12,7 @@ import PrithuLogo from "../assets/prithu_logo.webp";
 import { useAuth } from "../context/AuthContext";
 import TryInPrithuModal from "../components/Wallet/TryInPrithuModal";
 import { useDownloads } from "../context/DownloadContext";
+import { getMediaUrl } from "../utils/urlHelper";
 
 export default function AIPromptsPage() {
   const { token } = useAuth();
@@ -334,10 +335,14 @@ export default function AIPromptsPage() {
                         : "aspect-square"
                     }`}>
                       <img
-                        src={prompt.imageUrl}
+                        src={getMediaUrl(prompt.imageUrl)}
                         alt={prompt.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop";
+                        }}
                       />
                     </div>
 
