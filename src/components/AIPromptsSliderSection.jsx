@@ -107,8 +107,15 @@ const PromptCard = ({ prompt }) => {
                 loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
                 onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop";
+                    const currentSrc = e.target.src || '';
+                    if ((currentSrc.includes('localhost') || currentSrc.includes('127.0.0.1')) && prompt.imageUrl) {
+                        const cleanPath = prompt.imageUrl.replace(/\\/g, '/');
+                        const normalized = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+                        e.target.src = `https://api.prithu.app${normalized}`;
+                    } else {
+                        e.target.onerror = null;
+                        e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop";
+                    }
                 }}
             />
 
